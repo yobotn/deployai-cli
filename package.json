@@ -1,0 +1,42 @@
+{
+  "name": "deployai",
+  "version": "0.1.0-beta.11",
+  "description": "Check a site built with an AI editor, see what has to change, and publish it to DeployAI. Hebrew first.",
+  "keywords": [
+    "deployai",
+    "deploy",
+    "hosting",
+    "cli",
+    "ai",
+    "claude-code",
+    "cursor",
+    "copilot",
+    "codex",
+    "antigravity",
+    "static-site",
+    "astro",
+    "vite",
+    "hebrew",
+    "israel"
+  ],
+  "homepage": "https://deployai.co.il/developers",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yobotn/deployai-cli.git"
+  },
+  "license": "MIT",
+  "author": "DeployAI <info@deployai.co.il>",
+  "type": "module",
+  "bin": {
+    "deployai": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "commander": "15.0.0"
+  }
+}
