@@ -1,0 +1,52 @@
+# Publishes the DeployAI CLI to npm with trusted publishing (D-537): no npm token, provenance on every version.
+# Source: scripts/cli-mirror/publish.yml in the private repo. A deploy key may not write workflow files, so a change is
+# copied here by hand from an account (git push with the workflow scope), never by the release workflow.
+# A beta goes on `latest` while the site is invite only; set the repo variable CLI_BETA_ON_LATEST to false at the public
+# launch, then betas go on `next` and `latest` moves only on a plain version.
+name: Publish to npm
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      BETA_ON_LATEST: ${{ vars.CLI_BETA_ON_LATEST || 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      # Trusted publishing needs npm 11.5 or newer.
+      - run: npm install -g npm@11
+      - name: New version?
+        id: v
+        run: |
+          [ -f package.json ] || { echo "new=false" >> "$GITHUB_OUTPUT"; echo "No package yet."; exit 0; }
+          v=$(node -p "require('./package.json').version")
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          if npm view "deployai@$v" version >/dev/null 2>&1; then echo "new=false" >> "$GITHUB_OUTPUT"; echo "$v is already on npm."; else echo "new=true" >> "$GITHUB_OUTPUT"; fi
+      - name: Publish
+        if: steps.v.outputs.new == 'true'
+        env:
+          VERSION: ${{ steps.v.outputs.version }}
+        run: |
+          tag=latest
+          case "$VERSION" in *-beta.*) [ "$BETA_ON_LATEST" = "true" ] || tag=next ;; esac
+          npm publish --access public --tag "$tag"
+          # The trusted publisher may also manage dist-tags: `next` always names the newest build.
+          [ "$tag" = next ] || npm dist-tag add "deployai@$VERSION" next || echo "::warning::Could not move the next tag; latest is right."
+          npm view deployai dist-tags
