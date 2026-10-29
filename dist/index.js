@@ -21695,6 +21695,42 @@ var KEEP_DATA_RULES = [
 ];
 var AGENT_POINTER = "Read DEPLOYAI.md before you write code, change the plan or add a dependency: this project is published with DeployAI.";
 
+// ../shared/src/stack.ts
+var SITE_LANG_INFO = {
+  he: { name: "Hebrew", dir: "rtl", font: "Heebo" },
+  ar: { name: "Arabic", dir: "rtl", font: "Tajawal" },
+  en: { name: "English", dir: "ltr", font: "Inter" }
+};
+var STACK_FRAMEWORKS = SUPPORTED_FRAMEWORKS.map((f) => f.id);
+var frameworkName = (id) => FRAMEWORKS.find((f) => f.id === id)?.name ?? id;
+var NEED_TEXT = {
+  form: "a contact form whose messages are saved to D1, with an owner inbox behind a key from env",
+  login: "an owner login (the account is created on the first visit, passwords with bcryptjs or Web Crypto)",
+  data: "data the owner adds and edits, saved to D1",
+  files: "photos and files the owner uploads, saved to R2"
+};
+function stackBlock(s) {
+  const langs = s.langs.map((l, i) => `${SITE_LANG_INFO[l].name} (${SITE_LANG_INFO[l].dir === "rtl" ? "right to left" : "left to right"}${i === 0 ? ", the main language at the root" : `, under /${l}/`})`);
+  const fonts = s.fonts.map((f) => `${f} (${s.langs.filter((l) => l === "en" && f === "Heebo" || SITE_LANG_INFO[l].font === f).map((l) => SITE_LANG_INFO[l].name).join(" and ")})`);
+  const lines = [
+    "# The stack",
+    "",
+    "The owner chose this on DeployAI. Build with exactly this stack: do not add a server, a database, a storage service, a CSS framework or a font outside it.",
+    "",
+    `- Framework: ${frameworkName(s.framework)}${s.framework === "static" ? " (HTML, CSS and a little JavaScript, no build step)" : ""}`,
+    `- Languages: ${langs.join(", ")}.${s.langs.length > 1 ? " Every page and every string in each language, a language switch to the same page, and hreflang." : ""}`,
+    `- Fonts: ${fonts.join(", ")}, from Google Fonts.`,
+    `- CSS: ${s.css === "tailwind" ? "Tailwind CSS" : "plain CSS"}.`,
+    `- Database: ${s.bindings.includes("d1") ? "Cloudflare D1 (SQLite) through Drizzle with drizzle-orm/d1." : "none."}`,
+    `- Files: ${s.bindings.includes("r2") ? "Cloudflare R2, never the local disk." : "none."}`
+  ];
+  if (s.needs.length) lines.push(`- The site has: ${s.needs.map((n2) => NEED_TEXT[n2]).join("; ")}.`);
+  return lines.join("\n") + "\n";
+}
+function stackSummary(s) {
+  return [frameworkName(s.framework), ...s.bindings.map((b) => b.toUpperCase()), s.css === "tailwind" ? "Tailwind" : null, s.fonts.join(", "), s.dir.toUpperCase()].filter(Boolean).join(" \xB7 ");
+}
+
 // src/config.ts
 import { randomUUID } from "crypto";
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
@@ -21844,6 +21880,8 @@ var M = {
     startLinked: 'Linked this folder to the site "{name}".',
     startRules: "Wrote the rules for your agent to DEPLOYAI.md (never uploaded).",
     startStarter: "Wrote a starter page (index.html) to build the site on.",
+    startStack: "Saved the stack chosen on the site: {stack}.",
+    stackDiffers: "Note: the stack chosen on the site is {chosen}, but this folder is {found}. Keep to the chosen stack, or tell the owner why it changed.",
     startRelinked: 'Linked this folder to the site "{name}" instead of the site it was linked to.',
     statusLine: "Status: {s}",
     ready: "ready",
@@ -22020,6 +22058,8 @@ var M = {
     startLinked: '\u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D7\u05D5\u05D1\u05E8\u05D4 \u05DC\u05D0\u05EA\u05E8 "{name}".',
     startRules: "\u05D4\u05DB\u05DC\u05DC\u05D9\u05DD \u05DC\u05E1\u05D5\u05DB\u05DF \u05E0\u05DB\u05EA\u05D1\u05D5 \u05DC DEPLOYAI.md (\u05DC\u05D0 \u05E2\u05D5\u05DC\u05D9\u05DD \u05DC\u05D0\u05EA\u05E8).",
     startStarter: "\u05E0\u05DB\u05EA\u05D1 \u05D3\u05E3 \u05E4\u05EA\u05D9\u05D7\u05D4 (index.html) \u05DC\u05D1\u05E0\u05D5\u05EA \u05E2\u05DC\u05D9\u05D5 \u05D0\u05EA \u05D4\u05D0\u05EA\u05E8.",
+    startStack: "\u05E0\u05E9\u05DE\u05E8 \u05D4\u05E1\u05D8\u05D0\u05E7 \u05E9\u05E0\u05D1\u05D7\u05E8 \u05D1\u05D0\u05EA\u05E8: {stack}.",
+    stackDiffers: "\u05E9\u05D9\u05DE\u05D5 \u05DC\u05D1: \u05D4\u05E1\u05D8\u05D0\u05E7 \u05E9\u05E0\u05D1\u05D7\u05E8 \u05D1\u05D0\u05EA\u05E8 \u05D4\u05D5\u05D0 {chosen}, \u05D0\u05D1\u05DC \u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5 \u05D4\u05D9\u05D0 {found}. \u05D4\u05DE\u05E9\u05D9\u05DB\u05D5 \u05D1\u05E1\u05D8\u05D0\u05E7 \u05E9\u05E0\u05D1\u05D7\u05E8, \u05D0\u05D5 \u05D4\u05E1\u05D1\u05D9\u05E8\u05D5 \u05DC\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05DC\u05DE\u05D4 \u05D4\u05D5\u05D0 \u05D4\u05E9\u05EA\u05E0\u05D4.",
     startRelinked: '\u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D7\u05D5\u05D1\u05E8\u05D4 \u05DC\u05D0\u05EA\u05E8 "{name}" \u05D1\u05DE\u05E7\u05D5\u05DD \u05D4\u05D0\u05EA\u05E8 \u05E9\u05D4\u05D9\u05D9\u05EA\u05D4 \u05DE\u05D7\u05D5\u05D1\u05E8\u05EA \u05D0\u05DC\u05D9\u05D5.',
     statusLine: "\u05DE\u05E6\u05D1: {s}",
     ready: "\u05DE\u05D5\u05DB\u05DF \u05DC\u05E2\u05DC\u05D5\u05EA",
@@ -22198,7 +22238,7 @@ function messages(root) {
 }
 
 // src/version.ts
-var CLI_VERSION = "0.1.0-beta.11";
+var CLI_VERSION = "0.1.0-beta.12";
 
 // src/api.ts
 function apiContext(apiFlag) {
@@ -23360,6 +23400,11 @@ async function runCheck(root, ctx, opts = {}) {
     printCheck(a);
     out();
     const t = messages(root);
+    const chosen = project?.stack?.framework;
+    if (chosen && a.inspect.framework.id !== chosen && a.inspect.framework.id !== "unknown") {
+      out(t("stackDiffers", { chosen: frameworkName(chosen), found: a.inspect.framework.display }));
+      out();
+    }
     out(t("nextStep"));
     if (prompt) {
       const copied = opts.clipboard !== false && copyToClipboard(prompt);
@@ -24147,19 +24192,28 @@ import { join as join9, relative as relative2, resolve as resolve2 } from "path"
 import { writeFileSync as writeFileSync6 } from "fs";
 import { join as join8 } from "path";
 var esc2 = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
-function page(name, lang) {
-  const he = lang === "he";
-  const title = esc2(name || (he ? "\u05D4\u05D0\u05EA\u05E8 \u05E9\u05DC\u05D9" : "My site"));
-  const soon = he ? "\u05D4\u05D0\u05EA\u05E8 \u05D1\u05D1\u05E0\u05D9\u05D9\u05D4, \u05D1\u05E7\u05E8\u05D5\u05D1 \u05DB\u05D0\u05DF." : "This site is being built. Coming soon.";
-  const font = he ? '<link rel="preconnect" href="https://fonts.googleapis.com">\n  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;700&display=swap">\n  ' : "";
+var TEXT = {
+  he: { title: "\u05D4\u05D0\u05EA\u05E8 \u05E9\u05DC\u05D9", soon: "\u05D4\u05D0\u05EA\u05E8 \u05D1\u05D1\u05E0\u05D9\u05D9\u05D4, \u05D1\u05E7\u05E8\u05D5\u05D1 \u05DB\u05D0\u05DF." },
+  ar: { title: "\u0645\u0648\u0642\u0639\u064A", soon: "\u0627\u0644\u0645\u0648\u0642\u0639 \u0642\u064A\u062F \u0627\u0644\u0625\u0646\u0634\u0627\u0621\u060C \u0642\u0631\u064A\u0628\u064B\u0627 \u0647\u0646\u0627." },
+  en: { title: "My site", soon: "This site is being built. Coming soon." }
+};
+function page(name, lang, stack) {
+  const main2 = stack?.langs[0] ?? lang;
+  const dir = stack?.dir ?? (main2 === "en" ? "ltr" : "rtl");
+  const fonts = stack ? stack.fonts : main2 === "he" ? ["Heebo"] : [];
+  const title = esc2(name || TEXT[main2].title);
+  const soon = TEXT[main2].soon;
+  const font = fonts.length ? `<link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?${fonts.map((f) => `family=${f.replace(/ /g, "+")}:wght@400;700`).join("&")}&display=swap">
+  ` : "";
   return `<!doctype html>
-<html lang="${he ? "he" : "en"}" dir="${he ? "rtl" : "ltr"}">
+<html lang="${main2}" dir="${dir}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>${title}</title>
   ${font}<style>
-    body { margin: 0; min-height: 100vh; display: grid; place-items: center; font-family: ${he ? "Heebo, " : ""}system-ui, sans-serif; background: #fafafa; color: #18181b; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; font-family: ${fonts.map((f) => `${f}, `).join("")}system-ui, sans-serif; background: #fafafa; color: #18181b; }
     main { padding: 1.5rem; text-align: center; }
     h1 { margin: 0 0 .5rem; font-size: 2rem; }
   </style>
@@ -24183,8 +24237,8 @@ DeployAI wrote this page so the folder starts as a working site. Build the owner
 - Nothing from this starter stays: no "coming soon" text goes live.
 - Delete this README or replace it with notes about the site.
 `;
-function writeStarter(root, name, lang) {
-  writeFileSync6(join8(root, "index.html"), page(name ?? "", lang));
+function writeStarter(root, name, lang, stack) {
+  writeFileSync6(join8(root, "index.html"), page(name ?? "", lang, stack));
   writeFileSync6(join8(root, "README.md"), README);
 }
 
@@ -24234,16 +24288,21 @@ async function startCommand(cwd, ctx, id, opts = {}) {
     }
   }
   if (starter) {
-    writeStarter(root, choices.name, langOf(choices.ownerLanguage));
+    writeStarter(root, choices.name, langOf(choices.ownerLanguage), choices.stack);
     done.push(t("startStarter"));
   }
-  if (choices.brief) {
+  const stackText = choices.stack ? stackBlock(choices.stack) : "";
+  if (choices.brief || stackText) {
     ensureDeployaiDir(root);
-    writeFileSync7(join9(root, BRIEF_FILE), `# The owner's details
+    writeFileSync7(join9(root, BRIEF_FILE), [choices.brief ? `# The owner's details
 
 ${choices.brief}
-`);
+` : "", stackText].filter(Boolean).join("\n"));
     done.push(t("startBrief", { file: BRIEF_FILE }));
+  }
+  if (choices.stack) {
+    updateProject(root, { stack: choices.stack });
+    done.push(t("startStack", { stack: stackSummary(choices.stack) }));
   }
   if (runInit(root).created.includes("DEPLOYAI.md")) done.push(t("startRules"));
   if (choices.projectId) {
@@ -24263,6 +24322,10 @@ ${choices.brief}
     out();
   }
   out(agent.trim());
+  if (stackText) {
+    out();
+    out(stackText.trim());
+  }
   out();
   out("Then, in this order:");
   steps.forEach((s, i) => out(`${i + 1}. ${s.cmd ? `Run ${s.cmd}. ` : ""}${s.say}`));
