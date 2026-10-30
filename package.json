@@ -1,6 +1,6 @@
 {
   "name": "deployai",
-  "version": "0.1.0-beta.12",
+  "version": "0.1.0-beta.13",
   "description": "Check a site built with an AI editor, see what has to change, and publish it to DeployAI. Hebrew first.",
   "keywords": [
     "deployai",

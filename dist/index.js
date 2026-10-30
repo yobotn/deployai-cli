@@ -6,7 +6,7 @@ var __export = (target, all) => {
 };
 
 // src/cli.ts
-import { resolve as resolve4 } from "path";
+import { resolve as resolve6 } from "path";
 import { Command } from "commander";
 
 // src/api.ts
@@ -4711,14 +4711,14 @@ var $ZodObject = /* @__PURE__ */ $constructor("$ZodObject", (inst, def) => {
   const desc = Object.getOwnPropertyDescriptor(def, "shape");
   const sh = desc?.get ? desc.get.raw : def.shape ?? {};
   if (sh) {
-    const get = () => {
+    const get2 = () => {
       const newSh = { ...sh };
       Object.defineProperty(def, "shape", { value: newSh });
-      get.raw = newSh;
+      get2.raw = newSh;
       return newSh;
     };
-    get.raw = sh;
-    Object.defineProperty(def, "shape", { get });
+    get2.raw = sh;
+    Object.defineProperty(def, "shape", { get: get2 });
   }
   const _normalized = cached(() => normalizeDef(def));
   defineLazyInternal(inst, "propValues", (zod) => {
@@ -6241,7 +6241,7 @@ var recursive = /* @__PURE__ */ new WeakMap();
 var NONE = 0;
 var ASSUMED = 1;
 var PROVEN = 2;
-function isRecursive(inst, stack, resolve5) {
+function isRecursive(inst, stack, resolve7) {
   const cached2 = recursive.get(inst);
   if (cached2 !== void 0)
     return cached2 ? PROVEN : NONE;
@@ -6251,7 +6251,7 @@ function isRecursive(inst, stack, resolve5) {
   let result = NONE;
   const check2 = (child) => {
     if (result !== PROVEN && child?._zod) {
-      const answer = isRecursive(child, stack, resolve5);
+      const answer = isRecursive(child, stack, resolve7);
       if (answer > result)
         result = answer;
     }
@@ -6262,7 +6262,7 @@ function isRecursive(inst, stack, resolve5) {
       const desc = Object.getOwnPropertyDescriptor(sh, key);
       if (spread && !desc.enumerable)
         continue;
-      const child = desc.get ? ASSUMED : desc.value?._zod ? isRecursive(desc.value, stack, resolve5) : NONE;
+      const child = desc.get ? ASSUMED : desc.value?._zod ? isRecursive(desc.value, stack, resolve7) : NONE;
       if (child > answer)
         answer = child;
     }
@@ -6326,7 +6326,7 @@ function isRecursive(inst, stack, resolve5) {
       break;
     // `$ZodLazy` caches its inner on the def, so a resolved edge is followed exactly
     case "lazy": {
-      const inner = def._cachedInner ?? (resolve5 ? inst._zod.innerType : void 0);
+      const inner = def._cachedInner ?? (resolve7 ? inst._zod.innerType : void 0);
       merge2(inner ? isRecursive(inner, stack, false) : ASSUMED);
       break;
     }
@@ -20958,7 +20958,31 @@ var EnvSetResponse = external_exports.object({ ok: external_exports.literal(true
 var EnvRemoveRequest = external_exports.object({ projectId: external_exports.string(), key: external_exports.string() });
 var EnvListResponse = external_exports.object({ vars: external_exports.array(external_exports.object({ key: external_exports.string(), isSecret: external_exports.boolean(), hint: external_exports.string() })) });
 var RollbackRequest = external_exports.object({ projectId: external_exports.string(), number: external_exports.number().int().positive() });
-var PromoteRequest = external_exports.object({ projectId: external_exports.string(), number: external_exports.number().int().positive() });
+var PromoteRequest = external_exports.object({
+  projectId: external_exports.string(),
+  number: external_exports.number().int().positive(),
+  /** The owner's yes to the version's SQL (D-541): the `hash` of the plan they were shown, so newer SQL is never run on it. */
+  approveSql: external_exports.string().optional(),
+  /** Destructive SQL (D-541): the database name the person typed at the terminal. */
+  confirmDatabase: external_exports.string().optional()
+});
+var SqlPlanResponse = external_exports.object({
+  number: external_exports.number(),
+  migrationStatus: MigrationStatus.nullable(),
+  /** The database binding the SQL runs on, null when the version declares none. */
+  database: external_exports.string().nullable(),
+  /** A database that does not exist yet: the seed runs too. */
+  isNew: external_exports.boolean(),
+  files: external_exports.array(external_exports.object({ file: external_exports.string(), kind: external_exports.string(), statements: external_exports.number(), skip: external_exports.boolean() })),
+  /** Statements that delete or overwrite data: an agent may not approve them, a person types the database name. */
+  destructive: external_exports.array(external_exports.object({ file: external_exports.string(), statement: external_exports.string() })),
+  /** Files that stopped part way and changed since: only the dashboard sorts these out. */
+  stuck: external_exports.array(external_exports.string()),
+  hash: external_exports.string(),
+  /** Only the owner approves SQL; a teammate gets the dashboard page to send them. */
+  canApprove: external_exports.boolean(),
+  url: external_exports.string()
+});
 var StatusResponse = external_exports.object({
   project: Project,
   queue: external_exports.object({ position: external_exports.number(), running: external_exports.boolean() }),
@@ -20969,6 +20993,8 @@ var StatusResponse = external_exports.object({
     error: external_exports.string().nullable(),
     logTail: external_exports.string().nullable(),
     migrationStatus: MigrationStatus.nullable().optional(),
+    /** Why the SQL failed, when it did (D-541). */
+    migrationError: external_exports.string().nullable().optional(),
     /** A ready version that is not live: its preview, for the owner to look at before promote (D-505). */
     preview: external_exports.string().nullable().optional(),
     /** Going live right now (D-528). */
@@ -21174,6 +21200,7 @@ var ARCH_NODES = [
   { id: "oauth", kind: "external", zone: "services", label: "Google / GitHub OAuth", summary: "\u05D4\u05EA\u05D7\u05D1\u05E8\u05D5\u05EA \u05E2\u05DD Google \u05D0\u05D5 GitHub \u05D3\u05E8\u05DA Better Auth.", summaryEn: "Log in with Google or GitHub through Better Auth.", code: ["apps/web/src/server/auth.ts"], env: ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET"], decisions: ["D-020"] },
   { id: "payments", kind: "external", zone: "services", label: "Payment provider (Cardcom)", summary: "\u05E7\u05D0\u05E8\u05D3\u05E7\u05D5\u05DD \u05DB\u05D1\u05E8\u05D9\u05E8\u05EA \u05DE\u05D7\u05D3\u05DC, \u05D5\u05E0\u05D1\u05D7\u05E8 \u05D1\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA \u05D4\u05D0\u05D3\u05DE\u05D9\u05DF (\u05D0\u05D5 \u05DE\u05D3\u05D5\u05DE\u05D4 \u05DC\u05D1\u05D3\u05D9\u05E7\u05D5\u05EA). \u05D4\u05DB\u05E8\u05D8\u05D9\u05E1 \u05DE\u05D5\u05E7\u05DC\u05D3 \u05D1\u05D3\u05E3 \u05D4\u05DE\u05D0\u05D5\u05D1\u05D8\u05D7 \u05E9\u05DC \u05E7\u05D0\u05E8\u05D3\u05E7\u05D5\u05DD \u05D5\u05E0\u05E9\u05DE\u05E8 \u05DB\u05D8\u05D5\u05E7\u05DF \u05DE\u05D5\u05E6\u05E4\u05DF, \u05DB\u05DC \u05D7\u05D9\u05D5\u05D1 \u05E2\u05DD \u05DE\u05E4\u05EA\u05D7 \u05D0\u05D9\u05D3\u05DE\u05E4\u05D5\u05D8\u05E0\u05D8\u05D9\u05D5\u05EA, \u05D5\u05E7\u05D0\u05E8\u05D3\u05E7\u05D5\u05DD \u05DE\u05E4\u05D9\u05E7\u05D4 \u05D7\u05E9\u05D1\u05D5\u05E0\u05D9\u05EA \u05DE\u05E1 \u05DC\u05DB\u05DC \u05D7\u05D9\u05D5\u05D1 \u05D5\u05D7\u05E9\u05D1\u05D5\u05E0\u05D9\u05EA \u05D6\u05D9\u05DB\u05D5\u05D9 \u05DC\u05DB\u05DC \u05D4\u05D7\u05D6\u05E8.", summaryEn: "Cardcom by default, chosen in admin settings (or simulated for tests). The card is typed on the secure Cardcom page and saved as a sealed token, every charge carries an idempotency key, and Cardcom issues a tax invoice per charge and a credit invoice per refund.", code: ["apps/web/src/server/billing/provider.ts", "apps/web/src/server/billing/cardcom.ts", "apps/web/src/server/billing/card-pages.ts", "apps/web/src/app/api/billing/card"], env: ["BILLING_PROVIDER", "BILLING_MOCK_FAIL", "CARDCOM_TERMINAL", "CARDCOM_API_NAME", "CARDCOM_API_PASSWORD", "CARDCOM_INVOICES", "CARDCOM_CSS_URL", "CARDCOM_TOKEN_KEY", "CARDCOM_DEPARTMENT_ID"], portability: "Payments", decisions: ["D-175", "D-292"] },
   { id: "registrar", kind: "external", zone: "services", label: "Domain registrars (Cloudflare, LiveDNS)", summary: "\u05E7\u05E0\u05D9\u05D9\u05EA \u05D3\u05D5\u05DE\u05D9\u05D9\u05E0\u05D9\u05DD \u05DC\u05D0\u05EA\u05E8: \u05DB\u05DC \u05E9\u05DD \u05D4\u05D5\u05DC\u05DA \u05DC\u05E8\u05E9\u05DD \u05D4\u05D6\u05D5\u05DC \u05D1\u05D9\u05D5\u05EA\u05E8 \u05E9\u05E4\u05D5\u05E2\u05DC, \u05DB\u05DC \u05E8\u05E9\u05DD \u05D1\u05E2\u05DC\u05D5\u05EA \u05D5\u05D1\u05E2\u05DE\u05DC\u05D4 \u05DE\u05E9\u05DC\u05D5 (Cloudflare \u05D1\u05D3\u05D5\u05DC\u05E8\u05D9\u05DD \u05DC\u05DB\u05DC \u05E9\u05DD, LiveDNS \u05DE\u05E0\u05E7\u05D5\u05D3\u05D5\u05EA \u05E7\u05E8\u05D3\u05D9\u05D8 \u05DC\u05E4\u05D9 \u05D4\u05DE\u05D7\u05D9\u05E8\u05D5\u05DF \u05E9\u05E0\u05E7\u05E8\u05D0 \u05DB\u05DC \u05D9\u05D5\u05DD, \u05D0\u05D5 \u05D9\u05D3\u05E0\u05D9 \u05DE\u05EA\u05D5\u05E8 \u05D4\u05E6\u05D5\u05D5\u05EA), \u05DE\u05D7\u05D9\u05E8 \u05DB\u05DC \u05E1\u05D9\u05D5\u05DE\u05EA \u05E0\u05D1\u05D3\u05E7 \u05DB\u05DC \u05D9\u05D5\u05DD (\u05D5\u05D0\u05E4\u05E9\u05E8 \u05DC\u05DB\u05D1\u05D5\u05EA \u05E1\u05D9\u05D5\u05DE\u05D5\u05EA), \u05E8\u05D9\u05E9\u05D5\u05DD \u05D0\u05D7\u05D3 \u05DC\u05DB\u05DC \u05D4\u05D6\u05DE\u05E0\u05D4, \u05D9\u05D5\u05DE\u05DF \u05E7\u05E8\u05D9\u05D0\u05D5\u05EA \u05DC\u05DB\u05DC \u05D4\u05D6\u05DE\u05E0\u05D4, \u05D5\u05D7\u05D9\u05D3\u05D5\u05E9 \u05E9\u05E0\u05EA\u05D9 \u05D0\u05E6\u05DC \u05D0\u05D5\u05EA\u05D5 \u05E8\u05E9\u05DD. \u05DC\u05D3\u05D5\u05DE\u05D9\u05D9\u05DF \u05E9\u05E0\u05E7\u05E0\u05D4: \u05D3\u05D5\u05D0\u05E8 \u05D3\u05E8\u05DA Cloudflare Email Routing.", summaryEn: "Buying domains for a site: each name goes to the cheapest registrar that is on, each with its own cost and fee (Cloudflare in dollars per name, LiveDNS from credit points priced by its list, read daily, or by hand from the team queue), the price of every extension checked daily (some can be turned off), one registration per order, a call log per order, yearly renewal at the same registrar. For a bought domain: email through Cloudflare Email Routing.", code: ["apps/web/src/server/registrar.ts", "apps/web/src/server/registrar-livedns.ts", "apps/web/src/server/registrar-log.ts", "apps/web/src/server/domain-sales.ts", "apps/web/src/server/domain-extensions.ts", "apps/web/src/server/domain-email.ts", "apps/web/src/server/billing/services.ts"], env: ["CF_REGISTRAR_TOKEN", "LIVEDNS_USER", "LIVEDNS_PASSWORD"], decisions: ["D-299", "D-300", "D-301", "D-458", "D-486", "D-489", "D-491"] },
+  { id: "mailbox-providers", kind: "external", zone: "services", label: "Mailbox providers (Google Workspace, Zoho Mail)", summary: "\u05EA\u05D9\u05D1\u05D5\u05EA \u05D3\u05D5\u05D0\u05E8 \u05E9\u05E0\u05DE\u05DB\u05D5\u05E8 \u05E2\u05DC \u05D3\u05D5\u05DE\u05D9\u05D9\u05DF \u05E9\u05DC \u05D4\u05DC\u05E7\u05D5\u05D7: Google Workspace \u05D3\u05E8\u05DA \u05EA\u05D5\u05DB\u05E0\u05D9\u05EA \u05D4\u05DE\u05E9\u05D5\u05D5\u05E7\u05D9\u05DD \u05D5\u05BEZoho Mail \u05D3\u05E8\u05DA \u05EA\u05D5\u05DB\u05E0\u05D9\u05EA \u05D4\u05E9\u05D5\u05EA\u05E4\u05D9\u05DD, \u05D1\u05D7\u05D9\u05D5\u05D1 \u05D7\u05D5\u05D3\u05E9\u05D9 \u05DC\u05DB\u05DC \u05EA\u05D9\u05D1\u05D4. \u05D4\u05DE\u05E4\u05EA\u05D7\u05D5\u05EA \u05DE\u05D5\u05DB\u05E0\u05D9\u05DD, \u05D4\u05DE\u05D7\u05D1\u05E8 \u05D9\u05D9\u05D1\u05E0\u05D4 \u05DB\u05E9\u05D9\u05D4\u05D9\u05D5 \u05D7\u05D5\u05D6\u05D4 \u05D5\u05DE\u05E4\u05EA\u05D7\u05D5\u05EA \u05D1\u05D3\u05D9\u05E7\u05D4.", summaryEn: "Mailboxes we sell on the customer domain: Google Workspace through the reseller program and Zoho Mail through the partner program, billed per mailbox per month. The keys are ready; the connector is built once a contract and sandbox keys exist.", code: ["apps/web/src/server/mailbox.ts"], env: ["GOOGLE_RESELLER_KEY", "GOOGLE_RESELLER_ADMIN", "ZOHO_PARTNER_CLIENT_ID", "ZOHO_PARTNER_CLIENT_SECRET", "ZOHO_PARTNER_REFRESH_TOKEN"], decisions: ["D-547"] },
   { id: "mcp", kind: "external", zone: "services", label: "MCP for AI tools (/api/mcp)", summary: "ChatGPT \u05D5\u05BEClaude \u05DE\u05EA\u05D7\u05D1\u05E8\u05D9\u05DD \u05D1\u05DC\u05D9 \u05D8\u05E8\u05DE\u05D9\u05E0\u05DC: OAuth \u05E2\u05DD \u05D0\u05D9\u05E9\u05D5\u05E8 \u05D1\u05D3\u05E4\u05D3\u05E4\u05DF, \u05D5\u05D0\u05D6 \u05DB\u05DC\u05D9\u05DD \u05DC\u05E8\u05E9\u05D9\u05DE\u05EA \u05D4\u05D0\u05EA\u05E8\u05D9\u05DD, \u05D1\u05D3\u05D9\u05E7\u05D4, \u05D4\u05E2\u05DC\u05D0\u05EA \u05D2\u05E8\u05E1\u05D4 \u05DC\u05EA\u05E6\u05D5\u05D2\u05D4 \u05DE\u05E7\u05D3\u05D9\u05DE\u05D4, \u05D4\u05E8\u05E6\u05EA \u05EA\u05D5\u05E1\u05E4\u05D9\u05DD \u05E9\u05D4\u05D0\u05EA\u05E8 \u05E7\u05E0\u05D4 (\u05D4\u05E7\u05E0\u05D9\u05D9\u05D4 \u05E8\u05E7 \u05D1\u05D0\u05EA\u05E8), \u05D5\u05D4\u05E2\u05DC\u05D0\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8 \u05E8\u05E7 \u05E2\u05DD \u05D4\u05E8\u05E9\u05D0\u05D4 \u05D5\u05D0\u05D9\u05E9\u05D5\u05E8.", summaryEn: "ChatGPT and Claude connect without a terminal: OAuth with a browser consent, then tools to list sites, check, upload a version to a preview, run add-ons the site owns (buying stays on the site), and go live only with the permission and a yes.", code: ["apps/web/src/app/api/mcp/route.ts", "apps/web/src/server/mcp-tools.ts", "apps/web/src/server/auth.ts"], decisions: ["D-302"] },
   { id: "npm", kind: "external", zone: "services", label: "npm registry", summary: "\u05DE\u05E4\u05D9\u05E5 \u05D0\u05EA \u05D4\u05BECLI, \u05D5\u05DE\u05DE\u05E0\u05D5 \u05D4\u05D1\u05E0\u05D9\u05D9\u05D4 \u05DE\u05EA\u05E7\u05D9\u05E0\u05D4 \u05EA\u05DC\u05D5\u05D9\u05D5\u05EA.", summaryEn: "Distributes the CLI, and the build installs dependencies from it." },
   { id: "pagespeed", kind: "external", zone: "services", label: "Google PageSpeed Insights", summary: "\u05D1\u05D3\u05D9\u05E7\u05D5\u05EA \u05D4\u05DE\u05D4\u05D9\u05E8\u05D5\u05EA, \u05D4\u05E0\u05D2\u05D9\u05E9\u05D5\u05EA \u05D5\u05D4\u05BESEO \u05D4\u05D7\u05D9\u05E0\u05DE\u05D9\u05D5\u05EA: Lighthouse \u05D1\u05DE\u05E2\u05D1\u05D3\u05D4 \u05E9\u05DC \u05D2\u05D5\u05D2\u05DC (\u05DB\u05D5\u05DC\u05DC \u05E1\u05D5\u05DB\u05E0\u05D9 AI) \u05D5\u05E0\u05EA\u05D5\u05E0\u05D9 \u05DE\u05D1\u05E7\u05E8\u05D9\u05DD \u05D0\u05DE\u05D9\u05EA\u05D9\u05D9\u05DD.", summaryEn: "The free speed, accessibility and SEO tests: Lighthouse run at Google (AI agents included) plus real visitor data.", env: ["PAGESPEED_API_KEY"], decisions: ["D-199", "D-222"] },
@@ -21315,8 +21342,108 @@ var DEFAULT_FLEET = {
 };
 var DEFAULT_PROFIT = { paying: 1e4, priceAgorot: 4e3, freeAccounts: 0, sitesPerPaying: 1, profile: "typical", ownDomainShare: DEFAULT_FLEET.ownDomainShare, zoneOwned: true, demoHostnames: DEFAULT_FLEET.demoHostnames, ownEmailsPerAccount: DEFAULT_FLEET.ownEmailsPerAccount, otherFixedUsd: DEFAULT_FLEET.otherFixedUsd, teamIls: 0, incomeTax: 0.23 };
 
+// ../shared/src/html.ts
+function stripHtmlComments(html) {
+  return html.replace(/<!--[\s\S]*?-->/g, (m) => m.replace(/[^\n]/g, " "));
+}
+function stripScripts(html) {
+  return html.replace(/(<(script|style|template|noscript)\b[^>]*>)([\s\S]*?)(<\/\2\s*>)/gi, (_m, open2, _t, body, close) => open2 + body.replace(/[^\n]/g, " ") + close);
+}
+function parseAttrs(tag) {
+  const attrs = {};
+  const inner = tag.replace(/^<\s*[\w:-]+/, "").replace(/\/?>$/, "");
+  const re = /([^\s=/>"']+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+)))?/g;
+  let m;
+  while (m = re.exec(inner)) attrs[m[1].toLowerCase()] = m[2] ?? m[3] ?? m[4] ?? "";
+  return attrs;
+}
+function tags(html, name) {
+  const re = new RegExp(`<${name}\\b[^>]*>`, "gi");
+  const out2 = [];
+  let m;
+  while (m = re.exec(html)) out2.push({ attrs: parseAttrs(m[0]), index: m.index });
+  return out2;
+}
+function decode3(text) {
+  return text.replace(/&#(\d{1,7});/g, (m, n2) => Number(n2) > 0 && Number(n2) <= 1114111 ? String.fromCodePoint(Number(n2)) : m).replace(/&#x([0-9a-f]{1,6});/gi, (m, h) => parseInt(h, 16) > 0 && parseInt(h, 16) <= 1114111 ? String.fromCodePoint(parseInt(h, 16)) : m).replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
+}
+function titleOfPage(html) {
+  const m = /<title\b[^>]*>([\s\S]*?)<\/title>/i.exec(html);
+  const t = m ? decode3(m[1].replace(/<[^>]*>/g, "")) : "";
+  return t || null;
+}
+function metaContent(html, key) {
+  for (const t of tags(html, "meta")) {
+    const k = (t.attrs.name ?? t.attrs.property ?? "").toLowerCase();
+    if (k === key && t.attrs.content?.trim()) return decode3(t.attrs.content);
+  }
+  return null;
+}
+function htmlTag(html) {
+  return tags(html, "html")[0] ?? null;
+}
+function isSpaShell(html) {
+  return /<div\b[^>]*\bid\s*=\s*["'](?:root|app|__nuxt|svelte)["'][^>]*>\s*<\/div>/i.test(html) && !/<h1\b/i.test(html);
+}
+
 // ../shared/src/tool-fetch.ts
 var FILE_BYTES = 512 * 1024;
+
+// ../shared/src/seo-audit.ts
+var textOf = (html) => decode3(html.replace(/<[^>]*>/g, " "));
+function readPageSeo(html, headers = {}) {
+  const clean = stripScripts(stripHtmlComments(html));
+  const headings = [];
+  const re = /<h([1-6])\b[^>]*>([\s\S]*?)<\/h\1\s*>/gi;
+  let m;
+  while (m = re.exec(clean)) headings.push({ level: Number(m[1]), text: textOf(m[2]).slice(0, 160) });
+  const links = tags(clean, "link");
+  const rel = (t) => (t.attrs.rel ?? "").toLowerCase().split(/\s+/);
+  const imgs = tags(clean, "img");
+  const root = htmlTag(clean);
+  return {
+    title: titleOfPage(clean),
+    description: metaContent(clean, "description"),
+    h1: headings.filter((h) => h.level === 1).map((h) => h.text),
+    headings,
+    lang: root?.attrs.lang?.trim() || null,
+    dir: root?.attrs.dir?.trim() || null,
+    canonical: links.find((t) => rel(t).includes("canonical"))?.attrs.href?.trim() || null,
+    robots: metaContent(clean, "robots"),
+    xRobots: headers["x-robots-tag"] ?? null,
+    hreflang: links.filter((t) => rel(t).includes("alternate") && t.attrs.hreflang && t.attrs.href).map((t) => ({ lang: t.attrs.hreflang.trim(), href: t.attrs.href.trim() })),
+    viewport: !!metaContent(clean, "viewport"),
+    images: imgs.length,
+    imagesWithoutAlt: imgs.filter((t) => !("alt" in t.attrs)).length,
+    spaShell: isSpaShell(html)
+  };
+}
+function parseRobots(text) {
+  const groups = [];
+  const sitemaps = [];
+  let current = null;
+  let lastWasAgent = false;
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.replace(/#.*$/, "").trim();
+    const m = /^([A-Za-z-]+)\s*:\s*(.*)$/.exec(line);
+    if (!m) continue;
+    const key = m[1].toLowerCase();
+    const value = m[2].trim();
+    if (key === "user-agent") {
+      if (!current || !lastWasAgent) {
+        current = { agents: [], rules: [] };
+        groups.push(current);
+      }
+      current.agents.push(value.toLowerCase());
+      lastWasAgent = true;
+      continue;
+    }
+    lastWasAgent = false;
+    if (key === "sitemap") sitemaps.push(value);
+    else if ((key === "allow" || key === "disallow") && current) current.rules.push({ allow: key === "allow", path: value });
+  }
+  return { groups, sitemaps };
+}
 
 // ../shared/src/plan-copy.ts
 var PLAN_FEATURES = [
@@ -21338,22 +21465,47 @@ var KEYS = new Set(PLAN_FEATURES.map((f) => f.key));
 
 // ../shared/src/start-flow.ts
 var START_ID_RE = /^[a-hjkmnp-z2-9]{10}$/;
+var MIGRATION_DIR = ".deployai/migration";
 var BRIEF_FILE = ".deployai/brief.md";
 var CHECK = { cmd: "npx deployai@latest check", say: "Fix every blocker it lists, then run it again until it shows none." };
-var ASK = { say: "Show the owner what you changed, in short, and ask them before you upload." };
+var DEPLOY_ASK_RULE = 'Never deploy on your own, and never after each small edit: every deploy is a full build. Deploy only when what the owner asked for is done. Then say in short what changed and ask: "Put it live, see a preview first, or not yet?" Put it live: deploy with --live. Preview first: deploy without it and send the owner the preview address. Not yet: keep working, and the next change goes up in the same deploy. If the owner said to always put changes live, deploy with --live without asking. Database changes still get their own yes.';
+var ASK = { say: DEPLOY_ASK_RULE };
+var GUEST_ASK = { say: 'Deploy only when what the owner asked for is done. Say in short what you made and ask: "Put it up now, or not yet?" On Not yet, keep working and ask again when the next request is done.' };
 var LOGIN = { cmd: "npx deployai@latest login", say: "The owner approves it in the browser window it opens." };
-var STATUS = { cmd: "npx deployai@latest status", say: "Run it until the new version is ready, then send the owner the preview address." };
-var PROMOTE = { cmd: "npx deployai@latest promote v<N>", say: "Only after the owner approves the preview. N is the version number deploy printed. Then give the owner the live address." };
-var DEPLOY_SAY = "It builds a preview first. Write the -m message in a few words in the language of the owner, about what they see changed.";
+var PROMOTE = { cmd: "npx deployai@latest promote v<N>", say: "Only when deploy ran without --live, and only after the owner approves the preview. N is the version number deploy printed. Then give the owner the live address." };
+var DEPLOY_SAY = "Add --live only if the owner chose to put it live right away. It waits for the build: with --live it ends with the live address, else with the preview address to send the owner. When it prints database changes, a yes to going live does not cover them (D-541): show the owner the changes and ask the question it prints, and only after a yes run the promote --approve-sql command it printed; changes it says remove data only the owner approves, never you. Write the -m message in a few words in the language of the owner, about what they see changed.";
 var BUILD = { say: "This folder had no site, so start wrote a starter page. Do not ask where the site comes from or which way to start: build a first version of the owner's site in its place now. Use what you know (the instructions above, .deployai/brief.md if it exists, the folder name) and choose the layout, colors and wording yourself. Ask at most one short question, and only if you cannot tell what the site is for. Leave out what you do not know (phone, prices, hours) instead of asking for it. Then show it to the owner and offer to add those details. Run check only after that." };
+var MIGRATE_STEPS = [
+  { cmd: "npx deployai@latest blocks inbox", say: "Only if the old site has a contact or quote form: the form with its own messages page for the owner." },
+  { cmd: "npx deployai@latest blocks blog", say: "Only if the old site has posts, news or articles: the blog, with the posts as Markdown files." },
+  { cmd: "npx deployai@latest migrate media", say: "Downloads the old site's images and files into .deployai/migration/media; run it again if it stops, it goes on where it stopped. Move the files the new pages use into the site." },
+  { ...CHECK },
+  LOGIN,
+  { cmd: 'npx deployai@latest link --create "<the site name>"', say: "Makes the site in the owner's account and links this folder. The add-ons come with it for free while the offer lasts." },
+  { cmd: 'npx deployai@latest deploy -m "moved from the old site"', say: "Without --live: the first version of a moved site is always a preview. It waits for the build and prints the preview address." },
+  { cmd: "npx deployai@latest migrate verify <preview address>", say: "Compares every old address with the preview: a page that moved, lost its title or description, or does not open. Fix each one, deploy again and run it again until it lists none." },
+  { cmd: "npx deployai@latest addons run", say: "Runs every add-on of the site in one go. Work through each step it prints, run check between add-ons, and report each one as it says." },
+  { say: 'Send the owner the preview address and the table from .deployai/migration/plan.md. Ask: "Put it live now, or change something first?" Deploy again for each change.' },
+  PROMOTE,
+  { say: "Only after it is live: tell the owner how to connect their domain in the dashboard (Domains), to keep their email records (MX) as they are, and to keep the old hosting for a few weeks before they cancel it." }
+];
+var managedStatus = (stage, note, say) => ({ cmd: `npx deployai@latest migrate status ${stage} "${note}"`, say });
+var MANAGED_STEPS = [
+  managedStatus("building", "<what is done>", "First, once the plan in .deployai/migration/plan.md is agreed: the request shows the build started."),
+  ...MIGRATE_STEPS.slice(0, 9),
+  managedStatus("preview_ready", "<preview address>", "The owner gets an email with the preview address."),
+  ...MIGRATE_STEPS.slice(9, 11),
+  managedStatus("live", "<live address>", "Only after it is live. Then the team transfers the site to the owner."),
+  ...MIGRATE_STEPS.slice(11)
+];
 var PULL = { cmd: "npx deployai@latest pull", say: "This folder was empty, so it downloads the code of the live site first. Work on that code." };
 function startSteps(kind, opts = {}) {
   switch (kind) {
     case "new":
-      return [...opts.starter ? [BUILD] : [], CHECK, ASK, LOGIN, { cmd: 'npx deployai@latest deploy -m "first version"', say: DEPLOY_SAY }, STATUS, PROMOTE];
+      return [...opts.starter ? [BUILD] : [], CHECK, ASK, LOGIN, { cmd: 'npx deployai@latest deploy -m "first version"', say: DEPLOY_SAY }, PROMOTE];
     case "update": {
       const deploy = { cmd: 'npx deployai@latest deploy -m "<what changed, in a few words>"', say: DEPLOY_SAY };
-      return opts.emptyFolder ? [LOGIN, PULL, CHECK, ASK, deploy, STATUS, PROMOTE] : [CHECK, ASK, LOGIN, deploy, STATUS, PROMOTE];
+      return opts.emptyFolder ? [LOGIN, PULL, CHECK, ASK, deploy, PROMOTE] : [CHECK, ASK, LOGIN, deploy, PROMOTE];
     }
     case "move":
       return [
@@ -21362,14 +21514,15 @@ function startSteps(kind, opts = {}) {
         LOGIN,
         { cmd: "npx deployai@latest link", say: `If it lists the owner's sites, ask which one is this folder and run npx deployai@latest link <slug>. If there is none, ask for a name and run npx deployai@latest link --create "<name>".` },
         { cmd: 'npx deployai@latest deploy -m "first version"', say: DEPLOY_SAY },
-        STATUS,
         PROMOTE
       ];
+    case "migrate":
+      return (opts.managed ? MANAGED_STEPS : MIGRATE_STEPS).map((step) => ({ ...step }));
     case "guest":
       return [
         ...opts.starter ? [BUILD] : [],
         { ...CHECK, say: "Fix every blocker it lists, then run it again until it shows none. If the site needs environment variables, secrets, file storage or sending email, never stop building for it: tell the owner once, in one plain line, that putting those parts live needs a free account (one link, about a minute), keep building what they asked, and ask about the account only at the deploy step." },
-        ASK,
+        GUEST_ASK,
         { cmd: "npx deployai@latest deploy --guest", say: "It prints the address, the claim link and any owner keys." },
         { say: "The site goes live about a minute later: wait, then open the address to see it is live before you tell the owner." },
         { say: "Give the owner the address, the claim link and any owner keys it printed. Tell them the site is temporary until the date it printed, that the claim link is the only way to keep it in a free account, and that owner keys show only once, so they should save both now." },
@@ -21389,9 +21542,12 @@ var CLI_MAP_NODES = [
   n("page-samples", "site", "/samples", "\u05DE\u05EA\u05D7\u05D9\u05DC\u05D9\u05DD \u05DE\u05D3\u05D5\u05D2\u05DE\u05D4: \u05E9\u05D5\u05DC\u05D7 \u05DC /go-live \u05E2\u05DD \u05D4\u05D3\u05D5\u05D2\u05DE\u05D4, \u05D5\u05D4 id \u05E0\u05D5\u05E9\u05D0 \u05D0\u05D5\u05EA\u05D4.", "Start from a sample: sends to /go-live with the sample, and the id carries it."),
   n("page-new", "site", "/dashboard/new", "\u05D0\u05EA\u05E8 \u05D7\u05D3\u05E9: \u05D4\u05D3\u05D5\u05D2\u05DE\u05D4, \u05D4\u05E9\u05DD \u05D5\u05D4\u05E4\u05E8\u05D8\u05D9\u05DD \u05E0\u05E9\u05DE\u05E8\u05D9\u05DD \u05D1\u05D0\u05EA\u05E8, \u05D5\u05D4 id \u05E0\u05D5\u05E9\u05D0 \u05D0\u05EA \u05DB\u05D5\u05DC\u05DD.", "New site: the sample, name and details are saved on the site, and the id carries them all."),
   n("page-site", "site", "/project/<id>", "\u05E2\u05DE\u05D5\u05D3 \u05D4\u05D0\u05EA\u05E8: \u05E9\u05D5\u05E8\u05EA \u05D4\u05EA\u05D7\u05DC\u05D4 \u05E2\u05D3 \u05D4\u05D2\u05E8\u05E1\u05D4 \u05D4\u05E8\u05D0\u05E9\u05D5\u05E0\u05D4, \u05D5\u05D0\u05D7\u05E8\u05D9\u05D4 \u05E9\u05D5\u05E8\u05EA \u05E2\u05D3\u05DB\u05D5\u05DF.", "The site page: a new site line until the first version, then an update line."),
+  n("page-move-url", "site", "/move", "\u05D4\u05E2\u05D1\u05D9\u05E8\u05D5 \u05D0\u05EA \u05D4\u05D0\u05EA\u05E8 \u05E9\u05DC\u05D9: \u05DB\u05EA\u05D5\u05D1\u05EA \u05D4\u05D0\u05EA\u05E8 \u05D4\u05D9\u05E9\u05DF, \u05D4\u05E4\u05DC\u05D8\u05E4\u05D5\u05E8\u05DE\u05D4, \u05E1\u05D5\u05D2 \u05D4\u05D0\u05EA\u05E8 \u05D5\u05D4\u05E2\u05D9\u05E6\u05D5\u05D1. \u05D4 id \u05E0\u05D5\u05E9\u05D0 \u05D0\u05EA \u05DB\u05D5\u05DC\u05DD.", "Move my site: the old site address, the platform, the kind of site and the design. The id carries them all."),
   n("page-move", "site", "/dashboard", "\u05D9\u05E9 \u05DC\u05D9 \u05DB\u05D1\u05E8 \u05D0\u05EA\u05E8: \u05E9\u05D5\u05E8\u05D4 \u05DC\u05D4\u05E2\u05D1\u05E8\u05EA \u05D4\u05D0\u05EA\u05E8 \u05E9\u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4.", "I already have a site: a line to move the site in the folder."),
   // The CLI: every command (packages/cli/src/cli.ts).
   n("cmd-start", "cli", "start <id>", "\u05DE\u05DB\u05D9\u05DF \u05D0\u05EA \u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05DC\u05E4\u05D9 \u05DB\u05DC \u05D4\u05D1\u05D7\u05D9\u05E8\u05D5\u05EA: \u05EA\u05D9\u05E7\u05D9\u05D9\u05D4, \u05D3\u05D5\u05D2\u05DE\u05D4 \u05D5\u05D4\u05EA\u05E7\u05E0\u05D4, \u05E7\u05D5\u05D1\u05E5 \u05D4\u05E4\u05E8\u05D8\u05D9\u05DD \u05D5\u05D7\u05D9\u05D1\u05D5\u05E8 \u05DC\u05D0\u05EA\u05E8. \u05DE\u05D3\u05E4\u05D9\u05E1 \u05DC\u05E1\u05D5\u05DB\u05DF \u05D0\u05EA \u05D4\u05D8\u05E7\u05E1\u05D8 \u05D5\u05D0\u05EA \u05D4\u05E4\u05E7\u05D5\u05D3\u05D5\u05EA.", "Prepares the folder with every choice: folder, sample and install, the details file and the site link. Prints the text and the commands for the agent."),
+  n("cmd-migrate", "cli", "migrate scan / media / redirects / verify / status", "\u05D4\u05D0\u05EA\u05E8 \u05D4\u05D9\u05E9\u05DF: \u05E1\u05E8\u05D9\u05E7\u05EA \u05D4\u05DB\u05EA\u05D5\u05D1\u05D5\u05EA \u05D5\u05D4\u05EA\u05D5\u05DB\u05DF, \u05D4\u05D5\u05E8\u05D3\u05EA \u05D4\u05E7\u05D1\u05E6\u05D9\u05DD, \u05D4\u05E4\u05E0\u05D9\u05D5\u05EA 301 \u05DC\u05DB\u05EA\u05D5\u05D1\u05D5\u05EA \u05E9\u05DC\u05D0 \u05E0\u05E9\u05D0\u05E8\u05D5, \u05D5\u05D1\u05D3\u05D9\u05E7\u05D4 \u05E9\u05DB\u05DC \u05DB\u05EA\u05D5\u05D1\u05EA \u05D9\u05E9\u05E0\u05D4 \u05E0\u05E4\u05EA\u05D7\u05EA \u05D1\u05EA\u05E6\u05D5\u05D2\u05D4 \u05D4\u05DE\u05E7\u05D3\u05D9\u05DE\u05D4.", "The old site: scan its addresses and content, download its files, 301s for addresses that could not stay, and a check that every old address opens on the preview."),
+  n("cmd-blocks", "cli", "blocks [name]", "\u05D0\u05D1\u05E0\u05D9 \u05D1\u05E0\u05D9\u05D9\u05DF \u05E9\u05DC\u05E0\u05D5 \u05DC\u05D0\u05EA\u05E8 \u05E7\u05D9\u05D9\u05DD: inbox (\u05D8\u05D5\u05E4\u05E1 \u05D5\u05E2\u05DE\u05D5\u05D3 \u05D4\u05D5\u05D3\u05E2\u05D5\u05EA \u05DC\u05D1\u05E2\u05DC\u05D9\u05DD), blog. \u05DC\u05D0 \u05D3\u05D5\u05E8\u05E1 \u05E7\u05D1\u05E6\u05D9\u05DD.", "Our building blocks for an existing site: inbox (form and owner messages page), blog. Never writes over files."),
   n("cmd-samples", "cli", "samples [key]", "\u05E8\u05E9\u05D9\u05DE\u05EA \u05D4\u05D3\u05D5\u05D2\u05DE\u05D0\u05D5\u05EA, \u05D0\u05D5 \u05D4\u05D5\u05E8\u05D3\u05D4 \u05E9\u05DC \u05D0\u05D7\u05EA.", "Lists the samples, or downloads one."),
   n("cmd-check", "cli", "check", "\u05D4\u05D0\u05DD \u05D4\u05E4\u05E8\u05D5\u05D9\u05E7\u05D8 \u05D9\u05DB\u05D5\u05DC \u05DC\u05E8\u05D5\u05E5 \u05D0\u05E6\u05DC\u05E0\u05D5: \u05D7\u05D5\u05E1\u05DE\u05D9\u05DD \u05D5\u05D0\u05D6\u05D4\u05E8\u05D5\u05EA, \u05E2\u05DD \u05E4\u05E8\u05D5\u05DE\u05E4\u05D8 \u05EA\u05D9\u05E7\u05D5\u05DF.", "Can the project run on our hosting: blockers and warnings, with a fix prompt."),
   n("cmd-init", "cli", "init", "\u05D9\u05D5\u05E6\u05E8 DEPLOYAI.md \u05E2\u05DD \u05D4\u05DB\u05DC\u05DC\u05D9\u05DD \u05DC\u05E1\u05D5\u05DB\u05DF, \u05E9\u05D5\u05E8\u05D4 \u05D0\u05DC\u05D9\u05D5 \u05D1 AGENTS.md \u05D5 CLAUDE.md, \u05D5 .deployai/project.json. \u05E8\u05D0\u05E9\u05D5\u05DF \u05D1\u05E4\u05E8\u05D5\u05D9\u05E7\u05D8 \u05D7\u05D3\u05E9.", "Creates DEPLOYAI.md with the agent rules, a line to it in AGENTS.md and CLAUDE.md, and .deployai/project.json. First in a new project."),
@@ -21400,12 +21556,14 @@ var CLI_MAP_NODES = [
   n("cmd-logout", "cli", "logout", "\u05DE\u05D1\u05D8\u05DC \u05D0\u05EA \u05D4\u05D8\u05D5\u05E7\u05DF \u05D5\u05D9\u05D5\u05E6\u05D0 \u05DE\u05D4\u05D7\u05E9\u05D1\u05D5\u05DF \u05D1\u05DE\u05D7\u05E9\u05D1 \u05D4\u05D6\u05D4.", "Cancels the token and logs out on this computer."),
   n("cmd-whoami", "cli", "whoami", "\u05E2\u05DD \u05D0\u05D9\u05D6\u05D4 \u05D7\u05E9\u05D1\u05D5\u05DF \u05DE\u05D7\u05D5\u05D1\u05E8\u05D9\u05DD.", "Which account is logged in."),
   n("cmd-link", "cli", "link [site]", "\u05DE\u05D7\u05D1\u05E8 \u05D0\u05EA \u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05DC\u05D0\u05EA\u05E8, \u05D0\u05D5 \u05D9\u05D5\u05E6\u05E8 \u05D0\u05EA\u05E8 \u05E2\u05DD --create.", "Links the folder to a site, or makes one with --create."),
-  n("cmd-deploy", "cli", "deploy -m", "\u05D1\u05D5\u05D3\u05E7, \u05D0\u05D5\u05E8\u05D6 \u05D5\u05DE\u05E2\u05DC\u05D4 \u05D2\u05E8\u05E1\u05D4 \u05DC\u05EA\u05E6\u05D5\u05D2\u05D4 \u05DE\u05E7\u05D3\u05D9\u05DE\u05D4.", "Checks, packs and uploads a version to a preview."),
+  n("cmd-deploy", "cli", "deploy -m", "\u05D1\u05D5\u05D3\u05E7, \u05D0\u05D5\u05E8\u05D6 \u05D5\u05DE\u05E2\u05DC\u05D4 \u05D2\u05E8\u05E1\u05D4, \u05DE\u05D7\u05DB\u05D4 \u05DC\u05D1\u05E0\u05D9\u05D9\u05D4 \u05D5\u05DE\u05E2\u05DC\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8 \u05E2\u05DD --live \u05D0\u05D5 \u05E0\u05D5\u05EA\u05DF \u05EA\u05E6\u05D5\u05D2\u05D4 \u05DE\u05E7\u05D3\u05D9\u05DE\u05D4.", "Checks, packs and uploads a version, waits for the build, then puts it live with --live or gives the preview."),
   n("cmd-guest", "cli", "deploy --guest", "\u05D0\u05EA\u05E8 \u05D6\u05DE\u05E0\u05D9 \u05D1\u05DC\u05D9 \u05D7\u05E9\u05D1\u05D5\u05DF, \u05E2\u05DD \u05E7\u05D9\u05E9\u05D5\u05E8 \u05DC\u05E9\u05DE\u05D9\u05E8\u05D4.", "A temporary site with no account, with a claim link."),
   n("cmd-pull", "cli", "pull", "\u05DE\u05D5\u05E8\u05D9\u05D3 \u05D0\u05EA \u05D4\u05E7\u05D5\u05D3 \u05E9\u05DC \u05D4\u05D2\u05E8\u05E1\u05D4 \u05E9\u05D1\u05D0\u05D5\u05D5\u05D9\u05E8 \u05DC\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05E8\u05D9\u05E7\u05D4.", "Downloads the code of the live version into an empty folder."),
   n("cmd-claim", "cli", "claim --email", "\u05E7\u05D9\u05E9\u05D5\u05E8 \u05D4\u05E9\u05DE\u05D9\u05E8\u05D4 \u05E9\u05D5\u05D1, \u05D0\u05D5 \u05D1\u05DE\u05D9\u05D9\u05DC \u05E2\u05DD \u05EA\u05D6\u05DB\u05D5\u05E8\u05EA \u05DC\u05E4\u05E0\u05D9 \u05D4\u05DE\u05D7\u05D9\u05E7\u05D4.", "The claim link again, or by email with a reminder before the delete."),
   n("cmd-status", "cli", "status", "\u05DE\u05E6\u05D1 \u05D4\u05D2\u05E8\u05E1\u05D4 \u05D4\u05D0\u05D7\u05E8\u05D5\u05E0\u05D4 \u05D5\u05DB\u05EA\u05D5\u05D1\u05EA \u05D4\u05EA\u05E6\u05D5\u05D2\u05D4 \u05D4\u05DE\u05E7\u05D3\u05D9\u05DE\u05D4.", "The latest version's state and preview address."),
-  n("cmd-promote", "cli", "promote v<N>", "\u05DE\u05E2\u05DC\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8 \u05D2\u05E8\u05E1\u05D4 \u05E9\u05D0\u05D5\u05E9\u05E8\u05D4.", "Puts an approved version live."),
+  n("cmd-promote", "cli", "promote v<N>", "\u05DE\u05E2\u05DC\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8 \u05D2\u05E8\u05E1\u05D4 \u05E9\u05D0\u05D5\u05E9\u05E8\u05D4, \u05D5\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D7\u05D3\u05E9\u05D9\u05DD \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05E8\u05E6\u05D9\u05DD \u05E7\u05D5\u05D3\u05DD \u05D0\u05D7\u05E8\u05D9 \u05D0\u05D9\u05E9\u05D5\u05E8.", "Puts an approved version live; new database changes run first, after a yes."),
+  n("cmd-sql", "cli", "sql v<N>", "\u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05E9\u05D2\u05E8\u05E1\u05D4 \u05DE\u05E8\u05D9\u05E6\u05D4 \u05DC\u05E4\u05E0\u05D9 \u05E9\u05D4\u05D9\u05D0 \u05E2\u05D5\u05DC\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8.", "The database changes a version runs before it goes live."),
+  n("api-sql", "server", "/api/cli/sql", "\u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05E9\u05DE\u05D7\u05DB\u05D9\u05DD \u05DC\u05D0\u05D9\u05E9\u05D5\u05E8, \u05D5\u05E7\u05D5\u05D3 \u05E9\u05DE\u05D7\u05D1\u05E8 \u05D0\u05EA \u05D4\u05D0\u05D9\u05E9\u05D5\u05E8 \u05D0\u05DC\u05D9\u05D4\u05DD.", "The changes that wait for a yes, and a code that ties the yes to them."),
   n("cmd-versions", "cli", "versions", "\u05E8\u05E9\u05D9\u05DE\u05EA \u05D4\u05D2\u05E8\u05E1\u05D0\u05D5\u05EA \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8.", "The site's versions."),
   n("cmd-rollback", "cli", "rollback v<N>", "\u05D7\u05D5\u05D6\u05E8 \u05DC\u05D2\u05E8\u05E1\u05D4 \u05E7\u05D5\u05D3\u05DE\u05EA.", "Goes back to an earlier version."),
   n("cmd-addons", "cli", "addons / addon next / addon buy", "\u05D4\u05EA\u05D5\u05E1\u05E4\u05D9\u05DD \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8, \u05D4\u05E9\u05DC\u05D1 \u05D4\u05D1\u05D0 \u05E9\u05DC \u05EA\u05D5\u05E1\u05E3 \u05E9\u05E0\u05E7\u05E0\u05D4, \u05D5\u05E7\u05D9\u05E9\u05D5\u05E8 \u05E7\u05E0\u05D9\u05D9\u05D4 \u05DC\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8.", "The site's add-ons, the next step of one it bought, and a buy link for the owner."),
@@ -21415,6 +21573,9 @@ var CLI_MAP_NODES = [
   n("cmd-telemetry", "cli", "telemetry", "\u05D4\u05E4\u05E2\u05DC\u05D4 \u05D0\u05D5 \u05DB\u05D9\u05D1\u05D5\u05D9 \u05E9\u05DC \u05E0\u05EA\u05D5\u05E0\u05D9 \u05E9\u05D9\u05DE\u05D5\u05E9 \u05D0\u05E0\u05D5\u05E0\u05D9\u05DE\u05D9\u05D9\u05DD.", "Turns anonymous usage data on or off."),
   // The server routes the CLI calls.
   n("api-starts", "server", "GET /api/starts/:id", "\u05D4\u05D1\u05D7\u05D9\u05E8\u05D5\u05EA \u05D5\u05D4\u05D8\u05E7\u05E1\u05D8 \u05DC\u05E1\u05D5\u05DB\u05DF. 7 \u05D9\u05DE\u05D9\u05DD, 5 \u05E9\u05DC\u05D9\u05E4\u05D5\u05EA \u05DC\u05D0\u05EA\u05E8.", "The choices and the agent text. 7 days, 5 fetches for a site."),
+  n("api-blocks", "server", "GET /blocks-src/<key>", "\u05E7\u05D5\u05D3 \u05D4\u05DE\u05E7\u05D5\u05E8 \u05E9\u05DC \u05D0\u05D1\u05DF \u05D1\u05E0\u05D9\u05D9\u05DF, \u05E6\u05D9\u05D1\u05D5\u05E8\u05D9.", "A block's source, public."),
+  n("api-migrate-grant", "server", "POST /api/cli/migrations/grant", "\u05D0\u05D7\u05E8\u05D9 link \u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05DE /move: \u05D4\u05EA\u05D5\u05E1\u05E4\u05D9\u05DD \u05D1\u05D7\u05D9\u05E0\u05DD \u05DC\u05D0\u05EA\u05E8 \u05E9\u05E2\u05D1\u05E8, \u05E4\u05E2\u05DD \u05D0\u05D7\u05EA \u05DC\u05DB\u05DC start \u05D5\u05E2\u05D3 3 \u05D0\u05EA\u05E8\u05D9\u05DD \u05DC\u05D7\u05E9\u05D1\u05D5\u05DF.", "After link in a folder from /move: the add-ons free for the moved site, once per start and up to 3 sites an account."),
+  n("api-migrate-progress", "server", "POST /api/migrations/progress", "\u05DE\u05E2\u05D1\u05E8 \u05DE\u05E0\u05D5\u05D4\u05DC: \u05D4\u05E9\u05DC\u05D1 \u05D5\u05D4\u05E2\u05E8\u05D4 \u05E9\u05DC \u05E9\u05D5\u05E8\u05D4 \u05D0\u05D7\u05EA \u05DE migrate status, \u05DC\u05DC\u05D5\u05D7 \u05D4\u05D1\u05E7\u05E9\u05D5\u05EA \u05D5\u05DC\u05E2\u05DE\u05D5\u05D3 \u05D4\u05E1\u05D8\u05D8\u05D5\u05E1 \u05E9\u05DC \u05D4\u05D1\u05E2\u05DC\u05D9\u05DD.", "Managed move: the stage and a one line note from migrate status, to the requests board and the owner's status page."),
   n("api-samples", "server", "GET /samples-src/<key>", "\u05E7\u05D5\u05D3 \u05D4\u05DE\u05E7\u05D5\u05E8 \u05E9\u05DC \u05D3\u05D5\u05D2\u05DE\u05D4, \u05E6\u05D9\u05D1\u05D5\u05E8\u05D9.", "A sample's source, public."),
   n("api-device", "server", "/api/cli/device/*", "\u05DB\u05E0\u05D9\u05E1\u05D4 \u05D1\u05DE\u05DB\u05E9\u05D9\u05E8: \u05E7\u05D5\u05D3, \u05D0\u05D9\u05E9\u05D5\u05E8 \u05D1\u05D3\u05E4\u05D3\u05E4\u05DF, \u05D8\u05D5\u05E7\u05DF.", "Device login: a code, approval in the browser, a token."),
   n("api-projects", "server", "/api/cli/projects", "\u05D4\u05D0\u05EA\u05E8\u05D9\u05DD \u05E9\u05DC \u05D4\u05D7\u05E9\u05D1\u05D5\u05DF, \u05D5\u05D9\u05E6\u05D9\u05E8\u05EA \u05D0\u05EA\u05E8.", "The account's sites, and making one."),
@@ -21433,6 +21594,7 @@ var CLI_MAP_NODES = [
   n("text-start-blank", "agent", "site.start-blank", "\u05D1\u05D5\u05E0\u05D9\u05DD \u05D0\u05EA\u05E8 \u05D1\u05DC\u05D9 \u05D3\u05D5\u05D2\u05DE\u05D4.", "Build a site with no sample."),
   n("text-details", "agent", "site.details / site.ask-details", "\u05E7\u05D5\u05E8\u05D0\u05D9\u05DD \u05D0\u05EA \u05D4\u05E4\u05E8\u05D8\u05D9\u05DD \u05DE .deployai/brief.md, \u05D0\u05D5 \u05E9\u05D5\u05D0\u05DC\u05D9\u05DD \u05D0\u05EA \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8.", "Read the details from .deployai/brief.md, or ask the owner."),
   n("text-update", "agent", "site.update", "\u05E2\u05D5\u05E9\u05D9\u05DD \u05D0\u05EA \u05D4\u05E9\u05D9\u05E0\u05D5\u05D9 \u05E9\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D1\u05D9\u05E7\u05E9.", "Make the change the owner asked for."),
+  n("text-migrate", "agent", "site.migrate", "\u05D1\u05D5\u05E0\u05D9\u05DD \u05DE\u05D7\u05D3\u05E9 \u05D0\u05EA \u05D4\u05D0\u05EA\u05E8 \u05D4\u05D9\u05E9\u05DF \u05E2\u05DC \u05D4\u05D3\u05D5\u05D2\u05DE\u05D4, \u05E9\u05D5\u05DE\u05E8\u05D9\u05DD \u05DB\u05DC \u05DB\u05EA\u05D5\u05D1\u05EA \u05D5\u05DB\u05D5\u05EA\u05E8\u05EA, \u05EA\u05D5\u05DB\u05E0\u05D9\u05EA \u05E2\u05DD \u05E1\u05D8\u05D8\u05D5\u05E1 \u05DC\u05DB\u05DC \u05D9\u05DB\u05D5\u05DC\u05EA.", "Rebuild the old site on the sample, keep every address and title, a plan with a status for each feature."),
   n("text-move", "agent", "site.move", "\u05DE\u05E2\u05D1\u05D9\u05E8\u05D9\u05DD \u05D0\u05EA\u05E8 \u05E7\u05D9\u05D9\u05DD \u05D1\u05DC\u05D9 \u05DC\u05E9\u05E0\u05D5\u05EA \u05D0\u05EA \u05D4\u05E2\u05D9\u05E6\u05D5\u05D1 \u05D0\u05D5 \u05D4\u05DE\u05E1\u05D2\u05E8\u05EA.", "Move an existing site without changing its design or framework."),
   n("text-guest", "agent", "site.guest / site.guest-sample", "\u05D0\u05EA\u05E8 \u05D6\u05DE\u05E0\u05D9: \u05D4\u05DE\u05D2\u05D1\u05DC\u05D5\u05EA, \u05D5\u05DE\u05D4 \u05DC\u05E9\u05D0\u05D5\u05DC \u05D0\u05EA \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8.", "A temporary site: the limits, and what to ask the owner."),
   n("text-addons", "agent", "core.workflow-frame", "\u05D4\u05DE\u05E1\u05D2\u05E8\u05EA \u05E9\u05DC \u05DB\u05DC \u05EA\u05D5\u05E1\u05E3. \u05D4\u05EA\u05D5\u05E1\u05E4\u05D9\u05DD \u05E2\u05E6\u05DE\u05DD \u05D1\u05E2\u05DE\u05D5\u05D3 \u05D4\u05EA\u05D5\u05E1\u05E4\u05D9\u05DD.", "The frame of every add-on. The add-ons themselves are on the marketplace page.")
@@ -21457,6 +21619,8 @@ var CLI_MAP_EDGES = [
   e("cmd-whoami", "api-device"),
   e("cmd-link", "api-projects"),
   e("cmd-deploy", "api-deploy"),
+  e("cmd-deploy", "api-status"),
+  e("cmd-deploy", "api-promote"),
   e("cmd-guest", "api-guest"),
   e("cmd-claim", "api-guest-email"),
   e("cmd-pull", "api-source"),
@@ -21465,7 +21629,16 @@ var CLI_MAP_EDGES = [
   e("cmd-status", "api-status"),
   e("cmd-versions", "api-status"),
   e("cmd-promote", "api-promote"),
+  e("cmd-promote", "api-sql"),
+  e("cmd-sql", "api-sql"),
+  e("cmd-deploy", "api-sql"),
   e("cmd-rollback", "api-promote"),
+  e("page-move-url", "cmd-start"),
+  e("cmd-start", "text-migrate"),
+  e("cmd-start", "cmd-migrate"),
+  e("cmd-blocks", "api-blocks"),
+  e("cmd-link", "api-migrate-grant"),
+  e("cmd-migrate", "api-migrate-progress"),
   e("cmd-addons", "api-addons"),
   e("cmd-addon-run", "api-addons"),
   e("cmd-addons", "text-addons"),
@@ -21552,6 +21725,11 @@ var ENV_KEYS = {
   CF_REGISTRAR_TOKEN: { scope: "server", section: "cloudflare", about: "Buys real domains (D-300): a Cloudflare token with Registrar edit only. Server only." },
   LIVEDNS_USER: { scope: "server", section: "cloudflare", about: "Buys real Israeli domains at LiveDNS (D-458): the API user of our LiveDNS partner account. Server only: LiveDNS refuses some networks, and it spends prepaid credit." },
   LIVEDNS_PASSWORD: { scope: "server", section: "cloudflare", about: "Its password, sent in every LiveDNS call; never logged. Server only." },
+  GOOGLE_RESELLER_KEY: { scope: "own", section: "email", about: "Sells Google Workspace mailboxes (D-547; not connected until the reseller contract is signed): the service account JSON of our reseller project, delegated to GOOGLE_RESELLER_ADMIN. The laptop uses the reseller sandbox, the server the real account." },
+  GOOGLE_RESELLER_ADMIN: { scope: "own", section: "email", about: "The reseller admin user the service account acts as (D-547)." },
+  ZOHO_PARTNER_CLIENT_ID: { scope: "own", section: "email", about: "Sells Zoho Mail mailboxes (D-547; not connected until the partner account exists): the API client of our Zoho partner account." },
+  ZOHO_PARTNER_CLIENT_SECRET: { scope: "own", section: "email", about: "Its secret (D-547)." },
+  ZOHO_PARTNER_REFRESH_TOKEN: { scope: "own", section: "email", about: "The long lived token the partner API calls are signed with (D-547)." },
   ADMIN_GEO_MANAGE: { scope: "server", section: "cloudflare", about: "1 lets the superadmin change the admin-geo rule on Admin, Server, Security (temporary, D-455); CF_API_TOKEN needs Zone WAF Edit. Off or unset: the card only shows it. The rule stays in Cloudflare either way." },
   DISPATCH_RATE_LIMIT_GUEST: { scope: "same", section: "cloudflare", about: "pnpm dispatch:deploy: requests per IP per period on a temporary site (D-087, D-238)." },
   DISPATCH_RATE_LIMIT_FREE: { scope: "same", section: "cloudflare", about: "The same on a site on a free plan." },
@@ -21731,6 +21909,126 @@ function stackSummary(s) {
   return [frameworkName(s.framework), ...s.bindings.map((b) => b.toUpperCase()), s.css === "tailwind" ? "Tailwind" : null, s.fonts.join(", "), s.dir.toUpperCase()].filter(Boolean).join(" \xB7 ");
 }
 
+// ../shared/src/ui-sources.ts
+var UI_SOURCES = [
+  { key: "shadcn", name: "shadcn/ui", url: "https://ui.shadcn.com", install: "npx shadcn@latest add <component>", license: "MIT", terms: "Free for any use; keep the license notice.", use: "Forms, dialogs, menus, tabs, tables: the plain building blocks.", frameworks: "React (Astro with the React integration)", checkedOn: "2026-10-30" },
+  { key: "magicui", name: "Magic UI", url: "https://magicui.design", install: 'npx shadcn@latest add "https://magicui.design/r/<component>.json"', license: "MIT", terms: "Free components only (not Magic UI Pro); keep the license notice.", use: "Marketing sections: animated backgrounds, marquees, number tickers, bento grids.", frameworks: "React", checkedOn: "2026-10-30" },
+  { key: "aceternity", name: "Aceternity UI", url: "https://ui.aceternity.com", install: 'npx shadcn@latest add "https://ui.aceternity.com/registry/<component>.json"', license: "Aceternity licence", terms: "Free components only (not Pro or templates). Allowed in the owner's own site; never publish the component source on its own or sell it as a template.", use: "Hero effects: spotlight, background beams, cards with motion, scroll effects.", frameworks: "React", checkedOn: "2026-10-30" },
+  { key: "reactbits", name: "React Bits", url: "https://reactbits.dev", install: "Copy the component from its page (or its shadcn registry line on that page)", license: "MIT + Commons Clause", terms: "Allowed as part of a website; never sell the components themselves.", use: "Text animations, backgrounds, small interactive effects.", frameworks: "React", checkedOn: "2026-10-30" },
+  { key: "embla", name: "Embla Carousel", url: "https://www.embla-carousel.com", install: "npm install embla-carousel", license: "MIT", terms: "Free for any use.", use: "Sliders and carousels, with plain JavaScript in any framework.", frameworks: "Any (plain JS, React, Vue, Svelte)", checkedOn: "2026-10-30" },
+  { key: "swiper", name: "Swiper", url: "https://swiperjs.com", install: "npm install swiper", license: "MIT", terms: "Free for any use.", use: "Galleries and touch sliders, like many WordPress themes use.", frameworks: "Any (plain JS, React, Vue)", checkedOn: "2026-10-30" },
+  { key: "motion", name: "Motion", url: "https://motion.dev", install: "npm install motion", license: "MIT", terms: "The free library only (not Motion+).", use: "Animations on scroll and on enter, in plain JS or React.", frameworks: "Any (plain JS, React, Vue)", checkedOn: "2026-10-30" }
+];
+function uiSourcesText() {
+  return [
+    "UI sources you may use for visual sections (install each from its own place, never copy from elsewhere; free tiers only; add a line per component to .deployai/migration/credits.md with its source, URL and license):",
+    ...UI_SOURCES.map((s) => `- ${s.name} (${s.url}, ${s.license}; ${s.frameworks}): ${s.use} Install: ${s.install}. ${s.terms}`),
+    "React components need React in the site: in an Astro site, add it with npx astro add react and use them as islands only where they move or react; keep the rest plain Astro."
+  ].join("\n");
+}
+
+// ../shared/src/migration.ts
+function normalizeSourceUrl(raw) {
+  const text = raw.trim();
+  if (!text || text.length > 300) return null;
+  let u;
+  try {
+    u = new URL(/^https?:\/\//i.test(text) ? text : `https://${text}`);
+  } catch {
+    return null;
+  }
+  if (u.protocol !== "https:" && u.protocol !== "http:") return null;
+  if (u.username || u.password || !u.hostname.includes(".")) return null;
+  u.hash = "";
+  return u.pathname === "/" && !u.search ? u.origin : u.toString();
+}
+function parseSitemapXml(xml) {
+  const locs = (block) => [...block.matchAll(/<loc>\s*([\s\S]*?)\s*<\/loc>/gi)].map((m) => decode3(m[1].replace(/^<!\[CDATA\[|\]\]>$/g, "")).trim()).filter(Boolean);
+  const sitemaps = [...xml.matchAll(/<sitemap\b[^>]*>([\s\S]*?)<\/sitemap>/gi)].flatMap((m) => locs(m[1]));
+  const urls = [...xml.matchAll(/<url\b[^>]*>([\s\S]*?)<\/url>/gi)].flatMap((m) => locs(m[1]));
+  return { urls, sitemaps };
+}
+function detectPlatform(html, headers = {}) {
+  const h = Object.fromEntries(Object.entries(headers).map(([k, v]) => [k.toLowerCase(), v.toLowerCase()]));
+  const gen = (html.match(/<meta[^>]+name=["']generator["'][^>]*content=["']([^"']+)/i)?.[1] ?? "").toLowerCase();
+  if (gen.includes("wordpress") || /\/wp-(content|includes)\//i.test(html) || (h.link ?? "").includes("wp-json")) return "wordpress";
+  if (gen.includes("wix") || h["x-wix-request-id"] || /static\.wixstatic\.com/i.test(html)) return "wix";
+  if (gen.includes("squarespace") || /static1\.squarespace\.com/i.test(html)) return "squarespace";
+  if (gen.includes("webflow") || /data-wf-(page|site)=/i.test(html)) return "webflow";
+  if (/<script[^>]+src=["'][^"']*\/(_next|assets|_astro|_nuxt)\//i.test(html)) return "code";
+  return "other";
+}
+function pathOf(url2) {
+  const u = new URL(url2);
+  return u.pathname + u.search;
+}
+function comparePage(old, next, allowedRedirect) {
+  if (!next || next.status === 404 || next.status === 410) return { path: old.path, problem: "missing" };
+  if (next.status >= 400) return { path: old.path, problem: "error", detail: String(next.status) };
+  if (next.finalPath !== old.path) {
+    if (allowedRedirect && allowedRedirect === next.finalPath) return null;
+    return { path: old.path, problem: "moved", detail: next.finalPath };
+  }
+  if (old.title && !next.title) return { path: old.path, problem: "title_lost" };
+  if (old.description && !next.description) return { path: old.path, problem: "description_lost" };
+  return null;
+}
+var plain = (html) => decode3((html ?? "").replace(/<[^>]*>/g, " ")).replace(/\s+/g, " ").trim();
+var yamlStr = (s) => JSON.stringify(s);
+var safeSlug = (s) => {
+  try {
+    return decodeURIComponent(s ?? "");
+  } catch {
+    return s ?? "";
+  }
+};
+function wpPostsToMarkdown(input2) {
+  const host = new URL(input2.origin).hostname.replace(/^www\./, "");
+  const byId = (list = []) => new Map(list.map((x) => [x.id, x]));
+  const cats = byId(input2.categories);
+  const tags2 = byId(input2.tags);
+  const users = byId(input2.users);
+  const media = byId(input2.media);
+  const sameHost = new RegExp(`https?://(?:www\\.)?${host.replace(/\./g, "\\.")}(?=/)`, "gi");
+  const termList = (ids, map2) => (ids ?? []).map((id) => map2.get(id)).filter((t) => Boolean(t?.slug)).map((t) => `  - { slug: ${yamlStr(safeSlug(t.slug))}, name: ${yamlStr(decode3(t.name ?? t.slug ?? ""))} }`);
+  const used = /* @__PURE__ */ new Set();
+  return input2.posts.filter((p) => !p.status || p.status === "publish").map((p) => {
+    let path = "/";
+    try {
+      path = safeSlug(new URL(p.link ?? "").pathname);
+    } catch {
+      path = `/blog/${safeSlug(p.slug)}/`;
+    }
+    const image = p.featured_media ? media.get(p.featured_media) : void 0;
+    const c = termList(p.categories, cats);
+    const t = termList(p.tags, tags2);
+    const front = [
+      "---",
+      `title: ${yamlStr(plain(p.title?.rendered))}`,
+      `description: ${yamlStr(plain(p.excerpt?.rendered).replace(/\s*(\[&hellip;\]|\[…\]|…)$/, "").slice(0, 300))}`,
+      `date: ${yamlStr(p.date ?? "")}`,
+      ...p.modified && p.modified !== p.date ? [`updated: ${yamlStr(p.modified)}`] : [],
+      ...p.author && users.get(p.author)?.name ? [`author: ${yamlStr(users.get(p.author).name)}`] : [],
+      c.length ? `categories:
+${c.join("\n")}` : "categories: []",
+      t.length ? `tags:
+${t.join("\n")}` : "tags: []",
+      ...image?.source_url ? [`image: ${yamlStr(image.source_url.replace(sameHost, ""))}`, ...image.alt_text ? [`imageAlt: ${yamlStr(image.alt_text)}`] : []] : [],
+      `path: ${yamlStr(path)}`,
+      "---",
+      ""
+    ].join("\n");
+    const base = (safeSlug(p.slug) || `post-${p.id}`).replace(/[^\p{L}\p{N}-]+/gu, "-").slice(0, 80) || `post-${p.id}`;
+    const file2 = used.has(base) ? `${base}-${p.id}.md` : `${base}.md`;
+    used.add(base);
+    return { file: file2, text: front + (p.content?.rendered ?? "").replace(sameHost, "").trim() + "\n" };
+  });
+}
+var AGENT_STAGES = ["scanning", "building", "preview_ready", "customer_review", "live", "blocked"];
+var STAGE_NOTE_MAX = 300;
+var isAgentStage = (s) => AGENT_STAGES.includes(s);
+var stageNote = (s) => (s ?? "").replace(/[\u0000-\u001f\u007f]+/g, " ").replace(/\s+/g, " ").trim().slice(0, STAGE_NOTE_MAX);
+
 // src/config.ts
 import { randomUUID } from "crypto";
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
@@ -21881,6 +22179,7 @@ var M = {
     startRules: "Wrote the rules for your agent to DEPLOYAI.md (never uploaded).",
     startStarter: "Wrote a starter page (index.html) to build the site on.",
     startStack: "Saved the stack chosen on the site: {stack}.",
+    startScanned: "Scanned the old site {url}: its pages, images and content are in {dir}.",
     stackDiffers: "Note: the stack chosen on the site is {chosen}, but this folder is {found}. Keep to the chosen stack, or tell the owner why it changed.",
     startRelinked: 'Linked this folder to the site "{name}" instead of the site it was linked to.',
     statusLine: "Status: {s}",
@@ -21895,6 +22194,9 @@ var M = {
     pasteFix: "  Paste the prompt below into your AI editor, then run: npx deployai@latest check",
     copied: "  (copied to clipboard)",
     runDeploy: '  Run: npx deployai@latest deploy -m "<message>"',
+    moveOfferGranted: "Moved from /move: the site got {n} add-ons free. Run them all with: npx deployai@latest addons run",
+    moveOfferCap: "The free add-ons for moved sites were already used on 3 sites of this account.",
+    moveOfferOver: "The free add-ons offer for moved sites is over.",
     initHint: "  So your agent follows the DeployAI rules, run: npx deployai@latest init",
     emptyFolder: "Nothing to check yet: this folder has no site. Build the site here, then run: npx deployai@latest check",
     deployTitle: "DeployAI deploy",
@@ -21923,6 +22225,8 @@ var M = {
     guestClaim: "Open the claim link to keep the site (sign up or log in).",
     claimLink: "Keep link of this temporary site: {url}",
     pulled: "Downloaded the code of version v{v}: {n} files.",
+    pulledHistory: "Downloaded the history: {n} versions as git commits, up to the live version v{v}.",
+    pullNoGit: "The history needs git on this computer. Install it from https://git-scm.com, or run pull without --history.",
     pullNotLinked: "This folder is not linked to a site. Copy the line again from the site page on DeployAI.",
     pullNotEmpty: "This folder already has files, so nothing was downloaded. Use an empty folder.",
     pullNoSource: "This site has no version to download yet.",
@@ -21941,6 +22245,13 @@ var M = {
     promoteReady: "  After the owner approves the preview: npx deployai@latest promote v{n} (to put it live)",
     askOwner: '  Version {n} is ready and not live. Ask the owner: "Version {n} is ready. Do you want to put it live?"',
     showPreview: "  Send them the preview first: {url}",
+    askLiveFirst: "Put it live as soon as the build is done? No shows you the preview first. (y/N) ",
+    askLiveNow: "Put v{n} live now? (y/N) ",
+    waitBuild: "Waiting for the build of v{n}. Ctrl+C stops the waiting, not the build.",
+    waitState: "  v{n}: {s}",
+    buildSlow: "The build of v{n} is taking longer than usual.",
+    liveNow: "v{n} is live: {url}",
+    promoteLater: "  To put it live later: npx deployai@latest promote v{n}",
     notPublished: "not published yet",
     none: "none",
     buildingNow: "building now",
@@ -22030,7 +22341,31 @@ var M = {
     guestClaimFirst: "This folder holds a temporary site, and you are logged in. Claim the site to your account first: {url}",
     guestClaimFirstNoLink: "This folder holds a temporary site, and you are logged in. Claim it to your account first with the claim link deploy --guest printed.",
     guestAccountSite: "This folder belongs to a site in an account, so it cannot go up as a temporary site. Run: npx deployai@latest login, then: npx deployai@latest deploy",
-    sqlWaitingLine: "Database changes (SQL) wait for your approval before this version goes live: {url}",
+    sqlWaitingLine: "Database changes (SQL) wait for the owner's yes before v{n} goes live. See them: npx deployai@latest sql v{n}",
+    sqlTitle: "v{n} changes the database {db}:",
+    sqlNewDatabase: "  A new database: it is created, and seed.sql runs too.",
+    sqlStatements: "{n} statements",
+    sqlSkipped: "skipped (seed on a database that has data)",
+    sqlDestructive: "These remove or overwrite data, and a rollback does not bring it back:",
+    sqlRunningNow: "The database changes of v{n} are already running. It goes live when they finish.",
+    sqlRunningNowShort: "The database changes are already running. The version goes live when they finish: {url}",
+    sqlOwnerOnly: "Only the site owner approves database changes. Send them this page: {url}",
+    sqlDashboard: "These database changes are sorted out in the dashboard: {url}",
+    sqlTypeDatabase: "To run them and put v{n} live, type the database name ({db}): ",
+    sqlAskRun: "Run them on {db} and put v{n} live? (y/N) ",
+    sqlNotRun: "Not run. Nothing changed.",
+    sqlAgentDestructive: "  These changes remove or overwrite data, so only the owner approves them: at their own terminal (npx deployai@latest promote v{n}) or here: {url}",
+    sqlChanged: "The database changes of v{n} changed since they were shown. Run npx deployai@latest sql v{n}, show the owner again, and ask again.",
+    sqlChangedServer: "The database changes changed since they were shown. Show them again and ask again: {url}",
+    sqlConfirmServer: "These changes remove or overwrite data, so they are approved only at the owner's terminal or in the dashboard: {url}",
+    sqlAgentAsk: '  Show the owner the changes above and ask: "Version {n} changes the database {db}. Run the changes and put it live?"',
+    sqlAgentThen: "  After a yes: npx deployai@latest promote v{n} --approve-sql {hash}",
+    sqlNone: "v{n} has no new database changes.",
+    sqlFirst: "The database changes run first. If they fail, the live version stays.",
+    sqlFailed: "The database changes of v{n} failed. The live version stayed.",
+    sqlRetry: "  After a fix, deploy again, or try again: npx deployai@latest promote v{n}",
+    sqlRunningState: "running the database changes",
+    sqlBeforeUpload: "This upload has SQL files. New database changes run only after a yes, once the build is done.",
     sqlWaiting: "This version has database changes (SQL) that have not run yet. Approve them in the dashboard first, then promote again: {url}",
     tokenOtherApi: "The login on this computer is for {saved}, not {url}. Run: npx deployai@latest login --api {url}, or drop --api and DEPLOYAI_API_URL.",
     linkConfirm: "Link this folder to {name} ({address})? (y/N) ",
@@ -22059,6 +22394,7 @@ var M = {
     startRules: "\u05D4\u05DB\u05DC\u05DC\u05D9\u05DD \u05DC\u05E1\u05D5\u05DB\u05DF \u05E0\u05DB\u05EA\u05D1\u05D5 \u05DC DEPLOYAI.md (\u05DC\u05D0 \u05E2\u05D5\u05DC\u05D9\u05DD \u05DC\u05D0\u05EA\u05E8).",
     startStarter: "\u05E0\u05DB\u05EA\u05D1 \u05D3\u05E3 \u05E4\u05EA\u05D9\u05D7\u05D4 (index.html) \u05DC\u05D1\u05E0\u05D5\u05EA \u05E2\u05DC\u05D9\u05D5 \u05D0\u05EA \u05D4\u05D0\u05EA\u05E8.",
     startStack: "\u05E0\u05E9\u05DE\u05E8 \u05D4\u05E1\u05D8\u05D0\u05E7 \u05E9\u05E0\u05D1\u05D7\u05E8 \u05D1\u05D0\u05EA\u05E8: {stack}.",
+    startScanned: "\u05E0\u05E1\u05E8\u05E7 \u05D4\u05D0\u05EA\u05E8 \u05D4\u05D9\u05E9\u05DF {url}: \u05D4\u05D3\u05E4\u05D9\u05DD, \u05D4\u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05D5\u05D4\u05EA\u05D5\u05DB\u05DF \u05E9\u05DC\u05D5 \u05D1 {dir}.",
     stackDiffers: "\u05E9\u05D9\u05DE\u05D5 \u05DC\u05D1: \u05D4\u05E1\u05D8\u05D0\u05E7 \u05E9\u05E0\u05D1\u05D7\u05E8 \u05D1\u05D0\u05EA\u05E8 \u05D4\u05D5\u05D0 {chosen}, \u05D0\u05D1\u05DC \u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5 \u05D4\u05D9\u05D0 {found}. \u05D4\u05DE\u05E9\u05D9\u05DB\u05D5 \u05D1\u05E1\u05D8\u05D0\u05E7 \u05E9\u05E0\u05D1\u05D7\u05E8, \u05D0\u05D5 \u05D4\u05E1\u05D1\u05D9\u05E8\u05D5 \u05DC\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05DC\u05DE\u05D4 \u05D4\u05D5\u05D0 \u05D4\u05E9\u05EA\u05E0\u05D4.",
     startRelinked: '\u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D7\u05D5\u05D1\u05E8\u05D4 \u05DC\u05D0\u05EA\u05E8 "{name}" \u05D1\u05DE\u05E7\u05D5\u05DD \u05D4\u05D0\u05EA\u05E8 \u05E9\u05D4\u05D9\u05D9\u05EA\u05D4 \u05DE\u05D7\u05D5\u05D1\u05E8\u05EA \u05D0\u05DC\u05D9\u05D5.',
     statusLine: "\u05DE\u05E6\u05D1: {s}",
@@ -22073,6 +22409,9 @@ var M = {
     pasteFix: "  \u05D4\u05D3\u05D1\u05D9\u05E7\u05D5 \u05D0\u05EA \u05D4\u05E4\u05E8\u05D5\u05DE\u05E4\u05D8 \u05E9\u05DC\u05DE\u05D8\u05D4 \u05DC\u05E1\u05D5\u05DB\u05DF, \u05D5\u05D0\u05D6 \u05D4\u05E8\u05D9\u05E6\u05D5: npx deployai@latest check",
     copied: "  (\u05D4\u05D5\u05E2\u05EA\u05E7)",
     runDeploy: '  \u05D4\u05E8\u05D9\u05E6\u05D5: npx deployai@latest deploy -m "<message>"',
+    moveOfferGranted: "\u05D4\u05D0\u05EA\u05E8 \u05E2\u05D1\u05E8 \u05DE /move \u05D5\u05E7\u05D9\u05D1\u05DC {n} \u05EA\u05D5\u05E1\u05E4\u05D9\u05DD \u05D1\u05D7\u05D9\u05E0\u05DD. \u05DE\u05E8\u05D9\u05E6\u05D9\u05DD \u05D0\u05EA \u05DB\u05D5\u05DC\u05DD \u05E2\u05DD: npx deployai@latest addons run",
+    moveOfferCap: "\u05D4\u05EA\u05D5\u05E1\u05E4\u05D9\u05DD \u05D4\u05D7\u05D9\u05E0\u05DE\u05D9\u05D9\u05DD \u05DC\u05D0\u05EA\u05E8\u05D9\u05DD \u05E9\u05E2\u05D1\u05E8\u05D5 \u05DB\u05D1\u05E8 \u05E0\u05D5\u05E6\u05DC\u05D5 \u05D1 3 \u05D0\u05EA\u05E8\u05D9\u05DD \u05D1\u05D7\u05E9\u05D1\u05D5\u05DF \u05D4\u05D6\u05D4.",
+    moveOfferOver: "\u05DE\u05D1\u05E6\u05E2 \u05D4\u05EA\u05D5\u05E1\u05E4\u05D9\u05DD \u05D4\u05D7\u05D9\u05E0\u05DE\u05D9\u05D9\u05DD \u05DC\u05D0\u05EA\u05E8\u05D9\u05DD \u05E9\u05E2\u05D1\u05E8\u05D5 \u05D4\u05E1\u05EA\u05D9\u05D9\u05DD.",
     initHint: "  \u05DB\u05D3\u05D9 \u05E9\u05D4\u05E1\u05D5\u05DB\u05DF \u05D9\u05E2\u05D1\u05D5\u05D3 \u05DC\u05E4\u05D9 \u05D4\u05DB\u05DC\u05DC\u05D9\u05DD \u05E9\u05DC DeployAI, \u05D4\u05E8\u05D9\u05E6\u05D5: npx deployai@latest init",
     emptyFolder: "\u05D0\u05D9\u05DF \u05E2\u05D3\u05D9\u05D9\u05DF \u05DE\u05D4 \u05DC\u05D1\u05D3\u05D5\u05E7: \u05D0\u05D9\u05DF \u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5 \u05D0\u05EA\u05E8. \u05D1\u05E0\u05D5 \u05DB\u05D0\u05DF \u05D0\u05EA \u05D4\u05D0\u05EA\u05E8, \u05D5\u05D0\u05D6 \u05D4\u05E8\u05D9\u05E6\u05D5: npx deployai@latest check",
     deployTitle: "DeployAI deploy",
@@ -22101,6 +22440,8 @@ var M = {
     guestClaim: "\u05E4\u05EA\u05D7\u05D5 \u05D0\u05EA \u05E7\u05D9\u05E9\u05D5\u05E8 \u05D4\u05E9\u05DE\u05D9\u05E8\u05D4 \u05DB\u05D3\u05D9 \u05DC\u05E9\u05DE\u05D5\u05E8 \u05D0\u05EA \u05D4\u05D0\u05EA\u05E8 (\u05D4\u05E8\u05E9\u05DE\u05D4 \u05D0\u05D5 \u05DB\u05E0\u05D9\u05E1\u05D4).",
     claimLink: "\u05E7\u05D9\u05E9\u05D5\u05E8 \u05D4\u05E9\u05DE\u05D9\u05E8\u05D4 \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D4\u05D6\u05DE\u05E0\u05D9: {url}",
     pulled: "\u05D4\u05D5\u05E8\u05D3\u05E0\u05D5 \u05D0\u05EA \u05D4\u05E7\u05D5\u05D3 \u05E9\u05DC \u05D2\u05E8\u05E1\u05D4 v{v}: {n} \u05E7\u05D1\u05E6\u05D9\u05DD.",
+    pulledHistory: "\u05D4\u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D4 \u05D9\u05E8\u05D3\u05D4: {n} \u05D2\u05E8\u05E1\u05D0\u05D5\u05EA \u05DB commits \u05D1 git, \u05E2\u05D3 \u05D4\u05D2\u05E8\u05E1\u05D4 \u05D4\u05D7\u05D9\u05D4 v{v}.",
+    pullNoGit: "\u05DB\u05D3\u05D9 \u05DC\u05D4\u05D5\u05E8\u05D9\u05D3 \u05D0\u05EA \u05D4\u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D4 \u05E6\u05E8\u05D9\u05DA git \u05D1\u05DE\u05D7\u05E9\u05D1. \u05D4\u05EA\u05E7\u05D9\u05E0\u05D5 \u05D0\u05D5\u05EA\u05D5 \u05DE https://git-scm.com, \u05D0\u05D5 \u05D4\u05E8\u05D9\u05E6\u05D5 pull \u05D1\u05DC\u05D9 --history.",
     pullNotLinked: "\u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5 \u05DC\u05D0 \u05DE\u05D7\u05D5\u05D1\u05E8\u05EA \u05DC\u05D0\u05EA\u05E8. \u05D4\u05E2\u05EA\u05D9\u05E7\u05D5 \u05E9\u05D5\u05D1 \u05D0\u05EA \u05D4\u05E9\u05D5\u05E8\u05D4 \u05DE\u05D3\u05E3 \u05D4\u05D0\u05EA\u05E8 \u05D1\u05BEDeployAI.",
     pullNotEmpty: "\u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5 \u05DB\u05D1\u05E8 \u05D9\u05E9 \u05E7\u05D1\u05E6\u05D9\u05DD, \u05D0\u05D6 \u05DC\u05D0 \u05D4\u05D5\u05E8\u05D3\u05E0\u05D5 \u05DB\u05DC\u05D5\u05DD. \u05D4\u05E9\u05EA\u05DE\u05E9\u05D5 \u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05E8\u05D9\u05E7\u05D4.",
     pullNoSource: "\u05DC\u05D0\u05EA\u05E8 \u05D4\u05D6\u05D4 \u05E2\u05D5\u05D3 \u05D0\u05D9\u05DF \u05D2\u05E8\u05E1\u05D4 \u05DC\u05D4\u05D5\u05E8\u05D9\u05D3.",
@@ -22119,6 +22460,13 @@ var M = {
     promoteReady: "  \u05D0\u05D7\u05E8\u05D9 \u05E9\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D0\u05D9\u05E9\u05E8 \u05D0\u05EA \u05D4\u05EA\u05E6\u05D5\u05D2\u05D4 \u05D4\u05DE\u05E7\u05D3\u05D9\u05DE\u05D4: npx deployai@latest promote v{n} (\u05DB\u05D3\u05D9 \u05DC\u05D4\u05E2\u05DC\u05D5\u05EA \u05D0\u05D5\u05EA\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8)",
     askOwner: '  \u05D2\u05E8\u05E1\u05D4 {n} \u05DE\u05D5\u05DB\u05E0\u05D4 \u05D5\u05E2\u05D5\u05D3 \u05DC\u05D0 \u05D1\u05D0\u05D5\u05D5\u05D9\u05E8. \u05E9\u05D0\u05DC\u05D5 \u05D0\u05EA \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8: "\u05D2\u05E8\u05E1\u05D4 {n} \u05DE\u05D5\u05DB\u05E0\u05D4. \u05DC\u05D4\u05E2\u05DC\u05D5\u05EA \u05D0\u05D5\u05EA\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8?"',
     showPreview: "  \u05E9\u05DC\u05D7\u05D5 \u05E7\u05D5\u05D3\u05DD \u05D0\u05EA \u05D4\u05EA\u05E6\u05D5\u05D2\u05D4 \u05D4\u05DE\u05E7\u05D3\u05D9\u05DE\u05D4: {url}",
+    askLiveFirst: "\u05DC\u05D4\u05E2\u05DC\u05D5\u05EA \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8 \u05DE\u05D9\u05D3 \u05DB\u05E9\u05D4\u05D1\u05E0\u05D9\u05D9\u05D4 \u05DE\u05E1\u05EA\u05D9\u05D9\u05DE\u05EA? \u05DC\u05D0 \u05DE\u05E6\u05D9\u05D2 \u05E7\u05D5\u05D3\u05DD \u05D0\u05EA \u05D4\u05EA\u05E6\u05D5\u05D2\u05D4 \u05D4\u05DE\u05E7\u05D3\u05D9\u05DE\u05D4. (y/N) ",
+    askLiveNow: "\u05DC\u05D4\u05E2\u05DC\u05D5\u05EA \u05D0\u05EA v{n} \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8 \u05E2\u05DB\u05E9\u05D9\u05D5? (y/N) ",
+    waitBuild: "\u05DE\u05D7\u05DB\u05D9\u05DD \u05DC\u05D1\u05E0\u05D9\u05D9\u05D4 \u05E9\u05DC v{n}. Ctrl+C \u05DE\u05E4\u05E1\u05D9\u05E7 \u05D0\u05EA \u05D4\u05D4\u05DE\u05EA\u05E0\u05D4, \u05DC\u05D0 \u05D0\u05EA \u05D4\u05D1\u05E0\u05D9\u05D9\u05D4.",
+    waitState: "  v{n}: {s}",
+    buildSlow: "\u05D4\u05D1\u05E0\u05D9\u05D9\u05D4 \u05E9\u05DC v{n} \u05DC\u05D5\u05E7\u05D7\u05EA \u05D9\u05D5\u05EA\u05E8 \u05D6\u05DE\u05DF \u05DE\u05D4\u05E8\u05D2\u05D9\u05DC.",
+    liveNow: "v{n} \u05D1\u05D0\u05D5\u05D5\u05D9\u05E8: {url}",
+    promoteLater: "  \u05DB\u05D3\u05D9 \u05DC\u05D4\u05E2\u05DC\u05D5\u05EA \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8 \u05D0\u05D7\u05E8 \u05DB\u05DA: npx deployai@latest promote v{n}",
     notPublished: "\u05E2\u05D3\u05D9\u05D9\u05DF \u05DC\u05D0 \u05D1\u05D0\u05D5\u05D5\u05D9\u05E8",
     none: "\u05D0\u05D9\u05DF",
     buildingNow: "\u05D1\u05D5\u05E0\u05D9\u05DD \u05E2\u05DB\u05E9\u05D9\u05D5",
@@ -22208,7 +22556,31 @@ var M = {
     guestClaimFirst: "\u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5 \u05D9\u05E9 \u05D0\u05EA\u05E8 \u05D6\u05DE\u05E0\u05D9, \u05D5\u05D0\u05EA\u05DD \u05DE\u05D7\u05D5\u05D1\u05E8\u05D9\u05DD \u05DC\u05D7\u05E9\u05D1\u05D5\u05DF. \u05E7\u05D5\u05D3\u05DD \u05E9\u05DE\u05E8\u05D5 \u05D0\u05EA \u05D4\u05D0\u05EA\u05E8 \u05D1\u05D7\u05E9\u05D1\u05D5\u05DF: {url}",
     guestClaimFirstNoLink: "\u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5 \u05D9\u05E9 \u05D0\u05EA\u05E8 \u05D6\u05DE\u05E0\u05D9, \u05D5\u05D0\u05EA\u05DD \u05DE\u05D7\u05D5\u05D1\u05E8\u05D9\u05DD \u05DC\u05D7\u05E9\u05D1\u05D5\u05DF. \u05E7\u05D5\u05D3\u05DD \u05E9\u05DE\u05E8\u05D5 \u05D0\u05D5\u05EA\u05D5 \u05D1\u05D7\u05E9\u05D1\u05D5\u05DF \u05E2\u05DD \u05E7\u05D9\u05E9\u05D5\u05E8 \u05D4\u05E9\u05DE\u05D9\u05E8\u05D4 \u05E9\u05BEdeploy --guest \u05D4\u05D3\u05E4\u05D9\u05E1.",
     guestAccountSite: "\u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5 \u05E9\u05D9\u05D9\u05DB\u05EA \u05DC\u05D0\u05EA\u05E8 \u05D1\u05D7\u05E9\u05D1\u05D5\u05DF, \u05D5\u05DC\u05DB\u05DF \u05D4\u05D9\u05D0 \u05DC\u05D0 \u05D9\u05DB\u05D5\u05DC\u05D4 \u05DC\u05E2\u05DC\u05D5\u05EA \u05DB\u05D0\u05EA\u05E8 \u05D6\u05DE\u05E0\u05D9. \u05D4\u05E8\u05D9\u05E6\u05D5: npx deployai@latest login, \u05D5\u05D0\u05D6: npx deployai@latest deploy",
-    sqlWaitingLine: "\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD (SQL) \u05DE\u05D7\u05DB\u05D9\u05DD \u05DC\u05D0\u05D9\u05E9\u05D5\u05E8 \u05E9\u05DC\u05DB\u05DD \u05DC\u05E4\u05E0\u05D9 \u05E9\u05D4\u05D2\u05E8\u05E1\u05D4 \u05D4\u05D6\u05D5 \u05E2\u05D5\u05DC\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8: {url}",
+    sqlWaitingLine: "\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD (SQL) \u05DE\u05D7\u05DB\u05D9\u05DD \u05DC\u05D0\u05D9\u05E9\u05D5\u05E8 \u05E9\u05DC \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05DC\u05E4\u05E0\u05D9 \u05E9\u05BEv{n} \u05E2\u05D5\u05DC\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8. \u05DC\u05E8\u05D0\u05D5\u05EA \u05D0\u05D5\u05EA\u05DD: npx deployai@latest sql v{n}",
+    sqlTitle: "v{n} \u05DE\u05E9\u05E0\u05D4 \u05D0\u05EA \u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD {db}:",
+    sqlNewDatabase: "  \u05DE\u05E1\u05D3 \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05D7\u05D3\u05E9: \u05D4\u05D5\u05D0 \u05E0\u05D5\u05E6\u05E8, \u05D5\u05BEseed.sql \u05E8\u05E5 \u05D2\u05DD \u05D4\u05D5\u05D0.",
+    sqlStatements: "{n} \u05E4\u05E7\u05D5\u05D3\u05D5\u05EA",
+    sqlSkipped: "\u05DC\u05D0 \u05D9\u05E8\u05D5\u05E5 (seed \u05E2\u05DC \u05DE\u05E1\u05D3 \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05E9\u05DB\u05D1\u05E8 \u05D9\u05E9 \u05D1\u05D5 \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD)",
+    sqlDestructive: "\u05D0\u05DC\u05D4 \u05DE\u05D5\u05D7\u05E7\u05D9\u05DD \u05D0\u05D5 \u05D3\u05D5\u05E8\u05E1\u05D9\u05DD \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD, \u05D5\u05D7\u05D6\u05E8\u05D4 \u05DC\u05D2\u05E8\u05E1\u05D4 \u05E7\u05D5\u05D3\u05DE\u05EA \u05DC\u05D0 \u05DE\u05D7\u05D6\u05D9\u05E8\u05D4 \u05D0\u05D5\u05EA\u05DD:",
+    sqlRunningNow: "\u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05E9\u05DC v{n} \u05DB\u05D1\u05E8 \u05E8\u05E6\u05D9\u05DD. \u05D4\u05D9\u05D0 \u05E2\u05D5\u05DC\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8 \u05DB\u05E9\u05D4\u05DD \u05DE\u05E1\u05EA\u05D9\u05D9\u05DE\u05D9\u05DD.",
+    sqlRunningNowShort: "\u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05DB\u05D1\u05E8 \u05E8\u05E6\u05D9\u05DD. \u05D4\u05D2\u05E8\u05E1\u05D4 \u05E2\u05D5\u05DC\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8 \u05DB\u05E9\u05D4\u05DD \u05DE\u05E1\u05EA\u05D9\u05D9\u05DE\u05D9\u05DD: {url}",
+    sqlOwnerOnly: "\u05E8\u05E7 \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05DE\u05D0\u05E9\u05E8 \u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD. \u05E9\u05DC\u05D7\u05D5 \u05D0\u05EA \u05D4\u05D3\u05E3 \u05D4\u05D6\u05D4 \u05DC\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8: {url}",
+    sqlDashboard: "\u05D0\u05EA \u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D4\u05D0\u05DC\u05D4 \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05DE\u05E1\u05D3\u05E8\u05D9\u05DD \u05D1\u05DC\u05D5\u05D7 \u05D4\u05D1\u05E7\u05E8\u05D4: {url}",
+    sqlTypeDatabase: "\u05DB\u05D3\u05D9 \u05DC\u05D4\u05E8\u05D9\u05E5 \u05D0\u05D5\u05EA\u05DD \u05D5\u05DC\u05D4\u05E2\u05DC\u05D5\u05EA \u05D0\u05EA v{n} \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8, \u05D4\u05E7\u05DC\u05D9\u05D3\u05D5 \u05D0\u05EA \u05E9\u05DD \u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD ({db}): ",
+    sqlAskRun: "\u05DC\u05D4\u05E8\u05D9\u05E5 \u05D0\u05D5\u05EA\u05DD \u05E2\u05DC {db} \u05D5\u05DC\u05D4\u05E2\u05DC\u05D5\u05EA \u05D0\u05EA v{n} \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8? (y/N) ",
+    sqlNotRun: "\u05DC\u05D0 \u05E8\u05E5. \u05E9\u05D5\u05DD \u05D3\u05D1\u05E8 \u05DC\u05D0 \u05D4\u05E9\u05EA\u05E0\u05D4.",
+    sqlAgentDestructive: "  \u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D4\u05D0\u05DC\u05D4 \u05DE\u05D5\u05D7\u05E7\u05D9\u05DD \u05D0\u05D5 \u05D3\u05D5\u05E8\u05E1\u05D9\u05DD \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD, \u05D5\u05DC\u05DB\u05DF \u05E8\u05E7 \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05DE\u05D0\u05E9\u05E8 \u05D0\u05D5\u05EA\u05DD: \u05D1\u05DE\u05E1\u05D5\u05E3 \u05E9\u05DC \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 (npx deployai@latest promote v{n}) \u05D0\u05D5 \u05DB\u05D0\u05DF: {url}",
+    sqlChanged: "\u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05E9\u05DC v{n} \u05D4\u05E9\u05EA\u05E0\u05D5 \u05DE\u05D0\u05D6 \u05E9\u05D4\u05D5\u05E6\u05D2\u05D5. \u05D4\u05E8\u05D9\u05E6\u05D5 npx deployai@latest sql v{n}, \u05D4\u05E8\u05D0\u05D5 \u05E9\u05D5\u05D1 \u05DC\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D5\u05E9\u05D0\u05DC\u05D5 \u05E9\u05D5\u05D1.",
+    sqlChangedServer: "\u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05D4\u05E9\u05EA\u05E0\u05D5 \u05DE\u05D0\u05D6 \u05E9\u05D4\u05D5\u05E6\u05D2\u05D5. \u05D4\u05E6\u05D9\u05D2\u05D5 \u05D0\u05D5\u05EA\u05DD \u05E9\u05D5\u05D1 \u05D5\u05E9\u05D0\u05DC\u05D5 \u05E9\u05D5\u05D1: {url}",
+    sqlConfirmServer: "\u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D4\u05D0\u05DC\u05D4 \u05DE\u05D5\u05D7\u05E7\u05D9\u05DD \u05D0\u05D5 \u05D3\u05D5\u05E8\u05E1\u05D9\u05DD \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD, \u05D5\u05DC\u05DB\u05DF \u05DE\u05D0\u05E9\u05E8\u05D9\u05DD \u05D0\u05D5\u05EA\u05DD \u05E8\u05E7 \u05D1\u05DE\u05E1\u05D5\u05E3 \u05E9\u05DC \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D0\u05D5 \u05D1\u05DC\u05D5\u05D7 \u05D4\u05D1\u05E7\u05E8\u05D4: {url}",
+    sqlAgentAsk: '  \u05D4\u05E8\u05D0\u05D5 \u05DC\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D0\u05EA \u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05DC\u05DE\u05E2\u05DC\u05D4 \u05D5\u05E9\u05D0\u05DC\u05D5: "\u05D2\u05E8\u05E1\u05D4 {n} \u05DE\u05E9\u05E0\u05D4 \u05D0\u05EA \u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD {db}. \u05DC\u05D4\u05E8\u05D9\u05E5 \u05D0\u05EA \u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D5\u05DC\u05D4\u05E2\u05DC\u05D5\u05EA \u05D0\u05D5\u05EA\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8?"',
+    sqlAgentThen: "  \u05D0\u05D7\u05E8\u05D9 \u05EA\u05E9\u05D5\u05D1\u05D4 \u05D7\u05D9\u05D5\u05D1\u05D9\u05EA: npx deployai@latest promote v{n} --approve-sql {hash}",
+    sqlNone: "\u05D1\u05BEv{n} \u05D0\u05D9\u05DF \u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D7\u05D3\u05E9\u05D9\u05DD \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD.",
+    sqlFirst: "\u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05E8\u05E6\u05D9\u05DD \u05E7\u05D5\u05D3\u05DD. \u05D0\u05DD \u05D4\u05DD \u05E0\u05DB\u05E9\u05DC\u05D9\u05DD, \u05D4\u05D2\u05E8\u05E1\u05D4 \u05E9\u05D1\u05D0\u05D5\u05D5\u05D9\u05E8 \u05E0\u05E9\u05D0\u05E8\u05EA.",
+    sqlFailed: "\u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05E9\u05DC v{n} \u05E0\u05DB\u05E9\u05DC\u05D5. \u05D4\u05D2\u05E8\u05E1\u05D4 \u05E9\u05D1\u05D0\u05D5\u05D5\u05D9\u05E8 \u05E0\u05E9\u05D0\u05E8\u05D4.",
+    sqlRetry: "  \u05D0\u05D7\u05E8\u05D9 \u05EA\u05D9\u05E7\u05D5\u05DF, \u05D4\u05E2\u05DC\u05D5 \u05E9\u05D5\u05D1, \u05D0\u05D5 \u05E0\u05E1\u05D5 \u05E9\u05D5\u05D1: npx deployai@latest promote v{n}",
+    sqlRunningState: "\u05DE\u05E8\u05D9\u05E5 \u05D0\u05EA \u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD",
+    sqlBeforeUpload: "\u05D1\u05D4\u05E2\u05DC\u05D0\u05D4 \u05D4\u05D6\u05D5 \u05D9\u05E9 \u05E7\u05D5\u05D1\u05E6\u05D9 SQL. \u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D7\u05D3\u05E9\u05D9\u05DD \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05E8\u05E6\u05D9\u05DD \u05E8\u05E7 \u05D0\u05D7\u05E8\u05D9 \u05D0\u05D9\u05E9\u05D5\u05E8, \u05DB\u05E9\u05D4\u05D1\u05E0\u05D9\u05D9\u05D4 \u05DE\u05E1\u05EA\u05D9\u05D9\u05DE\u05EA.",
     sqlWaiting: "\u05D1\u05D2\u05E8\u05E1\u05D4 \u05D4\u05D6\u05D5 \u05D9\u05E9 \u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD (SQL) \u05E9\u05E2\u05D5\u05D3 \u05DC\u05D0 \u05E8\u05E6\u05D5. \u05D0\u05E9\u05E8\u05D5 \u05D0\u05D5\u05EA\u05DD \u05E7\u05D5\u05D3\u05DD \u05D1\u05DC\u05D5\u05D7 \u05D4\u05D1\u05E7\u05E8\u05D4, \u05D5\u05D0\u05D6 \u05D4\u05E2\u05DC\u05D5 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8 \u05E9\u05D5\u05D1: {url}",
     tokenOtherApi: "\u05D4\u05DB\u05E0\u05D9\u05E1\u05D4 \u05D1\u05DE\u05D7\u05E9\u05D1 \u05D4\u05D6\u05D4 \u05D4\u05D9\u05D0 \u05DC {saved}, \u05DC\u05D0 \u05DC {url}. \u05D4\u05E8\u05D9\u05E6\u05D5: npx deployai@latest login --api {url}, \u05D0\u05D5 \u05D4\u05D5\u05E8\u05D9\u05D3\u05D5 \u05D0\u05EA --api \u05D5\u05D0\u05EA DEPLOYAI_API_URL.",
     linkConfirm: "\u05DC\u05D7\u05D1\u05E8 \u05D0\u05EA \u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5 \u05DC {name} ({address})? (y/N) ",
@@ -22238,7 +22610,7 @@ function messages(root) {
 }
 
 // src/version.ts
-var CLI_VERSION = "0.1.0-beta.12";
+var CLI_VERSION = "0.1.0-beta.13";
 
 // src/api.ts
 function apiContext(apiFlag) {
@@ -22298,6 +22670,10 @@ async function apiRequest(ctx, path, schema, opts = {}) {
     }
     if (parsed2.success && parsed2.data.error === "sql_waiting") {
       throw new CliError(t("sqlWaiting", { url: parsed2.data.url ?? `${ctx.apiUrl}/dashboard` }), 1, "sql_waiting");
+    }
+    const sqlRefusals = { sql_running: "sqlRunningNowShort", sql_owner_only: "sqlOwnerOnly", sql_changed: "sqlChangedServer", sql_confirm: "sqlConfirmServer", sql_dashboard: "sqlDashboard" };
+    if (parsed2.success && sqlRefusals[parsed2.data.error]) {
+      throw new CliError(t(sqlRefusals[parsed2.data.error], { url: parsed2.data.url ?? `${ctx.apiUrl}/dashboard` }), 1, parsed2.data.error);
     }
     const known = parsed2.success ? knownError(parsed2.data.error, data?.max, t, { ...data, billingUrl: `${ctx.apiUrl}/billing` }) : null;
     if (known) throw new CliError(known, 1, parsed2.success ? parsed2.data.error : "api");
@@ -22573,12 +22949,12 @@ function loadIgnore(root) {
   }
 }
 function loadUploadIgnore(root) {
-  let git = [];
+  let git2 = [];
   try {
-    git = parseIgnore(readFileSync3(join3(root, ".gitignore"), "utf8"));
+    git2 = parseIgnore(readFileSync3(join3(root, ".gitignore"), "utf8"));
   } catch {
   }
-  return [...git, ...loadIgnore(root)];
+  return [...git2, ...loadIgnore(root)];
 }
 function walkFiles(root, opts = {}) {
   const result = [];
@@ -23126,6 +23502,10 @@ ${runCommandsRule()}
 
 Never stop building for an account, a plan or a limit. Build what the owner asks; say once, in one plain line, what going live will need, and ask about it only at the deploy step.
 
+## When to deploy
+
+${DEPLOY_ASK_RULE}
+
 ## Check
 
 Before adding a dependency or a new server feature, run: npx deployai@latest check
@@ -23478,21 +23858,21 @@ async function loginCommand(ctx, opts = {}) {
   const deadline = Date.now() + start.expiresInSeconds * 1e3;
   while (Date.now() < deadline) {
     await sleep(intervalMs);
-    const poll = await apiRequest(ctx, "/api/cli/device/poll", DevicePollResponse, {
+    const poll2 = await apiRequest(ctx, "/api/cli/device/poll", DevicePollResponse, {
       method: "POST",
       body: { deviceCode: start.deviceCode },
       auth: false
     });
-    if (poll.status === "approved") {
-      if (!poll.token) throw new CliError(messages()("loginNoToken"), 1, "protocol");
-      updateConfig({ token: poll.token, email: poll.email, apiUrl: ctx.apiUrl, tokenApiUrl: ctx.apiUrl });
+    if (poll2.status === "approved") {
+      if (!poll2.token) throw new CliError(messages()("loginNoToken"), 1, "protocol");
+      updateConfig({ token: poll2.token, email: poll2.email, apiUrl: ctx.apiUrl, tokenApiUrl: ctx.apiUrl });
       out();
-      out(poll.email ? t("loggedInAs", { email: poll.email }) : t("loggedIn"));
+      out(poll2.email ? t("loggedInAs", { email: poll2.email }) : t("loggedIn"));
       out(t("nextStep"));
       out(opts.root && readProject(opts.root)?.projectId ? t("runDeploy") : t("runLink"));
       return;
     }
-    if (poll.status === "expired") break;
+    if (poll2.status === "expired") break;
   }
   throw new CliError(t("loginExpired"), 1, "auth_expired");
 }
@@ -23548,13 +23928,383 @@ function telemetryCommand(action) {
 
 // src/commands/link.ts
 import { createInterface } from "readline/promises";
-function save(root, p) {
+
+// src/commands/migrate.ts
+import { createWriteStream, existsSync as existsSync7, mkdirSync as mkdirSync3, readdirSync as readdirSync3, readFileSync as readFileSync6, statSync, writeFileSync as writeFileSync5 } from "fs";
+import { dirname, join as join7, posix, relative, resolve, sep } from "path";
+import { Readable } from "stream";
+import { pipeline } from "stream/promises";
+var UA = `deployai-migrate/${CLI_VERSION} (+https://deployai.co.il/move)`;
+var PAGE_CAP = 1e3;
+var WP_PAGE_CAP = 50;
+var MEDIA_FILE_CAP = 25 * 1024 * 1024;
+var MEDIA_TOTAL_CAP = 1024 * 1024 * 1024;
+var PAUSE_MS = 150;
+var SCAN_WORKERS = 4;
+var START_SCAN_PAGES = 300;
+var sleep2 = (ms2) => new Promise((r) => setTimeout(r, ms2));
+var hostDir = (root, host) => join7(root, MIGRATION_DIR, host.replace(/^www\./, ""));
+var readJson2 = (file2) => {
+  try {
+    return JSON.parse(readFileSync6(file2, "utf8"));
+  } catch {
+    return null;
+  }
+};
+var writeJson = (file2, data) => {
+  mkdirSync3(dirname(file2), { recursive: true });
+  writeFileSync5(file2, JSON.stringify(data, null, 2) + "\n");
+};
+async function get(url2, accept = "text/html,application/xhtml+xml,*/*;q=0.8", redirect = "follow") {
+  try {
+    return await fetch(url2, { headers: { "User-Agent": UA, Accept: accept }, redirect, signal: AbortSignal.timeout(3e4) });
+  } catch {
+    return null;
+  }
+}
+function scannedHosts(root) {
+  const dir = join7(root, MIGRATION_DIR);
+  if (!existsSync7(dir)) return [];
+  return readdirSync3(dir).filter((h) => existsSync7(join7(dir, h, "inventory.json")));
+}
+async function migrateStatusCommand(root, ctx, stage, note) {
+  if (!isAgentStage(stage)) throw new CliError(`Unknown stage: ${stage}. One of: ${AGENT_STAGES.join(", ")}.`, 1, "usage");
+  const choices = readChoices(root);
+  if (!choices?.startId || !choices.requestId) {
+    out("This folder is not a managed move, so there is no request to update. Nothing was sent.");
+    return;
+  }
+  await apiRequest(ctx, "/api/migrations/progress", null, { method: "POST", auth: false, body: { startId: choices.startId, stage, note: stageNote(note) } });
+  out(`Reported: ${stage}${note ? ` (${stageNote(note)})` : ""}.`);
+}
+function readChoices(root) {
+  return readJson2(join7(root, MIGRATION_DIR, "choices.json"));
+}
+function writeChoices(root, choices) {
+  ensureMigrationDir(root);
+  writeJson(join7(root, MIGRATION_DIR, "choices.json"), choices);
+}
+function ensureMigrationDir(root) {
+  ensureDeployaiDir(root);
+  const dir = join7(root, MIGRATION_DIR);
+  mkdirSync3(dir, { recursive: true });
+  const ignore = join7(dir, ".gitignore");
+  if (!existsSync7(ignore)) writeFileSync5(ignore, "*/media/\n*/media-state.json\n");
+}
+async function sitemapUrls(base, robotsSitemaps, enough) {
+  const own2 = [`${base}/wp-sitemap.xml`, `${base}/sitemap_index.xml`, `${base}/sitemap.xml`];
+  const prefix = new URL(base).pathname.replace(/\/$/, "");
+  const queue = prefix ? [...own2, ...robotsSitemaps] : robotsSitemaps.length ? [...robotsSitemaps] : own2;
+  const host = new URL(base).hostname.replace(/^www\./, "");
+  const inSite = (u) => u.hostname.replace(/^www\./, "") === host && (!prefix || u.pathname === prefix || u.pathname.startsWith(`${prefix}/`));
+  const seen = /* @__PURE__ */ new Set();
+  const found = [];
+  const urls = /* @__PURE__ */ new Set();
+  while (queue.length && seen.size < 200 && urls.size < enough) {
+    const next = queue.shift();
+    if (seen.has(next)) continue;
+    seen.add(next);
+    const res = await get(next, "application/xml,text/xml,*/*;q=0.5");
+    if (!res?.ok) continue;
+    const xml = await res.text();
+    if (!/<(urlset|sitemapindex)\b/i.test(xml)) continue;
+    found.push(next);
+    const parsed = parseSitemapXml(xml);
+    queue.push(...parsed.sitemaps);
+    for (const u of parsed.urls) {
+      try {
+        if (inSite(new URL(u))) urls.add(u);
+      } catch {
+      }
+    }
+    await sleep2(PAUSE_MS);
+  }
+  return { urls: [...urls], sitemaps: found };
+}
+function homeLinks(html, origin) {
+  const host = new URL(origin).hostname;
+  const out2 = /* @__PURE__ */ new Set();
+  for (const m of html.matchAll(/<a\b[^>]*href=["']([^"'#]+)/gi)) {
+    try {
+      const u = new URL(m[1], origin);
+      if (u.hostname === host && !/\.(jpe?g|png|gif|webp|svg|pdf|zip|mp4|mp3)$/i.test(u.pathname)) out2.add(u.origin + u.pathname + u.search);
+    } catch {
+    }
+  }
+  return [...out2];
+}
+async function wordpressContent(base, dir) {
+  const probe = await get(`${base}/wp-json/wp/v2/types`, "application/json");
+  if (!probe?.ok || !(probe.headers.get("content-type") ?? "").includes("json")) return false;
+  const types = ["pages", "posts", "categories", "tags", "media", "users", "product"];
+  for (const type of types) {
+    const items = [];
+    for (let page2 = 1; page2 <= WP_PAGE_CAP; page2++) {
+      const res = await get(`${base}/wp-json/wp/v2/${type}?per_page=100&page=${page2}`, "application/json");
+      if (!res?.ok) break;
+      const batch = await res.json().catch(() => null);
+      if (!Array.isArray(batch) || !batch.length) break;
+      items.push(...batch);
+      if (batch.length < 100) break;
+      await sleep2(PAUSE_MS);
+    }
+    if (items.length) {
+      writeJson(join7(dir, "content", `${type}.json`), items);
+      out(`  ${type}: ${items.length}`);
+    }
+  }
+  const posts = readJson2(join7(dir, "content", "posts.json"));
+  if (posts?.length) {
+    const files = wpPostsToMarkdown({ origin: new URL(base).origin, posts, categories: readJson2(join7(dir, "content", "categories.json")) ?? [], tags: readJson2(join7(dir, "content", "tags.json")) ?? [], users: readJson2(join7(dir, "content", "users.json")) ?? [], media: readJson2(join7(dir, "content", "media.json")) ?? [] });
+    mkdirSync3(join7(dir, "posts"), { recursive: true });
+    for (const f of files) writeFileSync5(join7(dir, "posts", f.file), f.text);
+    out(`  posts as Markdown: ${files.length}`);
+  }
+  return true;
+}
+function pageAssets(html, base) {
+  const found = /* @__PURE__ */ new Set();
+  const add = (u) => {
+    if (!u || u.startsWith("data:")) return;
+    try {
+      found.add(new URL(u.trim(), base).toString());
+    } catch {
+    }
+  };
+  for (const m of html.matchAll(/<img\b[^>]*>/gi)) {
+    add(m[0].match(/\ssrc=["']([^"']+)/i)?.[1]);
+    const set2 = m[0].match(/\ssrcset=["']([^"']+)/i)?.[1];
+    if (set2) add(set2.split(",").map((s) => s.trim().split(/\s+/)[0]).pop());
+  }
+  add(html.match(/<meta[^>]+property=["']og:image["'][^>]*content=["']([^"']+)/i)?.[1]);
+  for (const m of html.matchAll(/url\(["']?([^"')]+\.(?:jpe?g|png|gif|webp|svg|avif))/gi)) add(m[1]);
+  return [...found];
+}
+async function migrateScanCommand(root, raw, opts = {}) {
+  const source = normalizeSourceUrl(raw);
+  if (!source) throw new CliError(`Not a site address: ${raw}. Use the full address, for example https://example.co.il`, 1, "usage");
+  const home = await get(source);
+  if (!home) throw new CliError(`Could not reach ${source}. Check the address, or that the site is up.`, 1, "network");
+  if (home.status === 401 || home.status === 403) throw new CliError(`${source} answers ${home.status}: it is behind a login or blocks visitors. Ask the owner to open it to the public while it moves, or work from their export.`, 1, "blocked");
+  const origin = new URL(home.url).origin;
+  const base = (origin + new URL(home.url).pathname).replace(/\/+$/, "");
+  const html = await home.text();
+  const headers = Object.fromEntries(home.headers.entries());
+  const platform3 = detectPlatform(html, headers);
+  const host = new URL(origin).hostname;
+  ensureMigrationDir(root);
+  const dir = hostDir(root, host);
+  mkdirSync3(dir, { recursive: true });
+  out(`Scanning ${base} (${platform3})`);
+  const robotsRes = await get(`${origin}/robots.txt`, "text/plain");
+  const robots = robotsRes?.ok ? await robotsRes.text() : "";
+  if (robots) writeFileSync5(join7(dir, "robots.txt"), robots);
+  const cap = Math.min(opts.max ?? PAGE_CAP, PAGE_CAP);
+  const fromSitemaps = await sitemapUrls(base, robots ? parseRobots(robots).sitemaps : [], cap * 5);
+  const all = [.../* @__PURE__ */ new Set([`${base}/`, ...fromSitemaps.urls, ...fromSitemaps.urls.length ? [] : homeLinks(html, base)])];
+  const list = all.slice(0, cap);
+  out(`  sitemaps: ${fromSitemaps.sitemaps.length}, addresses: ${all.length}${all.length > cap ? ` (the first ${cap} are read)` : ""}`);
+  const pages = new Array(list.length);
+  const assets = /* @__PURE__ */ new Set();
+  let next = 0;
+  let read = 0;
+  const worker = async () => {
+    while (next < list.length) {
+      const i = next++;
+      const url2 = list[i];
+      const res = i === 0 ? null : await get(url2, void 0, "manual");
+      const status = i === 0 ? home.status : res?.status ?? 0;
+      const body = i === 0 ? html : res && res.ok ? await res.text() : "";
+      const seo = body ? readPageSeo(body) : null;
+      pages[i] = { path: pathOf(url2), status, title: seo?.title ?? null, description: seo?.description ?? null, canonical: seo?.canonical ?? null, h1: seo?.h1[0] ?? null, lang: seo?.lang ?? null };
+      if (body) pageAssets(body, url2).forEach((a) => assets.add(a));
+      if (++read % 50 === 0) out(`  pages read: ${read} of ${list.length}`);
+      if (i) await sleep2(PAUSE_MS);
+    }
+  };
+  await Promise.all(Array.from({ length: SCAN_WORKERS }, worker));
+  const wordpressApi = platform3 === "wordpress" ? await wordpressContent(base, dir) : false;
+  if (wordpressApi) {
+    const media = readJson2(join7(dir, "content", "media.json")) ?? [];
+    media.forEach((m) => m.source_url && assets.add(m.source_url));
+  }
+  const inventory = { source: base, platform: platform3, scannedAt: (/* @__PURE__ */ new Date()).toISOString(), sitemaps: fromSitemaps.sitemaps, pages, wordpressApi, skipped: Math.max(0, all.length - list.length) };
+  writeJson(join7(dir, "inventory.json"), inventory);
+  writeJson(join7(dir, "assets.json"), [...assets].sort());
+  writeFileSync5(join7(dir, "home.html"), html);
+  const rel = relative(root, dir).split(sep).join("/");
+  const broken = pages.filter((p) => p.status >= 400).length;
+  out();
+  out(`Saved in ${rel}:`);
+  out(`  inventory.json  ${pages.length} pages with their address, title, description and headings${broken ? ` (${broken} already broken on the old site)` : ""}`);
+  out(`  assets.json     ${assets.size} images and files`);
+  if (wordpressApi) {
+    out("  content/        the WordPress pages, posts, categories, tags, media and authors as JSON");
+    if (existsSync7(join7(dir, "posts"))) out("  posts/          the posts as Markdown for the blog block, each with its old address");
+  } else if (platform3 === "wordpress") out("  The WordPress API is closed on this site: work from the pages, or ask the owner for an export (Tools > Export).");
+  out();
+  out("Keep every path in inventory.json exactly as it is: same address, same title and description.");
+  return inventory.skipped;
+}
+function mediaTarget(dir, url2) {
+  const u = new URL(url2);
+  const clean = posix.normalize(decodeURIComponent(u.pathname)).replace(/^\/+/, "");
+  if (!clean || clean.endsWith("/") || clean.includes("..")) return null;
+  const base = resolve(dir, "media", u.hostname.replace(/^www\./, ""));
+  const target = resolve(base, clean);
+  return target.startsWith(base + sep) ? target : null;
+}
+async function migrateMediaCommand(root) {
+  const hosts = scannedHosts(root);
+  if (!hosts.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
+  for (const host of hosts) {
+    const dir = hostDir(root, host);
+    const assets = readJson2(join7(dir, "assets.json")) ?? [];
+    const stateFile = join7(dir, "media-state.json");
+    const state = readJson2(stateFile) ?? { done: [], failed: [], bytes: 0 };
+    const done = new Set(state.done);
+    const todo = assets.filter((a) => !done.has(a));
+    out(`${host}: ${assets.length} files, ${todo.length} left`);
+    for (const [i, url2] of todo.entries()) {
+      if (state.bytes >= MEDIA_TOTAL_CAP) {
+        out(`  Stopped at ${formatBytes(state.bytes)}: the cap for one move. Use only the files the new pages need.`);
+        break;
+      }
+      const target = mediaTarget(dir, url2);
+      const res = target ? await get(url2, "*/*") : null;
+      const size = Number(res?.headers.get("content-length") ?? 0);
+      if (!target || !res?.ok || !res.body || size > MEDIA_FILE_CAP) {
+        if (!state.failed.includes(url2)) state.failed.push(url2);
+        done.add(url2);
+        continue;
+      }
+      mkdirSync3(dirname(target), { recursive: true });
+      await pipeline(Readable.fromWeb(res.body), createWriteStream(target));
+      const bytes = statSync(target).size;
+      state.bytes += bytes;
+      done.add(url2);
+      state.done = [...done];
+      if (i % 25 === 0) writeJson(stateFile, state);
+      await sleep2(PAUSE_MS / 3);
+    }
+    state.done = [...done];
+    writeJson(stateFile, state);
+    out(`  ${formatBytes(state.bytes)} in ${relative(root, join7(dir, "media")).split(sep).join("/")}${state.failed.length ? `, ${state.failed.length} could not be downloaded (listed in media-state.json)` : ""}`);
+  }
+  out("Copy the files the new pages use into the site's public folder at the same path (for example public/wp-content/uploads/...), so old image addresses keep working.");
+}
+function redirectLines(inv, rss = "/rss.xml") {
+  const lines = /* @__PURE__ */ new Set();
+  for (const p of inv.pages) {
+    const path = p.path.split("?")[0];
+    if (/\/feed\/?$/.test(path)) lines.add(`${path} ${rss} 301`);
+    if (/\/attachment\/[^/]+\/?$/.test(path)) lines.add(`${path} ${path.replace(/\/attachment\/[^/]+\/?$/, "/")} 301`);
+  }
+  if (inv.platform === "wordpress") {
+    const folder = new URL(inv.source).pathname.replace(/\/+$/, "");
+    lines.add(`${folder}/feed/ ${rss} 301`);
+    lines.add(`${folder}/comments/feed/ ${rss} 301`);
+  }
+  return [...lines];
+}
+function migrateRedirectsCommand(root) {
+  const hosts = scannedHosts(root);
+  if (!hosts.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
+  const lines = /* @__PURE__ */ new Set();
+  for (const host of hosts) {
+    const inv = readJson2(join7(hostDir(root, host), "inventory.json"));
+    if (inv) redirectLines(inv).forEach((l) => lines.add(l));
+  }
+  const publicDir = join7(root, "public");
+  const file2 = join7(existsSync7(publicDir) ? publicDir : root, "_redirects");
+  const before = existsSync7(file2) ? readFileSync6(file2, "utf8").split(/\r?\n/).filter(Boolean) : [];
+  const added = [...lines].filter((l) => !before.some((b) => b.split(/\s+/)[0] === l.split(/\s+/)[0]));
+  writeFileSync5(file2, [...before, ...added].join("\n") + "\n");
+  out(`${relative(root, file2).split(sep).join("/")}: ${added.length} added, ${before.length + added.length} in all (at most 2,000; no query strings).`);
+  out('Add a line "<old path> <new path> 301" only for a page that truly could not keep its address.');
+}
+function allowedRedirects(root) {
+  const map2 = /* @__PURE__ */ new Map();
+  for (const file2 of [join7(root, "public", "_redirects"), join7(root, "_redirects")]) {
+    if (!existsSync7(file2)) continue;
+    for (const line of readFileSync6(file2, "utf8").split(/\r?\n/)) {
+      const [from, to] = line.trim().split(/\s+/);
+      if (from && to && !from.startsWith("#")) map2.set(from, to);
+    }
+  }
+  return map2;
+}
+function previewUrl(preview, path) {
+  const u = new URL(path, preview.origin);
+  const token = preview.searchParams.get("deployai_preview");
+  if (token) u.searchParams.set("deployai_preview", token);
+  return u.toString();
+}
+async function migrateVerifyCommand(root, previewRaw) {
+  let preview;
+  try {
+    preview = new URL(/^https?:\/\//.test(previewRaw) ? previewRaw : `https://${previewRaw}`);
+  } catch {
+    throw new CliError(`Not an address: ${previewRaw}. Use the preview address deploy printed.`, 1, "usage");
+  }
+  const hosts = scannedHosts(root);
+  if (!hosts.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
+  const redirects = allowedRedirects(root);
+  const findings = [];
+  let checked = 0;
+  for (const host of hosts) {
+    const inv = readJson2(join7(hostDir(root, host), "inventory.json"));
+    for (const old of inv?.pages ?? []) {
+      if (old.status >= 300) continue;
+      const res = await get(previewUrl(preview, old.path));
+      checked++;
+      let next = null;
+      if (res) {
+        const u = new URL(res.url);
+        u.searchParams.delete("deployai_preview");
+        const body = res.ok ? await res.text() : "";
+        const seo = body ? readPageSeo(body) : null;
+        next = { status: res.status, finalPath: u.pathname + u.search, title: seo?.title ?? null, description: seo?.description ?? null };
+      }
+      const f = comparePage(old, next, redirects.get(old.path.split("?")[0]));
+      if (f) findings.push(f);
+      await sleep2(PAUSE_MS / 3);
+    }
+  }
+  const words = { missing: "not found on the preview", moved: "moved to", error: "answers", title_lost: "lost its title", description_lost: "lost its description" };
+  const report = join7(root, MIGRATION_DIR, "verify.json");
+  writeJson(report, { checkedAt: (/* @__PURE__ */ new Date()).toISOString(), preview: preview.origin, checked, findings });
+  if (!findings.length) {
+    out(`All ${checked} old addresses open on the preview with their title and description.`);
+    return;
+  }
+  out(`${findings.length} of ${checked} old addresses need a fix (also in ${relative(root, report).split(sep).join("/")}):`);
+  for (const f of findings.slice(0, 60)) out(`  ${f.path}  ${words[f.problem]}${f.detail ? ` ${f.detail}` : ""}`);
+  if (findings.length > 60) out(`  and ${findings.length - 60} more in verify.json`);
+  out("Give each page its old address back (or, only if it truly cannot stay, a line in public/_redirects), deploy again, and run verify again.");
+  process.exitCode = 1;
+}
+
+// src/commands/link.ts
+async function save(root, p, ctx) {
   updateProject(root, { projectId: p.id, name: p.name, slug: p.slug });
   const t = messages(root);
   out(t("linkedTo", { name: p.name, slug: p.slug }));
   out(t("savedIn"));
+  await moveOffer(root, p, ctx);
   out(t("nextStep"));
   out(t("runDeploy"));
+}
+async function moveOffer(root, p, ctx) {
+  const startId = readChoices(root)?.startId;
+  if (!startId) return;
+  const t = messages(root);
+  try {
+    const r = await apiRequest(ctx, "/api/cli/migrations/grant", null, { method: "POST", body: { projectId: p.id, startId } });
+    if (r.granted?.length) out(t("moveOfferGranted", { n: r.granted.length }));
+    else if (r.reason && r.reason !== "start_used") out(t(r.reason === "cap" ? "moveOfferCap" : "moveOfferOver"));
+  } catch {
+  }
 }
 function projectLine(p, i) {
   const live = p.liveVersion ? `v${p.liveVersion}` : "-";
@@ -23568,14 +24318,14 @@ async function linkCommand(root, ctx, target, opts) {
     const p = await apiRequest(ctx, "/api/cli/projects", Project, { method: "POST", body: { name: opts.create, framework } });
     out(t("createdProject", { name: p.name }));
     if (p.notice) out(p.notice);
-    save(root, p);
+    await save(root, p, ctx);
     return;
   }
   const { projects } = await apiRequest(ctx, "/api/cli/projects", ProjectsResponse);
   if (target) {
     const p = projects.find((x) => x.id === target || x.slug === target || x.name === target);
     if (!p) throw new CliError(messages(root)("noProjectNamed", { name: target }), 1, "not_found");
-    save(root, p);
+    await save(root, p, ctx);
     return;
   }
   if (!projects.length) {
@@ -23606,7 +24356,7 @@ async function linkCommand(root, ctx, target, opts) {
       } finally {
         rl.close();
       }
-      if (answer === "y" || answer === "yes") return save(root, p);
+      if (answer === "y" || answer === "yes") return save(root, p, ctx);
       out(t("linkCancelled"));
       return;
     }
@@ -23622,7 +24372,7 @@ async function linkCommand(root, ctx, target, opts) {
       const answer = (await rl.question("Number to link: ")).trim();
       const p = projects[Number(answer) - 1];
       if (!p) throw new CliError(messages(root)("noProjectPicked"), 1, "usage");
-      save(root, p);
+      await save(root, p, ctx);
     } finally {
       rl.close();
     }
@@ -23632,11 +24382,24 @@ async function linkCommand(root, ctx, target, opts) {
   out(t("runLinkPick"));
 }
 
-// src/commands/deploy.ts
+// src/ask.ts
 import { createInterface as createInterface2 } from "readline/promises";
+var isInteractive = () => Boolean(process.stdin.isTTY && process.stdout.isTTY);
+async function askLine(question) {
+  const rl = createInterface2({ input: process.stdin, output: process.stdout });
+  try {
+    return (await rl.question(question)).trim();
+  } finally {
+    rl.close();
+  }
+}
+async function askYes(question) {
+  const answer = (await askLine(question)).toLowerCase();
+  return answer === "y" || answer === "yes";
+}
 
 // src/tar.ts
-import { readFileSync as readFileSync6 } from "fs";
+import { readFileSync as readFileSync7 } from "fs";
 import { gzipSync } from "zlib";
 var BLOCK = 512;
 function writeString(buf, offset, length, value) {
@@ -23720,7 +24483,7 @@ function packFiles(files) {
   return createTarGz(
     files.map((f) => ({
       name: f.rel,
-      data: readFileSync6(f.abs),
+      data: readFileSync7(f.abs),
       mtimeMs: f.mtimeMs,
       mode: f.mode & 64 ? 493 : 420
     }))
@@ -23756,6 +24519,212 @@ function readTar(tar) {
   return entries;
 }
 
+// src/commands/versions.ts
+function linkedProjectId(root) {
+  const id = readProject(root)?.projectId;
+  if (!id) throw new CliError(messages(root)("notLinked"), 1, "not_linked");
+  return id;
+}
+function parseVersion(input2) {
+  const m = /^v?(\d+)$/i.exec(input2.trim());
+  const n2 = m ? Number(m[1]) : NaN;
+  if (!Number.isInteger(n2) || n2 <= 0) throw new CliError(messages()("notVersion", { input: input2 }), 1, "usage");
+  return n2;
+}
+function shortDate(iso) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  const p = (x) => String(x).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+async function versionsCommand(root, ctx) {
+  requireToken(ctx);
+  const projectId = linkedProjectId(root);
+  const { versions } = await apiRequest(ctx, `/api/cli/versions?projectId=${encodeURIComponent(projectId)}`, VersionsResponse);
+  if (!versions.length) {
+    out('No versions yet. Run: npx deployai@latest deploy -m "<message>"');
+    return;
+  }
+  const sorted = [...versions].sort((a, b) => b.number - a.number);
+  out("Versions");
+  for (const v of sorted) {
+    const status = v.status === "replaced" ? stateName("replaced", root) : v.status;
+    const cols = [
+      `v${v.number}`.padEnd(6),
+      (v.isLive ? "live" : "").padEnd(6),
+      status.padEnd(10),
+      shortDate(v.createdAt).padEnd(18),
+      formatBytes(v.sizeBytes).padEnd(10),
+      v.message
+    ];
+    out(`  ${cols.join("")}`);
+    if (v.error) out(`        ${v.error}`);
+    if (v.migrationStatus === "waiting") out(`        ${messages(root)("sqlWaitingLine", { n: v.number })}`);
+  }
+}
+async function changeLiveCommand(root, ctx, version2, kind, opts = {}) {
+  requireToken(ctx);
+  const projectId = linkedProjectId(root);
+  const number4 = parseVersion(version2);
+  const t = messages(root);
+  const approval = await promoteWithSql(root, ctx, projectId, number4, kind, opts.approveSql);
+  if (approval === null) return;
+  out(t(kind === "rollback" ? "rollbackQueued" : "promoteQueued", { n: number4 }));
+  if (approval) out(t("sqlFirst", { n: number4 }));
+  out(t("nextStep"));
+  out(t("runStatus"));
+}
+async function promoteWithSql(root, ctx, projectId, number4, kind, approve) {
+  try {
+    await apiRequest(ctx, `/api/cli/${kind}`, null, { method: "POST", body: { projectId, number: number4 } });
+    return false;
+  } catch (e2) {
+    if (kind !== "promote" || !(e2 instanceof CliError) || e2.category !== "sql_waiting") throw e2;
+  }
+  const approval = await approveSqlStep(root, ctx, projectId, number4, approve);
+  if (!approval) return null;
+  await apiRequest(ctx, "/api/cli/promote", null, { method: "POST", body: { projectId, number: number4, ...approval } });
+  return approval;
+}
+function fetchStatus(ctx, projectId) {
+  return apiRequest(ctx, `/api/cli/status?projectId=${encodeURIComponent(projectId)}`, StatusResponse);
+}
+async function statusCommand(root, ctx) {
+  requireToken(ctx);
+  const projectId = linkedProjectId(root);
+  printStatus(root, ctx, projectId, await fetchStatus(ctx, projectId));
+}
+function printStatus(root, ctx, projectId, s) {
+  const p = s.project;
+  const t = messages(root);
+  const newer = s.latest && s.latest.number !== p.liveVersion ? s.latest : null;
+  out(t("statusTitle"));
+  out();
+  out(
+    rows([
+      [t("project"), `${p.name} (${p.slug})`],
+      [t("state"), stateName(p.status, root)],
+      [t("address"), p.url ?? t("notPublished")],
+      [t("liveVersion"), p.liveVersion ? `v${p.liveVersion}` : t("none")],
+      // A newer upload than the live one: its state, so "follow the build" after deploy has something to follow.
+      ...newer ? [[t("newestVersion"), `v${newer.number}  ${stateName(newer.status, root)}`]] : [],
+      [t("queue"), s.queue.running ? t("buildingNow") : s.queue.position > 0 ? queueText(s.queue.position, root) : t("idle")]
+    ])
+  );
+  if (s.latest?.goingLive) {
+    out();
+    out(t("goingLive", { n: s.latest.number }));
+    return;
+  }
+  if (s.latest?.wentBack) {
+    out();
+    out(t("wentBack", { n: s.latest.number, prev: s.latest.wentBack.previous, reason: s.latest.wentBack.reason }));
+    return;
+  }
+  if (newer?.status === "ready" && s.latest?.migrationStatus !== "failed") {
+    out();
+    out(t("nextStep"));
+    out(t("askOwner", { n: newer.number }));
+    if (s.latest?.preview) out(t("showPreview", { url: s.latest.preview }));
+    out(t("promoteReady", { n: newer.number }));
+  }
+  if (s.latest?.migrationStatus === "waiting") {
+    out();
+    out(t("sqlWaitingLine", { n: s.latest.number }));
+  }
+  if (s.latest?.migrationStatus === "failed") {
+    out();
+    out(t("sqlFailed", { n: s.latest.number }));
+    if (s.latest.migrationError) out(`  ${s.latest.migrationError}`);
+    out(t("sqlRetry", { n: s.latest.number }));
+  }
+  if (s.latest?.status !== "failed") return;
+  out();
+  out(t("buildFailed", { n: s.latest.number }));
+  if (s.latest.error) out(`  ${s.latest.error}`);
+  if (s.latest.logTail) {
+    out();
+    out(t("buildLogTail"));
+    for (const line of s.latest.logTail.split("\n")) out(`  ${line}`);
+  }
+  out();
+  out(t(telemetryEnabled(ctx.config) ? "buildFixHint" : "buildFixHintNoNote"));
+}
+
+// src/commands/sql.ts
+function fetchSqlPlan(ctx, projectId, n2) {
+  return apiRequest(ctx, `/api/cli/sql?projectId=${encodeURIComponent(projectId)}&number=${n2}`, SqlPlanResponse);
+}
+var SQL_FILE = /(^|\/)(migrations\/[^/]+|schema|seed)\.sql$/;
+function printSqlPlan(root, plan) {
+  const t = messages(root);
+  out(t("sqlTitle", { n: plan.number, db: plan.database ?? "-" }));
+  if (plan.isNew) out(t("sqlNewDatabase"));
+  for (const f of plan.files) out(`  ${f.file}  ${f.skip ? t("sqlSkipped") : t("sqlStatements", { n: f.statements })}`);
+  if (plan.destructive.length) {
+    out();
+    out(t("sqlDestructive"));
+    for (const d of plan.destructive) out(`  ${d.file}: ${d.statement}`);
+  }
+}
+async function approveSqlStep(root, ctx, projectId, n2, approve) {
+  const t = messages(root);
+  const plan = await fetchSqlPlan(ctx, projectId, n2);
+  if (plan.migrationStatus === "queued" || plan.migrationStatus === "running") {
+    out(t("sqlRunningNow", { n: n2 }));
+    return null;
+  }
+  printSqlPlan(root, plan);
+  out();
+  if (!plan.canApprove) throw new CliError(t("sqlOwnerOnly", { url: plan.url }), 1, "sql_owner_only");
+  if (!plan.database || plan.stuck.length) throw new CliError(t("sqlDashboard", { url: plan.url }), 1, "sql_dashboard");
+  if (isInteractive()) {
+    if (plan.destructive.length) {
+      const typed = await askLine(t("sqlTypeDatabase", { db: plan.database, n: n2 }));
+      if (typed !== plan.database) {
+        out(t("sqlNotRun"));
+        return null;
+      }
+      return { approveSql: plan.hash, confirmDatabase: plan.database };
+    }
+    if (!await askYes(t("sqlAskRun", { db: plan.database, n: n2 }))) {
+      out(t("sqlNotRun"));
+      return null;
+    }
+    return { approveSql: plan.hash };
+  }
+  if (plan.destructive.length) {
+    out(t("sqlAgentDestructive", { n: n2, url: plan.url }));
+    return null;
+  }
+  if (approve) {
+    if (approve !== plan.hash) throw new CliError(t("sqlChanged", { n: n2 }), 1, "sql_changed");
+    return { approveSql: plan.hash };
+  }
+  out(t("nextStep"));
+  out(t("sqlAgentAsk", { n: n2, db: plan.database }));
+  out(t("sqlAgentThen", { n: n2, hash: plan.hash }));
+  return null;
+}
+async function sqlCommand(root, ctx, version2) {
+  requireToken(ctx);
+  const projectId = linkedProjectId(root);
+  const n2 = parseVersion(version2);
+  const plan = await fetchSqlPlan(ctx, projectId, n2);
+  if (!plan.files.length) {
+    out(messages(root)("sqlNone", { n: n2 }));
+    return;
+  }
+  printSqlPlan(root, plan);
+  const t = messages(root);
+  if (plan.migrationStatus !== "waiting" && plan.migrationStatus !== "failed") return;
+  out();
+  out(t("nextStep"));
+  if (!plan.canApprove) out(t("sqlOwnerOnly", { url: plan.url }));
+  else if (plan.destructive.length) out(t("sqlAgentDestructive", { n: n2, url: plan.url }));
+  else out(t("sqlAgentThen", { n: n2, hash: plan.hash }));
+}
+
 // src/commands/deploy.ts
 function queueText(position, root) {
   const t = messages(root);
@@ -23776,23 +24745,15 @@ function expiryDate(iso) {
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? iso : d.toISOString().slice(0, 10);
 }
-async function askGuest(root) {
-  const rl = createInterface2({ input: process.stdin, output: process.stdout });
-  try {
-    const answer = (await rl.question(messages(root)("askGuest"))).trim().toLowerCase();
-    return answer === "y" || answer === "yes";
-  } finally {
-    rl.close();
-  }
-}
+var BUILD_WAIT_MS = 15 * 6e4;
+var LIVE_WAIT_MS = 3 * 6e4;
 async function deployCommand(root, ctx, opts) {
   const project = readProject(root);
   if (!ctx.config.token) {
     const guestToken = project?.projectId ? ctx.config.guestTokens?.[project.projectId] : void 0;
     if (guestToken) return deployVersion(root, { ...ctx, config: { ...ctx.config, token: guestToken } }, opts, true);
     if (project?.projectId) throw new CliError(messages(root)("guestAccountSite"), 1, "auth");
-    const interactive = Boolean(process.stdin.isTTY && process.stdout.isTTY);
-    if (!opts.guest && !(interactive && await askGuest(root))) {
+    if (!opts.guest && !(isInteractive() && await askYes(messages(root)("askGuest")))) {
       throw new CliError(messages(root)("deployNotLoggedIn"), 1, "auth");
     }
     return deployGuest(root, ctx, opts);
@@ -23826,15 +24787,19 @@ async function prepare(root, ctx, maxBytes) {
     const names = plan.skippedLarge.slice(0, 3).map((f) => f.rel).join(", ");
     info.push([t("skipped"), t("skippedLarge", { n: plan.skippedLarge.length, max: formatBytes(MAX_FILE_BYTES), names })]);
   }
-  return { archive, info };
+  return { archive, info, hasSql: plan.files.some((f) => SQL_FILE.test(f.rel) && !f.rel.includes("node_modules/")) };
 }
 async function deployVersion(root, ctx, opts, guest) {
   requireToken(ctx);
   const project = readProject(root);
   if (!project?.projectId) throw new CliError(messages(root)("notLinked"), 1, "not_linked");
   const message = (opts.message ?? "").trim() || "update";
-  const { archive, info } = await prepare(root, ctx, guest ? GUEST_MAX_BYTES : Number.POSITIVE_INFINITY);
+  const { archive, info, hasSql } = await prepare(root, ctx, guest ? GUEST_MAX_BYTES : Number.POSITIVE_INFINITY);
   const t = messages(root);
+  const wait = opts.live || opts.wait !== false;
+  let live = Boolean(opts.live);
+  if (!guest && hasSql) out(t("sqlBeforeUpload"));
+  if (!guest && wait && !live && isInteractive()) live = await askYes(t("askLiveFirst"));
   out(t("deployTitle"));
   out();
   out(rows([[t("project"), project.name ?? project.projectId], [t("message"), message], ...info]));
@@ -23861,11 +24826,83 @@ async function deployVersion(root, ctx, opts, guest) {
       [t("preview"), res.previewUrl]
     ])
   );
-  out();
-  out(t("nextStep"));
-  out(t("followBuild"));
-  out(t("thenPromote", { n: res.number }));
   pageHint(res, root);
+  out();
+  if (!wait) {
+    out(t("nextStep"));
+    out(t("followBuild"));
+    out(t("thenPromote", { n: res.number }));
+    return;
+  }
+  await afterBuild(root, ctx, project.projectId, res.number, { live, pollMs: opts.pollMs ?? 3e3 });
+}
+var sleep3 = (ms2) => new Promise((r) => setTimeout(r, ms2));
+async function poll(root, ctx, projectId, n2, pollMs, maxMs, done) {
+  const end = Date.now() + maxMs;
+  let last = "";
+  for (; ; ) {
+    const s = await fetchStatus(ctx, projectId);
+    if (done(s)) return s;
+    const sqlRuns = s.latest?.migrationStatus === "queued" || s.latest?.migrationStatus === "running";
+    const state = sqlRuns ? messages(root)("sqlRunningState") : s.latest?.status === "queued" && s.queue.position > 0 ? queueText(s.queue.position, root) : stateName(s.latest?.status ?? "queued", root);
+    if (state !== last) out(messages(root)("waitState", { n: n2, s: state }));
+    last = state;
+    if (Date.now() >= end) return null;
+    await sleep3(pollMs);
+  }
+}
+async function afterBuild(root, ctx, projectId, n2, o) {
+  const t = messages(root);
+  out(t("waitBuild", { n: n2 }));
+  const built = await poll(root, ctx, projectId, n2, o.pollMs, BUILD_WAIT_MS, (s) => !s.latest || s.latest.number !== n2 || !["queued", "building"].includes(s.latest.status));
+  out();
+  if (!built) {
+    out(t("buildSlow", { n: n2 }));
+    out(t("followBuild"));
+    out(t("thenPromote", { n: n2 }));
+    return;
+  }
+  const ready = built.latest?.number === n2 && built.latest.status === "ready" && built.project.liveVersion !== n2;
+  const sqlWaits = ready && built.latest?.migrationStatus === "waiting";
+  let approval = null;
+  let live = o.live;
+  if (sqlWaits) {
+    if (built.latest?.preview) out(t("showPreview", { url: built.latest.preview }));
+    approval = await approveSqlStep(root, ctx, projectId, n2);
+    if (!approval) {
+      if (isInteractive()) out(t("promoteLater", { n: n2 }));
+      return;
+    }
+    live = true;
+  }
+  if (ready && !live && isInteractive()) {
+    if (built.latest?.preview) out(t("showPreview", { url: built.latest.preview }));
+    live = await askYes(t("askLiveNow", { n: n2 }));
+  }
+  if (!ready || !live) {
+    if (ready && !live && isInteractive()) {
+      out(t("promoteLater", { n: n2 }));
+      return;
+    }
+    printStatus(root, ctx, projectId, built);
+    if (built.latest?.number === n2 && built.latest.status === "failed") process.exitCode = 1;
+    return;
+  }
+  await apiRequest(ctx, "/api/cli/promote", null, { method: "POST", body: { projectId, number: n2, ...approval } });
+  out(t("promoteQueued", { n: n2 }));
+  if (approval) out(t("sqlFirst", { n: n2 }));
+  const after = await poll(root, ctx, projectId, n2, o.pollMs, LIVE_WAIT_MS, (s) => s.latest?.migrationStatus === "failed" || !s.latest?.goingLive && (s.project.liveVersion === n2 || Boolean(s.latest?.wentBack)));
+  out();
+  if (after?.project.liveVersion === n2 && !after.latest?.wentBack) {
+    out(t("liveNow", { n: n2, url: after.project.url ?? "" }));
+    return;
+  }
+  if (!after) {
+    out(t("goingLive", { n: n2 }));
+    return;
+  }
+  printStatus(root, ctx, projectId, after);
+  process.exitCode = 1;
 }
 function pageHint(res, root) {
   if (!res.page) return;
@@ -23923,10 +24960,15 @@ async function claimCommand(root, ctx, opts) {
   out(t("claimLink", { url: url2 }));
 }
 
+// src/commands/pull.ts
+import { spawnSync as spawnSync2 } from "child_process";
+import { existsSync as existsSync9, readdirSync as readdirSync5, rmSync } from "fs";
+import { join as join9 } from "path";
+
 // src/commands/samples.ts
 import { createInterface as createInterface3 } from "readline/promises";
-import { existsSync as existsSync7, mkdirSync as mkdirSync3, readdirSync as readdirSync3, writeFileSync as writeFileSync5 } from "fs";
-import { dirname, join as join7, relative, resolve, sep } from "path";
+import { existsSync as existsSync8, mkdirSync as mkdirSync4, readdirSync as readdirSync4, writeFileSync as writeFileSync6 } from "fs";
+import { dirname as dirname2, join as join8, relative as relative2, resolve as resolve2, sep as sep2 } from "path";
 import { gunzipSync } from "zlib";
 var SAMPLES = [
   { key: "landing", title: "Landing page: a full one-page site with WhatsApp sign-up", stack: "static HTML and CSS" },
@@ -23947,11 +24989,11 @@ function listSamples(apiUrl) {
   out(`See them live:              ${apiUrl}/samples`);
 }
 function filesIn(dir) {
-  return existsSync7(dir) ? readdirSync3(dir).filter((f) => !IGNORED.has(f)) : [];
+  return existsSync8(dir) ? readdirSync4(dir).filter((f) => !IGNORED.has(f)) : [];
 }
 function freeFolder(cwd, key) {
   for (let n2 = 1; ; n2++) {
-    const dir = resolve(cwd, n2 === 1 ? key : `${key}-${n2}`);
+    const dir = resolve2(cwd, n2 === 1 ? key : `${key}-${n2}`);
     if (!filesIn(dir).length) return dir;
   }
 }
@@ -23960,15 +25002,15 @@ async function askWhere(cwd, key, count) {
   const rl = createInterface3({ input: process.stdin, output: process.stdout });
   try {
     out(`This folder already has ${count} ${count === 1 ? "file" : "files"}. Where should the ${key} sample go?`);
-    out(`  1) A new folder: ${relative(cwd, fresh)}`);
+    out(`  1) A new folder: ${relative2(cwd, fresh)}`);
     out("  2) This folder (files with the same name are replaced)");
     out("  3) Cancel");
     const choice = (await rl.question("Choose 1, 2 or 3 [1]: ")).trim() || "1";
     if (choice === "2") return cwd;
     if (choice !== "1") return null;
-    const name = (await rl.question(`Folder name [${relative(cwd, fresh)}]: `)).trim();
+    const name = (await rl.question(`Folder name [${relative2(cwd, fresh)}]: `)).trim();
     if (!name) return fresh;
-    const dir = resolve(cwd, name);
+    const dir = resolve2(cwd, name);
     if (filesIn(dir).length) throw new CliError(`The folder ${name} is not empty. Run it again and pick another name.`, 1, "not_empty");
     return dir;
   } finally {
@@ -23976,7 +25018,7 @@ async function askWhere(cwd, key, count) {
   }
 }
 async function downloadSample(ctx, key, root) {
-  mkdirSync3(root, { recursive: true });
+  mkdirSync4(root, { recursive: true });
   let res;
   try {
     res = await fetch(`${ctx.apiUrl}/samples-src/${key}.tar.gz`, {
@@ -23998,15 +25040,15 @@ function extractInto(gz, root, damaged) {
   } catch {
     throw new CliError(damaged, 1, "api");
   }
-  mkdirSync3(root, { recursive: true });
-  const base = resolve(root);
+  mkdirSync4(root, { recursive: true });
+  const base = resolve2(root);
   let written = 0;
   for (const e2 of entries) {
     if (e2.type !== "0" && e2.type !== "\0") continue;
-    const target = resolve(base, e2.name);
-    if (target !== base && !target.startsWith(base + sep)) continue;
-    mkdirSync3(dirname(target), { recursive: true });
-    writeFileSync5(target, e2.data);
+    const target = resolve2(base, e2.name);
+    if (target !== base && !target.startsWith(base + sep2)) continue;
+    mkdirSync4(dirname2(target), { recursive: true });
+    writeFileSync6(target, e2.data);
     written++;
   }
   return written;
@@ -24017,7 +25059,7 @@ async function samplesCommand(cwd, ctx, key, opts = {}) {
   if (!sample) throw new CliError(messages()("noSampleNamed", { key }), 1, "not_found");
   let root;
   if (opts.folder) {
-    root = resolve(cwd, opts.folder);
+    root = resolve2(cwd, opts.folder);
     if (filesIn(root).length && !opts.force) throw new CliError(`The folder ${opts.folder} is not empty. Run: npx deployai@latest samples ${sample.key}, and it picks a free folder`, 1, "not_empty");
   } else {
     const here = filesIn(cwd);
@@ -24029,13 +25071,13 @@ async function samplesCommand(cwd, ctx, key, opts = {}) {
     } else root = freeFolder(cwd, sample.key);
   }
   const written = await downloadSample(ctx, sample.key, root);
-  const base = resolve(root);
-  const hasPackage = existsSync7(join7(base, "package.json"));
-  out(base === resolve(cwd) ? `Downloaded the ${sample.key} sample: ${written} files.` : `Downloaded the ${sample.key} sample into the new folder ${relative(cwd, base)}: ${written} files. Work in that folder from now on.`);
+  const base = resolve2(root);
+  const hasPackage = existsSync8(join8(base, "package.json"));
+  out(base === resolve2(cwd) ? `Downloaded the ${sample.key} sample: ${written} files.` : `Downloaded the ${sample.key} sample into the new folder ${relative2(cwd, base)}: ${written} files. Work in that folder from now on.`);
   out("");
   const t = messages(base);
   out(t("nextSteps"));
-  if (base !== resolve(cwd)) out(`  cd ${JSON.stringify(relative(cwd, base))}`);
+  if (base !== resolve2(cwd)) out(`  cd ${JSON.stringify(relative2(cwd, base))}`);
   if (hasPackage) out("  npm install");
   out("  npx deployai@latest check");
   if (ctx.config.token) {
@@ -24048,15 +25090,23 @@ async function samplesCommand(cwd, ctx, key, opts = {}) {
 
 // src/commands/pull.ts
 var MAX_BYTES2 = 50 * 1024 * 1024;
-async function pullCommand(root, ctx) {
+async function pullCommand(root, ctx, opts = {}) {
   const t = messages(root);
   const projectId = readProject(root)?.projectId;
   if (!projectId) throw new CliError(t("pullNotLinked"), 1, "not_linked");
   if (filesIn(root).length) throw new CliError(t("pullNotEmpty"), 1, "not_empty");
+  requireToken(ctx);
+  if (opts.history) return pullHistory(root, ctx, projectId);
+  const n2 = extractInto(await fetchSource(root, ctx, projectId), root, t("pullDamaged"));
+  out(t("pulled", { n: n2, v: lastVersion ?? "?" }));
+}
+var lastVersion = null;
+async function fetchSource(root, ctx, projectId, version2) {
+  const t = messages(root);
   const token = requireToken(ctx);
   let res;
   try {
-    res = await fetch(`${ctx.apiUrl}/api/cli/source?projectId=${encodeURIComponent(projectId)}`, { headers: { "User-Agent": userAgent(ctx.config), Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(12e4) });
+    res = await fetch(`${ctx.apiUrl}/api/cli/source?projectId=${encodeURIComponent(projectId)}${version2 ? `&version=${version2}` : ""}`, { headers: { "User-Agent": userAgent(ctx.config), Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(12e4) });
   } catch {
     throw new CliError(messages()("unreachable", { url: ctx.apiUrl }), 1, "network");
   }
@@ -24069,128 +25119,46 @@ async function pullCommand(root, ctx) {
   if (!res.ok) throw new CliError(t("apiError", { code: `HTTP ${res.status}` }), 1, "api");
   const gz = Buffer.from(await res.arrayBuffer());
   if (gz.length > MAX_BYTES2) throw new CliError(t("pullTooLarge"), 1, "too_large");
-  const n2 = extractInto(gz, root, t("pullDamaged"));
-  out(t("pulled", { n: n2, v: res.headers.get("X-DeployAI-Version") ?? "?" }));
+  lastVersion = res.headers.get("X-DeployAI-Version");
+  return gz;
 }
-
-// src/commands/versions.ts
-function linkedProjectId(root) {
-  const id = readProject(root)?.projectId;
-  if (!id) throw new CliError(messages(root)("notLinked"), 1, "not_linked");
-  return id;
+var git = (root, args, env = {}) => spawnSync2("git", args, { cwd: root, encoding: "utf8", env: { ...process.env, ...env } });
+function clearTree(root) {
+  for (const name of readdirSync5(root)) {
+    if (name === ".git" || name === ".deployai") continue;
+    rmSync(join9(root, name), { recursive: true, force: true });
+  }
 }
-function parseVersion(input2) {
-  const m = /^v?(\d+)$/i.exec(input2.trim());
-  const n2 = m ? Number(m[1]) : NaN;
-  if (!Number.isInteger(n2) || n2 <= 0) throw new CliError(messages()("notVersion", { input: input2 }), 1, "usage");
-  return n2;
-}
-function shortDate(iso) {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  const p = (x) => String(x).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
-}
-async function versionsCommand(root, ctx) {
-  requireToken(ctx);
-  const projectId = linkedProjectId(root);
+async function pullHistory(root, ctx, projectId) {
+  const t = messages(root);
+  if (git(root, ["--version"]).status !== 0) throw new CliError(t("pullNoGit"), 1, "usage");
   const { versions } = await apiRequest(ctx, `/api/cli/versions?projectId=${encodeURIComponent(projectId)}`, VersionsResponse);
-  if (!versions.length) {
-    out('No versions yet. Run: npx deployai@latest deploy -m "<message>"');
-    return;
+  const live = versions.find((v) => v.isLive)?.number ?? Math.max(0, ...versions.filter((v) => v.status === "ready").map((v) => v.number));
+  const chosen = versions.filter((v) => v.number <= live && v.status !== "failed" && v.status !== "queued").sort((a, b) => a.number - b.number);
+  if (!chosen.length) throw new CliError(t("pullNoSource"), 1, "not_found");
+  if (!existsSync9(join9(root, ".git")) && git(root, ["init", "-q"]).status !== 0) throw new CliError(t("pullNoGit"), 1, "usage");
+  for (const v of chosen) {
+    const gz = await fetchSource(root, ctx, projectId, v.number).catch(() => null);
+    if (!gz) continue;
+    clearTree(root);
+    extractInto(gz, root, t("pullDamaged"));
+    git(root, ["add", "-A"]);
+    const when = { GIT_AUTHOR_DATE: v.createdAt, GIT_COMMITTER_DATE: v.createdAt };
+    const r = git(root, ["-c", "user.name=DeployAI", "-c", "user.email=versions@deployai.co.il", "commit", "-q", "--allow-empty", "-m", `v${v.number}: ${v.message}`], when);
+    if (r.status !== 0) throw new CliError(`git commit failed for v${v.number}: ${r.stderr.trim()}`, 1, "git");
+    out(`  v${v.number}  ${v.message}`);
   }
-  const sorted = [...versions].sort((a, b) => b.number - a.number);
-  out("Versions");
-  for (const v of sorted) {
-    const status = v.status === "replaced" ? stateName("replaced", root) : v.status;
-    const cols = [
-      `v${v.number}`.padEnd(6),
-      (v.isLive ? "live" : "").padEnd(6),
-      status.padEnd(10),
-      shortDate(v.createdAt).padEnd(18),
-      formatBytes(v.sizeBytes).padEnd(10),
-      v.message
-    ];
-    out(`  ${cols.join("")}`);
-    if (v.error) out(`        ${v.error}`);
-    if (v.migrationStatus === "waiting") out(`        ${messages(root)("sqlWaitingLine", { url: versionsPage(ctx, projectId) })}`);
-  }
-}
-function versionsPage(ctx, projectId) {
-  return `${ctx.apiUrl}/project/${encodeURIComponent(projectId)}/versions`;
-}
-async function changeLiveCommand(root, ctx, version2, kind) {
-  requireToken(ctx);
-  const projectId = linkedProjectId(root);
-  const number4 = parseVersion(version2);
-  await apiRequest(ctx, `/api/cli/${kind}`, null, { method: "POST", body: { projectId, number: number4 } });
-  const t = messages(root);
-  out(t(kind === "rollback" ? "rollbackQueued" : "promoteQueued", { n: number4 }));
-  out(t("nextStep"));
-  out(t("runStatus"));
-}
-async function statusCommand(root, ctx) {
-  requireToken(ctx);
-  const projectId = linkedProjectId(root);
-  const s = await apiRequest(ctx, `/api/cli/status?projectId=${encodeURIComponent(projectId)}`, StatusResponse);
-  const p = s.project;
-  const t = messages(root);
-  const newer = s.latest && s.latest.number !== p.liveVersion ? s.latest : null;
-  out(t("statusTitle"));
-  out();
-  out(
-    rows([
-      [t("project"), `${p.name} (${p.slug})`],
-      [t("state"), stateName(p.status, root)],
-      [t("address"), p.url ?? t("notPublished")],
-      [t("liveVersion"), p.liveVersion ? `v${p.liveVersion}` : t("none")],
-      // A newer upload than the live one: its state, so "follow the build" after deploy has something to follow.
-      ...newer ? [[t("newestVersion"), `v${newer.number}  ${stateName(newer.status, root)}`]] : [],
-      [t("queue"), s.queue.running ? t("buildingNow") : s.queue.position > 0 ? queueText(s.queue.position, root) : t("idle")]
-    ])
-  );
-  if (s.latest?.goingLive) {
-    out();
-    out(t("goingLive", { n: s.latest.number }));
-    return;
-  }
-  if (s.latest?.wentBack) {
-    out();
-    out(t("wentBack", { n: s.latest.number, prev: s.latest.wentBack.previous, reason: s.latest.wentBack.reason }));
-    return;
-  }
-  if (newer?.status === "ready") {
-    out();
-    out(t("nextStep"));
-    out(t("askOwner", { n: newer.number }));
-    if (s.latest?.preview) out(t("showPreview", { url: s.latest.preview }));
-    out(t("promoteReady", { n: newer.number }));
-  }
-  if (s.latest?.migrationStatus === "waiting") {
-    out();
-    out(t("sqlWaitingLine", { url: versionsPage(ctx, projectId) }));
-  }
-  if (s.latest?.status !== "failed") return;
-  out();
-  out(t("buildFailed", { n: s.latest.number }));
-  if (s.latest.error) out(`  ${s.latest.error}`);
-  if (s.latest.logTail) {
-    out();
-    out(t("buildLogTail"));
-    for (const line of s.latest.logTail.split("\n")) out(`  ${line}`);
-  }
-  out();
-  out(t(telemetryEnabled(ctx.config) ? "buildFixHint" : "buildFixHintNoNote"));
+  out(t("pulledHistory", { n: chosen.length, v: live }));
 }
 
 // src/commands/start.ts
-import { spawnSync as spawnSync2 } from "child_process";
-import { existsSync as existsSync8, writeFileSync as writeFileSync7 } from "fs";
-import { join as join9, relative as relative2, resolve as resolve2 } from "path";
+import { spawnSync as spawnSync3 } from "child_process";
+import { existsSync as existsSync10, writeFileSync as writeFileSync8 } from "fs";
+import { join as join11, relative as relative3, resolve as resolve3 } from "path";
 
 // src/commands/starter.ts
-import { writeFileSync as writeFileSync6 } from "fs";
-import { join as join8 } from "path";
+import { writeFileSync as writeFileSync7 } from "fs";
+import { join as join10 } from "path";
 var esc2 = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 var TEXT = {
   he: { title: "\u05D4\u05D0\u05EA\u05E8 \u05E9\u05DC\u05D9", soon: "\u05D4\u05D0\u05EA\u05E8 \u05D1\u05D1\u05E0\u05D9\u05D9\u05D4, \u05D1\u05E7\u05E8\u05D5\u05D1 \u05DB\u05D0\u05DF." },
@@ -24238,8 +25206,8 @@ DeployAI wrote this page so the folder starts as a working site. Build the owner
 - Delete this README or replace it with notes about the site.
 `;
 function writeStarter(root, name, lang, stack) {
-  writeFileSync6(join8(root, "index.html"), page(name ?? "", lang, stack));
-  writeFileSync6(join8(root, "README.md"), README);
+  writeFileSync7(join10(root, "index.html"), page(name ?? "", lang, stack));
+  writeFileSync7(join10(root, "README.md"), README);
 }
 
 // src/commands/start.ts
@@ -24260,7 +25228,7 @@ async function fetchStart(ctx, id) {
   return data;
 }
 function install(root) {
-  const r = spawnSync2("npm", ["install"], { cwd: root, stdio: "inherit", shell: process.platform === "win32" });
+  const r = spawnSync3("npm", ["install"], { cwd: root, stdio: "inherit", shell: process.platform === "win32" });
   return r.status === 0;
 }
 async function startCommand(cwd, ctx, id, opts = {}) {
@@ -24269,22 +25237,34 @@ async function startCommand(cwd, ctx, id, opts = {}) {
   const { kind, choices, agent } = await fetchStart(ctx, key);
   const sample = choices.sampleKey ? SAMPLES.find((s) => s.key === choices.sampleKey) : void 0;
   if (choices.sampleKey && !sample) throw new CliError(messages()("unknownSample", { key: choices.sampleKey }), 1, "not_found");
-  const fresh = kind === "new" || kind === "guest" && sample;
-  const here = resolve2(cwd);
+  const fresh = kind === "new" || kind === "migrate" || kind === "guest" && sample;
+  const here = resolve3(cwd);
   const sameSite = Boolean(choices.projectId && readProject(here)?.projectId === choices.projectId);
   const root = fresh && filesIn(here).length && !opts.here && !sameSite ? freeFolder(here, choices.slug ?? sample?.key ?? "site") : here;
   const done = [];
   const empty = !filesIn(root).length;
   const starter = (kind === "new" || kind === "guest") && !sample && empty;
-  const steps = startSteps(kind, { emptyFolder: kind === "update" && empty, starter });
+  const steps = startSteps(kind, { emptyFolder: kind === "update" && empty, starter, managed: Boolean(choices.migration?.requestId) });
   updateProject(root, { lang: langOf(choices.ownerLanguage) });
   const t = messages(root);
   if (sample && !sameSite) {
     const written = await downloadSample(ctx, sample.key, root);
     done.push(t("startDownloaded", { key: sample.key, n: written }));
-    if (existsSync8(join9(root, "package.json"))) {
+    if (existsSync10(join11(root, "package.json"))) {
       if (opts.install !== false && install(root)) done.push(t("startInstalled"));
       else steps.unshift({ cmd: "npm install", say: "Installs the sample's packages." });
+    }
+  }
+  if (kind === "migrate" && choices.migration) {
+    writeChoices(root, { ...choices.migration, startId: key });
+    for (const url2 of choices.migration.sourceUrls) {
+      try {
+        const skipped = await migrateScanCommand(root, url2, { max: START_SCAN_PAGES });
+        done.push(t("startScanned", { url: url2, dir: MIGRATION_DIR }));
+        if (skipped) steps.unshift({ cmd: `npx deployai@latest migrate scan ${url2}`, say: `The first scan read ${START_SCAN_PAGES} pages and the site has ${skipped} more: run it now to read up to 1,000, before you plan.` });
+      } catch (e2) {
+        steps.unshift({ cmd: `npx deployai@latest migrate scan ${url2}`, say: `The scan stopped: ${e2.message} Run it again; if it fails again, tell the owner what it said.` });
+      }
     }
   }
   if (starter) {
@@ -24294,7 +25274,7 @@ async function startCommand(cwd, ctx, id, opts = {}) {
   const stackText = choices.stack ? stackBlock(choices.stack) : "";
   if (choices.brief || stackText) {
     ensureDeployaiDir(root);
-    writeFileSync7(join9(root, BRIEF_FILE), [choices.brief ? `# The owner's details
+    writeFileSync8(join11(root, BRIEF_FILE), [choices.brief ? `# The owner's details
 
 ${choices.brief}
 ` : "", stackText].filter(Boolean).join("\n"));
@@ -24312,19 +25292,23 @@ ${choices.brief}
   }
   out(t("startTitle"));
   out();
-  if (root !== here) out(t("startNewFolder", { dir: relative2(here, root) }));
+  if (root !== here) out(t("startNewFolder", { dir: relative3(here, root) }));
   for (const line of done) out(`- ${line}`);
   out();
   out("----- Instructions for the agent -----");
   out();
   if (root !== here) {
-    out(`Work only inside the folder ${relative2(here, root)} from now on (cd ${JSON.stringify(relative2(here, root))}).`);
+    out(`Work only inside the folder ${relative3(here, root)} from now on (cd ${JSON.stringify(relative3(here, root))}).`);
     out();
   }
   out(agent.trim());
   if (stackText) {
     out();
     out(stackText.trim());
+  }
+  if (kind === "migrate") {
+    out();
+    out(uiSourcesText());
   }
   out();
   out("Then, in this order:");
@@ -24335,8 +25319,8 @@ ${choices.brief}
 }
 
 // src/commands/addon.ts
-import { readFileSync as readFileSync7 } from "fs";
-import { resolve as resolve3 } from "path";
+import { readFileSync as readFileSync8 } from "fs";
+import { resolve as resolve4 } from "path";
 function linkedProjectId2(root) {
   const id = readProject(root)?.projectId;
   if (!id) throw new CliError("This folder is not linked to a DeployAI site. Run: npx deployai@latest login, then npx deployai@latest link", 1, "not_linked");
@@ -24366,7 +25350,27 @@ async function addonsCommand(root, ctx) {
     out("Every add-on of this site is done or skipped. To run one again: npx deployai@latest addon run <name>");
     return;
   }
-  out(`Next: ${r.next}. Ask the site owner if they want to start it now, then run: npx deployai@latest addon next`);
+  out(`Next: ${r.next}. Run them all in one go: npx deployai@latest addons run (or one: npx deployai@latest addon run <name>)`);
+}
+async function addonsRunCommand(root, ctx) {
+  requireToken(ctx);
+  const projectId = linkedProjectId2(root);
+  const r = await apiRequest(ctx, `/api/cli/addons?projectId=${encodeURIComponent(projectId)}`, AddonsResponse);
+  if (!r.open) {
+    out("The DeployAI marketplace is not open yet, so this site has no add-ons to run.");
+    return;
+  }
+  const todo = r.addons.filter((a) => a.owned && a.status !== "done" && a.status !== "skipped");
+  if (!todo.length) {
+    updateProject(root, { addonsAll: false });
+    out(r.addons.some((a) => a.owned) ? "Every add-on of this site is done or skipped. To run one again: npx deployai@latest addon run <name>" : "This site has no add-ons yet. See them: npx deployai@latest addons");
+    return;
+  }
+  updateProject(root, { addonsAll: true });
+  out(`Running every add-on of this site in one go: ${todo.map((a) => a.key).join(", ")}.`);
+  out("Do each one fully, run npx deployai@latest check after it, and report it with addon done as it says; the next one starts right after. Tell the owner in one line which add-on you are on.");
+  out();
+  await addonNextCommand(root, ctx);
 }
 async function addonBuyCommand(root, ctx, key) {
   requireToken(ctx);
@@ -24416,7 +25420,7 @@ async function addonDoneCommand(root, ctx, runId, opts) {
   let report;
   if (opts.report) {
     try {
-      report = JSON.parse(readFileSync7(resolve3(root, opts.report), "utf8"));
+      report = JSON.parse(readFileSync8(resolve4(root, opts.report), "utf8"));
     } catch {
       throw new CliError(`Cannot read the report file ${opts.report} as JSON.`, 1, "usage");
     }
@@ -24426,8 +25430,13 @@ async function addonDoneCommand(root, ctx, runId, opts) {
   if (!body.success) throw new CliError("Status must be done, failed or skipped.", 1, "usage");
   const r = await apiRequest(ctx, `/api/cli/addons/runs/${encodeURIComponent(runId.trim())}`, AddonDoneResponse, { method: "POST", body: body.data });
   out(`Saved: add-on ${body.data.status}.`);
-  if (r.next) out(`Next: ${r.next}. Tell the site owner what is next, and only with their OK run: npx deployai@latest addon next`);
-  else out("Every add-on of this site is done or skipped.");
+  const all = readProject(root)?.addonsAll === true;
+  if (r.next && all) out(`Next: ${r.next}. Run npx deployai@latest check, then at once: npx deployai@latest addon next`);
+  else if (r.next) out(`Next: ${r.next}. Tell the site owner what is next, and only with their OK run: npx deployai@latest addon next`);
+  else {
+    if (all) updateProject(root, { addonsAll: false });
+    out("Every add-on of this site is done or skipped.");
+  }
 }
 
 // src/commands/speed.ts
@@ -24465,6 +25474,65 @@ async function speedCommand(ctx, url2, opts) {
   }
   out();
   out(`Full report: ${ctx.apiUrl}/tools/r/${id}`);
+}
+
+// src/commands/blocks.ts
+import { existsSync as existsSync11, mkdirSync as mkdirSync5, writeFileSync as writeFileSync9 } from "fs";
+import { dirname as dirname3, resolve as resolve5, sep as sep3 } from "path";
+import { gunzipSync as gunzipSync2 } from "zlib";
+var BLOCKS = [
+  { key: "inbox", title: "Contact form with the site's own messages page for the owner, and an email on each message (D1)" },
+  { key: "blog", title: "Blog: posts as Markdown files, categories, tags, authors, pages, RSS and article data for search" }
+];
+var MAX_BYTES3 = 5 * 1024 * 1024;
+async function blocksCommand(root, ctx, name) {
+  if (!name) {
+    out("DeployAI blocks");
+    out("");
+    out(rows(BLOCKS.map((b) => [b.key, b.title])));
+    out("");
+    out("Add one:                    npx deployai@latest blocks <name>");
+    return;
+  }
+  const block = BLOCKS.find((b) => b.key === name.trim().toLowerCase());
+  if (!block) throw new CliError(`No block named ${name}. See the list: npx deployai@latest blocks`, 1, "not_found");
+  let res;
+  try {
+    res = await fetch(`${ctx.apiUrl}/blocks-src/${block.key}.tar.gz`, { headers: { "User-Agent": userAgent(ctx.config) }, signal: AbortSignal.timeout(6e4) });
+  } catch {
+    throw new CliError(messages()("unreachable", { url: ctx.apiUrl }), 1, "network");
+  }
+  if (!res.ok) throw new CliError(`Could not download the ${block.key} block (HTTP ${res.status}). Try again.`, 1, "api");
+  const gz = Buffer.from(await res.arrayBuffer());
+  if (gz.length > MAX_BYTES3) throw new CliError("The block download is too large.", 1, "api");
+  let entries;
+  try {
+    entries = readTar(gunzipSync2(gz, { maxOutputLength: MAX_BYTES3 * 4 }));
+  } catch {
+    throw new CliError("The block download is damaged. Try again.", 1, "api");
+  }
+  const base = resolve5(root);
+  const written = [];
+  const kept = [];
+  for (const e2 of entries) {
+    if (e2.type !== "0" && e2.type !== "\0") continue;
+    const target = resolve5(base, e2.name);
+    if (target === base || !target.startsWith(base + sep3)) continue;
+    if (existsSync11(target)) {
+      kept.push(e2.name);
+      continue;
+    }
+    mkdirSync5(dirname3(target), { recursive: true });
+    writeFileSync9(target, e2.data);
+    written.push(e2.name);
+  }
+  out(`Added the ${block.key} block: ${written.length} files.`);
+  written.forEach((f) => out(`  + ${f}`));
+  if (kept.length) {
+    out(`These ${kept.length} files already exist and were left as they are; merge what the block needs into them:`);
+    kept.forEach((f) => out(`  = ${f}`));
+  }
+  out(`Read .deployai/blocks/${block.key}.md and follow it: it says what to wire and what to set.`);
 }
 
 // src/commands/env.ts
@@ -24510,7 +25578,7 @@ function buildProgram() {
     if (lang === "he" || lang === "en") process.env.DEPLOYAI_LANG = lang;
   }).showHelpAfterError();
   const g = (cmd) => cmd.optsWithGlobals();
-  const root = (cmd) => resolve4(g(cmd).dir ?? process.cwd());
+  const root = (cmd) => resolve6(g(cmd).dir ?? process.cwd());
   const ctx = (cmd) => apiContext(g(cmd).api);
   program.command("init").description("create DEPLOYAI.md and .deployai/ guard files").option("--force", "overwrite DEPLOYAI.md").option("--no-agent-files", "do not add the DEPLOYAI.md line to AGENTS.md and CLAUDE.md").action((opts, cmd) => initCommand(root(cmd), opts));
   program.command("inspect").description("show framework, package manager, language, database, storage").option("--json", "machine readable output").action((opts, cmd) => inspectCommand(root(cmd), opts));
@@ -24527,14 +25595,28 @@ function buildProgram() {
   program.command("link").description("link this folder to a DeployAI project").argument("[project]", "project slug or id").option("--create <name>", "create a new project and link it").action(
     (project, opts, cmd) => linkCommand(root(cmd), ctx(cmd), project, opts)
   );
-  program.command("deploy").description("check, pack and upload the source, then print the preview address").option("-m, --message <message>", "version message", "update").option("--fixed <what>", "after a failed version: one sentence on what you changed to fix it, no code (helps us catch it for others)").option("--guest", "without login: deploy as a temporary site, deleted after the days we set unless claimed").action((opts, cmd) => deployCommand(root(cmd), ctx(cmd), opts));
-  program.command("pull").description("download the code of the linked site's live version into this empty folder (needs login)").action((_opts, cmd) => pullCommand(root(cmd), ctx(cmd)));
+  program.command("deploy").description("check, pack and upload the source, wait for the build, then put it live or print the preview address").option("-m, --message <message>", "version message", "update").option("--fixed <what>", "after a failed version: one sentence on what you changed to fix it, no code (helps us catch it for others)").option("--guest", "without login: deploy as a temporary site, deleted after the days we set unless claimed").option("--live", "put it live when the build is done; only after the owner said yes").option("--no-wait", "upload and return, without waiting for the build").action((opts, cmd) => deployCommand(root(cmd), ctx(cmd), opts));
+  program.command("pull").description("download the code of the linked site's live version into this empty folder (needs login)").option("--history", "every version up to the live one as git commits, oldest first").action((opts, cmd) => pullCommand(root(cmd), ctx(cmd), opts));
   program.command("claim").description("print this folder's temporary site keep link again; --email mails it, with a reminder before the delete").option("--email <address>", "the owner's email for the link and the reminder").action((opts, cmd) => claimCommand(root(cmd), ctx(cmd), opts));
   program.command("versions").description("list versions").action((_opts, cmd) => versionsCommand(root(cmd), ctx(cmd)));
   program.command("rollback").description("put an earlier version back live, with no rebuild").argument("<version>", "for example v5").action((version2, _opts, cmd) => changeLiveCommand(root(cmd), ctx(cmd), version2, "rollback"));
-  program.command("promote").description("put a version live").argument("<version>", "for example v5").action((version2, _opts, cmd) => changeLiveCommand(root(cmd), ctx(cmd), version2, "promote"));
+  program.command("promote").description("put a version live; new database changes (SQL) are shown and run first, after a yes").argument("<version>", "for example v5").option("--approve-sql <code>", "for an agent, after the owner said yes to the SQL that sql printed: the code it printed; never for SQL that removes data").action((version2, opts, cmd) => changeLiveCommand(root(cmd), ctx(cmd), version2, "promote", opts));
+  program.command("sql").description("the database changes (SQL) a version runs before it goes live").argument("<version>", "for example v5").action((version2, _opts, cmd) => sqlCommand(root(cmd), ctx(cmd), version2));
   program.command("status").description("site state, live version and queue").action((_opts, cmd) => statusCommand(root(cmd), ctx(cmd)));
-  program.command("addons").description("the add-ons of this site: which it has, which are done and which is next").action((_opts, cmd) => addonsCommand(root(cmd), ctx(cmd)));
+  const migrate = program.command("migrate").description("move an existing site: scan it, download its files, check the new one keeps its addresses");
+  migrate.command("scan").description("read the old site: every address with its title and description, the platform, and WordPress content").argument("<url>", "the old site address").option("--max <n>", "the most pages to read (up to 1000)", (v) => Number(v)).action(async (url2, opts, cmd) => {
+    await migrateScanCommand(root(cmd), url2, opts);
+  });
+  migrate.command("media").description("download the images and files the old site uses, at their old paths; run again to go on").action((_opts, cmd) => migrateMediaCommand(root(cmd)));
+  migrate.command("redirects").description("write public/_redirects for the old addresses that cannot stay (feeds, attachment pages)").action((_opts, cmd) => migrateRedirectsCommand(root(cmd)));
+  migrate.command("verify").description("open every old address on the preview: lists pages that moved, are missing or lost their title or description").argument("<preview>", "the preview address deploy printed").action(async (preview, _opts, cmd) => migrateVerifyCommand(root(cmd), preview));
+  migrate.command("status").description("a managed move: report a stage to the request (scanning, building, preview_ready, customer_review, live, blocked)").argument("<stage>", "the stage").argument("[note]", "one line: the preview address, what is done, or why it is blocked").action((stage, note, _opts, cmd) => migrateStatusCommand(root(cmd), ctx(cmd), stage, note));
+  program.command("blocks").description("list our building blocks, or add one to this site (inbox, blog); never writes over a file").argument("[name]", "inbox or blog").action((name, _opts, cmd) => blocksCommand(root(cmd), ctx(cmd), name));
+  program.command("addons").description("the add-ons of this site: which it has, which are done and which is next; addons run runs them all in one go").argument("[action]", "run: every add-on that is not done, one after the other").action((action, _opts, cmd) => {
+    if (!action) return addonsCommand(root(cmd), ctx(cmd));
+    if (action === "run") return addonsRunCommand(root(cmd), ctx(cmd));
+    throw new CliError(`Unknown: addons ${action}. Use npx deployai@latest addons, or npx deployai@latest addons run`, 1, "usage");
+  });
   const addon = program.command("addon").description("run the add-ons of this site, one at a time");
   addon.command("next").description("print the next add-on for your agent").action((_opts, cmd) => addonNextCommand(root(cmd), ctx(cmd)));
   addon.command("run").description("print one add-on by name").argument("<name>", "the add-on name, as npx deployai@latest addons lists it").action((name, _opts, cmd) => addonRunCommand(root(cmd), ctx(cmd), name));

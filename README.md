@@ -45,19 +45,28 @@ Node 20 or newer. No other setup: the CLI talks to https://deployai.co.il.
 | `deployai logout` | Cancels the token on DeployAI and removes it from this computer. |
 | `deployai whoami` | Shows the logged in user. |
 | `deployai link [project]` | Links this folder to a project (slug, id or name). `--create "<name>"` makes a new project. With no name it never links on its own: in a terminal it asks first, an agent gets the exact `link <slug>` command. |
-| `deployai deploy -m "<message>"` | Runs the check, packs the source and uploads it. Prints the version, the queue position and the preview address. |
-| `deployai versions` | Lists versions: number, live or not, status ("replaced by a newer upload" for one that never built), date, size, message, and a dashboard link when its SQL waits for approval. |
+| `deployai deploy -m "<message>"` | Runs the check, packs the source and uploads it, then waits for the build. At a terminal it asks whether to put it live right away or show the preview first. `--live` puts it live after the build without asking (only on the owner's yes), `--no-wait` returns after the upload. |
+| `deployai versions` | Lists versions: number, live or not, status ("replaced by a newer upload" for one that never built), date, size, message, and the `sql vN` command when its SQL waits for approval. |
 | `deployai rollback v5` | Puts version 5 back live, with no rebuild. |
-| `deployai promote v5` | Puts version 5 live. |
+| `deployai promote v5` | Puts version 5 live. New database changes (SQL) are shown and run first, after a yes; SQL that removes data needs the database name typed. An agent passes `--approve-sql <code>` only after the owner said yes, and never for SQL that removes data. |
+| `deployai sql v5` | The database changes version 5 runs before it goes live. |
 | `deployai status` | Site state, address, live version, the newest version when it is not live yet (with the promote command once it is ready), and queue. |
 | `deployai deploy --guest` | No login needed: puts the site live as a temporary site with a claim link. More below. |
 | `deployai pull` | Downloads the code of the linked site's live version into this empty folder. Needs login. |
+| `deployai pull --history` | The same, with the site's history as git commits, one per version up to the live one, oldest first. |
+| `deployai migrate scan <url>` | Scans the old site you are moving: every page's address, title and description, the platform, and on WordPress its posts as Markdown. Up to 300 pages, `--max <n>` up to 1,000. Writes into `.deployai/migration/<host>/` only. |
+| `deployai migrate media` | Downloads the old site's files at their old paths, resumable (25 MB a file, 1 GB a move). |
+| `deployai migrate redirects` | Writes `public/_redirects` only for old addresses that cannot stay. |
+| `deployai migrate verify <preview>` | Checks every old address on the preview: moved, missing, an error, or a lost title or description. |
+| `deployai migrate status <stage> [note]` | For a managed move: reports the stage (and a note like the preview address) to the request, so the board and the owner's status page update. |
+| `deployai blocks [inbox\|blog]` | Adds one of DeployAI's building blocks to an existing site, never over a file, with a guide in `.deployai/blocks/<key>.md`. With no key it lists them. |
 | `deployai claim` | Prints this folder's temporary site keep link again. `--email <address>` mails it, with a reminder before the delete. |
 | `deployai samples [name] [folder]` | Lists the six sample sites, or downloads one. More below. |
 | `deployai start <id>` | The one line copied on the DeployAI site. Prepares this folder, then prints the steps for your agent. No login needed. More below. |
 | `deployai speed <url>` | Google PageSpeed test of a page: lab results, real visitor data when Google has it and the biggest opportunities. `--desktop` tests a desktop load. |
 | `deployai addons` | The marketplace add-ons of the linked site: which it has, which are done and which is next. Works once the DeployAI marketplace is open; the server checks that the site has each add-on. |
 | `deployai addon next` | Prints the next add-on of the site for your agent. `deployai addon run <name>` prints one by name. |
+| `deployai addons run` | Runs every add-on the site has that is not done, one after the other, with no ask between them. |
 | `deployai addon done <runId>` | Saves the report of a finished add-on (`--status done\|failed\|skipped`, `--report .deployai/addon-report.json`) and prints the next one. |
 | `deployai telemetry status\|on\|off` | Shows exactly what is sent, or turns it on or off. |
 
