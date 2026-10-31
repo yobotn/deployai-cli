@@ -18997,8 +18997,8 @@ function currencyCode2(_params) {
   return _stringFormat(ZodCustomStringFormat, "currency_code", currencyCode, _params);
 }
 function hash(alg, params) {
-  const enc = params?.enc ?? "hex";
-  const format = `${alg}_${enc}`;
+  const enc2 = params?.enc ?? "hex";
+  const format = `${alg}_${enc2}`;
   const regex = regexes_exports[format];
   if (!regex)
     throw new Error(`Unrecognized hash format: ${format}`);
@@ -21811,6 +21811,7 @@ var ENV_KEYS = {
   TURNSTILE_SITE_KEY: { scope: "server", section: "tools", about: "Cloudflare Turnstile site key for the tool forms. Locally the Cloudflare test keys are built in." },
   TURNSTILE_SECRET: { scope: "server", section: "tools", about: "The Turnstile secret key of the same widget." },
   TOOLS_FETCH_SECRET: { scope: "same", section: "tools", about: "Shared secret between the app and the tools Worker, 32 random characters or more. pnpm tools:deploy uploads it." },
+  APPS_SIGNING_SECRET: { scope: "own", section: "tools", about: 'Signs the 60 second tokens from the app to the Uptime app Worker, and the alert calls back from it (D-556); pnpm app-uptime:deploy uploads it. Unset: Apps answer "not set up". openssl rand -hex 32' },
   UPTIME_ALERT_TO: { scope: "own", section: "tools", about: "Who gets the down and back up emails of the uptime Worker, comma separated. Without it no email is sent." },
   UPTIME_ALERT_TOKEN: { scope: "own", section: "tools", about: "A Cloudflare token with Email Sending edit only, stored as the uptime Worker's secret. Default CF_API_TOKEN." },
   A11Y_RENDER: { scope: "same", section: "tools", about: "0 turns off Cloudflare Browser Rendering for the online accessibility check (D-191)." },
@@ -21837,10 +21838,12 @@ var CLOUDFLARE_SPACES = {
     "demosScript": "deployai-demos",
     "toolsScript": "deployai-tools",
     "uptimeScript": "deployai-uptime-dev",
+    "appUptimeScript": "deployai-app-uptime-dev",
     "s3Endpoint": "https://e9c7bdb938b1c7c41496164fdea06f35.r2.cloudflarestorage.com",
     "bucket": "deployai-files-dev",
     "backupBucket": null,
-    "toolsWorkerUrl": "https://deployai-tools.deployai-co-il-e9c.workers.dev"
+    "toolsWorkerUrl": "https://deployai-tools.deployai-co-il-e9c.workers.dev",
+    "appUptimeUrl": "https://deployai-app-uptime-dev.deployai-co-il-e9c.workers.dev"
   },
   "prod": {
     "accountId": "e9c7bdb938b1c7c41496164fdea06f35",
@@ -21855,10 +21858,12 @@ var CLOUDFLARE_SPACES = {
     "demosScript": "deployai-demos",
     "toolsScript": "deployai-tools",
     "uptimeScript": "deployai-uptime",
+    "appUptimeScript": "deployai-app-uptime",
     "s3Endpoint": "https://e9c7bdb938b1c7c41496164fdea06f35.r2.cloudflarestorage.com",
     "bucket": "deployai-files",
     "backupBucket": "deployai-db-backups",
-    "toolsWorkerUrl": "https://deployai-tools.deployai-co-il-e9c.workers.dev"
+    "toolsWorkerUrl": "https://deployai-tools.deployai-co-il-e9c.workers.dev",
+    "appUptimeUrl": "https://deployai-app-uptime.deployai-co-il-e9c.workers.dev"
   }
 };
 var BRAND = "https://deployai.co.il";
@@ -21897,7 +21902,7 @@ var SPACE_ADDRESSES = {
 var build = (name, cf, a) => ({ name, ...cf, ...a, brandDomain: new URL(a.brandUrl).hostname, s3Region: "auto" });
 var SPACES = {
   ...Object.fromEntries(Object.keys(CLOUDFLARE_SPACES).filter((n2) => SPACE_ADDRESSES[n2]).map((n2) => [n2, build(n2, CLOUDFLARE_SPACES[n2], SPACE_ADDRESSES[n2])])),
-  test: build("test", { ...CLOUDFLARE_SPACES.prod, kvNamespaceId: "", sitesZoneId: null, backupBucket: null, toolsWorkerUrl: "" }, { ...SPACE_ADDRESSES.prod, appUrl: "http://localhost:3000", siteUrl: "http://localhost:3000", trustedOrigins: [], storage: "local" })
+  test: build("test", { ...CLOUDFLARE_SPACES.prod, kvNamespaceId: "", sitesZoneId: null, backupBucket: null, toolsWorkerUrl: "", appUptimeUrl: "" }, { ...SPACE_ADDRESSES.prod, appUrl: "http://localhost:3000", siteUrl: "http://localhost:3000", trustedOrigins: [], storage: "local" })
 };
 
 // ../shared/src/agent-rules.ts
@@ -22077,6 +22082,10 @@ var AGENT_STAGES = ["scanning", "building", "preview_ready", "customer_review", 
 var STAGE_NOTE_MAX = 300;
 var isAgentStage = (s) => AGENT_STAGES.includes(s);
 var stageNote = (s) => (s ?? "").replace(/[\u0000-\u001f\u007f]+/g, " ").replace(/\s+/g, " ").trim().slice(0, STAGE_NOTE_MAX);
+
+// ../shared/src/uptime.ts
+var UPTIME_MAX_BYTES = 256 * 1024;
+var enc = new TextEncoder();
 
 // src/config.ts
 import { randomUUID } from "crypto";
@@ -22659,7 +22668,7 @@ function messages(root) {
 }
 
 // src/version.ts
-var CLI_VERSION = "0.1.0-beta.14";
+var CLI_VERSION = "0.1.0-beta.15";
 
 // src/api.ts
 function apiContext(apiFlag) {
@@ -22674,6 +22683,10 @@ function requireToken(ctx) {
   const saved = ctx.config.tokenApiUrl?.replace(/\/+$/, "");
   if (saved && saved !== ctx.apiUrl.replace(/\/+$/, "")) throw new CliError(messages(process.cwd())("tokenOtherApi", { saved, url: ctx.apiUrl }), 1, "auth");
   return ctx.config.token;
+}
+function tokenIfOwnApi(ctx) {
+  const saved = ctx.config.tokenApiUrl?.replace(/\/+$/, "");
+  return ctx.config.token && saved && saved === ctx.apiUrl.replace(/\/+$/, "") ? ctx.config.token : null;
 }
 async function apiRequest(ctx, path, schema, opts = {}) {
   const headers = { "User-Agent": userAgent(ctx.config), Accept: "application/json" };
@@ -22826,7 +22839,7 @@ var TELEMETRY_SENT = [
   "Linked project id, detected framework and version",
   "After each check: compatible or not, blocker and warning codes (for example fs_write)",
   "OS, architecture and Node version (in the request header)",
-  "Your user id, only after login (from the login token)",
+  "Your user id, only after login (from the login token), and only to the API that issued the login (D-557)",
   "After a failed version, the one sentence you pass with deploy --fixed (what you changed, no code)"
 ];
 var TELEMETRY_NEVER_SENT = [
@@ -22850,7 +22863,8 @@ async function sendCheckReport(ctx, report) {
   if (!telemetryEnabled(ctx.config)) return;
   try {
     const headers = { "Content-Type": "application/json", "User-Agent": userAgent(ctx.config) };
-    if (ctx.config.token) headers.Authorization = `Bearer ${ctx.config.token}`;
+    const token = tokenIfOwnApi(ctx);
+    if (token) headers.Authorization = `Bearer ${token}`;
     const res = await fetch(`${ctx.apiUrl}/api/cli/check-results`, {
       method: "POST",
       headers,
@@ -22879,7 +22893,8 @@ async function sendTelemetryEvent(ctx, event) {
   if (!telemetryEnabled(ctx.config)) return;
   try {
     const headers = { "Content-Type": "application/json", "User-Agent": userAgent(ctx.config) };
-    if (ctx.config.token) headers.Authorization = `Bearer ${ctx.config.token}`;
+    const token = tokenIfOwnApi(ctx);
+    if (token) headers.Authorization = `Bearer ${token}`;
     const res = await fetch(`${ctx.apiUrl}/api/cli/telemetry`, {
       method: "POST",
       headers,
