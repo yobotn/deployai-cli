@@ -21728,7 +21728,7 @@ function startSteps(kind, opts = {}) {
       ];
   }
 }
-var allowCommandsUrl = (lang = "he") => `${HELP_ORIGIN}${lang === "he" ? "" : "/en"}/connect-ai#allow`;
+var allowCommandsUrl = (lang = "he") => `${HELP_ORIGIN}${lang === "he" ? "" : "/en"}/go-live#allow`;
 var runCommandsRule = (lang = "he") => `Run every npx deployai@latest command yourself. If your tool asks before it runs one, ask the owner one short yes or no question that names the command, for example "Run npx deployai@latest check? (yes or no)", and run it when they say yes. Never ask the owner to copy, paste or type a command. After the first command runs, ask the owner once: "Allow DeployAI commands in this folder without asking each time? (yes or no)", and only on yes run npx deployai@latest allow (add your tool's name if it asks: claude-code, cursor, copilot, codex or antigravity). Never change your tool's settings any other way. If it is still blocked after their yes, tell them in plain words and send them ${allowCommandsUrl(lang)}, which shows them the one setting that allows it.`;
 var START_FAIL_LINE = "If anything fails, tell the owner in plain words what happened and what you will do next.";
 
@@ -22460,6 +22460,7 @@ var M = {
     startStarter: "Wrote a starter page (index.html) to build the site on.",
     startStack: "Saved the stack chosen on the site: {stack}.",
     startScanned: "Scanned the old site {url}: its pages, images and content are in {dir}.",
+    startBesideCode: "The new site is in its own folder beside the files that were here ({dir}). If they are the old site's code, read them before you plan.",
     stackDiffers: "Note: the stack chosen on the site is {chosen}, but this folder is {found}. Keep to the chosen stack, or tell the owner why it changed.",
     startRelinked: 'Linked this folder to the site "{name}" instead of the site it was linked to.',
     statusLine: "Status: {s}",
@@ -22675,6 +22676,7 @@ var M = {
     startStarter: "\u05E0\u05DB\u05EA\u05D1 \u05D3\u05E3 \u05E4\u05EA\u05D9\u05D7\u05D4 (index.html) \u05DC\u05D1\u05E0\u05D5\u05EA \u05E2\u05DC\u05D9\u05D5 \u05D0\u05EA \u05D4\u05D0\u05EA\u05E8.",
     startStack: "\u05E0\u05E9\u05DE\u05E8 \u05D4\u05E1\u05D8\u05D0\u05E7 \u05E9\u05E0\u05D1\u05D7\u05E8 \u05D1\u05D0\u05EA\u05E8: {stack}.",
     startScanned: "\u05E0\u05E1\u05E8\u05E7 \u05D4\u05D0\u05EA\u05E8 \u05D4\u05D9\u05E9\u05DF {url}: \u05D4\u05D3\u05E4\u05D9\u05DD, \u05D4\u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05D5\u05D4\u05EA\u05D5\u05DB\u05DF \u05E9\u05DC\u05D5 \u05D1 {dir}.",
+    startBesideCode: "\u05D4\u05D0\u05EA\u05E8 \u05D4\u05D7\u05D3\u05E9 \u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05DE\u05E9\u05DC\u05D5, \u05DC\u05D9\u05D3 \u05D4\u05E7\u05D1\u05E6\u05D9\u05DD \u05E9\u05D4\u05D9\u05D5 \u05DB\u05D0\u05DF ({dir}). \u05D0\u05DD \u05D4\u05DD \u05D4\u05E7\u05D5\u05D3 \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D4\u05D9\u05E9\u05DF, \u05E7\u05E8\u05D0 \u05D0\u05D5\u05EA\u05DD \u05DC\u05E4\u05E0\u05D9 \u05D4\u05EA\u05DB\u05E0\u05D5\u05DF.",
     stackDiffers: "\u05E9\u05D9\u05DE\u05D5 \u05DC\u05D1: \u05D4\u05E1\u05D8\u05D0\u05E7 \u05E9\u05E0\u05D1\u05D7\u05E8 \u05D1\u05D0\u05EA\u05E8 \u05D4\u05D5\u05D0 {chosen}, \u05D0\u05D1\u05DC \u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5 \u05D4\u05D9\u05D0 {found}. \u05D4\u05DE\u05E9\u05D9\u05DB\u05D5 \u05D1\u05E1\u05D8\u05D0\u05E7 \u05E9\u05E0\u05D1\u05D7\u05E8, \u05D0\u05D5 \u05D4\u05E1\u05D1\u05D9\u05E8\u05D5 \u05DC\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05DC\u05DE\u05D4 \u05D4\u05D5\u05D0 \u05D4\u05E9\u05EA\u05E0\u05D4.",
     startRelinked: '\u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D7\u05D5\u05D1\u05E8\u05D4 \u05DC\u05D0\u05EA\u05E8 "{name}" \u05D1\u05DE\u05E7\u05D5\u05DD \u05D4\u05D0\u05EA\u05E8 \u05E9\u05D4\u05D9\u05D9\u05EA\u05D4 \u05DE\u05D7\u05D5\u05D1\u05E8\u05EA \u05D0\u05DC\u05D9\u05D5.',
     statusLine: "\u05DE\u05E6\u05D1: {s}",
@@ -22890,7 +22892,7 @@ function messages(root) {
 }
 
 // src/version.ts
-var CLI_VERSION = "0.1.0-beta.16";
+var CLI_VERSION = "0.1.0-beta.17";
 
 // src/api.ts
 function apiContext(apiFlag) {
@@ -25637,6 +25639,7 @@ async function startCommand(cwd, ctx, id, opts = {}) {
   }
   if (kind === "migrate" && choices.migration) {
     writeChoices(root, { ...choices.migration, startId: key });
+    if (root !== here) done.push(t("startBesideCode", { dir: here }));
     for (const url2 of choices.migration.sourceUrls) {
       try {
         const skipped = await migrateScanCommand(root, url2, { max: START_SCAN_PAGES });
