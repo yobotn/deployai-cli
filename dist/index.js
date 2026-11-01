@@ -99,6 +99,14 @@ var ISSUES = [
     fixForAgent: "A standalone WebSocket server cannot run here. Use polling or server-sent events for live updates, or ask the developer before redesigning this feature."
   },
   {
+    code: "durable_objects",
+    severity: "blocker",
+    titleEn: "Uses Durable Objects, not supported yet",
+    titleHe: "\u05D4\u05D0\u05EA\u05E8 \u05DE\u05E9\u05EA\u05DE\u05E9 \u05D1\u05BEDurable Objects, \u05E9\u05E2\u05D5\u05D3 \u05DC\u05D0 \u05E0\u05EA\u05DE\u05DB\u05D9\u05DD",
+    agentLine: "{loc} declares Durable Objects{detail}.",
+    fixForAgent: "Durable Objects do not run on customer sites yet. Keep the data in D1 (SQLite) and remove durable_objects from the wrangler config. For live updates use polling or server-sent events."
+  },
+  {
     code: "bundle_too_large",
     severity: "blocker",
     titleEn: "Project is too large to upload",
@@ -705,6 +713,120 @@ function frameworkDisplay(d) {
   if (notes.length) s += ` (${notes.join(", ")})`;
   return s;
 }
+function jsoncToJson(src) {
+  let out2 = "";
+  let i = 0;
+  const n2 = src.length;
+  while (i < n2) {
+    const c = src[i];
+    if (c === '"') {
+      let j = i + 1;
+      while (j < n2 && src[j] !== '"') j += src[j] === "\\" ? 2 : 1;
+      out2 += src.slice(i, j + 1);
+      i = j + 1;
+    } else if (c === "/" && src[i + 1] === "/") {
+      while (i < n2 && src[i] !== "\n") i++;
+    } else if (c === "/" && src[i + 1] === "*") {
+      i += 2;
+      while (i < n2 && !(src[i] === "*" && src[i + 1] === "/")) i++;
+      i += 2;
+    } else {
+      out2 += c;
+      i++;
+    }
+  }
+  return out2.replace(/,(\s*[}\]])/g, "$1");
+}
+function durableObjectsOf(v) {
+  const list = v && typeof v === "object" ? v.bindings : null;
+  if (!Array.isArray(list)) return [];
+  return list.map((x) => x && typeof x === "object" && typeof x.name === "string" ? x.name : "");
+}
+function bindingsOf(list) {
+  if (!Array.isArray(list)) return [];
+  return list.map((x) => x && typeof x === "object" && typeof x.binding === "string" ? { binding: x.binding } : null).filter((x) => x !== null);
+}
+function parseWranglerConfig(fileName, text) {
+  const empty = { d1: [], r2: [], vars: [], main: null, assetsDir: null, compatibilityDate: null, compatibilityFlags: [], durableObjects: [] };
+  if (/\.toml$/.test(fileName)) return parseWranglerToml(text);
+  let j;
+  try {
+    j = JSON.parse(jsoncToJson(text));
+  } catch {
+    return empty;
+  }
+  if (!j || typeof j !== "object") return empty;
+  const assets = j.assets;
+  const vars = j.vars && typeof j.vars === "object" && !Array.isArray(j.vars) ? Object.keys(j.vars) : [];
+  return {
+    d1: bindingsOf(j.d1_databases),
+    r2: bindingsOf(j.r2_buckets),
+    vars,
+    main: typeof j.main === "string" ? j.main : null,
+    assetsDir: assets && typeof assets.directory === "string" ? assets.directory : null,
+    compatibilityDate: typeof j.compatibility_date === "string" ? j.compatibility_date : null,
+    compatibilityFlags: Array.isArray(j.compatibility_flags) ? j.compatibility_flags.filter((x) => typeof x === "string") : [],
+    durableObjects: durableObjectsOf(j.durable_objects)
+  };
+}
+function tomlString(v) {
+  const m = /^\s*(?:"((?:[^"\\]|\\.)*)"|'([^']*)')/.exec(v);
+  return m ? m[1] ?? m[2] ?? "" : null;
+}
+function parseWranglerToml(text) {
+  const decl = { d1: [], r2: [], vars: [], main: null, assetsDir: null, compatibilityDate: null, compatibilityFlags: [], durableObjects: [] };
+  let section = "";
+  for (const rawLine of text.split(/\r?\n/)) {
+    const line = rawLine.replace(/\s+#.*$/, "").replace(/^#.*$/, "").trim();
+    if (!line) continue;
+    const arr = /^\[\[\s*([\w.]+)\s*\]\]$/.exec(line);
+    if (arr) {
+      section = `[[${arr[1]}]]`;
+      if (arr[1] === "d1_databases") decl.d1.push({ binding: "" });
+      if (arr[1] === "r2_buckets") decl.r2.push({ binding: "" });
+      if (arr[1] === "durable_objects.bindings") decl.durableObjects.push("");
+      continue;
+    }
+    const tbl = /^\[\s*([\w.]+)\s*\]$/.exec(line);
+    if (tbl) {
+      section = tbl[1];
+      continue;
+    }
+    const kv = /^([\w-]+|"[^"]+")\s*=\s*(.*)$/.exec(line);
+    if (!kv) continue;
+    const key = kv[1].replace(/^"|"$/g, "");
+    const value = kv[2];
+    if (section === "") {
+      if (key === "main") decl.main = tomlString(value);
+      if (key === "compatibility_date") decl.compatibilityDate = tomlString(value);
+      if (key === "compatibility_flags") decl.compatibilityFlags = [...value.matchAll(/"([^"]+)"|'([^']+)'/g)].map((m) => m[1] ?? m[2]);
+      if (key === "d1_databases" || key === "r2_buckets") {
+        const target = key === "d1_databases" ? decl.d1 : decl.r2;
+        for (const m of value.matchAll(/binding\s*=\s*(?:"([^"]+)"|'([^']+)')/g)) target.push({ binding: m[1] ?? m[2] });
+      }
+      if (key === "vars") for (const m of value.matchAll(/([\w-]+)\s*=/g)) decl.vars.push(m[1]);
+      if (key === "durable_objects") for (const m of value.matchAll(/\bname\s*=\s*(?:"([^"]+)"|'([^']+)')/g)) decl.durableObjects.push(m[1] ?? m[2]);
+    } else if (section === "durable_objects" && key === "bindings") {
+      for (const m of value.matchAll(/\bname\s*=\s*(?:"([^"]+)"|'([^']+)')/g)) decl.durableObjects.push(m[1] ?? m[2]);
+    } else if (section === "[[durable_objects.bindings]]" && key === "name") {
+      const v = tomlString(value);
+      if (v != null) decl.durableObjects[decl.durableObjects.length - 1] = v;
+    } else if (section === "vars") {
+      decl.vars.push(key);
+    } else if (section === "assets" && key === "directory") {
+      decl.assetsDir = tomlString(value);
+    } else if (section === "[[d1_databases]]" && key === "binding") {
+      const v = tomlString(value);
+      if (v != null) decl.d1[decl.d1.length - 1].binding = v;
+    } else if (section === "[[r2_buckets]]" && key === "binding") {
+      const v = tomlString(value);
+      if (v != null) decl.r2[decl.r2.length - 1].binding = v;
+    }
+  }
+  decl.d1 = decl.d1.filter((b) => b.binding);
+  decl.r2 = decl.r2.filter((b) => b.binding);
+  return decl;
+}
 
 // ../shared/src/issue-help.ts
 var HELP_ORIGIN = "https://deployai.co.il";
@@ -833,6 +955,19 @@ var ISSUE_HELP = {
       what: "The site starts something that keeps running in the background, such as a timer, a job queue or a scheduled task.",
       why: "On DeployAI the site runs only when someone visits, and nothing stays running between visits. Background work would simply not run, so the site will not go live.",
       fix: ["Remove timers, job queues and scheduled task libraries from the site.", "If you need a task that runs on a clock, your agent asks you before building it."]
+    }
+  },
+  durable_objects: {
+    he: {
+      what: "\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA \u05D4\u05D0\u05EA\u05E8 (wrangler) \u05DE\u05D1\u05E7\u05E9\u05D5\u05EA Durable Objects, \u05D0\u05D7\u05E1\u05D5\u05DF \u05DC\u05DE\u05E6\u05D1 \u05D7\u05D9 \u05DB\u05DE\u05D5 \u05E6\u05F3\u05D0\u05D8 \u05D0\u05D5 \u05DE\u05D5\u05E0\u05D9\u05DD.",
+      why: "\u05D0\u05EA\u05E8\u05D9\u05DD \u05E9\u05DC \u05DC\u05E7\u05D5\u05D7\u05D5\u05EA \u05E2\u05D5\u05D3 \u05DC\u05D0 \u05D9\u05DB\u05D5\u05DC\u05D9\u05DD \u05DC\u05D4\u05E9\u05EA\u05DE\u05E9 \u05D1\u05D4\u05DD. \u05D4\u05D0\u05EA\u05E8 \u05D4\u05D9\u05D4 \u05E2\u05D5\u05DC\u05D4 \u05D5\u05E0\u05D5\u05E4\u05DC \u05D1\u05D1\u05E7\u05E9\u05D4 \u05D4\u05E8\u05D0\u05E9\u05D5\u05E0\u05D4 \u05E9\u05DE\u05D2\u05D9\u05E2\u05D4 \u05D0\u05DC\u05D9\u05D4\u05DD, \u05DC\u05DB\u05DF \u05D4\u05D5\u05D0 \u05DC\u05D0 \u05D9\u05E2\u05DC\u05D4.",
+      fix: ["\u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05E0\u05E9\u05DE\u05E8\u05D9\u05DD \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8.", "\u05DC\u05E2\u05D3\u05DB\u05D5\u05E0\u05D9\u05DD \u05D7\u05D9\u05D9\u05DD \u05D1\u05D5\u05D3\u05E7\u05D9\u05DD \u05DE\u05D7\u05D3\u05E9 \u05DB\u05DC \u05DB\u05DE\u05D4 \u05E9\u05E0\u05D9\u05D5\u05EA, \u05D0\u05D5 \u05DE\u05E9\u05EA\u05DE\u05E9\u05D9\u05DD \u05D1\u05D6\u05E8\u05DD \u05E2\u05D3\u05DB\u05D5\u05E0\u05D9\u05DD \u05DE\u05D4\u05E9\u05E8\u05EA."],
+      prompt: "Durable Objects \u05DC\u05D0 \u05E8\u05E6\u05D9\u05DD \u05E2\u05D3\u05D9\u05D9\u05DF \u05D1\u05D0\u05EA\u05E8\u05D9\u05DD \u05E9\u05DC \u05DC\u05E7\u05D5\u05D7\u05D5\u05EA. \u05E9\u05DE\u05D5\u05E8 \u05D0\u05EA \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05D1\u05BED1 (SQLite) \u05D5\u05D4\u05E1\u05E8 \u05D0\u05EA durable_objects \u05DE\u05E7\u05D5\u05D1\u05E5 \u05D4\u05BEwrangler. \u05DC\u05E2\u05D3\u05DB\u05D5\u05E0\u05D9\u05DD \u05D7\u05D9\u05D9\u05DD \u05D4\u05E9\u05EA\u05DE\u05E9 \u05D1\u05BEpolling \u05D0\u05D5 \u05D1\u05BEserver-sent events."
+    },
+    en: {
+      what: "The site settings (wrangler) ask for Durable Objects, storage for live state such as a chat or counters.",
+      why: "Customer sites cannot use them yet. The site would go live and then fail on the first request that reaches one, so it will not go live.",
+      fix: ["Keep the data in the site database.", "For live updates, check again every few seconds, or use a stream of updates from the server."]
     }
   },
   websocket_server: {
@@ -18997,8 +19132,8 @@ function currencyCode2(_params) {
   return _stringFormat(ZodCustomStringFormat, "currency_code", currencyCode, _params);
 }
 function hash(alg, params) {
-  const enc2 = params?.enc ?? "hex";
-  const format = `${alg}_${enc2}`;
+  const enc4 = params?.enc ?? "hex";
+  const format = `${alg}_${enc4}`;
   const regex = regexes_exports[format];
   if (!regex)
     throw new Error(`Unrecognized hash format: ${format}`);
@@ -21260,7 +21395,9 @@ var ARCH_NODES = [
   { id: "demos", kind: "worker", zone: "cloudflare", label: "deployai-demos", summary: "\u05D4\u05D3\u05DE\u05D5\u05D0\u05D9\u05DD \u05D1\u05DB\u05EA\u05D5\u05D1\u05D5\u05EA \u05DB\u05DE\u05D5 shop.deploy-net.com, \u05E2\u05DC \u05DB\u05DC \u05D3\u05D5\u05DE\u05D9\u05D9\u05DF \u05D0\u05EA\u05E8\u05D9\u05DD: \u05DE\u05D5\u05E9\u05DA \u05D0\u05EA /demo/<key> \u05DE\u05D4\u05D0\u05EA\u05E8 \u05E9\u05DC\u05E0\u05D5 \u05D5\u05DE\u05E1\u05D9\u05E8 \u05D0\u05EA \u05D4\u05E7\u05D9\u05D3\u05D5\u05DE\u05EA, noindex.", summaryEn: "The demos on hosts like shop.deploy-net.com, on every sites domain: fetches /demo/<key> from our site and strips the prefix, noindex.", code: ["workers/demos/src", "scripts/deploy-demos.ts", "packages/shared/src/demos.ts"], env: ["CHROME_PATH", "SHOTS_BASE"], docs: ["workers/demos/README.md"], decisions: ["D-112", "D-293"] },
   { id: "tools-worker", kind: "worker", zone: "cloudflare", label: "deployai-tools", summary: "\u05DE\u05D5\u05E8\u05D9\u05D3 \u05D0\u05EA \u05D4\u05E2\u05DE\u05D5\u05D3\u05D9\u05DD \u05D5\u05D4\u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05E9\u05D4\u05DB\u05DC\u05D9\u05DD \u05D4\u05D7\u05D9\u05E0\u05DE\u05D9\u05D9\u05DD \u05D1\u05D5\u05D3\u05E7\u05D9\u05DD, \u05DB\u05D3\u05D9 \u05E9\u05DB\u05EA\u05D5\u05D1\u05EA \u05E9\u05DE\u05D1\u05E7\u05E8 \u05D4\u05E7\u05DC\u05D9\u05D3 \u05DC\u05D0 \u05EA\u05D9\u05D8\u05E2\u05DF \u05DE\u05D4\u05E9\u05E8\u05EA \u05E9\u05DC\u05E0\u05D5. \u05E8\u05E7 \u05E9\u05DE\u05D5\u05EA \u05E6\u05D9\u05D1\u05D5\u05E8\u05D9\u05D9\u05DD, \u05DB\u05DC \u05EA\u05E9\u05D5\u05D1\u05EA DNS \u05D5\u05DB\u05DC \u05D4\u05E4\u05E0\u05D9\u05D4 \u05E0\u05D1\u05D3\u05E7\u05D5\u05EA.", summaryEn: "Downloads the pages and images the free tools test, so an address a visitor typed is never fetched from our server. Public names only; every DNS answer and redirect is checked.", code: ["workers/tools/src", "scripts/deploy-tools.ts", "packages/shared/src/safe-url.ts"], env: ["TOOLS_FETCH_SECRET"], decisions: ["D-199"] },
   { id: "uptime-worker", kind: "worker", zone: "cloudflare", label: "deployai-uptime", summary: "\u05D1\u05D5\u05D3\u05E7 \u05DE\u05D1\u05D7\u05D5\u05E5 \u05DB\u05DC 2 \u05D3\u05E7\u05D5\u05EA \u05E9-/api/health \u05E2\u05D5\u05E0\u05D4, \u05DB\u05D9 \u05E9\u05E8\u05EA \u05E9\u05E0\u05E4\u05DC \u05DC\u05D0 \u05D9\u05DB\u05D5\u05DC \u05DC\u05D3\u05D5\u05D5\u05D7 \u05E2\u05DC \u05E2\u05E6\u05DE\u05D5. \u05E9\u05D5\u05DE\u05E8 \u05D0\u05EA \u05D4\u05EA\u05D5\u05E6\u05D0\u05D4 \u05D1\u05BEKV, \u05D5\u05E9\u05EA\u05D9 \u05E0\u05E4\u05D9\u05DC\u05D5\u05EA \u05D1\u05E8\u05E6\u05E3 \u05E9\u05D5\u05DC\u05D7\u05D5\u05EA \u05DE\u05D9\u05D9\u05DC \u05DC\u05E6\u05D5\u05D5\u05EA.", summaryEn: "Checks from outside every 2 minutes that /api/health answers, because a server that is down cannot report itself. Keeps the result in KV; two failures in a row email the team.", code: ["workers/uptime/src", "scripts/deploy-uptime.ts", "apps/web/src/app/api/health/route.ts"], env: ["UPTIME_ALERT_TO", "UPTIME_ALERT_TOKEN"], decisions: ["D-331"] },
-  { id: "dispatch", kind: "worker", zone: "cloudflare", label: "deployai-dispatch", summary: 'Worker \u05D0\u05D7\u05D3 \u05E2\u05DC */* \u05E9\u05DE\u05E0\u05EA\u05D1 \u05DB\u05DC \u05DB\u05EA\u05D5\u05D1\u05EA \u05DC\u05D0\u05EA\u05E8, \u05E1\u05D5\u05E4\u05E8 \u05D1\u05D9\u05E7\u05D5\u05E8\u05D9\u05DD, \u05DE\u05D2\u05D1\u05D9\u05DC \u05E7\u05E6\u05D1 \u05D5\u05DE\u05D5\u05E1\u05D9\u05E3 \u05D0\u05EA \u05D4\u05EA\u05D2 "\u05D1\u05D0\u05D5\u05D5\u05D9\u05E8 \u05E2\u05DD DeployAI" \u05DC\u05D0\u05EA\u05E8\u05D9\u05DD \u05E9\u05D1\u05D7\u05D1\u05D9\u05DC\u05D4 \u05E9\u05DC\u05D4\u05DD \u05D9\u05E9 \u05EA\u05D2, \u05D0\u05E3 \u05E4\u05E2\u05DD \u05DC\u05D0 \u05DC\u05D0\u05EA\u05E8 \u05D6\u05DE\u05E0\u05D9.', summaryEn: 'One Worker on */* that routes every address to its site, counts visits, limits the rate and adds the "Live with DeployAI" badge to sites whose plan has the badge, never to a temporary site.', code: ["workers/dispatch/src", "scripts/deploy-dispatch.ts"], env: ["DISPATCH_RATE_LIMIT_PERIOD", "PROBE_SECRET"], docs: ["workers/dispatch/README.md"], decisions: ["D-087", "D-113", "D-179", "D-238", "D-245", "D-528"] },
+  { id: "app-uptime", kind: "worker", zone: "customer", label: "Uptime app site", summary: "\u05D0\u05EA\u05E8 \u05E0\u05D9\u05D8\u05D5\u05E8 \u05D6\u05DE\u05D9\u05E0\u05D5\u05EA \u05E9\u05DC \u05DC\u05E7\u05D5\u05D7: \u05D0\u05EA\u05E8 \u05D1\u05E4\u05E0\u05D9 \u05E2\u05E6\u05DE\u05D5 (site-<slug> \u05D1\u05DE\u05E8\u05D7\u05D1 \u05D4\u05E9\u05DE\u05D5\u05EA), \u05E2\u05DD \u05D4\u05E7\u05D5\u05D3 \u05E9\u05DC\u05E0\u05D5 \u05D1\u05DC\u05D1\u05D3, \u05E9\u05DE\u05EA\u05E2\u05D3\u05DB\u05DF \u05D1\u05DB\u05DC \u05D4\u05E2\u05DC\u05D0\u05D4 \u05E9\u05DC \u05D4\u05E9\u05E8\u05EA. Durable Object \u05E2\u05DD SQLite \u05D1\u05D0\u05D5\u05EA\u05D5 Worker \u05E9\u05D5\u05DE\u05E8 \u05D0\u05EA \u05D4\u05E0\u05D9\u05D8\u05D5\u05E8\u05D9\u05DD \u05D5\u05DE\u05E8\u05D9\u05E5 \u05D0\u05EA \u05D4\u05D1\u05D3\u05D9\u05E7\u05D5\u05EA \u05DE\u05E9\u05E2\u05D5\u05DF \u05DE\u05E2\u05D5\u05E8\u05E8 \u05DE\u05E9\u05DC\u05D5, \u05DE\u05E6\u05D9\u05D2 \u05D3\u05E3 \u05E1\u05D8\u05D8\u05D5\u05E1 \u05E6\u05D9\u05D1\u05D5\u05E8\u05D9 \u05D5\u05D3\u05E3 \u05E0\u05D9\u05D4\u05D5\u05DC \u05DC\u05D1\u05E2\u05DC\u05D9\u05DD (\u05DB\u05E0\u05D9\u05E1\u05D4 \u05E2\u05DD DeployAI \u05D0\u05D5 \u05E1\u05D9\u05E1\u05DE\u05D4 \u05DE\u05E9\u05DC\u05D5), \u05D5\u05E9\u05D5\u05DC\u05D7 \u05DE\u05D9\u05D9\u05DC \u05D3\u05E8\u05DA \u05D4\u05D0\u05E4\u05DC\u05D9\u05E7\u05E6\u05D9\u05D4 \u05D5\u05BEwebhook \u05D7\u05EA\u05D5\u05DD. \u05D4\u05E4\u05DC\u05D8\u05E4\u05D5\u05E8\u05DE\u05D4 \u05E4\u05D5\u05E0\u05D4 \u05D0\u05DC\u05D9\u05D5 \u05D1\u05BE/__app/ \u05E2\u05DD \u05D0\u05E1\u05D9\u05DE\u05D5\u05DF \u05D7\u05EA\u05D5\u05DD \u05D1\u05DE\u05E4\u05EA\u05D7 \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D4\u05D6\u05D4 \u05D1\u05DC\u05D1\u05D3.", summaryEn: "A customer's Uptime site: a site of its own (site-<slug> in the namespace) that runs only our code, upgraded on every server deploy. A SQLite Durable Object in the same Worker keeps the monitors and runs the checks from its own alarm; it serves a public status page and the owner's admin (sign in with DeployAI or its own password), emails through the app and sends a signed webhook. The platform calls it on /__app/ with a token signed with this site's own key.", code: ["workers/app-uptime/src", "scripts/build-app-uptime.ts", "apps/web/src/server/apps.ts", "apps/web/src/server/apps-uptime.ts", "packages/shared/src/uptime.ts"], env: ["APPS_SIGNING_SECRET", "APP_TRIAL_KEYS"], decisions: ["D-556", "D-559"] },
+  { id: "app-cron", kind: "worker", zone: "customer", label: "Cron Trigger app site", summary: "\u05D0\u05EA\u05E8 \u05EA\u05D6\u05DE\u05D5\u05DF \u05DE\u05E9\u05D9\u05DE\u05D5\u05EA \u05E9\u05DC \u05DC\u05E7\u05D5\u05D7: \u05D0\u05EA\u05E8 \u05D1\u05E4\u05E0\u05D9 \u05E2\u05E6\u05DE\u05D5 (site-<slug> \u05D1\u05DE\u05E8\u05D7\u05D1 \u05D4\u05E9\u05DE\u05D5\u05EA) \u05E2\u05DD \u05D4\u05E7\u05D5\u05D3 \u05E9\u05DC\u05E0\u05D5 \u05D1\u05DC\u05D1\u05D3. Durable Object \u05E2\u05DD SQLite \u05D1\u05D0\u05D5\u05EA\u05D5 Worker \u05E9\u05D5\u05DE\u05E8 \u05D0\u05EA \u05D4\u05DE\u05E9\u05D9\u05DE\u05D5\u05EA \u05D5\u05DE\u05E8\u05D9\u05E5 \u05D0\u05D5\u05EA\u05DF \u05DE\u05E9\u05E2\u05D5\u05DF \u05DE\u05E2\u05D5\u05E8\u05E8 \u05DE\u05E9\u05DC\u05D5 \u05DC\u05E4\u05D9 \u05DC\u05D5\u05D7 \u05D6\u05DE\u05E0\u05D9\u05DD \u05D1\u05E9\u05E2\u05D5\u05DF \u05D9\u05E9\u05E8\u05D0\u05DC, \u05E2\u05DD \u05DE\u05D2\u05D1\u05DC\u05EA \u05D6\u05DE\u05DF \u05DC\u05DB\u05DC \u05E8\u05D9\u05E6\u05D4 (10 \u05E9\u05E0\u05D9\u05D5\u05EA, 3 \u05D0\u05D7\u05E8\u05D9 \u05E1\u05E3 \u05D4\u05E8\u05D9\u05E6\u05D5\u05EA \u05D4\u05D0\u05D9\u05D8\u05D9\u05D5\u05EA \u05E9\u05DC \u05D4\u05D7\u05D5\u05D3\u05E9), \u05E9\u05D5\u05DE\u05E8 \u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D4 \u05D5\u05E9\u05D5\u05DC\u05D7 \u05DE\u05D9\u05D9\u05DC \u05D3\u05E8\u05DA \u05D4\u05D0\u05E4\u05DC\u05D9\u05E7\u05E6\u05D9\u05D4 \u05D5\u05BEwebhook \u05D7\u05EA\u05D5\u05DD \u05D1\u05BEPro.", summaryEn: "A customer's Cron Trigger site: a site of its own (site-<slug> in the namespace) that runs only our code. A SQLite Durable Object in the same Worker keeps the jobs and runs them from its own alarm on a schedule in Israel time, with a time limit per run (10 seconds, 3 after the month's slow-run threshold), keeps their history, and emails through the app and sends a signed webhook with Pro.", code: ["workers/app-cron/src", "scripts/build-app-cron.ts", "apps/web/src/server/apps.ts", "apps/web/src/server/apps-notify.ts", "packages/shared/src/cron.ts"], decisions: ["D-567", "D-568"] },
+  { id: "dispatch", kind: "worker", zone: "cloudflare", label: "deployai-dispatch", summary: 'Worker \u05D0\u05D7\u05D3 \u05E2\u05DC */* \u05E9\u05DE\u05E0\u05EA\u05D1 \u05DB\u05DC \u05DB\u05EA\u05D5\u05D1\u05EA \u05DC\u05D0\u05EA\u05E8, \u05E1\u05D5\u05E4\u05E8 \u05D1\u05D9\u05E7\u05D5\u05E8\u05D9\u05DD, \u05DE\u05D2\u05D1\u05D9\u05DC \u05E7\u05E6\u05D1 \u05D5\u05DE\u05D5\u05E1\u05D9\u05E3 \u05D0\u05EA \u05D4\u05EA\u05D2 "\u05D1\u05D0\u05D5\u05D5\u05D9\u05E8 \u05E2\u05DD DeployAI" \u05DC\u05D0\u05EA\u05E8\u05D9\u05DD \u05E9\u05D1\u05D7\u05D1\u05D9\u05DC\u05D4 \u05E9\u05DC\u05D4\u05DD \u05D9\u05E9 \u05EA\u05D2, \u05D0\u05E3 \u05E4\u05E2\u05DD \u05DC\u05D0 \u05DC\u05D0\u05EA\u05E8 \u05D6\u05DE\u05E0\u05D9.', summaryEn: 'One Worker on */* that routes every address to its site, counts visits, limits the rate and adds the "Live with DeployAI" badge to sites whose plan has the badge, never to a temporary site.', code: ["workers/dispatch/src", "scripts/deploy-dispatch.ts"], env: ["DISPATCH_RATE_LIMIT_PERIOD", "PROBE_SECRET", "APP_GATE_SECRET"], docs: ["workers/dispatch/README.md"], decisions: ["D-087", "D-113", "D-179", "D-238", "D-245", "D-528"] },
   // Customer sites
   { id: "site", kind: "worker", zone: "customer", label: SITE, summary: "\u05D4\u05D0\u05EA\u05E8 \u05E9\u05DC \u05D4\u05DC\u05E7\u05D5\u05D7: Worker \u05DC\u05DB\u05DC \u05D0\u05EA\u05E8, \u05E2\u05DD \u05D4\u05E7\u05D1\u05E6\u05D9\u05DD \u05D5\u05D4\u05E7\u05D5\u05D3 \u05E9\u05DC\u05D5.", summaryEn: "The customer's site: a Worker per site, with its files and code.", portability: "Customer sites", decisions: ["D-113", "D-245"] },
   { id: "site-d1", kind: "db", zone: "customer", label: `D1 ${SITE_DATA}`, summary: "\u05DE\u05E1\u05D3 \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05DC\u05DB\u05DC \u05D0\u05EA\u05E8, \u05E0\u05D5\u05E6\u05E8 \u05E4\u05E2\u05DD \u05D0\u05D7\u05EA \u05D5\u05DE\u05D7\u05D5\u05D1\u05E8 \u05D1\u05DB\u05DC \u05D4\u05E2\u05DC\u05D0\u05D4.", summaryEn: "A database per site, created once and bound on every upload.", code: ["apps/web/src/server/site-data.ts"], portability: "Customer site data", decisions: ["D-076"] },
@@ -21285,6 +21422,14 @@ var ARCH_EDGES = [
   { id: "worker-build", from: "worker", to: "build", kind: "deploy", label: "build job" },
   { id: "worker-tools", from: "worker", to: "tools-worker", kind: "http", label: "tool page fetch" },
   { id: "uptime-web", from: "uptime-worker", to: "web", kind: "http", label: "health check" },
+  { id: "web-app-uptime", from: "web", to: "app-uptime", kind: "http", label: "signed /__app/ calls" },
+  { id: "web-app-cron", from: "web", to: "app-cron", kind: "http", label: "signed /__app/ calls" },
+  { id: "app-cron-web", from: "app-cron", to: "web", kind: "http", label: "failure and slow-run email" },
+  { id: "cfapi-app-cron", from: "cfapi", to: "app-cron", kind: "deploy", label: "upload app bundle" },
+  { id: "dispatcher-app-cron", from: dispatchBindingId("DISPATCHER"), to: "app-cron", kind: "http", label: "dispatch" },
+  { id: "app-uptime-web", from: "app-uptime", to: "web", kind: "http", label: "alert email, my sites" },
+  { id: "cfapi-app-uptime", from: "cfapi", to: "app-uptime", kind: "deploy", label: "upload app bundle" },
+  { id: "dispatcher-app-uptime", from: dispatchBindingId("DISPATCHER"), to: "app-uptime", kind: "http", label: "dispatch" },
   { id: "worker-pagespeed", from: "worker", to: "pagespeed", kind: "api", label: "speed, a11y, SEO" },
   { id: "web-turnstile", from: "web", to: "turnstile", kind: "api", label: "tool form check" },
   { id: "build-npm", from: "build", to: "npm", kind: "http", label: "install" },
@@ -21512,6 +21657,10 @@ var PLAN_FEATURES = [
 ];
 var KEYS = new Set(PLAN_FEATURES.map((f) => f.key));
 
+// ../shared/src/app-lifecycle.ts
+var APP_HOLD_MS = 30 * 6e4;
+var APP_RENEW_GRACE_MS = 8 * 864e5;
+
 // ../shared/src/start-flow.ts
 var START_ID_RE = /^[a-hjkmnp-z2-9]{10}$/;
 var MIGRATION_DIR = ".deployai/migration";
@@ -21580,7 +21729,7 @@ function startSteps(kind, opts = {}) {
   }
 }
 var allowCommandsUrl = (lang = "he") => `${HELP_ORIGIN}${lang === "he" ? "" : "/en"}/connect-ai#allow`;
-var runCommandsRule = (lang = "he") => `Run every npx deployai@latest command yourself. If your tool asks before it runs one, ask the owner one short yes or no question that names the command, for example "Run npx deployai@latest check? (yes or no)", and run it when they say yes. Never ask the owner to copy, paste or type a command. Never change your tool's own settings to allow it. If it is still blocked after their yes, tell them in plain words and send them ${allowCommandsUrl(lang)}, which shows them the one setting that allows it.`;
+var runCommandsRule = (lang = "he") => `Run every npx deployai@latest command yourself. If your tool asks before it runs one, ask the owner one short yes or no question that names the command, for example "Run npx deployai@latest check? (yes or no)", and run it when they say yes. Never ask the owner to copy, paste or type a command. After the first command runs, ask the owner once: "Allow DeployAI commands in this folder without asking each time? (yes or no)", and only on yes run npx deployai@latest allow (add your tool's name if it asks: claude-code, cursor, copilot, codex or antigravity). Never change your tool's settings any other way. If it is still blocked after their yes, tell them in plain words and send them ${allowCommandsUrl(lang)}, which shows them the one setting that allows it.`;
 var START_FAIL_LINE = "If anything fails, tell the owner in plain words what happened and what you will do next.";
 
 // ../shared/src/cli-map.ts
@@ -21619,6 +21768,7 @@ var CLI_MAP_NODES = [
   n("cmd-addon-run", "cli", "addon run / done", "\u05EA\u05D5\u05E1\u05E3 \u05D0\u05D7\u05D3 \u05DC\u05E4\u05D9 \u05E9\u05DD, \u05D5\u05D3\u05D9\u05D5\u05D5\u05D7 \u05E9\u05D4\u05E9\u05DC\u05D1 \u05D4\u05E1\u05EA\u05D9\u05D9\u05DD.", "One add-on by name, and the report that a step is done."),
   n("cmd-env", "cli", "env list / set / remove", "\u05DE\u05E9\u05EA\u05E0\u05D9 \u05D4\u05E1\u05D1\u05D9\u05D1\u05D4 \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8. \u05E1\u05D5\u05D3 \u05DB\u05D1\u05E8\u05D9\u05E8\u05EA \u05DE\u05D7\u05D3\u05DC, \u05D5\u05DC\u05D0 \u05DE\u05D5\u05E6\u05D2 \u05E9\u05D5\u05D1.", "The site's environment variables. A secret by default, never shown again."),
   n("cmd-speed", "cli", "speed <url>", "\u05D1\u05D3\u05D9\u05E7\u05EA \u05DE\u05D4\u05D9\u05E8\u05D5\u05EA \u05E9\u05DC \u05DB\u05EA\u05D5\u05D1\u05EA \u05D7\u05D9\u05D4.", "A speed test of a live address."),
+  n("cmd-allow", "cli", "allow [tool]", "\u05D0\u05D7\u05E8\u05D9 \u05E9\u05D4\u05D1\u05E2\u05DC\u05D9\u05DD \u05D0\u05D9\u05E9\u05E8: \u05DB\u05DC\u05D9 \u05D4\u05E7\u05D5\u05D3 \u05DE\u05E4\u05E1\u05D9\u05E7 \u05DC\u05E9\u05D0\u05D5\u05DC \u05DC\u05E4\u05E0\u05D9 \u05DB\u05DC \u05E4\u05E7\u05D5\u05D3\u05EA DeployAI, \u05E8\u05E7 \u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5.", "After the owner says yes: the coding tool stops asking before every DeployAI command, in this folder only."),
   n("cmd-telemetry", "cli", "telemetry", "\u05D4\u05E4\u05E2\u05DC\u05D4 \u05D0\u05D5 \u05DB\u05D9\u05D1\u05D5\u05D9 \u05E9\u05DC \u05E0\u05EA\u05D5\u05E0\u05D9 \u05E9\u05D9\u05DE\u05D5\u05E9 \u05D0\u05E0\u05D5\u05E0\u05D9\u05DE\u05D9\u05D9\u05DD.", "Turns anonymous usage data on or off."),
   // The server routes the CLI calls.
   n("api-starts", "server", "GET /api/starts/:id", "\u05D4\u05D1\u05D7\u05D9\u05E8\u05D5\u05EA \u05D5\u05D4\u05D8\u05E7\u05E1\u05D8 \u05DC\u05E1\u05D5\u05DB\u05DF. 7 \u05D9\u05DE\u05D9\u05DD, 5 \u05E9\u05DC\u05D9\u05E4\u05D5\u05EA \u05DC\u05D0\u05EA\u05E8.", "The choices and the agent text. 7 days, 5 fetches for a site."),
@@ -21812,6 +21962,8 @@ var ENV_KEYS = {
   TURNSTILE_SECRET: { scope: "server", section: "tools", about: "The Turnstile secret key of the same widget." },
   TOOLS_FETCH_SECRET: { scope: "same", section: "tools", about: "Shared secret between the app and the tools Worker, 32 random characters or more. pnpm tools:deploy uploads it." },
   APPS_SIGNING_SECRET: { scope: "own", section: "tools", about: 'Signs the 60 second tokens from the app to the Uptime app Worker, and the alert calls back from it (D-556); pnpm app-uptime:deploy uploads it. Unset: Apps answer "not set up". openssl rand -hex 32' },
+  APP_GATE_SECRET: { scope: "own", section: "tools", about: "The gate on app sites (D-567): our server signs every /__app/op call with it and the dispatch Worker lets those paths reach an app only with a valid signature, so the public never starts a paused app. pnpm dispatch:deploy sends it to the dispatch Worker. Unset: no platform call reaches an app site. openssl rand -hex 32" },
+  APP_TRIAL_KEYS: { scope: "own", section: "tools", about: "The trial key ring (D-567, docs/30 F3): v1:<hex>! (the ! marks the current key). Trial records keep only an HMAC of the mailbox under these keys. To rotate, add a key, deploy, then move the ! (docs/30). Unset: no trial can start. v1: then openssl rand -hex 32, then !" },
   UPTIME_ALERT_TO: { scope: "own", section: "tools", about: "Who gets the down and back up emails of the uptime Worker, comma separated. Without it no email is sent." },
   UPTIME_ALERT_TOKEN: { scope: "own", section: "tools", about: "A Cloudflare token with Email Sending edit only, stored as the uptime Worker's secret. Default CF_API_TOKEN." },
   A11Y_RENDER: { scope: "same", section: "tools", about: "0 turns off Cloudflare Browser Rendering for the online accessibility check (D-191)." },
@@ -21838,12 +21990,10 @@ var CLOUDFLARE_SPACES = {
     "demosScript": "deployai-demos",
     "toolsScript": "deployai-tools",
     "uptimeScript": "deployai-uptime-dev",
-    "appUptimeScript": "deployai-app-uptime-dev",
     "s3Endpoint": "https://e9c7bdb938b1c7c41496164fdea06f35.r2.cloudflarestorage.com",
     "bucket": "deployai-files-dev",
     "backupBucket": null,
-    "toolsWorkerUrl": "https://deployai-tools.deployai-co-il-e9c.workers.dev",
-    "appUptimeUrl": "https://deployai-app-uptime-dev.deployai-co-il-e9c.workers.dev"
+    "toolsWorkerUrl": "https://deployai-tools.deployai-co-il-e9c.workers.dev"
   },
   "prod": {
     "accountId": "e9c7bdb938b1c7c41496164fdea06f35",
@@ -21858,12 +22008,10 @@ var CLOUDFLARE_SPACES = {
     "demosScript": "deployai-demos",
     "toolsScript": "deployai-tools",
     "uptimeScript": "deployai-uptime",
-    "appUptimeScript": "deployai-app-uptime",
     "s3Endpoint": "https://e9c7bdb938b1c7c41496164fdea06f35.r2.cloudflarestorage.com",
     "bucket": "deployai-files",
     "backupBucket": "deployai-db-backups",
-    "toolsWorkerUrl": "https://deployai-tools.deployai-co-il-e9c.workers.dev",
-    "appUptimeUrl": "https://deployai-app-uptime.deployai-co-il-e9c.workers.dev"
+    "toolsWorkerUrl": "https://deployai-tools.deployai-co-il-e9c.workers.dev"
   }
 };
 var BRAND = "https://deployai.co.il";
@@ -21902,7 +22050,7 @@ var SPACE_ADDRESSES = {
 var build = (name, cf, a) => ({ name, ...cf, ...a, brandDomain: new URL(a.brandUrl).hostname, s3Region: "auto" });
 var SPACES = {
   ...Object.fromEntries(Object.keys(CLOUDFLARE_SPACES).filter((n2) => SPACE_ADDRESSES[n2]).map((n2) => [n2, build(n2, CLOUDFLARE_SPACES[n2], SPACE_ADDRESSES[n2])])),
-  test: build("test", { ...CLOUDFLARE_SPACES.prod, kvNamespaceId: "", sitesZoneId: null, backupBucket: null, toolsWorkerUrl: "", appUptimeUrl: "" }, { ...SPACE_ADDRESSES.prod, appUrl: "http://localhost:3000", siteUrl: "http://localhost:3000", trustedOrigins: [], storage: "local" })
+  test: build("test", { ...CLOUDFLARE_SPACES.prod, kvNamespaceId: "", sitesZoneId: null, backupBucket: null, toolsWorkerUrl: "" }, { ...SPACE_ADDRESSES.prod, appUrl: "http://localhost:3000", siteUrl: "http://localhost:3000", trustedOrigins: [], storage: "local" })
 };
 
 // ../shared/src/agent-rules.ts
@@ -21914,6 +22062,8 @@ var BUILD_WITH = [
   "Images: resize at build time or serve them as they are; no native image modules at runtime.",
   "Passwords: bcryptjs or Web Crypto, never native bcrypt.",
   "Server code runs per request: no long-running processes, background servers or child processes.",
+  // D-574: a customer site cannot use Durable Objects yet; it would deploy and fail on its first request that reaches one.
+  "No Durable Objects yet: keep state in D1, and use polling or server-sent events for live updates.",
   // D-535: the agent knows our built-in email, so it never adds an email provider or asks the owner for keys to email them.
   "Email to the site owner (a form answer, a new order): the built-in email, with no email provider or keys. POST JSON { subject, text, replyTo } to `${DEPLOYAI_API}/api/site/notify` with the header Authorization: Bearer DEPLOYAI_KEY (both are environment variables every upload gets). It reaches only the owner. On a temporary site it works once the owner has a free account: keep building, and say so only when it is time to go live. Email to customers needs an HTTP email API (Resend, Postmark), never SMTP."
 ];
@@ -21965,19 +22115,77 @@ function stackSummary(s) {
 
 // ../shared/src/ui-sources.ts
 var UI_SOURCES = [
-  { key: "shadcn", name: "shadcn/ui", url: "https://ui.shadcn.com", install: "npx shadcn@latest add <component>", license: "MIT", terms: "Free for any use; keep the license notice.", use: "Forms, dialogs, menus, tabs, tables: the plain building blocks.", frameworks: "React (Astro with the React integration)", checkedOn: "2026-10-30" },
-  { key: "magicui", name: "Magic UI", url: "https://magicui.design", install: 'npx shadcn@latest add "https://magicui.design/r/<component>.json"', license: "MIT", terms: "Free components only (not Magic UI Pro); keep the license notice.", use: "Marketing sections: animated backgrounds, marquees, number tickers, bento grids.", frameworks: "React", checkedOn: "2026-10-30" },
-  { key: "aceternity", name: "Aceternity UI", url: "https://ui.aceternity.com", install: 'npx shadcn@latest add "https://ui.aceternity.com/registry/<component>.json"', license: "Aceternity licence", terms: "Free components only (not Pro or templates). Allowed in the owner's own site; never publish the component source on its own or sell it as a template.", use: "Hero effects: spotlight, background beams, cards with motion, scroll effects.", frameworks: "React", checkedOn: "2026-10-30" },
-  { key: "reactbits", name: "React Bits", url: "https://reactbits.dev", install: "Copy the component from its page (or its shadcn registry line on that page)", license: "MIT + Commons Clause", terms: "Allowed as part of a website; never sell the components themselves.", use: "Text animations, backgrounds, small interactive effects.", frameworks: "React", checkedOn: "2026-10-30" },
-  { key: "embla", name: "Embla Carousel", url: "https://www.embla-carousel.com", install: "npm install embla-carousel", license: "MIT", terms: "Free for any use.", use: "Sliders and carousels, with plain JavaScript in any framework.", frameworks: "Any (plain JS, React, Vue, Svelte)", checkedOn: "2026-10-30" },
-  { key: "swiper", name: "Swiper", url: "https://swiperjs.com", install: "npm install swiper", license: "MIT", terms: "Free for any use.", use: "Galleries and touch sliders, like many WordPress themes use.", frameworks: "Any (plain JS, React, Vue)", checkedOn: "2026-10-30" },
-  { key: "motion", name: "Motion", url: "https://motion.dev", install: "npm install motion", license: "MIT", terms: "The free library only (not Motion+).", use: "Animations on scroll and on enter, in plain JS or React.", frameworks: "Any (plain JS, React, Vue)", checkedOn: "2026-10-30" }
+  { key: "shadcn", name: "shadcn/ui", url: "https://ui.shadcn.com", install: "npx shadcn@latest add <component>", license: "MIT", terms: "Free for any use; keep the license notice.", use: "Forms, dialogs, menus, tabs, tables: the plain building blocks.", frameworks: "React (Astro with the React integration)", react: true, fits: ["business", "shop", "blog", "portfolio", "restaurant", "clinic"], licenseUrl: "https://github.com/shadcn-ui/ui/blob/main/LICENSE.md", checkedOn: "2026-10-30" },
+  { key: "magicui", name: "Magic UI", url: "https://magicui.design", install: 'npx shadcn@latest add "https://magicui.design/r/<component>.json"', license: "MIT", terms: "Free components only (not Magic UI Pro); keep the license notice.", use: "Marketing sections: animated backgrounds, marquees, number tickers, bento grids.", frameworks: "React", react: true, fits: ["business", "portfolio", "restaurant"], licenseUrl: "https://github.com/magicuidesign/magicui/blob/main/LICENSE.md", checkedOn: "2026-10-30" },
+  { key: "aceternity", name: "Aceternity UI", url: "https://ui.aceternity.com", install: 'npx shadcn@latest add "https://ui.aceternity.com/registry/<component>.json"', license: "Aceternity licence", terms: "Free components only (not Pro or templates). Allowed in the owner's own site; never publish the component source on its own or sell it as a template.", use: "Hero effects: spotlight, background beams, cards with motion, scroll effects.", frameworks: "React", react: true, fits: ["business", "portfolio"], licenseUrl: "https://ui.aceternity.com/licence", checkedOn: "2026-10-30" },
+  { key: "reactbits", name: "React Bits", url: "https://reactbits.dev", install: "Copy the component from its page (or its shadcn registry line on that page)", license: "MIT + Commons Clause", terms: "Allowed as part of a website; never sell the components themselves.", use: "Text animations, backgrounds, small interactive effects.", frameworks: "React", react: true, fits: ["portfolio", "business"], licenseUrl: "https://github.com/DavidHDev/react-bits/blob/main/LICENSE.md", checkedOn: "2026-10-30" },
+  { key: "embla", name: "Embla Carousel", url: "https://www.embla-carousel.com", install: "npm install embla-carousel", license: "MIT", terms: "Free for any use.", use: "Sliders and carousels, with plain JavaScript in any framework.", frameworks: "Any (plain JS, React, Vue, Svelte)", react: false, fits: ["shop", "restaurant", "portfolio", "business"], licenseUrl: "https://github.com/davidjerleke/embla-carousel/blob/master/LICENSE", checkedOn: "2026-10-30" },
+  { key: "swiper", name: "Swiper", url: "https://swiperjs.com", install: "npm install swiper", license: "MIT", terms: "Free for any use.", use: "Galleries and touch sliders, like many WordPress themes use.", frameworks: "Any (plain JS, React, Vue)", react: false, fits: ["restaurant", "portfolio", "shop"], licenseUrl: "https://github.com/nolimits4web/swiper/blob/master/LICENSE", checkedOn: "2026-10-30" },
+  { key: "motion", name: "Motion", url: "https://motion.dev", install: "npm install motion", license: "MIT", terms: "The free library only (not Motion+).", use: "Animations on scroll and on enter, in plain JS or React.", frameworks: "Any (plain JS, React, Vue)", react: false, fits: ["business", "shop", "blog", "portfolio", "restaurant", "clinic"], licenseUrl: "https://github.com/motiondivision/motion/blob/main/LICENSE.md", checkedOn: "2026-10-30" },
+  // Plain HTML and Tailwind kits (D-562): no React, so they fit the Astro samples as they are. Licenses read 2026-11-01.
+  { key: "daisyui", name: "DaisyUI", url: "https://daisyui.com", install: 'npm i -D daisyui, then add @plugin "daisyui"; to the main CSS file (Tailwind 4)', license: "MIT", terms: "Free for any use; keep the license notice. Never the paid themes, templates or blocks from its store.", use: "Whole-site parts with themes: buttons, cards, navbars, forms, modals.", frameworks: "Any with Tailwind (plain HTML, Astro, React)", react: false, fits: ["business", "shop", "blog", "portfolio", "restaurant", "clinic"], licenseUrl: "https://github.com/saadeghi/daisyui/blob/master/LICENSE", checkedOn: "2026-11-01" },
+  { key: "hyperui", name: "HyperUI", url: "https://hyperui.dev", install: "Copy the HTML from the component page", license: "MIT", terms: "Free for any use; keep the license notice.", use: "Marketing sections (hero, call to action, pricing, FAQ, footer) and shop blocks.", frameworks: "Any with Tailwind (plain HTML, Astro, React)", react: false, fits: ["business", "shop", "clinic", "restaurant"], licenseUrl: "https://github.com/markmead/hyperui/blob/main/LICENSE", checkedOn: "2026-11-01" },
+  { key: "flowbite", name: "Flowbite", url: "https://flowbite.com", install: "npm install flowbite, add its theme and plugin lines to the main CSS file as its Tailwind 4 guide says, then copy the component HTML", license: "MIT", terms: "The open-source library only; keep the license notice. Never Flowbite Pro blocks, the Figma kit or paid templates (they are not MIT).", use: "Interactive parts: dropdowns, modals, tabs, carousels, forms, tables.", frameworks: "Any (plain HTML, Astro, React, Vue, Svelte)", react: false, fits: ["business", "shop", "clinic"], licenseUrl: "https://github.com/themesberg/flowbite/blob/main/LICENSE.md", checkedOn: "2026-11-01" },
+  { key: "preline", name: "Preline UI", url: "https://preline.co", install: "npm i preline, add its CSS and script lines as its install guide says, then copy the component HTML", license: "MIT + Preline Fair Use", terms: "Free in the owner's own site, commercial too. Never build a competing UI kit or builder from it; never anything marked Pro.", use: "Full sections with small scripts: hero, navbars, pricing, account pages.", frameworks: "Any (plain HTML, Astro, React, Vue)", react: false, fits: ["business", "clinic", "restaurant", "shop"], licenseUrl: "https://github.com/htmlstreamofficial/preline/blob/main/LICENSE", checkedOn: "2026-11-01" },
+  { key: "uiverse", name: "Uiverse", url: "https://uiverse.io", install: "Copy the HTML and CSS (or Tailwind) from the element page", license: "MIT", terms: "Free for any use; keep the license notice. Made by many people, so check each one on a phone and with the keyboard.", use: "Small eye-catching pieces: buttons, loaders, toggles, cards.", frameworks: "Any (plain HTML and CSS)", react: false, fits: ["portfolio", "business", "restaurant"], licenseUrl: "https://github.com/uiverse-io/galaxy/blob/main/LICENSE", checkedOn: "2026-11-01" },
+  // React, for forms and app parts on a site that already uses React islands.
+  { key: "originui", name: "Origin UI (coss ui)", url: "https://coss.com/ui", install: "npx shadcn@latest add <the registry address on the component page>", license: "MIT", terms: "Free for any use; keep the license notice.", use: "Form and app parts: inputs, selects, buttons, tables, dialogs.", frameworks: "React (Astro with the React integration)", react: true, fits: ["clinic", "shop", "business"], licenseUrl: "https://github.com/origin-space/originui/blob/main/LICENSE", checkedOn: "2026-11-01" }
 ];
 function uiSourcesText() {
   return [
     "UI sources you may use for visual sections (install each from its own place, never copy from elsewhere; free tiers only; add a line per component to .deployai/migration/credits.md with its source, URL and license):",
-    ...UI_SOURCES.map((s) => `- ${s.name} (${s.url}, ${s.license}; ${s.frameworks}): ${s.use} Install: ${s.install}. ${s.terms}`),
-    "React components need React in the site: in an Astro site, add it with npx astro add react and use them as islands only where they move or react; keep the rest plain Astro."
+    "Pick by the kind of site you read from the scan (Fits), and prefer the kits with no React: they load faster.",
+    ...UI_SOURCES.map((s) => `- ${s.name} (${s.url}, ${s.license}; ${s.frameworks}${s.react ? "" : ", no React"}): ${s.use} Fits: ${s.fits.join(", ")}. Install: ${s.install}. ${s.terms}`),
+    "React components need React in the site: in an Astro site, add it with npx astro add react and use them as islands only where they move or react; keep the rest plain Astro.",
+    "",
+    uiPartsText()
+  ].join("\n");
+}
+var UI_PART_KEYS = ["product-card", "product-grid", "product-page", "cart", "checkout-summary", "category-filter", "shop-banner", "post-card", "post-list", "article-layout", "author-box", "related-posts", "newsletter", "tags-list", "toc"];
+var UI_PARTS = [
+  { part: "product-card", kind: "shop", source: "hyperui", sourceName: "HyperUI", url: "https://www.hyperui.dev/components/marketing/product-cards", license: "MIT", licenseUrl: "https://github.com/markmead/hyperui/blob/main/LICENSE", react: false, how: "Copy the HTML from the page", note: "Eight cards; two have Add to cart." },
+  { part: "product-card", kind: "shop", source: "merakiui", sourceName: "Meraki UI", url: "https://merakiui.com/components/application-ui/cards", license: "MIT", licenseUrl: "https://github.com/merakiui/merakiui/blob/main/LICENSE", react: false, how: "Copy the HTML from the page", note: "Product cards with price and Add to cart; RTL versions for Hebrew." },
+  { part: "product-card", kind: "shop", source: "flowbite", sourceName: "Flowbite", url: "https://flowbite.com/docs/components/card/", license: "MIT", licenseUrl: "https://github.com/themesberg/flowbite/blob/main/LICENSE.md", react: false, how: "Copy the HTML from the E-commerce card section", note: "Image, rating, price, Add to cart." },
+  { part: "product-card", kind: "shop", source: "daisyui", sourceName: "DaisyUI", url: "https://daisyui.com/components/card/", license: "MIT", licenseUrl: "https://github.com/saadeghi/daisyui/blob/master/LICENSE", react: false, how: "With DaisyUI installed, copy the card HTML", note: "A plain card; add the price." },
+  { part: "product-grid", kind: "shop", source: "hyperui", sourceName: "HyperUI", url: "https://www.hyperui.dev/components/marketing/product-collections", license: "MIT", licenseUrl: "https://github.com/markmead/hyperui/blob/main/LICENSE", react: false, how: "Copy the HTML from the page", note: "Grids, with dropdown or side filters." },
+  { part: "product-grid", kind: "shop", source: "tailblocks", sourceName: "Tailblocks", url: "https://github.com/mertJF/tailblocks/blob/master/src/blocks/ecommerce/light/a.js", license: "MIT", licenseUrl: "https://github.com/mertJF/tailblocks/blob/master/LICENSE", react: true, how: "Copy the markup from the file and turn it into Astro", note: "An eight item grid; older Tailwind classes." },
+  { part: "product-page", kind: "shop", source: "tailblocks", sourceName: "Tailblocks", url: "https://github.com/mertJF/tailblocks/blob/master/src/blocks/ecommerce/light/c.js", license: "MIT", licenseUrl: "https://github.com/mertJF/tailblocks/blob/master/LICENSE", react: true, how: "Copy the markup from the file and turn it into Astro", note: "One image, color, size, quantity and price; no gallery (see the prompt)." },
+  { part: "cart", kind: "shop", source: "hyperui", sourceName: "HyperUI", url: "https://www.hyperui.dev/components/marketing/carts", license: "MIT", licenseUrl: "https://github.com/markmead/hyperui/blob/main/LICENSE", react: false, how: "Copy the HTML from the page", note: "A mini cart, one with quantity and remove, and a cart page." },
+  { part: "cart", kind: "shop", source: "daisyui", sourceName: "DaisyUI", url: "https://daisyui.com/components/drawer/", license: "MIT", licenseUrl: "https://github.com/saadeghi/daisyui/blob/master/LICENSE", react: false, how: "With DaisyUI installed, copy the drawer-end example and put the cart inside", note: "The side drawer only; pair it with the HyperUI cart." },
+  { part: "checkout-summary", kind: "shop", source: "hyperui", sourceName: "HyperUI", url: "https://www.hyperui.dev/components/marketing/carts", license: "MIT", licenseUrl: "https://github.com/markmead/hyperui/blob/main/LICENSE", react: false, how: "Copy the Page cart and keep its summary block", note: "Subtotal, VAT, discount and total. No payment: the owner chooses that." },
+  { part: "category-filter", kind: "shop", source: "hyperui", sourceName: "HyperUI", url: "https://www.hyperui.dev/components/application/filters", license: "MIT", licenseUrl: "https://github.com/markmead/hyperui/blob/main/LICENSE", react: false, how: "Copy the HTML from the page (needs @tailwindcss/forms)", note: "Dropdown and accordion filters." },
+  { part: "category-filter", kind: "shop", source: "hyperui", sourceName: "HyperUI", url: "https://www.hyperui.dev/components/marketing/product-collections", license: "MIT", licenseUrl: "https://github.com/markmead/hyperui/blob/main/LICENSE", react: false, how: "Copy the Filtering (Side) HTML", note: "A sidebar with sort, availability, price and colors." },
+  { part: "shop-banner", kind: "shop", source: "hyperui", sourceName: "HyperUI", url: "https://www.hyperui.dev/components/marketing/banners", license: "MIT", licenseUrl: "https://github.com/markmead/hyperui/blob/main/LICENSE", react: false, how: "Copy the HTML from the page", note: "A hero banner; put a real product photo in." },
+  { part: "shop-banner", kind: "shop", source: "hyperui", sourceName: "HyperUI", url: "https://www.hyperui.dev/components/marketing/announcements", license: "MIT", licenseUrl: "https://github.com/markmead/hyperui/blob/main/LICENSE", react: false, how: "Copy the HTML from the page", note: "A thin top bar for a real sale or free shipping." },
+  { part: "post-card", kind: "blog", source: "hyperui", sourceName: "HyperUI", url: "https://www.hyperui.dev/components/marketing/blog-cards", license: "MIT", licenseUrl: "https://github.com/markmead/hyperui/blob/main/LICENSE", react: false, how: "Copy the HTML from the page", note: "Seven cards with image, date, excerpt and tags." },
+  { part: "post-card", kind: "blog", source: "merakiui", sourceName: "Meraki UI", url: "https://merakiui.com/components/marketing/blog", license: "MIT", licenseUrl: "https://github.com/merakiui/merakiui/blob/main/LICENSE", react: false, how: "Copy the HTML from the Cards section", note: "RTL versions for Hebrew." },
+  { part: "post-list", kind: "blog", source: "astrowind", sourceName: "AstroWind", url: "https://github.com/arthelokyo/astrowind/tree/main/src/components/blog", license: "MIT", licenseUrl: "https://github.com/onwidget/astrowind/blob/main/LICENSE.md", react: false, how: "Copy Grid.astro and GridItem.astro (or List.astro and ListItem.astro) and Pagination.astro, then fix their imports", note: "Astro files; the repository moved to arthelokyo." },
+  { part: "post-list", kind: "blog", source: "merakiui", sourceName: "Meraki UI", url: "https://merakiui.com/components/marketing/blog", license: "MIT", licenseUrl: "https://github.com/merakiui/merakiui/blob/main/LICENSE", react: false, how: "Copy the HTML from the Grid or Recent Posts section", note: "RTL versions for Hebrew." },
+  { part: "post-list", kind: "blog", source: "astro-blog", sourceName: "Astro blog starter", url: "https://github.com/withastro/astro/blob/main/examples/blog/src/pages/blog/index.astro", license: "MIT", licenseUrl: "https://github.com/withastro/astro/blob/main/LICENSE", react: false, how: "Copy the file", note: "A content collection grid; plain CSS, not Tailwind." },
+  { part: "article-layout", kind: "blog", source: "astrowind", sourceName: "AstroWind", url: "https://github.com/arthelokyo/astrowind/blob/main/src/components/blog/SinglePost.astro", license: "MIT", licenseUrl: "https://github.com/onwidget/astrowind/blob/main/LICENSE.md", react: false, how: "Copy the file and its imports (PostTags, share)", note: "Date, author, category, reading time, image, tags, share." },
+  { part: "article-layout", kind: "blog", source: "astro-blog", sourceName: "Astro blog starter", url: "https://github.com/withastro/astro/blob/main/examples/blog/src/layouts/BlogPost.astro", license: "MIT", licenseUrl: "https://github.com/withastro/astro/blob/main/LICENSE", react: false, how: "Copy the file", note: "Hero image, title, dates and the text; plain CSS." },
+  { part: "article-layout", kind: "blog", source: "merakiui", sourceName: "Meraki UI", url: "https://merakiui.com/components/marketing/blog", license: "MIT", licenseUrl: "https://github.com/merakiui/merakiui/blob/main/LICENSE", react: false, how: "Copy the HTML from the Single Post section", note: "RTL versions for Hebrew." },
+  { part: "author-box", kind: "blog", source: "merakiui", sourceName: "Meraki UI", url: "https://merakiui.com/components/marketing/blog", license: "MIT", licenseUrl: "https://github.com/merakiui/merakiui/blob/main/LICENSE", react: false, how: "Copy the author line (photo, name, role) from the blog components", note: "A byline, not a full box (see the prompt)." },
+  { part: "related-posts", kind: "blog", source: "astrowind", sourceName: "AstroWind", url: "https://github.com/arthelokyo/astrowind/blob/main/src/components/blog/RelatedPosts.astro", license: "MIT", licenseUrl: "https://github.com/onwidget/astrowind/blob/main/LICENSE.md", react: false, how: "Copy the file, widgets/BlogHighlightedPosts.astro and their utils", note: "Up to four posts by shared tags." },
+  { part: "newsletter", kind: "blog", source: "hyperui", sourceName: "HyperUI", url: "https://www.hyperui.dev/components/marketing/newsletter-signup", license: "MIT", licenseUrl: "https://github.com/markmead/hyperui/blob/main/LICENSE", react: false, how: "Copy the HTML from the page (needs @tailwindcss/forms)", note: "Wire it to the inbox block or the owner's list." },
+  { part: "newsletter", kind: "blog", source: "astrowind", sourceName: "AstroWind", url: "https://github.com/arthelokyo/astrowind/blob/main/src/components/widgets/Newsletter.astro", license: "MIT", licenseUrl: "https://github.com/onwidget/astrowind/blob/main/LICENSE.md", react: false, how: "Copy the file and its WidgetWrapper and Headline imports", note: "Email and Subscribe; no backend." },
+  { part: "tags-list", kind: "blog", source: "astrowind", sourceName: "AstroWind", url: "https://github.com/arthelokyo/astrowind/blob/main/src/components/blog/Tags.astro", license: "MIT", licenseUrl: "https://github.com/onwidget/astrowind/blob/main/LICENSE.md", react: false, how: "Copy the file and fix its imports", note: "Tag or category links." },
+  { part: "toc", kind: "blog", source: "astro-cactus", sourceName: "Astro Theme Cactus", url: "https://github.com/chrismwilliams/astro-theme-cactus/blob/main/src/components/blog/TOC.astro", license: "MIT", licenseUrl: "https://github.com/chrismwilliams/astro-theme-cactus/blob/main/LICENSE", react: false, how: "Copy TOC.astro, TOCHeading.astro and src/utils/generateToc, pass the headings from render()", note: "Folds, and stays in view on wide screens." }
+];
+var UI_PART_PROMPTS = {
+  "product-page": "Build the product page as one Astro component: a gallery of the product's real photos (large image, thumbnails under it that swap it, swipe on a phone, arrows with labels for the keyboard), then name, price with VAT, the options the product really has, quantity and Add to cart, then the description and the shipping and returns lines the owner gave. Mobile first, right to left in Hebrew, no React unless the site already has it, images with width, height and alt.",
+  "author-box": "Build an author box as one Astro component for the end of a post: the author's photo, name, one line about them and links they gave (site, social), from the author data the posts already have. Never invent a bio: leave out what the owner did not give. Right to left in Hebrew, no React."
+};
+function uiPartsText() {
+  const by = /* @__PURE__ */ new Map();
+  for (const p of UI_PARTS) by.set(p.part, [...by.get(p.part) ?? [], p]);
+  return [
+    "Ready parts for a shop or a blog (free, MIT): copy a part from its page into the site, keep its license notice, and add it to .deployai/migration/credits.md. Prefer the ones with no React. Use only the parts the site needs.",
+    ...UI_PART_KEYS.map((k) => {
+      const list = (by.get(k) ?? []).map((p) => `${p.sourceName} ${p.url} (${p.how}${p.react ? "; React markup, turn it into Astro" : ""})`).join("; ");
+      const prompt = UI_PART_PROMPTS[k];
+      return `- ${k}: ${list}${prompt ? `. Build it yourself instead when it falls short: ${prompt}` : ""}`;
+    })
   ].join("\n");
 }
 
@@ -22085,7 +22293,21 @@ var stageNote = (s) => (s ?? "").replace(/[\u0000-\u001f\u007f]+/g, " ").replace
 
 // ../shared/src/uptime.ts
 var UPTIME_MAX_BYTES = 256 * 1024;
+var APP_SESSION_TTL_S = 7 * 86400;
 var enc = new TextEncoder();
+
+// ../shared/src/app-paused.ts
+var WORDS = {
+  he: { uptime: "\u05D3\u05E3 \u05D4\u05E1\u05D8\u05D8\u05D5\u05E1 \u05D4\u05D6\u05D4 \u05DE\u05D5\u05E9\u05D4\u05D4", paused: "\u05D4\u05D0\u05E4\u05DC\u05D9\u05E7\u05E6\u05D9\u05D4 \u05D4\u05D6\u05D5 \u05DE\u05D5\u05E9\u05D4\u05D9\u05EA", formClosed: "\u05D4\u05D8\u05D5\u05E4\u05E1 \u05E1\u05D2\u05D5\u05E8 \u05DB\u05E8\u05D2\u05E2", reach: "\u05D0\u05E4\u05E9\u05E8 \u05DC\u05D9\u05E6\u05D5\u05E8 \u05E7\u05E9\u05E8:", phone: "\u05D8\u05DC\u05E4\u05D5\u05DF", whatsapp: "\u05D5\u05D5\u05D0\u05D8\u05E1\u05D0\u05E4", email: "\u05DE\u05D9\u05D9\u05DC", owner: "\u05E9\u05DC\u05DB\u05DD? \u05E4\u05EA\u05D7\u05D5 \u05D0\u05EA \u05DC\u05D5\u05D7 \u05D4\u05D1\u05E7\u05E8\u05D4" },
+  en: { uptime: "This status page is paused", paused: "This app is paused", formClosed: "This form is closed for now", reach: "You can still reach us:", phone: "Phone", whatsapp: "WhatsApp", email: "Email", owner: "Owner? Open your dashboard" }
+};
+var PAUSED_OWNER_LINK = { he: WORDS.he.owner, en: WORDS.en.owner };
+
+// ../shared/src/app-trials.ts
+var enc2 = new TextEncoder();
+
+// ../shared/src/app-gate.ts
+var enc3 = new TextEncoder();
 
 // src/config.ts
 import { randomUUID } from "crypto";
@@ -22668,7 +22890,7 @@ function messages(root) {
 }
 
 // src/version.ts
-var CLI_VERSION = "0.1.0-beta.15";
+var CLI_VERSION = "0.1.0-beta.16";
 
 // src/api.ts
 function apiContext(apiFlag) {
@@ -23381,6 +23603,14 @@ function analyzeProject(root) {
       break;
     }
   }
+  for (const name of ["wrangler.toml", "wrangler.json", "wrangler.jsonc"]) {
+    if (!existsSync4(join4(root, name))) continue;
+    const text = readFileSync4(join4(root, name), "utf8");
+    if (!parseWranglerConfig(name, text).durableObjects.length) break;
+    const at = text.search(/durable_objects/);
+    add({ code: "durable_objects", severity: "blocker", file: name, line: at < 0 ? 1 : text.slice(0, at).split("\n").length, detail: "" });
+    break;
+  }
   const DB_CODE = {
     postgres: "unsupported_db_postgres",
     mysql: "unsupported_db_mysql",
@@ -23549,6 +23779,7 @@ To start from working code, see the samples: npx deployai@latest samples
 - local file system writes
 - database drivers DeployAI does not support (see: npx deployai@latest inspect)
 - long-running processes or background servers
+- Durable Objects (not supported yet; keep state in D1)
 - native binary modules
 - DeployAI or any cloud credentials in source code
 
@@ -23990,12 +24221,96 @@ function telemetryCommand(action) {
   out("Also off when DEPLOYAI_TELEMETRY=0 or DO_NOT_TRACK=1 is set.");
 }
 
+// src/commands/allow.ts
+import { existsSync as existsSync7, mkdirSync as mkdirSync3, readFileSync as readFileSync6, writeFileSync as writeFileSync5, appendFileSync as appendFileSync2 } from "fs";
+import { dirname, join as join7 } from "path";
+var ALLOW_TOOLS = ["claude-code", "cursor", "copilot", "codex", "antigravity"];
+var CLAUDE_RULE = "Bash(npx deployai@latest *)";
+var CURSOR_LINE = "Running npx deployai@latest commands is allowed without approval.";
+var CLICKS = {
+  copilot: "Copilot in VS Code: when it asks to run npx deployai@latest, choose Always allow.",
+  codex: "Codex: when it asks to approve npx deployai@latest, approve it for this session.",
+  antigravity: "Antigravity: when it asks to run npx deployai@latest, choose Accept."
+};
+function readObject(file2) {
+  if (!existsSync7(file2)) return {};
+  try {
+    const v = JSON.parse(readFileSync6(file2, "utf8"));
+    return v && typeof v === "object" && !Array.isArray(v) ? v : null;
+  } catch {
+    return null;
+  }
+}
+function writeObject(file2, value) {
+  mkdirSync3(dirname(file2), { recursive: true });
+  writeFileSync5(file2, `${JSON.stringify(value, null, 2)}
+`);
+}
+function addTo(obj, key, list, value) {
+  const inner = obj[key] && typeof obj[key] === "object" && !Array.isArray(obj[key]) ? obj[key] : {};
+  const items = Array.isArray(inner[list]) ? inner[list] : [];
+  if (items.includes(value)) return false;
+  inner[list] = [...items, value];
+  obj[key] = inner;
+  return true;
+}
+function ignoreInGit(root, path) {
+  if (!existsSync7(join7(root, ".git"))) return;
+  const gi = join7(root, ".gitignore");
+  const text = existsSync7(gi) ? readFileSync6(gi, "utf8") : "";
+  if (text.split(/\r?\n/).some((l) => l.trim() === path)) return;
+  appendFileSync2(gi, `${text && !text.endsWith("\n") ? "\n" : ""}${path}
+`);
+}
+function detectTool() {
+  return process.env.CLAUDECODE === "1" ? "claude-code" : null;
+}
+function allowCommand(tool) {
+  const root = process.cwd();
+  const picked = tool?.toLowerCase() ?? detectTool();
+  if (picked && !ALLOW_TOOLS.includes(picked)) {
+    throw new CliError(`Unknown tool "${tool}". Use one of: ${ALLOW_TOOLS.join(", ")}.`, 1, "usage");
+  }
+  if (!picked) {
+    out("Which coding tool runs this? Run it again with its name, for example: npx deployai@latest allow claude-code");
+    out(`Tools: ${ALLOW_TOOLS.join(", ")}.`);
+    return;
+  }
+  if (picked === "claude-code") {
+    const rel = ".claude/settings.local.json";
+    const file2 = join7(root, rel);
+    const obj = readObject(file2);
+    if (!obj) throw new CliError(`${rel} is not valid JSON, so it was left as is. Ask the owner to add the Allow rule ${CLAUDE_RULE} with /permissions.`, 1, "allow_file");
+    const added = addTo(obj, "permissions", "allow", CLAUDE_RULE);
+    if (added) {
+      writeObject(file2, obj);
+      ignoreInGit(root, rel);
+    }
+    out(added ? `Done: Claude Code runs npx deployai@latest commands in this folder without asking (${rel}).` : "Already allowed in this folder.");
+    out("Other commands still ask. The owner can take it back with /permissions.");
+    return;
+  }
+  if (picked === "cursor") {
+    const rel = ".cursor/permissions.json";
+    const file2 = join7(root, rel);
+    const obj = readObject(file2);
+    if (!obj) throw new CliError(`${rel} is not valid JSON, so it was left as is.`, 1, "allow_file");
+    const added = addTo(obj, "autoRun", "allow_instructions", CURSOR_LINE);
+    if (added) writeObject(file2, obj);
+    out(added ? `Done: Cursor's Auto-review allows npx deployai@latest commands in this folder (${rel}).` : "Already allowed in this folder.");
+    out("With Allowlist mode instead, the owner adds npx deployai@latest once in Cursor Settings, Agents, Approvals & Execution.");
+    return;
+  }
+  out("This tool keeps the choice in its own app, not in a file here. Tell the owner, in their language:");
+  out(`  ${CLICKS[picked]}`);
+}
+
 // src/commands/link.ts
 import { createInterface } from "readline/promises";
 
 // src/commands/migrate.ts
-import { createWriteStream, existsSync as existsSync7, mkdirSync as mkdirSync3, readdirSync as readdirSync3, readFileSync as readFileSync6, statSync, writeFileSync as writeFileSync5 } from "fs";
-import { dirname, join as join7, posix, relative, resolve, sep } from "path";
+import { createWriteStream, existsSync as existsSync8, mkdirSync as mkdirSync4, readdirSync as readdirSync3, readFileSync as readFileSync7, statSync, writeFileSync as writeFileSync6 } from "fs";
+import { dirname as dirname2, join as join8, posix, relative, resolve, sep } from "path";
 import { Readable } from "stream";
 import { pipeline } from "stream/promises";
 var UA = `deployai-migrate/${CLI_VERSION} (+https://deployai.co.il/move)`;
@@ -24007,17 +24322,17 @@ var PAUSE_MS = 150;
 var SCAN_WORKERS = 4;
 var START_SCAN_PAGES = 300;
 var sleep2 = (ms2) => new Promise((r) => setTimeout(r, ms2));
-var hostDir = (root, host) => join7(root, MIGRATION_DIR, host.replace(/^www\./, ""));
+var hostDir = (root, host) => join8(root, MIGRATION_DIR, host.replace(/^www\./, ""));
 var readJson2 = (file2) => {
   try {
-    return JSON.parse(readFileSync6(file2, "utf8"));
+    return JSON.parse(readFileSync7(file2, "utf8"));
   } catch {
     return null;
   }
 };
 var writeJson = (file2, data) => {
-  mkdirSync3(dirname(file2), { recursive: true });
-  writeFileSync5(file2, JSON.stringify(data, null, 2) + "\n");
+  mkdirSync4(dirname2(file2), { recursive: true });
+  writeFileSync6(file2, JSON.stringify(data, null, 2) + "\n");
 };
 async function get(url2, accept = "text/html,application/xhtml+xml,*/*;q=0.8", redirect = "follow") {
   try {
@@ -24027,9 +24342,9 @@ async function get(url2, accept = "text/html,application/xhtml+xml,*/*;q=0.8", r
   }
 }
 function scannedHosts(root) {
-  const dir = join7(root, MIGRATION_DIR);
-  if (!existsSync7(dir)) return [];
-  return readdirSync3(dir).filter((h) => existsSync7(join7(dir, h, "inventory.json")));
+  const dir = join8(root, MIGRATION_DIR);
+  if (!existsSync8(dir)) return [];
+  return readdirSync3(dir).filter((h) => existsSync8(join8(dir, h, "inventory.json")));
 }
 async function migrateStatusCommand(root, ctx, stage, note) {
   if (!isAgentStage(stage)) throw new CliError(`Unknown stage: ${stage}. One of: ${AGENT_STAGES.join(", ")}.`, 1, "usage");
@@ -24042,18 +24357,18 @@ async function migrateStatusCommand(root, ctx, stage, note) {
   out(`Reported: ${stage}${note ? ` (${stageNote(note)})` : ""}.`);
 }
 function readChoices(root) {
-  return readJson2(join7(root, MIGRATION_DIR, "choices.json"));
+  return readJson2(join8(root, MIGRATION_DIR, "choices.json"));
 }
 function writeChoices(root, choices) {
   ensureMigrationDir(root);
-  writeJson(join7(root, MIGRATION_DIR, "choices.json"), choices);
+  writeJson(join8(root, MIGRATION_DIR, "choices.json"), choices);
 }
 function ensureMigrationDir(root) {
   ensureDeployaiDir(root);
-  const dir = join7(root, MIGRATION_DIR);
-  mkdirSync3(dir, { recursive: true });
-  const ignore = join7(dir, ".gitignore");
-  if (!existsSync7(ignore)) writeFileSync5(ignore, "*/media/\n*/media-state.json\n");
+  const dir = join8(root, MIGRATION_DIR);
+  mkdirSync4(dir, { recursive: true });
+  const ignore = join8(dir, ".gitignore");
+  if (!existsSync8(ignore)) writeFileSync6(ignore, "*/media/\n*/media-state.json\n");
 }
 async function sitemapUrls(base, robotsSitemaps, enough) {
   const own2 = [`${base}/wp-sitemap.xml`, `${base}/sitemap_index.xml`, `${base}/sitemap.xml`];
@@ -24113,15 +24428,15 @@ async function wordpressContent(base, dir) {
       await sleep2(PAUSE_MS);
     }
     if (items.length) {
-      writeJson(join7(dir, "content", `${type}.json`), items);
+      writeJson(join8(dir, "content", `${type}.json`), items);
       out(`  ${type}: ${items.length}`);
     }
   }
-  const posts = readJson2(join7(dir, "content", "posts.json"));
+  const posts = readJson2(join8(dir, "content", "posts.json"));
   if (posts?.length) {
-    const files = wpPostsToMarkdown({ origin: new URL(base).origin, posts, categories: readJson2(join7(dir, "content", "categories.json")) ?? [], tags: readJson2(join7(dir, "content", "tags.json")) ?? [], users: readJson2(join7(dir, "content", "users.json")) ?? [], media: readJson2(join7(dir, "content", "media.json")) ?? [] });
-    mkdirSync3(join7(dir, "posts"), { recursive: true });
-    for (const f of files) writeFileSync5(join7(dir, "posts", f.file), f.text);
+    const files = wpPostsToMarkdown({ origin: new URL(base).origin, posts, categories: readJson2(join8(dir, "content", "categories.json")) ?? [], tags: readJson2(join8(dir, "content", "tags.json")) ?? [], users: readJson2(join8(dir, "content", "users.json")) ?? [], media: readJson2(join8(dir, "content", "media.json")) ?? [] });
+    mkdirSync4(join8(dir, "posts"), { recursive: true });
+    for (const f of files) writeFileSync6(join8(dir, "posts", f.file), f.text);
     out(`  posts as Markdown: ${files.length}`);
   }
   return true;
@@ -24158,11 +24473,11 @@ async function migrateScanCommand(root, raw, opts = {}) {
   const host = new URL(origin).hostname;
   ensureMigrationDir(root);
   const dir = hostDir(root, host);
-  mkdirSync3(dir, { recursive: true });
+  mkdirSync4(dir, { recursive: true });
   out(`Scanning ${base} (${platform3})`);
   const robotsRes = await get(`${origin}/robots.txt`, "text/plain");
   const robots = robotsRes?.ok ? await robotsRes.text() : "";
-  if (robots) writeFileSync5(join7(dir, "robots.txt"), robots);
+  if (robots) writeFileSync6(join8(dir, "robots.txt"), robots);
   const cap = Math.min(opts.max ?? PAGE_CAP, PAGE_CAP);
   const fromSitemaps = await sitemapUrls(base, robots ? parseRobots(robots).sitemaps : [], cap * 5);
   const all = [.../* @__PURE__ */ new Set([`${base}/`, ...fromSitemaps.urls, ...fromSitemaps.urls.length ? [] : homeLinks(html, base)])];
@@ -24189,13 +24504,13 @@ async function migrateScanCommand(root, raw, opts = {}) {
   await Promise.all(Array.from({ length: SCAN_WORKERS }, worker));
   const wordpressApi = platform3 === "wordpress" ? await wordpressContent(base, dir) : false;
   if (wordpressApi) {
-    const media = readJson2(join7(dir, "content", "media.json")) ?? [];
+    const media = readJson2(join8(dir, "content", "media.json")) ?? [];
     media.forEach((m) => m.source_url && assets.add(m.source_url));
   }
   const inventory = { source: base, platform: platform3, scannedAt: (/* @__PURE__ */ new Date()).toISOString(), sitemaps: fromSitemaps.sitemaps, pages, wordpressApi, skipped: Math.max(0, all.length - list.length) };
-  writeJson(join7(dir, "inventory.json"), inventory);
-  writeJson(join7(dir, "assets.json"), [...assets].sort());
-  writeFileSync5(join7(dir, "home.html"), html);
+  writeJson(join8(dir, "inventory.json"), inventory);
+  writeJson(join8(dir, "assets.json"), [...assets].sort());
+  writeFileSync6(join8(dir, "home.html"), html);
   const rel = relative(root, dir).split(sep).join("/");
   const broken = pages.filter((p) => p.status >= 400).length;
   out();
@@ -24204,7 +24519,7 @@ async function migrateScanCommand(root, raw, opts = {}) {
   out(`  assets.json     ${assets.size} images and files`);
   if (wordpressApi) {
     out("  content/        the WordPress pages, posts, categories, tags, media and authors as JSON");
-    if (existsSync7(join7(dir, "posts"))) out("  posts/          the posts as Markdown for the blog block, each with its old address");
+    if (existsSync8(join8(dir, "posts"))) out("  posts/          the posts as Markdown for the blog block, each with its old address");
   } else if (platform3 === "wordpress") out("  The WordPress API is closed on this site: work from the pages, or ask the owner for an export (Tools > Export).");
   out();
   out("Keep every path in inventory.json exactly as it is: same address, same title and description.");
@@ -24223,8 +24538,8 @@ async function migrateMediaCommand(root) {
   if (!hosts.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
   for (const host of hosts) {
     const dir = hostDir(root, host);
-    const assets = readJson2(join7(dir, "assets.json")) ?? [];
-    const stateFile = join7(dir, "media-state.json");
+    const assets = readJson2(join8(dir, "assets.json")) ?? [];
+    const stateFile = join8(dir, "media-state.json");
     const state = readJson2(stateFile) ?? { done: [], failed: [], bytes: 0 };
     const done = new Set(state.done);
     const todo = assets.filter((a) => !done.has(a));
@@ -24242,7 +24557,7 @@ async function migrateMediaCommand(root) {
         done.add(url2);
         continue;
       }
-      mkdirSync3(dirname(target), { recursive: true });
+      mkdirSync4(dirname2(target), { recursive: true });
       await pipeline(Readable.fromWeb(res.body), createWriteStream(target));
       const bytes = statSync(target).size;
       state.bytes += bytes;
@@ -24253,7 +24568,7 @@ async function migrateMediaCommand(root) {
     }
     state.done = [...done];
     writeJson(stateFile, state);
-    out(`  ${formatBytes(state.bytes)} in ${relative(root, join7(dir, "media")).split(sep).join("/")}${state.failed.length ? `, ${state.failed.length} could not be downloaded (listed in media-state.json)` : ""}`);
+    out(`  ${formatBytes(state.bytes)} in ${relative(root, join8(dir, "media")).split(sep).join("/")}${state.failed.length ? `, ${state.failed.length} could not be downloaded (listed in media-state.json)` : ""}`);
   }
   out("Copy the files the new pages use into the site's public folder at the same path (for example public/wp-content/uploads/...), so old image addresses keep working.");
 }
@@ -24276,22 +24591,22 @@ function migrateRedirectsCommand(root) {
   if (!hosts.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
   const lines = /* @__PURE__ */ new Set();
   for (const host of hosts) {
-    const inv = readJson2(join7(hostDir(root, host), "inventory.json"));
+    const inv = readJson2(join8(hostDir(root, host), "inventory.json"));
     if (inv) redirectLines(inv).forEach((l) => lines.add(l));
   }
-  const publicDir = join7(root, "public");
-  const file2 = join7(existsSync7(publicDir) ? publicDir : root, "_redirects");
-  const before = existsSync7(file2) ? readFileSync6(file2, "utf8").split(/\r?\n/).filter(Boolean) : [];
+  const publicDir = join8(root, "public");
+  const file2 = join8(existsSync8(publicDir) ? publicDir : root, "_redirects");
+  const before = existsSync8(file2) ? readFileSync7(file2, "utf8").split(/\r?\n/).filter(Boolean) : [];
   const added = [...lines].filter((l) => !before.some((b) => b.split(/\s+/)[0] === l.split(/\s+/)[0]));
-  writeFileSync5(file2, [...before, ...added].join("\n") + "\n");
+  writeFileSync6(file2, [...before, ...added].join("\n") + "\n");
   out(`${relative(root, file2).split(sep).join("/")}: ${added.length} added, ${before.length + added.length} in all (at most 2,000; no query strings).`);
   out('Add a line "<old path> <new path> 301" only for a page that truly could not keep its address.');
 }
 function allowedRedirects(root) {
   const map2 = /* @__PURE__ */ new Map();
-  for (const file2 of [join7(root, "public", "_redirects"), join7(root, "_redirects")]) {
-    if (!existsSync7(file2)) continue;
-    for (const line of readFileSync6(file2, "utf8").split(/\r?\n/)) {
+  for (const file2 of [join8(root, "public", "_redirects"), join8(root, "_redirects")]) {
+    if (!existsSync8(file2)) continue;
+    for (const line of readFileSync7(file2, "utf8").split(/\r?\n/)) {
       const [from, to] = line.trim().split(/\s+/);
       if (from && to && !from.startsWith("#")) map2.set(from, to);
     }
@@ -24317,7 +24632,7 @@ async function migrateVerifyCommand(root, previewRaw) {
   const findings = [];
   let checked = 0;
   for (const host of hosts) {
-    const inv = readJson2(join7(hostDir(root, host), "inventory.json"));
+    const inv = readJson2(join8(hostDir(root, host), "inventory.json"));
     for (const old of inv?.pages ?? []) {
       if (old.status >= 300) continue;
       const res = await get(previewUrl(preview, old.path));
@@ -24336,7 +24651,7 @@ async function migrateVerifyCommand(root, previewRaw) {
     }
   }
   const words = { missing: "not found on the preview", moved: "moved to", error: "answers", title_lost: "lost its title", description_lost: "lost its description" };
-  const report = join7(root, MIGRATION_DIR, "verify.json");
+  const report = join8(root, MIGRATION_DIR, "verify.json");
   writeJson(report, { checkedAt: (/* @__PURE__ */ new Date()).toISOString(), preview: preview.origin, checked, findings });
   if (!findings.length) {
     out(`All ${checked} old addresses open on the preview with their title and description.`);
@@ -24463,7 +24778,7 @@ async function askYes(question) {
 }
 
 // src/tar.ts
-import { readFileSync as readFileSync7 } from "fs";
+import { readFileSync as readFileSync8 } from "fs";
 import { gzipSync } from "zlib";
 var BLOCK = 512;
 function writeString(buf, offset, length, value) {
@@ -24547,7 +24862,7 @@ function packFiles(files) {
   return createTarGz(
     files.map((f) => ({
       name: f.rel,
-      data: readFileSync7(f.abs),
+      data: readFileSync8(f.abs),
       mtimeMs: f.mtimeMs,
       mode: f.mode & 64 ? 493 : 420
     }))
@@ -25026,13 +25341,13 @@ async function claimCommand(root, ctx, opts) {
 
 // src/commands/pull.ts
 import { spawnSync as spawnSync2 } from "child_process";
-import { existsSync as existsSync9, readdirSync as readdirSync5, rmSync } from "fs";
-import { join as join9 } from "path";
+import { existsSync as existsSync10, readdirSync as readdirSync5, rmSync } from "fs";
+import { join as join10 } from "path";
 
 // src/commands/samples.ts
 import { createInterface as createInterface3 } from "readline/promises";
-import { existsSync as existsSync8, mkdirSync as mkdirSync4, readdirSync as readdirSync4, writeFileSync as writeFileSync6 } from "fs";
-import { dirname as dirname2, join as join8, relative as relative2, resolve as resolve2, sep as sep2 } from "path";
+import { existsSync as existsSync9, mkdirSync as mkdirSync5, readdirSync as readdirSync4, writeFileSync as writeFileSync7 } from "fs";
+import { dirname as dirname3, join as join9, relative as relative2, resolve as resolve2, sep as sep2 } from "path";
 import { gunzipSync } from "zlib";
 var SAMPLES = [
   { key: "landing", title: "Landing page: a full one-page site with WhatsApp sign-up", stack: "static HTML and CSS" },
@@ -25053,7 +25368,7 @@ function listSamples(apiUrl) {
   out(`See them live:              ${apiUrl}/samples`);
 }
 function filesIn(dir) {
-  return existsSync8(dir) ? readdirSync4(dir).filter((f) => !IGNORED.has(f)) : [];
+  return existsSync9(dir) ? readdirSync4(dir).filter((f) => !IGNORED.has(f)) : [];
 }
 function freeFolder(cwd, key) {
   for (let n2 = 1; ; n2++) {
@@ -25082,7 +25397,7 @@ async function askWhere(cwd, key, count) {
   }
 }
 async function downloadSample(ctx, key, root) {
-  mkdirSync4(root, { recursive: true });
+  mkdirSync5(root, { recursive: true });
   let res;
   try {
     res = await fetch(`${ctx.apiUrl}/samples-src/${key}.tar.gz`, {
@@ -25104,7 +25419,7 @@ function extractInto(gz, root, damaged) {
   } catch {
     throw new CliError(damaged, 1, "api");
   }
-  mkdirSync4(root, { recursive: true });
+  mkdirSync5(root, { recursive: true });
   const base = resolve2(root);
   let written = 0;
   for (const e2 of entries) {
@@ -25112,8 +25427,8 @@ function extractInto(gz, root, damaged) {
     if (privateProjectFile(e2.name.replace(/\\/g, "/"))) continue;
     const target = resolve2(base, e2.name);
     if (target !== base && !target.startsWith(base + sep2)) continue;
-    mkdirSync4(dirname2(target), { recursive: true });
-    writeFileSync6(target, e2.data);
+    mkdirSync5(dirname3(target), { recursive: true });
+    writeFileSync7(target, e2.data);
     written++;
   }
   return written;
@@ -25137,7 +25452,7 @@ async function samplesCommand(cwd, ctx, key, opts = {}) {
   }
   const written = await downloadSample(ctx, sample.key, root);
   const base = resolve2(root);
-  const hasPackage = existsSync8(join8(base, "package.json"));
+  const hasPackage = existsSync9(join9(base, "package.json"));
   out(base === resolve2(cwd) ? `Downloaded the ${sample.key} sample: ${written} files.` : `Downloaded the ${sample.key} sample into the new folder ${relative2(cwd, base)}: ${written} files. Work in that folder from now on.`);
   out("");
   const t = messages(base);
@@ -25191,7 +25506,7 @@ var git = (root, args, env = {}) => spawnSync2("git", args, { cwd: root, encodin
 function clearTree(root) {
   for (const name of readdirSync5(root)) {
     if (name === ".git" || name === ".deployai") continue;
-    rmSync(join9(root, name), { recursive: true, force: true });
+    rmSync(join10(root, name), { recursive: true, force: true });
   }
 }
 async function pullHistory(root, ctx, projectId) {
@@ -25201,7 +25516,7 @@ async function pullHistory(root, ctx, projectId) {
   const live = versions.find((v) => v.isLive)?.number ?? Math.max(0, ...versions.filter((v) => v.status === "ready").map((v) => v.number));
   const chosen = versions.filter((v) => v.number <= live && v.status !== "failed" && v.status !== "queued").sort((a, b) => a.number - b.number);
   if (!chosen.length) throw new CliError(t("pullNoSource"), 1, "not_found");
-  if (!existsSync9(join9(root, ".git")) && git(root, ["init", "-q"]).status !== 0) throw new CliError(t("pullNoGit"), 1, "usage");
+  if (!existsSync10(join10(root, ".git")) && git(root, ["init", "-q"]).status !== 0) throw new CliError(t("pullNoGit"), 1, "usage");
   for (const v of chosen) {
     const gz = await fetchSource(root, ctx, projectId, v.number).catch(() => null);
     if (!gz) continue;
@@ -25218,12 +25533,12 @@ async function pullHistory(root, ctx, projectId) {
 
 // src/commands/start.ts
 import { spawnSync as spawnSync3 } from "child_process";
-import { existsSync as existsSync10, writeFileSync as writeFileSync8 } from "fs";
-import { join as join11, relative as relative3, resolve as resolve3 } from "path";
+import { existsSync as existsSync11, writeFileSync as writeFileSync9 } from "fs";
+import { join as join12, relative as relative3, resolve as resolve3 } from "path";
 
 // src/commands/starter.ts
-import { writeFileSync as writeFileSync7 } from "fs";
-import { join as join10 } from "path";
+import { writeFileSync as writeFileSync8 } from "fs";
+import { join as join11 } from "path";
 var esc2 = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 var TEXT = {
   he: { title: "\u05D4\u05D0\u05EA\u05E8 \u05E9\u05DC\u05D9", soon: "\u05D4\u05D0\u05EA\u05E8 \u05D1\u05D1\u05E0\u05D9\u05D9\u05D4, \u05D1\u05E7\u05E8\u05D5\u05D1 \u05DB\u05D0\u05DF." },
@@ -25271,8 +25586,8 @@ DeployAI wrote this page so the folder starts as a working site. Build the owner
 - Delete this README or replace it with notes about the site.
 `;
 function writeStarter(root, name, lang, stack) {
-  writeFileSync7(join10(root, "index.html"), page(name ?? "", lang, stack));
-  writeFileSync7(join10(root, "README.md"), README);
+  writeFileSync8(join11(root, "index.html"), page(name ?? "", lang, stack));
+  writeFileSync8(join11(root, "README.md"), README);
 }
 
 // src/commands/start.ts
@@ -25315,7 +25630,7 @@ async function startCommand(cwd, ctx, id, opts = {}) {
   if (sample && !sameSite) {
     const written = await downloadSample(ctx, sample.key, root);
     done.push(t("startDownloaded", { key: sample.key, n: written }));
-    if (existsSync10(join11(root, "package.json"))) {
+    if (existsSync11(join12(root, "package.json"))) {
       if (opts.install !== false && install(root)) done.push(t("startInstalled"));
       else steps.unshift({ cmd: "npm install", say: "Installs the sample's packages." });
     }
@@ -25339,7 +25654,7 @@ async function startCommand(cwd, ctx, id, opts = {}) {
   const stackText = choices.stack ? stackBlock(choices.stack) : "";
   if (choices.brief || stackText) {
     ensureDeployaiDir(root);
-    writeFileSync8(join11(root, BRIEF_FILE), [choices.brief ? `# The owner's details
+    writeFileSync9(join12(root, BRIEF_FILE), [choices.brief ? `# The owner's details
 
 ${choices.brief}
 ` : "", stackText].filter(Boolean).join("\n"));
@@ -25384,7 +25699,7 @@ ${choices.brief}
 }
 
 // src/commands/addon.ts
-import { readFileSync as readFileSync8 } from "fs";
+import { readFileSync as readFileSync9 } from "fs";
 import { resolve as resolve4 } from "path";
 function linkedProjectId2(root) {
   const id = readProject(root)?.projectId;
@@ -25485,7 +25800,7 @@ async function addonDoneCommand(root, ctx, runId, opts) {
   let report;
   if (opts.report) {
     try {
-      report = JSON.parse(readFileSync8(resolve4(root, opts.report), "utf8"));
+      report = JSON.parse(readFileSync9(resolve4(root, opts.report), "utf8"));
     } catch {
       throw new CliError(`Cannot read the report file ${opts.report} as JSON.`, 1, "usage");
     }
@@ -25542,8 +25857,8 @@ async function speedCommand(ctx, url2, opts) {
 }
 
 // src/commands/blocks.ts
-import { existsSync as existsSync11, mkdirSync as mkdirSync5, writeFileSync as writeFileSync9 } from "fs";
-import { dirname as dirname3, resolve as resolve5, sep as sep3 } from "path";
+import { existsSync as existsSync12, mkdirSync as mkdirSync6, writeFileSync as writeFileSync10 } from "fs";
+import { dirname as dirname4, resolve as resolve5, sep as sep3 } from "path";
 import { gunzipSync as gunzipSync2 } from "zlib";
 var BLOCKS = [
   { key: "inbox", title: "Contact form with the site's own messages page for the owner, and an email on each message (D1)" },
@@ -25583,12 +25898,12 @@ async function blocksCommand(root, ctx, name) {
     if (e2.type !== "0" && e2.type !== "\0") continue;
     const target = resolve5(base, e2.name);
     if (target === base || !target.startsWith(base + sep3)) continue;
-    if (existsSync11(target)) {
+    if (existsSync12(target)) {
       kept.push(e2.name);
       continue;
     }
-    mkdirSync5(dirname3(target), { recursive: true });
-    writeFileSync9(target, e2.data);
+    mkdirSync6(dirname4(target), { recursive: true });
+    writeFileSync10(target, e2.data);
     written.push(e2.name);
   }
   out(`Added the ${block.key} block: ${written.length} files.`);
@@ -25657,6 +25972,7 @@ function buildProgram() {
   program.command("logout").description("cancel the login token and remove it from this computer").action((_opts, cmd) => logoutCommand(ctx(cmd)));
   program.command("whoami").description("show the logged in user").action((_opts, cmd) => whoamiCommand(ctx(cmd)));
   program.command("telemetry").description("show what is sent, or turn telemetry on or off").argument("[action]", "status, on or off", "status").action((action) => telemetryCommand(action));
+  program.command("allow").description("stop your coding tool asking before every DeployAI command, in this folder only (run it after the owner says yes)").argument("[tool]", "claude-code, cursor, copilot, codex or antigravity (Claude Code is found by itself)").action((tool) => allowCommand(tool));
   program.command("link").description("link this folder to a DeployAI project").argument("[project]", "project slug or id").option("--create <name>", "create a new project and link it").action(
     (project, opts, cmd) => linkCommand(root(cmd), ctx(cmd), project, opts)
   );
