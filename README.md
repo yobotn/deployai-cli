@@ -62,7 +62,7 @@ Node 20 or newer. No other setup: the CLI talks to https://deployai.co.il.
 | `deployai blocks [inbox\|blog]` | Adds one of DeployAI's building blocks to an existing site, never over a file, with a guide in `.deployai/blocks/<key>.md`. With no key it lists them. |
 | `deployai claim` | Prints this folder's temporary site keep link again. `--email <address>` mails it, with a reminder before the delete. |
 | `deployai samples [name] [folder]` | Lists the six sample sites, or downloads one. More below. |
-| `deployai start <id>` | The one line copied on the DeployAI site. Prepares this folder, then prints the steps for your agent. No login needed. More below. |
+| `deployai start <id>` | The one line copied on the DeployAI site. Prepares this folder, then prints the steps for your agent. A site's line logs in first; a temporary site needs no login. More below. |
 | `deployai speed <url>` | Google PageSpeed test of a page: lab results, real visitor data when Google has it and the biggest opportunities. `--desktop` tests a desktop load. |
 | `deployai addons` | The marketplace add-ons of the linked site: which it has, which are done and which is next. Works once the DeployAI marketplace is open; the server checks that the site has each add-on. |
 | `deployai addon next` | Prints the next add-on of the site for your agent. `deployai addon run <name>` prints one by name. |
@@ -99,7 +99,7 @@ Global options:
 **`deployai start <id>`**
 - The one line copied on the DeployAI site.
 - Prepares this folder with every choice made there: a new folder for a new site when this one has files, the sample and its install, the owner's details, the link to the site. Then prints the steps for your agent.
-- No login needed.
+- A line for a site opens only for its owner or an editor, so it logs in first if needed. A temporary site's line needs no login.
 - It saves the owner's language, so later results print in it (D-266; `--lang he|en` or `DEPLOYAI_LANG` override it).
 - `--here` keeps this folder, `--no-install` skips the install.
 

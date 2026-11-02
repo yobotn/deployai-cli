@@ -21580,6 +21580,12 @@ function isSpaShell(html) {
   return /<div\b[^>]*\bid\s*=\s*["'](?:root|app|__nuxt|svelte)["'][^>]*>\s*<\/div>/i.test(html) && !/<h1\b/i.test(html);
 }
 
+// ../shared/src/known-bot-rule.ts
+var KNOWN_BOT_RULES = [
+  { description: "known-bot yes", expression: "cf.client.bot", value: "1" },
+  { description: "known-bot no", expression: "not cf.client.bot", value: "0" }
+].map((r) => ({ description: r.description, expression: r.expression, action: "rewrite", action_parameters: { headers: { "x-deployai-known-bot": { operation: "set", value: r.value } } }, enabled: true }));
+
 // ../shared/src/tool-fetch.ts
 var FILE_BYTES = 512 * 1024;
 
@@ -21698,6 +21704,9 @@ var MANAGED_STEPS = [
 ];
 var PULL = { cmd: "npx deployai@latest pull", say: "This folder was empty, so it downloads the code of the live site first. Work on that code." };
 function startSteps(kind, opts = {}) {
+  return opts.signedIn ? stepsOf(kind, opts).filter((s) => s !== LOGIN) : stepsOf(kind, opts);
+}
+function stepsOf(kind, opts) {
   switch (kind) {
     case "new":
       return [...opts.starter ? [BUILD] : [], CHECK, ASK, LOGIN, { cmd: 'npx deployai@latest deploy -m "first version"', say: DEPLOY_SAY }, PROMOTE];
@@ -21741,6 +21750,7 @@ var CLI_MAP_NODES = [
   n("page-new", "site", "/dashboard/new", "\u05D0\u05EA\u05E8 \u05D7\u05D3\u05E9: \u05D4\u05D3\u05D5\u05D2\u05DE\u05D4, \u05D4\u05E9\u05DD \u05D5\u05D4\u05E4\u05E8\u05D8\u05D9\u05DD \u05E0\u05E9\u05DE\u05E8\u05D9\u05DD \u05D1\u05D0\u05EA\u05E8, \u05D5\u05D4 id \u05E0\u05D5\u05E9\u05D0 \u05D0\u05EA \u05DB\u05D5\u05DC\u05DD.", "New site: the sample, name and details are saved on the site, and the id carries them all."),
   n("page-site", "site", "/project/<id>", "\u05E2\u05DE\u05D5\u05D3 \u05D4\u05D0\u05EA\u05E8: \u05E9\u05D5\u05E8\u05EA \u05D4\u05EA\u05D7\u05DC\u05D4 \u05E2\u05D3 \u05D4\u05D2\u05E8\u05E1\u05D4 \u05D4\u05E8\u05D0\u05E9\u05D5\u05E0\u05D4, \u05D5\u05D0\u05D7\u05E8\u05D9\u05D4 \u05E9\u05D5\u05E8\u05EA \u05E2\u05D3\u05DB\u05D5\u05DF.", "The site page: a new site line until the first version, then an update line."),
   n("page-move-url", "site", "/move", "\u05D4\u05E2\u05D1\u05D9\u05E8\u05D5 \u05D0\u05EA \u05D4\u05D0\u05EA\u05E8 \u05E9\u05DC\u05D9: \u05DB\u05EA\u05D5\u05D1\u05EA \u05D4\u05D0\u05EA\u05E8 \u05D4\u05D9\u05E9\u05DF, \u05D4\u05E4\u05DC\u05D8\u05E4\u05D5\u05E8\u05DE\u05D4, \u05E1\u05D5\u05D2 \u05D4\u05D0\u05EA\u05E8 \u05D5\u05D4\u05E2\u05D9\u05E6\u05D5\u05D1. \u05D4 id \u05E0\u05D5\u05E9\u05D0 \u05D0\u05EA \u05DB\u05D5\u05DC\u05DD.", "Move my site: the old site address, the platform, the kind of site and the design. The id carries them all."),
+  n("page-refresh", "site", "/project/<id>/refresh", "\u05E8\u05E2\u05E0\u05D5\u05DF \u05D4\u05E2\u05D9\u05E6\u05D5\u05D1: \u05E9\u05D5\u05E8\u05D4 \u05DC\u05E2\u05D9\u05E6\u05D5\u05D1 \u05D7\u05D3\u05E9 \u05DC\u05D0\u05EA\u05E8 \u05D7\u05D9, \u05DE\u05EA\u05D5\u05DA \u05D4\u05D0\u05EA\u05E8\u05D9\u05DD \u05E9\u05DC\u05D9.", "Freshen it up: a line for a new look on a live site, from My sites."),
   n("page-move", "site", "/dashboard", "\u05D9\u05E9 \u05DC\u05D9 \u05DB\u05D1\u05E8 \u05D0\u05EA\u05E8: \u05E9\u05D5\u05E8\u05D4 \u05DC\u05D4\u05E2\u05D1\u05E8\u05EA \u05D4\u05D0\u05EA\u05E8 \u05E9\u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4.", "I already have a site: a line to move the site in the folder."),
   // The CLI: every command (packages/cli/src/cli.ts).
   n("cmd-start", "cli", "start <id>", "\u05DE\u05DB\u05D9\u05DF \u05D0\u05EA \u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05DC\u05E4\u05D9 \u05DB\u05DC \u05D4\u05D1\u05D7\u05D9\u05E8\u05D5\u05EA: \u05EA\u05D9\u05E7\u05D9\u05D9\u05D4, \u05D3\u05D5\u05D2\u05DE\u05D4 \u05D5\u05D4\u05EA\u05E7\u05E0\u05D4, \u05E7\u05D5\u05D1\u05E5 \u05D4\u05E4\u05E8\u05D8\u05D9\u05DD \u05D5\u05D7\u05D9\u05D1\u05D5\u05E8 \u05DC\u05D0\u05EA\u05E8. \u05DE\u05D3\u05E4\u05D9\u05E1 \u05DC\u05E1\u05D5\u05DB\u05DF \u05D0\u05EA \u05D4\u05D8\u05E7\u05E1\u05D8 \u05D5\u05D0\u05EA \u05D4\u05E4\u05E7\u05D5\u05D3\u05D5\u05EA.", "Prepares the folder with every choice: folder, sample and install, the details file and the site link. Prints the text and the commands for the agent."),
@@ -21771,7 +21781,7 @@ var CLI_MAP_NODES = [
   n("cmd-allow", "cli", "allow [tool]", "\u05D0\u05D7\u05E8\u05D9 \u05E9\u05D4\u05D1\u05E2\u05DC\u05D9\u05DD \u05D0\u05D9\u05E9\u05E8: \u05DB\u05DC\u05D9 \u05D4\u05E7\u05D5\u05D3 \u05DE\u05E4\u05E1\u05D9\u05E7 \u05DC\u05E9\u05D0\u05D5\u05DC \u05DC\u05E4\u05E0\u05D9 \u05DB\u05DC \u05E4\u05E7\u05D5\u05D3\u05EA DeployAI, \u05E8\u05E7 \u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5.", "After the owner says yes: the coding tool stops asking before every DeployAI command, in this folder only."),
   n("cmd-telemetry", "cli", "telemetry", "\u05D4\u05E4\u05E2\u05DC\u05D4 \u05D0\u05D5 \u05DB\u05D9\u05D1\u05D5\u05D9 \u05E9\u05DC \u05E0\u05EA\u05D5\u05E0\u05D9 \u05E9\u05D9\u05DE\u05D5\u05E9 \u05D0\u05E0\u05D5\u05E0\u05D9\u05DE\u05D9\u05D9\u05DD.", "Turns anonymous usage data on or off."),
   // The server routes the CLI calls.
-  n("api-starts", "server", "GET /api/starts/:id", "\u05D4\u05D1\u05D7\u05D9\u05E8\u05D5\u05EA \u05D5\u05D4\u05D8\u05E7\u05E1\u05D8 \u05DC\u05E1\u05D5\u05DB\u05DF. 7 \u05D9\u05DE\u05D9\u05DD, 5 \u05E9\u05DC\u05D9\u05E4\u05D5\u05EA \u05DC\u05D0\u05EA\u05E8.", "The choices and the agent text. 7 days, 5 fetches for a site."),
+  n("api-starts", "server", "GET /api/starts/:id", "\u05D4\u05D1\u05D7\u05D9\u05E8\u05D5\u05EA \u05D5\u05D4\u05D8\u05E7\u05E1\u05D8 \u05DC\u05E1\u05D5\u05DB\u05DF. 7 \u05D9\u05DE\u05D9\u05DD, 5 \u05E9\u05DC\u05D9\u05E4\u05D5\u05EA \u05DC\u05D0\u05EA\u05E8. \u05E9\u05D5\u05E8\u05D4 \u05E9\u05DC \u05D0\u05EA\u05E8 \u05E0\u05E4\u05EA\u05D7\u05EA \u05E8\u05E7 \u05E2\u05DD \u05D4\u05EA\u05D7\u05D1\u05E8\u05D5\u05EA \u05E9\u05DC \u05D4\u05D1\u05E2\u05DC\u05D9\u05DD \u05D0\u05D5 \u05E9\u05DC \u05DE\u05D9 \u05E9\u05D9\u05E9 \u05DC\u05D5 \u05D4\u05E8\u05E9\u05D0\u05EA \u05E2\u05E8\u05D9\u05DB\u05D4.", "The choices and the agent text. 7 days, 5 fetches for a site. A site's line opens only with the login of its owner or an editor."),
   n("api-blocks", "server", "GET /blocks-src/<key>", "\u05E7\u05D5\u05D3 \u05D4\u05DE\u05E7\u05D5\u05E8 \u05E9\u05DC \u05D0\u05D1\u05DF \u05D1\u05E0\u05D9\u05D9\u05DF, \u05E6\u05D9\u05D1\u05D5\u05E8\u05D9.", "A block's source, public."),
   n("api-migrate-grant", "server", "POST /api/cli/migrations/grant", "\u05D0\u05D7\u05E8\u05D9 link \u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05DE /move: \u05D4\u05EA\u05D5\u05E1\u05E4\u05D9\u05DD \u05D1\u05D7\u05D9\u05E0\u05DD \u05DC\u05D0\u05EA\u05E8 \u05E9\u05E2\u05D1\u05E8, \u05E4\u05E2\u05DD \u05D0\u05D7\u05EA \u05DC\u05DB\u05DC start \u05D5\u05E2\u05D3 3 \u05D0\u05EA\u05E8\u05D9\u05DD \u05DC\u05D7\u05E9\u05D1\u05D5\u05DF.", "After link in a folder from /move: the add-ons free for the moved site, once per start and up to 3 sites an account."),
   n("api-migrate-progress", "server", "POST /api/migrations/progress", "\u05DE\u05E2\u05D1\u05E8 \u05DE\u05E0\u05D5\u05D4\u05DC: \u05D4\u05E9\u05DC\u05D1 \u05D5\u05D4\u05E2\u05E8\u05D4 \u05E9\u05DC \u05E9\u05D5\u05E8\u05D4 \u05D0\u05D7\u05EA \u05DE migrate status, \u05DC\u05DC\u05D5\u05D7 \u05D4\u05D1\u05E7\u05E9\u05D5\u05EA \u05D5\u05DC\u05E2\u05DE\u05D5\u05D3 \u05D4\u05E1\u05D8\u05D8\u05D5\u05E1 \u05E9\u05DC \u05D4\u05D1\u05E2\u05DC\u05D9\u05DD.", "Managed move: the stage and a one line note from migrate status, to the requests board and the owner's status page."),
@@ -21793,6 +21803,7 @@ var CLI_MAP_NODES = [
   n("text-start-blank", "agent", "site.start-blank", "\u05D1\u05D5\u05E0\u05D9\u05DD \u05D0\u05EA\u05E8 \u05D1\u05DC\u05D9 \u05D3\u05D5\u05D2\u05DE\u05D4.", "Build a site with no sample."),
   n("text-details", "agent", "site.details / site.ask-details", "\u05E7\u05D5\u05E8\u05D0\u05D9\u05DD \u05D0\u05EA \u05D4\u05E4\u05E8\u05D8\u05D9\u05DD \u05DE .deployai/brief.md, \u05D0\u05D5 \u05E9\u05D5\u05D0\u05DC\u05D9\u05DD \u05D0\u05EA \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8.", "Read the details from .deployai/brief.md, or ask the owner."),
   n("text-update", "agent", "site.update", "\u05E2\u05D5\u05E9\u05D9\u05DD \u05D0\u05EA \u05D4\u05E9\u05D9\u05E0\u05D5\u05D9 \u05E9\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D1\u05D9\u05E7\u05E9.", "Make the change the owner asked for."),
+  n("text-refresh", "agent", "site.refresh", "\u05E2\u05D9\u05E6\u05D5\u05D1 \u05D7\u05D3\u05E9 \u05DC\u05D0\u05EA\u05E8 \u05D7\u05D9: \u05DB\u05DC \u05E2\u05DE\u05D5\u05D3, \u05DB\u05EA\u05D5\u05D1\u05EA, \u05DE\u05D9\u05DC\u05D4 \u05D5\u05DE\u05D5\u05EA\u05D2 \u05E0\u05E9\u05D0\u05E8\u05D9\u05DD, \u05EA\u05E6\u05D5\u05D2\u05D4 \u05DE\u05E7\u05D3\u05D9\u05DE\u05D4 \u05DC\u05E4\u05E0\u05D9 \u05E9\u05E2\u05D5\u05DC\u05D4.", "A new look for a live site: every page, address, word and the brand stay, a preview before it goes live."),
   n("text-migrate", "agent", "site.migrate", "\u05D1\u05D5\u05E0\u05D9\u05DD \u05DE\u05D7\u05D3\u05E9 \u05D0\u05EA \u05D4\u05D0\u05EA\u05E8 \u05D4\u05D9\u05E9\u05DF \u05E2\u05DC \u05D4\u05D3\u05D5\u05D2\u05DE\u05D4, \u05E9\u05D5\u05DE\u05E8\u05D9\u05DD \u05DB\u05DC \u05DB\u05EA\u05D5\u05D1\u05EA \u05D5\u05DB\u05D5\u05EA\u05E8\u05EA, \u05EA\u05D5\u05DB\u05E0\u05D9\u05EA \u05E2\u05DD \u05E1\u05D8\u05D8\u05D5\u05E1 \u05DC\u05DB\u05DC \u05D9\u05DB\u05D5\u05DC\u05EA.", "Rebuild the old site on the sample, keep every address and title, a plan with a status for each feature."),
   n("text-move", "agent", "site.move", "\u05DE\u05E2\u05D1\u05D9\u05E8\u05D9\u05DD \u05D0\u05EA\u05E8 \u05E7\u05D9\u05D9\u05DD \u05D1\u05DC\u05D9 \u05DC\u05E9\u05E0\u05D5\u05EA \u05D0\u05EA \u05D4\u05E2\u05D9\u05E6\u05D5\u05D1 \u05D0\u05D5 \u05D4\u05DE\u05E1\u05D2\u05E8\u05EA.", "Move an existing site without changing its design or framework."),
   n("text-guest", "agent", "site.guest / site.guest-sample", "\u05D0\u05EA\u05E8 \u05D6\u05DE\u05E0\u05D9: \u05D4\u05DE\u05D2\u05D1\u05DC\u05D5\u05EA, \u05D5\u05DE\u05D4 \u05DC\u05E9\u05D0\u05D5\u05DC \u05D0\u05EA \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8.", "A temporary site: the limits, and what to ask the owner."),
@@ -21804,14 +21815,17 @@ var CLI_MAP_EDGES = [
   e("page-go-live", "cmd-start"),
   e("page-new", "cmd-start"),
   e("page-site", "cmd-start"),
+  e("page-refresh", "cmd-start"),
   e("page-move", "cmd-start"),
   e("cmd-start", "api-starts"),
+  e("cmd-start", "cmd-login"),
   e("cmd-start", "api-samples"),
   e("cmd-samples", "api-samples"),
   e("cmd-start", "text-start"),
   e("cmd-start", "text-start-blank"),
   e("cmd-start", "text-details"),
   e("cmd-start", "text-update"),
+  e("cmd-start", "text-refresh"),
   e("cmd-start", "text-move"),
   e("cmd-start", "text-guest"),
   e("cmd-login", "api-device"),
@@ -22569,6 +22583,9 @@ var M = {
     siteDeleted: "This site was deleted in the DeployAI dashboard. The owner can restore it from the dashboard (My sites, deleted sites) within 7 days. To deploy somewhere else, run: npx deployai@latest link",
     notEntitled: "This site does not have this add-on. The site owner can buy it for this site here: {url}",
     forbidden: "This account cannot change this site. Check that you logged in with the account that owns it.",
+    notOnSite: "This site belongs to another account. Ask its owner to add you as an editor. If it is your site, log in with the account that owns it: npx deployai@latest logout, then npx deployai@latest login",
+    viewOnly: "This account can only view this site. Ask its owner to make you an editor.",
+    startLoginFirst: "This line opens only for the site's owner or an editor, so first log in.",
     notFound: "DeployAI did not find it, or this account cannot see it. Check the name or the link, and that you logged in with the account that made the site: npx deployai@latest whoami",
     badArchive: "The upload arrived broken or empty. Run the same command again. If it happens again, update the CLI: npx deployai@latest",
     invalidRequest: "DeployAI did not accept this request. Run it again with the newest CLI: npx deployai@latest",
@@ -22785,6 +22802,9 @@ var M = {
     siteDeleted: "\u05D4\u05D0\u05EA\u05E8 \u05E0\u05DE\u05D7\u05E7 \u05D1\u05DC\u05D5\u05D7 \u05D4\u05D1\u05E7\u05E8\u05D4 \u05E9\u05DC DeployAI. \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D9\u05DB\u05D5\u05DC \u05DC\u05E9\u05D7\u05D6\u05E8 \u05D0\u05D5\u05EA\u05D5 \u05DE\u05DC\u05D5\u05D7 \u05D4\u05D1\u05E7\u05E8\u05D4 (\u05D4\u05D0\u05EA\u05E8\u05D9\u05DD \u05E9\u05DC\u05D9, \u05D0\u05EA\u05E8\u05D9\u05DD \u05E9\u05E0\u05DE\u05D7\u05E7\u05D5) \u05EA\u05D5\u05DA 7 \u05D9\u05DE\u05D9\u05DD. \u05DB\u05D3\u05D9 \u05DC\u05D4\u05E2\u05DC\u05D5\u05EA \u05DC\u05D0\u05EA\u05E8 \u05D0\u05D7\u05E8, \u05D4\u05E8\u05D9\u05E6\u05D5: npx deployai@latest link",
     notEntitled: "\u05DC\u05D0\u05EA\u05E8 \u05D4\u05D6\u05D4 \u05D0\u05D9\u05DF \u05D0\u05EA \u05D4\u05EA\u05D5\u05E1\u05E3 \u05D4\u05D6\u05D4. \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D9\u05DB\u05D5\u05DC \u05DC\u05E7\u05E0\u05D5\u05EA \u05D0\u05D5\u05EA\u05D5 \u05DC\u05D0\u05EA\u05E8 \u05DB\u05D0\u05DF: {url}",
     forbidden: "\u05D4\u05D7\u05E9\u05D1\u05D5\u05DF \u05D4\u05D6\u05D4 \u05DC\u05D0 \u05D9\u05DB\u05D5\u05DC \u05DC\u05E9\u05E0\u05D5\u05EA \u05D0\u05EA \u05D4\u05D0\u05EA\u05E8 \u05D4\u05D6\u05D4. \u05D1\u05D3\u05E7\u05D5 \u05E9\u05E0\u05DB\u05E0\u05E1\u05EA\u05DD \u05E2\u05DD \u05D4\u05D7\u05E9\u05D1\u05D5\u05DF \u05E9\u05D4\u05D0\u05EA\u05E8 \u05E9\u05D9\u05D9\u05DA \u05DC\u05D5.",
+    notOnSite: "\u05D4\u05D0\u05EA\u05E8 \u05D4\u05D6\u05D4 \u05E9\u05D9\u05D9\u05DA \u05DC\u05D7\u05E9\u05D1\u05D5\u05DF \u05D0\u05D7\u05E8. \u05D1\u05E7\u05E9\u05D5 \u05DE\u05D4\u05D1\u05E2\u05DC\u05D9\u05DD \u05E9\u05DC\u05D5 \u05DC\u05D4\u05D5\u05E1\u05D9\u05E3 \u05D0\u05EA\u05DB\u05DD \u05E2\u05DD \u05D4\u05E8\u05E9\u05D0\u05EA \u05E2\u05E8\u05D9\u05DB\u05D4. \u05D0\u05DD \u05D4\u05D0\u05EA\u05E8 \u05E9\u05DC\u05DB\u05DD, \u05D4\u05EA\u05D7\u05D1\u05E8\u05D5 \u05E2\u05DD \u05D4\u05D7\u05E9\u05D1\u05D5\u05DF \u05E9\u05D4\u05D5\u05D0 \u05E9\u05D9\u05D9\u05DA \u05DC\u05D5: npx deployai@latest logout \u05D5\u05D0\u05D6 npx deployai@latest login",
+    viewOnly: "\u05DC\u05D7\u05E9\u05D1\u05D5\u05DF \u05D4\u05D6\u05D4 \u05D9\u05E9 \u05D4\u05E8\u05E9\u05D0\u05EA \u05E6\u05E4\u05D9\u05D9\u05D4 \u05D1\u05DC\u05D1\u05D3 \u05D1\u05D0\u05EA\u05E8 \u05D4\u05D6\u05D4. \u05D1\u05E7\u05E9\u05D5 \u05DE\u05D4\u05D1\u05E2\u05DC\u05D9\u05DD \u05DC\u05EA\u05EA \u05DC\u05DB\u05DD \u05D4\u05E8\u05E9\u05D0\u05EA \u05E2\u05E8\u05D9\u05DB\u05D4.",
+    startLoginFirst: "\u05D4\u05E9\u05D5\u05E8\u05D4 \u05D4\u05D6\u05D5 \u05E0\u05E4\u05EA\u05D7\u05EA \u05E8\u05E7 \u05DC\u05D1\u05E2\u05DC\u05D9\u05DD \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D0\u05D5 \u05DC\u05DE\u05D9 \u05E9\u05D9\u05E9 \u05DC\u05D5 \u05D4\u05E8\u05E9\u05D0\u05EA \u05E2\u05E8\u05D9\u05DB\u05D4, \u05D0\u05D6 \u05E7\u05D5\u05D3\u05DD \u05DE\u05EA\u05D7\u05D1\u05E8\u05D9\u05DD.",
     notFound: "DeployAI \u05DC\u05D0 \u05DE\u05E6\u05D0 \u05D0\u05EA \u05D6\u05D4, \u05D0\u05D5 \u05E9\u05D4\u05D7\u05E9\u05D1\u05D5\u05DF \u05D4\u05D6\u05D4 \u05DC\u05D0 \u05E8\u05D5\u05D0\u05D4 \u05D0\u05EA \u05D6\u05D4. \u05D1\u05D3\u05E7\u05D5 \u05D0\u05EA \u05D4\u05E9\u05DD \u05D0\u05D5 \u05D4\u05E7\u05D9\u05E9\u05D5\u05E8, \u05D5\u05E9\u05E0\u05DB\u05E0\u05E1\u05EA\u05DD \u05E2\u05DD \u05D4\u05D7\u05E9\u05D1\u05D5\u05DF \u05E9\u05D9\u05E6\u05E8 \u05D0\u05EA \u05D4\u05D0\u05EA\u05E8: npx deployai@latest whoami",
     badArchive: "\u05D4\u05D4\u05E2\u05DC\u05D0\u05D4 \u05D4\u05D2\u05D9\u05E2\u05D4 \u05E4\u05D2\u05D5\u05DE\u05D4 \u05D0\u05D5 \u05E8\u05D9\u05E7\u05D4. \u05D4\u05E8\u05D9\u05E6\u05D5 \u05E9\u05D5\u05D1 \u05D0\u05EA \u05D0\u05D5\u05EA\u05D4 \u05E4\u05E7\u05D5\u05D3\u05D4. \u05D0\u05DD \u05D6\u05D4 \u05D7\u05D5\u05D6\u05E8, \u05E2\u05D3\u05DB\u05E0\u05D5 \u05D0\u05EA \u05D4\u05BECLI: npx deployai@latest",
     invalidRequest: "DeployAI \u05DC\u05D0 \u05E7\u05D9\u05D1\u05DC \u05D0\u05EA \u05D4\u05D1\u05E7\u05E9\u05D4. \u05D4\u05E8\u05D9\u05E6\u05D5 \u05D0\u05D5\u05EA\u05D4 \u05E9\u05D5\u05D1 \u05E2\u05DD \u05D4\u05BECLI \u05D4\u05E2\u05D3\u05DB\u05E0\u05D9: npx deployai@latest",
@@ -22892,7 +22912,7 @@ function messages(root) {
 }
 
 // src/version.ts
-var CLI_VERSION = "0.1.0-beta.17";
+var CLI_VERSION = "0.1.0-beta.18";
 
 // src/api.ts
 function apiContext(apiFlag) {
@@ -22951,6 +22971,8 @@ async function apiRequest(ctx, path, schema, opts = {}) {
     if (parsed2.success && parsed2.data.error === "site_deleted") {
       throw new CliError(t("siteDeleted"), 1, "site_deleted");
     }
+    if (parsed2.success && parsed2.data.error === "not_on_site") throw new CliError(t("notOnSite"), 1, "not_found");
+    if (parsed2.success && parsed2.data.error === "view_only") throw new CliError(t("viewOnly"), 1, "forbidden");
     if (parsed2.success && parsed2.data.error === "not_entitled") {
       throw new CliError(t("notEntitled", { url: parsed2.data.buyUrl ?? ctx.apiUrl }), 1, "not_entitled");
     }
@@ -24165,6 +24187,10 @@ async function loginCommand(ctx, opts = {}) {
       updateConfig({ token: poll2.token, email: poll2.email, apiUrl: ctx.apiUrl, tokenApiUrl: ctx.apiUrl });
       out();
       out(poll2.email ? t("loggedInAs", { email: poll2.email }) : t("loggedIn"));
+      if (opts.quiet) {
+        out();
+        return;
+      }
       out(t("nextStep"));
       out(opts.root && readProject(opts.root)?.projectId ? t("runDeploy") : t("runLink"));
       return;
@@ -25495,7 +25521,7 @@ async function fetchSource(root, ctx, projectId, version2) {
   if (res.status === 401) throw new CliError(t("sessionExpired"), 1, "auth");
   if (res.status === 404) {
     const code = (await res.clone().json().catch(() => null))?.error;
-    throw new CliError(code === "no_source" ? t("pullNoSource") : t("notFound"), 1, "not_found");
+    throw new CliError(code === "no_source" ? t("pullNoSource") : code === "not_on_site" ? t("notOnSite") : t("notFound"), 1, "not_found");
   }
   if (res.status === 403) throw new CliError(t("forbidden"), 1, "forbidden");
   if (!res.ok) throw new CliError(t("apiError", { code: `HTTP ${res.status}` }), 1, "api");
@@ -25596,13 +25622,17 @@ function writeStarter(root, name, lang, stack) {
 var REASONS = { start_not_found: "startNotFound", start_expired: "startExpired", start_used_up: "startUsedUp" };
 var reason = (code) => messages(process.cwd())(REASONS[code] ?? "startNotFound");
 async function fetchStart(ctx, id) {
+  const token = tokenIfOwnApi(ctx);
   let res;
   try {
-    res = await fetch(`${ctx.apiUrl}/api/starts/${id}`, { headers: { "User-Agent": userAgent(ctx.config), Accept: "application/json" }, signal: AbortSignal.timeout(3e4) });
+    res = await fetch(`${ctx.apiUrl}/api/starts/${id}`, { headers: { "User-Agent": userAgent(ctx.config), Accept: "application/json", ...token ? { Authorization: `Bearer ${token}` } : {} }, signal: AbortSignal.timeout(3e4) });
   } catch {
     throw new CliError(messages()("unreachable", { url: ctx.apiUrl }), 1, "network");
   }
   const data = await res.json().catch(() => null);
+  if (data?.error === "login_required") return "login_required";
+  if (data?.error === "not_on_site") throw new CliError(messages(process.cwd())("notOnSite"), 1, "not_found");
+  if (data?.error === "view_only") throw new CliError(messages(process.cwd())("viewOnly"), 1, "forbidden");
   if (!res.ok || !data?.kind || !data.choices || typeof data.agent !== "string") {
     const code = typeof data?.error === "string" ? data.error : "";
     throw new CliError(code in REASONS ? reason(code) : messages(process.cwd())("apiError", { code: `HTTP ${res.status}` }), 1, res.status === 404 ? "not_found" : "api");
@@ -25616,7 +25646,17 @@ function install(root) {
 async function startCommand(cwd, ctx, id, opts = {}) {
   const key = id.trim().toLowerCase();
   if (!START_ID_RE.test(key)) throw new CliError(reason("start_not_found"), 1, "not_found");
-  const { kind, choices, agent } = await fetchStart(ctx, key);
+  let ctxNow = ctx;
+  let start = await fetchStart(ctxNow, key);
+  if (start === "login_required") {
+    out(messages(process.cwd())("startLoginFirst"));
+    out();
+    await loginCommand(ctxNow, { pollMs: opts.pollMs, quiet: true });
+    ctxNow = { ...ctxNow, config: loadConfig() };
+    start = await fetchStart(ctxNow, key);
+    if (start === "login_required") throw new CliError(messages(process.cwd())("sessionExpired"), 1, "auth");
+  }
+  const { kind, choices, agent } = start;
   const sample = choices.sampleKey ? SAMPLES.find((s) => s.key === choices.sampleKey) : void 0;
   if (choices.sampleKey && !sample) throw new CliError(messages()("unknownSample", { key: choices.sampleKey }), 1, "not_found");
   const fresh = kind === "new" || kind === "migrate" || kind === "guest" && sample;
@@ -25626,11 +25666,12 @@ async function startCommand(cwd, ctx, id, opts = {}) {
   const done = [];
   const empty = !filesIn(root).length;
   const starter = (kind === "new" || kind === "guest") && !sample && empty;
-  const steps = startSteps(kind, { emptyFolder: kind === "update" && empty, starter, managed: Boolean(choices.migration?.requestId) });
+  const signedIn = Boolean(choices.projectId && tokenIfOwnApi(ctxNow));
+  const steps = startSteps(kind, { emptyFolder: kind === "update" && empty, starter, managed: Boolean(choices.migration?.requestId), signedIn });
   updateProject(root, { lang: langOf(choices.ownerLanguage) });
   const t = messages(root);
   if (sample && !sameSite) {
-    const written = await downloadSample(ctx, sample.key, root);
+    const written = await downloadSample(ctxNow, sample.key, root);
     done.push(t("startDownloaded", { key: sample.key, n: written }));
     if (existsSync11(join12(root, "package.json"))) {
       if (opts.install !== false && install(root)) done.push(t("startInstalled"));
