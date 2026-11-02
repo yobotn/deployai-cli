@@ -21929,6 +21929,7 @@ var ENV_KEYS = {
   DEPLOYAI_SPACE: { scope: "own", section: "app", required: ["local", "server"], sample: { local: "dev", server: "prod" }, about: "Which entry of packages/shared/src/spaces.ts this machine runs: dev on your computer, prod on the server. Every Cloudflare name, bucket and address comes from there." },
   DATABASE_URL: { scope: "own", section: "app", required: ["local", "server"], sample: { local: "postgres://deployai:deployai@localhost:5434/deployai", server: "postgres://deployai:<password>@localhost:5432/deployai" }, about: "Our own Postgres: users, sites, versions, billing. Not customer data." },
   BETTER_AUTH_SECRET: { scope: "own", section: "app", required: ["server"], sample: { local: "change-me-to-a-long-random-string", server: "" }, about: "Signs login sessions and our own links; changing it logs everyone out. 32 characters or more in production: openssl rand -base64 48" },
+  APP_SHOTS_SITES: { scope: "local", section: "app", about: "The demo app sites whose product page screenshots are taken again with each new app version (D-609): uptime:<siteId>:<host>,cron:<siteId>:<host>. Unset: no automatic screenshots; pnpm apps:shots still works by hand." },
   DEV_SUPERADMIN_PASSWORD: { scope: "local", section: "app", about: "The superadmin password after every local wipe. Without it the one in apps/web/local-logins.md is kept (D-100)." },
   NEXT_PUBLIC_SUPPORT_WHATSAPP: { scope: "same", section: "app", about: "The WhatsApp number people reach us on, digits with the country code (972...). Empty shows only the email (D-237)." },
   OPENAI_APPS_CHALLENGE: { scope: "server", section: "app", about: "The domain check token from the OpenAI platform portal (Plugins, domain verification), served as plain text at /.well-known/openai-apps-challenge (D-474). Unset: that page is a 404." },
@@ -22912,7 +22913,7 @@ function messages(root) {
 }
 
 // src/version.ts
-var CLI_VERSION = "0.1.0-beta.18";
+var CLI_VERSION = "0.1.0-beta.19";
 
 // src/api.ts
 function apiContext(apiFlag) {
@@ -25523,7 +25524,10 @@ async function fetchSource(root, ctx, projectId, version2) {
     const code = (await res.clone().json().catch(() => null))?.error;
     throw new CliError(code === "no_source" ? t("pullNoSource") : code === "not_on_site" ? t("notOnSite") : t("notFound"), 1, "not_found");
   }
-  if (res.status === 403) throw new CliError(t("forbidden"), 1, "forbidden");
+  if (res.status === 403) {
+    const code = (await res.clone().json().catch(() => null))?.error;
+    throw new CliError(code === "view_only" ? t("viewOnly") : t("forbidden"), 1, "forbidden");
+  }
   if (!res.ok) throw new CliError(t("apiError", { code: `HTTP ${res.status}` }), 1, "api");
   const gz = Buffer.from(await res.arrayBuffer());
   if (gz.length > MAX_BYTES2) throw new CliError(t("pullTooLarge"), 1, "too_large");
