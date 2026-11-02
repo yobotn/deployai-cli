@@ -21665,6 +21665,29 @@ function parseRobots(text) {
   return { groups, sitemaps };
 }
 
+// ../shared/src/rtl-audit.ts
+function stylesheetLinks(html, pageUrl, max = 4) {
+  let host = "";
+  try {
+    host = new URL(pageUrl).host.replace(/^www\./, "");
+  } catch {
+    return [];
+  }
+  const own2 = [];
+  const other = [];
+  for (const t of tags(html, "link")) {
+    if (!/(^|\s)stylesheet(\s|$)/i.test(t.attrs.rel ?? "") || !t.attrs.href) continue;
+    try {
+      const u = new URL(decode3(t.attrs.href), pageUrl);
+      if (!/^https?:$/.test(u.protocol) || /(^|\.)fonts\.googleapis\.com$/i.test(u.hostname)) continue;
+      const list = u.host.replace(/^www\./, "") === host ? own2 : other;
+      if (!list.includes(u.toString())) list.push(u.toString());
+    } catch {
+    }
+  }
+  return [...own2, ...other].slice(0, max);
+}
+
 // ../shared/src/plan-copy.ts
 var PLAN_FEATURES = [
   { key: "sites", limit: "maxSites" },
@@ -21695,6 +21718,7 @@ var CHECK = { cmd: "npx deployai@latest check", say: "Fix every blocker it lists
 var DEPLOY_ASK_RULE = 'Never deploy on your own, and never after each small edit: every deploy is a full build. Deploy only when what the owner asked for is done. Then say in short what changed and ask: "Put it live, see a preview first, or not yet?" Put it live: deploy with --live. Preview first: deploy without it and send the owner the preview address. Not yet: keep working, and the next change goes up in the same deploy. If the owner said to always put changes live, deploy with --live without asking. Database changes still get their own yes.';
 var ASK = { say: DEPLOY_ASK_RULE };
 var GUEST_ASK = { say: 'Deploy only when what the owner asked for is done. Say in short what you made and ask: "Put it up now, or not yet?" On Not yet, keep working and ask again when the next request is done.' };
+var FAVICON = { cmd: "npx deployai@latest brand favicon", say: "Gives the site an icon if it has none, made from the site itself: the old site's icon, else its logo, else the first letter of its name in its own color. Add the head lines it prints to every page. It changes nothing when the site has an icon." };
 var LOGIN = { cmd: "npx deployai@latest login", say: "The owner approves it in the browser window it opens." };
 var PROMOTE = { cmd: "npx deployai@latest promote v<N>", say: "Only when deploy ran without --live, and only after the owner approves the preview. N is the version number deploy printed. Then give the owner the live address." };
 var DEPLOY_SAY = "Add --live only if the owner chose to put it live right away. It waits for the build: with --live it ends with the live address, else with the preview address to send the owner. When it prints database changes, a yes to going live does not cover them (D-541): show the owner the changes and ask the question it prints, and only after a yes run the promote --approve-sql command it printed; changes it says remove data only the owner approves, never you. Write the -m message in a few words in the language of the owner, about what they see changed.";
@@ -21703,6 +21727,8 @@ var MIGRATE_STEPS = [
   { cmd: "npx deployai@latest blocks inbox", say: "Only if the old site has a contact or quote form: the form with its own messages page for the owner." },
   { cmd: "npx deployai@latest blocks blog", say: "Only if the old site has posts, news or articles: the blog, with the posts as Markdown files." },
   { cmd: "npx deployai@latest migrate media", say: "Downloads the old site's images and files into .deployai/migration/media; run it again if it stops, it goes on where it stopped. Move the files the new pages use into the site." },
+  FAVICON,
+  { cmd: "npx deployai@latest brand images <the old site address> <one address of each kind of page>", say: "Measures every image against where it shows and changes nothing. Add each weak one to .deployai/migration/plan.md as Needs me, with what it shows. A move keeps the images as they are: only the owner chooses to replace one, and a photo of a real person, product or place is never replaced with a made up one." },
   { ...CHECK },
   LOGIN,
   { cmd: 'npx deployai@latest link --create "<the site name>"', say: "Makes the site in the owner's account and links this folder. The add-ons come with it for free while the offer lasts." },
@@ -21716,11 +21742,11 @@ var MIGRATE_STEPS = [
 var managedStatus = (stage, note, say) => ({ cmd: `npx deployai@latest migrate status ${stage} "${note}"`, say });
 var MANAGED_STEPS = [
   managedStatus("building", "<what is done>", "First, once the plan in .deployai/migration/plan.md is agreed: the request shows the build started."),
-  ...MIGRATE_STEPS.slice(0, 9),
+  ...MIGRATE_STEPS.slice(0, 11),
   managedStatus("preview_ready", "<preview address>", "The owner gets an email with the preview address."),
-  ...MIGRATE_STEPS.slice(9, 11),
+  ...MIGRATE_STEPS.slice(11, 13),
   managedStatus("live", "<live address>", "Only after it is live. Then the team transfers the site to the owner."),
-  ...MIGRATE_STEPS.slice(11)
+  ...MIGRATE_STEPS.slice(13)
 ];
 var PULL = { cmd: "npx deployai@latest pull", say: "This folder was empty, so it downloads the code of the live site first. Work on that code." };
 function startSteps(kind, opts = {}) {
@@ -21729,13 +21755,14 @@ function startSteps(kind, opts = {}) {
 function stepsOf(kind, opts) {
   switch (kind) {
     case "new":
-      return [...opts.starter ? [BUILD] : [], CHECK, ASK, LOGIN, { cmd: 'npx deployai@latest deploy -m "first version"', say: DEPLOY_SAY }, PROMOTE];
+      return [...opts.starter ? [BUILD] : [], FAVICON, CHECK, ASK, LOGIN, { cmd: 'npx deployai@latest deploy -m "first version"', say: DEPLOY_SAY }, PROMOTE];
     case "update": {
       const deploy = { cmd: 'npx deployai@latest deploy -m "<what changed, in a few words>"', say: DEPLOY_SAY };
       return opts.emptyFolder ? [LOGIN, PULL, CHECK, ASK, deploy, PROMOTE] : [CHECK, ASK, LOGIN, deploy, PROMOTE];
     }
     case "move":
       return [
+        FAVICON,
         CHECK,
         ASK,
         LOGIN,
@@ -21748,6 +21775,7 @@ function stepsOf(kind, opts) {
     case "guest":
       return [
         ...opts.starter ? [BUILD] : [],
+        FAVICON,
         { ...CHECK, say: "Fix every blocker it lists, then run it again until it shows none. If the site needs environment variables, secrets, file storage or sending email, never stop building for it: tell the owner once, in one plain line, that putting those parts live needs a free account (one link, about a minute), keep building what they asked, and ask about the account only at the deploy step." },
         GUEST_ASK,
         { cmd: "npx deployai@latest deploy --guest", say: "It prints the address, the claim link and any owner keys." },
@@ -21776,6 +21804,7 @@ var CLI_MAP_NODES = [
   n("cmd-start", "cli", "start <id>", "\u05DE\u05DB\u05D9\u05DF \u05D0\u05EA \u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05DC\u05E4\u05D9 \u05DB\u05DC \u05D4\u05D1\u05D7\u05D9\u05E8\u05D5\u05EA: \u05EA\u05D9\u05E7\u05D9\u05D9\u05D4, \u05D3\u05D5\u05D2\u05DE\u05D4 \u05D5\u05D4\u05EA\u05E7\u05E0\u05D4, \u05E7\u05D5\u05D1\u05E5 \u05D4\u05E4\u05E8\u05D8\u05D9\u05DD \u05D5\u05D7\u05D9\u05D1\u05D5\u05E8 \u05DC\u05D0\u05EA\u05E8. \u05DE\u05D3\u05E4\u05D9\u05E1 \u05DC\u05E1\u05D5\u05DB\u05DF \u05D0\u05EA \u05D4\u05D8\u05E7\u05E1\u05D8 \u05D5\u05D0\u05EA \u05D4\u05E4\u05E7\u05D5\u05D3\u05D5\u05EA.", "Prepares the folder with every choice: folder, sample and install, the details file and the site link. Prints the text and the commands for the agent."),
   n("cmd-migrate", "cli", "migrate scan / media / redirects / verify / status", "\u05D4\u05D0\u05EA\u05E8 \u05D4\u05D9\u05E9\u05DF: \u05E1\u05E8\u05D9\u05E7\u05EA \u05D4\u05DB\u05EA\u05D5\u05D1\u05D5\u05EA \u05D5\u05D4\u05EA\u05D5\u05DB\u05DF, \u05D4\u05D5\u05E8\u05D3\u05EA \u05D4\u05E7\u05D1\u05E6\u05D9\u05DD, \u05D4\u05E4\u05E0\u05D9\u05D5\u05EA 301 \u05DC\u05DB\u05EA\u05D5\u05D1\u05D5\u05EA \u05E9\u05DC\u05D0 \u05E0\u05E9\u05D0\u05E8\u05D5, \u05D5\u05D1\u05D3\u05D9\u05E7\u05D4 \u05E9\u05DB\u05DC \u05DB\u05EA\u05D5\u05D1\u05EA \u05D9\u05E9\u05E0\u05D4 \u05E0\u05E4\u05EA\u05D7\u05EA \u05D1\u05EA\u05E6\u05D5\u05D2\u05D4 \u05D4\u05DE\u05E7\u05D3\u05D9\u05DE\u05D4.", "The old site: scan its addresses and content, download its files, 301s for addresses that could not stay, and a check that every old address opens on the preview."),
   n("cmd-blocks", "cli", "blocks [name]", "\u05D0\u05D1\u05E0\u05D9 \u05D1\u05E0\u05D9\u05D9\u05DF \u05E9\u05DC\u05E0\u05D5 \u05DC\u05D0\u05EA\u05E8 \u05E7\u05D9\u05D9\u05DD: inbox (\u05D8\u05D5\u05E4\u05E1 \u05D5\u05E2\u05DE\u05D5\u05D3 \u05D4\u05D5\u05D3\u05E2\u05D5\u05EA \u05DC\u05D1\u05E2\u05DC\u05D9\u05DD), blog. \u05DC\u05D0 \u05D3\u05D5\u05E8\u05E1 \u05E7\u05D1\u05E6\u05D9\u05DD.", "Our building blocks for an existing site: inbox (form and owner messages page), blog. Never writes over files."),
+  n("cmd-brand", "cli", "brand favicon / icons / images", "\u05D4\u05D0\u05D9\u05D9\u05E7\u05D5\u05E0\u05D9\u05DD \u05D5\u05EA\u05DE\u05D5\u05E0\u05EA \u05D4\u05E9\u05D9\u05EA\u05D5\u05E3 \u05E0\u05D5\u05E6\u05E8\u05D9\u05DD \u05D1\u05E7\u05D5\u05D3 \u05DE\u05D4\u05D0\u05EA\u05E8 \u05E2\u05E6\u05DE\u05D5: \u05D4\u05E9\u05DD, \u05D4\u05E6\u05D1\u05E2\u05D9\u05DD \u05D5\u05D4\u05DC\u05D5\u05D2\u05D5. favicon \u05D7\u05D9\u05E0\u05DD \u05DC\u05DB\u05DC \u05D0\u05EA\u05E8, \u05E1\u05D8 \u05DE\u05DC\u05D0, \u05D5\u05D3\u05D5\u05D7 \u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05D7\u05DC\u05E9\u05D5\u05EA \u05DC\u05E4\u05D9 \u05DE\u05D3\u05D9\u05D3\u05D4. \u05DC\u05D0 \u05DE\u05D7\u05DC\u05D9\u05E3 \u05EA\u05DE\u05D5\u05E0\u05D4 \u05DC\u05D1\u05D3.", "The site's icons and share image, made by code from the site itself: its name, colors and logo. A free favicon for every site, the full set, and a measured report of weak images. Never replaces an image by itself."),
   n("cmd-samples", "cli", "samples [key]", "\u05E8\u05E9\u05D9\u05DE\u05EA \u05D4\u05D3\u05D5\u05D2\u05DE\u05D0\u05D5\u05EA, \u05D0\u05D5 \u05D4\u05D5\u05E8\u05D3\u05D4 \u05E9\u05DC \u05D0\u05D7\u05EA.", "Lists the samples, or downloads one."),
   n("cmd-check", "cli", "check", "\u05D4\u05D0\u05DD \u05D4\u05E4\u05E8\u05D5\u05D9\u05E7\u05D8 \u05D9\u05DB\u05D5\u05DC \u05DC\u05E8\u05D5\u05E5 \u05D0\u05E6\u05DC\u05E0\u05D5: \u05D7\u05D5\u05E1\u05DE\u05D9\u05DD \u05D5\u05D0\u05D6\u05D4\u05E8\u05D5\u05EA, \u05E2\u05DD \u05E4\u05E8\u05D5\u05DE\u05E4\u05D8 \u05EA\u05D9\u05E7\u05D5\u05DF.", "Can the project run on our hosting: blockers and warnings, with a fix prompt."),
   n("cmd-init", "cli", "init", "\u05D9\u05D5\u05E6\u05E8 DEPLOYAI.md \u05E2\u05DD \u05D4\u05DB\u05DC\u05DC\u05D9\u05DD \u05DC\u05E1\u05D5\u05DB\u05DF, \u05E9\u05D5\u05E8\u05D4 \u05D0\u05DC\u05D9\u05D5 \u05D1 AGENTS.md \u05D5 CLAUDE.md, \u05D5 .deployai/project.json. \u05E8\u05D0\u05E9\u05D5\u05DF \u05D1\u05E4\u05E8\u05D5\u05D9\u05E7\u05D8 \u05D7\u05D3\u05E9.", "Creates DEPLOYAI.md with the agent rules, a line to it in AGENTS.md and CLAUDE.md, and .deployai/project.json. First in a new project."),
@@ -21866,6 +21895,7 @@ var CLI_MAP_EDGES = [
   e("cmd-sql", "api-sql"),
   e("cmd-deploy", "api-sql"),
   e("cmd-rollback", "api-promote"),
+  e("cmd-start", "cmd-brand"),
   e("page-move-url", "cmd-start"),
   e("cmd-start", "text-migrate"),
   e("cmd-start", "cmd-migrate"),
@@ -22095,6 +22125,8 @@ var BUILD_WITH = [
   "Uploaded files and images: Cloudflare R2 (object storage), never the local disk.",
   "Settings and secrets: environment variables, set with: npx deployai@latest env set <key>",
   "Images: resize at build time or serve them as they are; no native image modules at runtime.",
+  // D-616: an icon is part of a finished site, and the command keeps one the site has.
+  "Icon: every site has one. npx deployai@latest brand favicon keeps the one it has, or makes one from the site itself: its logo, or the first letter of its name in its own color.",
   "Passwords: bcryptjs or Web Crypto, never native bcrypt.",
   "Server code runs per request: no long-running processes, background servers or child processes.",
   // D-611: Durable Objects run when the site's own code exports them; D1 stays the default, they cost more for plain data.
@@ -22239,10 +22271,10 @@ function normalizeSourceUrl(raw) {
   u.hash = "";
   return u.pathname === "/" && !u.search ? u.origin : u.toString();
 }
-function parseSitemapXml(xml) {
+function parseSitemapXml(xml2) {
   const locs = (block) => [...block.matchAll(/<loc>\s*([\s\S]*?)\s*<\/loc>/gi)].map((m) => decode3(m[1].replace(/^<!\[CDATA\[|\]\]>$/g, "")).trim()).filter(Boolean);
-  const sitemaps = [...xml.matchAll(/<sitemap\b[^>]*>([\s\S]*?)<\/sitemap>/gi)].flatMap((m) => locs(m[1]));
-  const urls = [...xml.matchAll(/<url\b[^>]*>([\s\S]*?)<\/url>/gi)].flatMap((m) => locs(m[1]));
+  const sitemaps = [...xml2.matchAll(/<sitemap\b[^>]*>([\s\S]*?)<\/sitemap>/gi)].flatMap((m) => locs(m[1]));
+  const urls = [...xml2.matchAll(/<url\b[^>]*>([\s\S]*?)<\/url>/gi)].flatMap((m) => locs(m[1]));
   return { urls, sitemaps };
 }
 function detectPlatform(html, headers = {}) {
@@ -22343,6 +22375,244 @@ var enc2 = new TextEncoder();
 
 // ../shared/src/app-gate.ts
 var enc3 = new TextEncoder();
+
+// ../shared/src/brand.ts
+var ICO_SIZES = [32, 48];
+var ICO_TARGETS = ICO_SIZES.map((s) => ({ file: `ico-${s}.png`, width: s, height: s, icoOnly: true }));
+var FAVICON_TARGETS = [
+  ...ICO_TARGETS,
+  { file: "apple-touch-icon.png", width: 180, height: 180, opaque: true, pad: 0.1 }
+];
+var BRAND_TARGETS = [
+  ...FAVICON_TARGETS,
+  { file: "favicon-96x96.png", width: 96, height: 96 },
+  { file: "icon-192.png", width: 192, height: 192 },
+  { file: "icon-512.png", width: 512, height: 512 },
+  { file: "icon-maskable-512.png", width: 512, height: 512, opaque: true, pad: 0.2 },
+  { file: "og-image.png", width: 1200, height: 630, opaque: true, og: true }
+];
+var BRAND_FILES = ["favicon.ico", "favicon.svg", "site.webmanifest", ...BRAND_TARGETS.filter((t) => !t.icoOnly).map((t) => t.file)];
+function canDraw(target, source) {
+  if (source.vector || target.og) return true;
+  return Math.max(target.width, target.height) <= Math.max(source.width, source.height) * 2;
+}
+var xml = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+function letterTileSvg(name, color) {
+  const letter = [...name.trim()][0]?.toLocaleUpperCase() ?? "S";
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="${xml(color)}"/><text x="32" y="33" font-family="system-ui,Arial,sans-serif" font-size="38" font-weight="700" fill="${contrastInk(color)}" text-anchor="middle" dominant-baseline="central">${xml(letter)}</text></svg>
+`;
+}
+function contrastInk(color) {
+  const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(color);
+  if (!m) return "#FFFFFF";
+  const [r, g, b] = [m[1], m[2], m[3]].map((h) => parseInt(h, 16));
+  return 0.299 * r + 0.587 * g + 0.114 * b > 150 ? "#0A0A0A" : "#FFFFFF";
+}
+var BRAND_DEFAULT_COLOR = "#111827";
+function webManifest(name, color) {
+  return `${JSON.stringify({
+    name,
+    short_name: name.slice(0, 12),
+    icons: [
+      { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { src: "/icon-512.png", sizes: "512x512", type: "image/png" },
+      { src: "/icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" }
+    ],
+    theme_color: color,
+    background_color: color,
+    display: "browser"
+  }, null, 2)}
+`;
+}
+function brandHeadTags(files) {
+  const has = (f) => files.includes(f);
+  return [
+    has("favicon.ico") ? '<link rel="icon" href="/favicon.ico" sizes="48x48">' : "",
+    has("favicon.svg") ? '<link rel="icon" href="/favicon.svg" type="image/svg+xml">' : "",
+    has("favicon-96x96.png") ? '<link rel="icon" href="/favicon-96x96.png" type="image/png" sizes="96x96">' : "",
+    has("apple-touch-icon.png") ? '<link rel="apple-touch-icon" href="/apple-touch-icon.png">' : "",
+    has("site.webmanifest") ? '<link rel="manifest" href="/site.webmanifest">' : "",
+    has("og-image.png") ? '<meta property="og:image" content="<the site address>/og-image.png">' : "",
+    has("og-image.png") ? '<meta property="og:image:width" content="1200">' : "",
+    has("og-image.png") ? '<meta property="og:image:height" content="630">' : ""
+  ].filter(Boolean);
+}
+function buildIco(images) {
+  const headerSize = 6 + images.length * 16;
+  const out2 = new Uint8Array(headerSize + images.reduce((n2, i) => n2 + i.png.length, 0));
+  const view = new DataView(out2.buffer);
+  view.setUint16(2, 1, true);
+  view.setUint16(4, images.length, true);
+  let offset = headerSize;
+  images.forEach((img, i) => {
+    const at = 6 + i * 16;
+    out2[at] = img.size >= 256 ? 0 : img.size;
+    out2[at + 1] = img.size >= 256 ? 0 : img.size;
+    view.setUint16(at + 4, 1, true);
+    view.setUint16(at + 6, 32, true);
+    view.setUint32(at + 8, img.png.length, true);
+    view.setUint32(at + 12, offset, true);
+    out2.set(img.png, offset);
+    offset += img.png.length;
+  });
+  return out2;
+}
+function imageSize(b) {
+  const v = new DataView(b.buffer, b.byteOffset, b.byteLength);
+  const ascii = (at, n2) => String.fromCharCode(...b.subarray(at, at + n2));
+  if (b.length >= 24 && b[0] === 137 && ascii(1, 3) === "PNG") return { width: v.getUint32(16), height: v.getUint32(20), format: "png" };
+  if (b.length >= 10 && ascii(0, 3) === "GIF") return { width: v.getUint16(6, true), height: v.getUint16(8, true), format: "gif" };
+  if (b.length >= 22 && v.getUint16(0, true) === 0 && v.getUint16(2, true) === 1 && v.getUint16(4, true) > 0) {
+    let best = 0;
+    const count = v.getUint16(4, true);
+    for (let i = 0; i < count && 6 + i * 16 < b.length; i++) best = Math.max(best, b[6 + i * 16] || 256);
+    return { width: best, height: best, format: "ico" };
+  }
+  if (b.length >= 30 && ascii(0, 4) === "RIFF" && ascii(8, 4) === "WEBP") {
+    const kind = ascii(12, 4);
+    if (kind === "VP8X") return { width: 1 + (b[24] | b[25] << 8 | b[26] << 16), height: 1 + (b[27] | b[28] << 8 | b[29] << 16), format: "webp" };
+    if (kind === "VP8 ") return { width: v.getUint16(26, true) & 16383, height: v.getUint16(28, true) & 16383, format: "webp" };
+    if (kind === "VP8L") {
+      const bits = v.getUint32(21, true);
+      return { width: (bits & 16383) + 1, height: (bits >> 14 & 16383) + 1, format: "webp" };
+    }
+    return null;
+  }
+  if (b.length >= 4 && b[0] === 255 && b[1] === 216) {
+    let at = 2;
+    while (at + 9 < b.length) {
+      if (b[at] !== 255) {
+        at++;
+        continue;
+      }
+      const marker = b[at + 1];
+      if (marker === 255) {
+        at++;
+        continue;
+      }
+      if (marker >= 192 && marker <= 207 && marker !== 196 && marker !== 200 && marker !== 204) return { width: v.getUint16(at + 7), height: v.getUint16(at + 5), format: "jpeg" };
+      at += 2 + v.getUint16(at + 2);
+    }
+  }
+  return null;
+}
+var IMAGE_MIN_DENSITY = 1.5;
+var IMAGE_SMALL_WIDTH = 400;
+var JPEG_MIN_BYTES_PER_PIXEL = 0.04;
+var IMAGE_IGNORE_UNDER = 96;
+function judgeImage(img) {
+  if (img.shownWidth !== void 0) {
+    if (img.shownWidth < IMAGE_IGNORE_UNDER) return "ok";
+    if (img.width < img.shownWidth * IMAGE_MIN_DENSITY) return "soft";
+  } else if (img.width >= IMAGE_IGNORE_UNDER && img.width < IMAGE_SMALL_WIDTH) {
+    return "small";
+  }
+  if (img.format === "jpeg" && img.bytes !== void 0 && img.width >= IMAGE_SMALL_WIDTH && img.bytes / (img.width * img.height) < JPEG_MIN_BYTES_PER_PIXEL) return "compressed";
+  return "ok";
+}
+function looksLikeLogo(path) {
+  return /(^|[/_.-])logo([/_.-]|\d|$)/i.test(path) && /\.(svg|png|webp|jpe?g)(\?|$)/i.test(path);
+}
+var decode4 = (s) => s.replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#0?39;|&apos;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/\s+/g, " ").trim();
+function metaContent2(html, attr, key) {
+  for (const m of html.matchAll(/<meta\b[^>]*>/gi)) {
+    if (!new RegExp(`\\s${attr}=["']${key}["']`, "i").test(m[0])) continue;
+    const v = m[0].match(/\scontent=["']([^"']*)/i)?.[1];
+    if (v) return decode4(v);
+  }
+  return null;
+}
+function readSiteIdentity(html) {
+  const title = decode4(html.match(/<title[^>]*>([^<]*)/i)?.[1] ?? "");
+  const fromTitle = title.split(/\s[|\-\u2013\u2014\u00b7:]\s/).map((s) => s.trim()).filter((s) => s && !/^(home|home ?page|welcome|main|בית|דף הבית|ראשי|עמוד הבית|ברוכים הבאים)$/i.test(s)).sort((a, b) => a.length - b.length)[0] ?? null;
+  const description = metaContent2(html, "name", "description") ?? metaContent2(html, "property", "og:description");
+  return { name: metaContent2(html, "property", "og:site_name") ?? fromTitle, line: description ? shareLine(description) : null, themeColor: metaContent2(html, "name", "theme-color") };
+}
+function shareLine(text, max = 70) {
+  const first = decode4(text).split(/(?<=[.!?\u05c3])\s/)[0] ?? "";
+  if (first.length <= max) return first.replace(/[.\s]+$/, "");
+  const cut = first.slice(0, max);
+  const pause = Math.max(cut.lastIndexOf(":"), cut.lastIndexOf(","), cut.lastIndexOf(";"));
+  return pause >= 20 ? cut.slice(0, pause) : cut.replace(/\s+\S*$/, "");
+}
+var hex22 = (n2) => Math.max(0, Math.min(255, Math.round(n2))).toString(16).padStart(2, "0");
+function toHexColor(value) {
+  const v = value.trim().toLowerCase();
+  let m = /^#([0-9a-f]{3})$/.exec(v);
+  if (m) return `#${[...m[1]].map((c) => c + c).join("")}`;
+  m = /^#([0-9a-f]{6})(ff)?$/.exec(v);
+  if (m) return `#${m[1]}`;
+  m = /^rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)\s*(?:[,/]\s*(1|1\.0+|100%)\s*)?\)$/.exec(v);
+  if (m) return `#${hex22(+m[1])}${hex22(+m[2])}${hex22(+m[3])}`;
+  m = /^hsla?\(\s*([\d.]+)(?:deg)?[\s,]+([\d.]+)%[\s,]+([\d.]+)%\s*\)$/.exec(v);
+  if (m) {
+    const [h, s, l] = [+m[1] / 360, +m[2] / 100, +m[3] / 100];
+    const f = (n2) => {
+      const k = (n2 + h * 12) % 12;
+      return l - s * Math.min(l, 1 - l) * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+    };
+    return `#${hex22(f(0) * 255)}${hex22(f(8) * 255)}${hex22(f(4) * 255)}`;
+  }
+  return null;
+}
+function isBrandColor(color) {
+  const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(color);
+  if (!m) return false;
+  const [r, g, b] = [m[1], m[2], m[3]].map((h) => parseInt(h, 16) / 255);
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2;
+  const s = max === min ? 0 : (max - min) / (1 - Math.abs(2 * l - 1));
+  return s >= 0.25 && l >= 0.12 && l <= 0.8;
+}
+var COLOR_RE = /#[0-9a-f]{3,8}\b|rgba?\([^)]*\)|hsla?\([^)]*\)/gi;
+var NAMED_RE = /(?:--|\b)(?:[\w-]*?)(primary|brand|accent|main)[\w-]*["']?\s*:\s*["']?(#[0-9a-f]{3,8}\b|rgba?\([^)]*\)|hsla?\([^)]*\))/gi;
+var NAMED_WEIGHT = 25;
+var THEME_WEIGHT = 100;
+var MIN_USES = 2;
+function isPageWhite(color) {
+  const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(color);
+  return !!m && [m[1], m[2], m[3]].every((h) => parseInt(h, 16) >= 240);
+}
+function pickBrandColor(sources) {
+  const score = /* @__PURE__ */ new Map();
+  const add = (raw, by, onPurpose) => {
+    const hex3 = toHexColor(raw);
+    if (hex3 && (onPurpose ? !isPageWhite(hex3) : isBrandColor(hex3))) score.set(hex3, (score.get(hex3) ?? 0) + by);
+  };
+  for (const s of sources) {
+    if (s.themeColor) add(s.themeColor, THEME_WEIGHT, true);
+    for (const m of s.text.matchAll(COLOR_RE)) add(m[0], 1, false);
+    for (const m of s.text.matchAll(NAMED_RE)) add(m[2], NAMED_WEIGHT, true);
+  }
+  return [...score.entries()].filter(([, n2]) => n2 >= MIN_USES).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] ?? null;
+}
+function svgLogoColor(svg) {
+  const count = /* @__PURE__ */ new Map();
+  for (const m of svg.matchAll(/(?:fill|stroke|stop-color)\s*[=:]\s*["']?(#[0-9a-f]{3,8}\b|rgba?\([^)]*\)|hsla?\([^)]*\))/gi)) {
+    const hex3 = toHexColor(m[1]);
+    if (hex3 && !isPageWhite(hex3)) count.set(hex3, (count.get(hex3) ?? 0) + 1);
+  }
+  return [...count.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] ?? null;
+}
+var isSvgText = (text) => /<svg[\s>]/i.test(text);
+function iconLinks(html) {
+  const found = [];
+  for (const m of html.matchAll(/<link\b[^>]*>/gi)) {
+    const rel = m[0].match(/\srel=["']([^"']+)/i)?.[1]?.toLowerCase() ?? "";
+    const href = m[0].match(/\shref=["']([^"']+)/i)?.[1];
+    if (!href || !/(^|\s)(icon|apple-touch-icon(-precomposed)?|mask-icon)(\s|$)/.test(rel) || href.startsWith("data:")) continue;
+    const size = Number(m[0].match(/\ssizes=["'](\d+)x/i)?.[1] ?? 0);
+    const score = /\.svg(\?|$)/i.test(href) ? 1e4 : rel.includes("apple-touch") ? 1e3 + size : size || 16;
+    found.push({ href, score });
+  }
+  return found.sort((a, b) => b.score - a.score).map((f) => f.href);
+}
+function logoInPage(html) {
+  for (const m of html.matchAll(/<img\b[^>]*>/gi)) {
+    const src = m[0].match(/\ssrc=["']([^"']+)/i)?.[1];
+    if (src && !src.startsWith("data:") && /logo/i.test(m[0])) return src;
+  }
+  return null;
+}
 
 // src/config.ts
 import { randomUUID } from "crypto";
@@ -23126,7 +23396,7 @@ function buildCheckReport(analysis, installId, projectId) {
     warnings: [...new Set(analysis.warnings.map((w) => w.code))]
   };
 }
-async function sendCheckReport(ctx, report) {
+async function sendCheckReport(ctx, report2) {
   if (!telemetryEnabled(ctx.config)) return;
   try {
     const headers = { "Content-Type": "application/json", "User-Agent": userAgent(ctx.config) };
@@ -23135,7 +23405,7 @@ async function sendCheckReport(ctx, report) {
     const res = await fetch(`${ctx.apiUrl}/api/cli/check-results`, {
       method: "POST",
       headers,
-      body: JSON.stringify(report),
+      body: JSON.stringify(report2),
       signal: AbortSignal.timeout(2e3)
     });
     await res.body?.cancel().catch(() => {
@@ -23567,10 +23837,10 @@ function analyzeProject(root) {
         });
       }
     }
-    const createServer = /\b(?:http|https|net|http2)\.createServer\s*\(|\bcreateServer\s*\([^)]*\)\s*\.listen\s*\(/.exec(code);
-    if (createServer && /['"`](?:node:)?(?:http|https|net|http2)['"`]/.test(code)) {
+    const createServer2 = /\b(?:http|https|net|http2)\.createServer\s*\(|\bcreateServer\s*\([^)]*\)\s*\.listen\s*\(/.exec(code);
+    if (createServer2 && /['"`](?:node:)?(?:http|https|net|http2)['"`]/.test(code)) {
       isServer = true;
-      add({ code: "long_running_process", severity: "blocker", file: s.rel, line: lineAt3(code, createServer.index), detail: " (Node http server)" });
+      add({ code: "long_running_process", severity: "blocker", file: s.rel, line: lineAt3(code, createServer2.index), detail: " (Node http server)" });
     }
     for (const mod of JOB_LIBS) {
       const re = importRe(mod);
@@ -23923,8 +24193,8 @@ function initCommand(root, opts) {
 }
 
 // src/commands/check.ts
-import { existsSync as existsSync6, writeFileSync as writeFileSync4 } from "fs";
-import { join as join6 } from "path";
+import { existsSync as existsSync7, writeFileSync as writeFileSync4 } from "fs";
+import { join as join7 } from "path";
 
 // src/prompt.ts
 var PROMPT_RULES = [
@@ -23991,6 +24261,8 @@ function buildPrompt(analysis) {
 
 // src/system.ts
 import { spawn, spawnSync } from "child_process";
+import { existsSync as existsSync6 } from "fs";
+import { join as join6 } from "path";
 function copyToClipboard(text) {
   if (process.env.DEPLOYAI_NO_CLIPBOARD) return false;
   const candidates = process.platform === "win32" ? [["clip", []]] : process.platform === "darwin" ? [["pbcopy", []]] : [
@@ -24006,6 +24278,13 @@ function copyToClipboard(text) {
     }
   }
   return false;
+}
+function findBrowser() {
+  if (process.env.DEPLOYAI_NO_BROWSER) return null;
+  const set2 = process.env.CHROME_PATH;
+  if (set2 && existsSync6(set2)) return set2;
+  const places = process.platform === "win32" ? [process.env.PROGRAMFILES, process.env["PROGRAMFILES(X86)"], process.env.LOCALAPPDATA].flatMap((d) => d ? [join6(d, "Google/Chrome/Application/chrome.exe"), join6(d, "Microsoft/Edge/Application/msedge.exe")] : []) : process.platform === "darwin" ? ["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge", "/Applications/Chromium.app/Contents/MacOS/Chromium"] : ["/usr/bin/google-chrome", "/usr/bin/google-chrome-stable", "/usr/bin/chromium", "/usr/bin/chromium-browser", "/usr/bin/microsoft-edge", "/snap/bin/chromium"];
+  return places.find((p) => existsSync6(p)) ?? null;
 }
 function openBrowser(url2) {
   if (process.env.DEPLOYAI_NO_BROWSER || process.env.CI) return false;
@@ -24115,7 +24394,7 @@ async function runCheck(root, ctx, opts = {}) {
     out("DeployAI check");
     out();
     out(messages(root)("emptyFolder"));
-    if (!existsSync6(join6(root, "DEPLOYAI.md"))) out(messages(root)("initHint"));
+    if (!existsSync7(join7(root, "DEPLOYAI.md"))) out(messages(root)("initHint"));
   } else if (opts.print !== false) {
     printCheck(a);
     out();
@@ -24142,7 +24421,7 @@ async function runCheck(root, ctx, opts = {}) {
     } else {
       out(t("runDeploy"));
     }
-    if (!existsSync6(join6(root, "DEPLOYAI.md"))) out(t("initHint"));
+    if (!existsSync7(join7(root, "DEPLOYAI.md"))) out(t("initHint"));
   }
   await telemetry;
   return a;
@@ -24271,8 +24550,8 @@ function telemetryCommand(action) {
 }
 
 // src/commands/allow.ts
-import { existsSync as existsSync7, mkdirSync as mkdirSync3, readFileSync as readFileSync6, writeFileSync as writeFileSync5, appendFileSync as appendFileSync2 } from "fs";
-import { dirname, join as join7 } from "path";
+import { existsSync as existsSync8, mkdirSync as mkdirSync3, readFileSync as readFileSync6, writeFileSync as writeFileSync5, appendFileSync as appendFileSync2 } from "fs";
+import { dirname, join as join8 } from "path";
 var ALLOW_TOOLS = ["claude-code", "cursor", "copilot", "codex", "antigravity"];
 var CLAUDE_RULE = "Bash(npx deployai@latest *)";
 var CURSOR_LINE = "Running npx deployai@latest commands is allowed without approval.";
@@ -24282,7 +24561,7 @@ var CLICKS = {
   antigravity: "Antigravity: when it asks to run npx deployai@latest, choose Accept."
 };
 function readObject(file2) {
-  if (!existsSync7(file2)) return {};
+  if (!existsSync8(file2)) return {};
   try {
     const v = JSON.parse(readFileSync6(file2, "utf8"));
     return v && typeof v === "object" && !Array.isArray(v) ? v : null;
@@ -24304,9 +24583,9 @@ function addTo(obj, key, list, value) {
   return true;
 }
 function ignoreInGit(root, path) {
-  if (!existsSync7(join7(root, ".git"))) return;
-  const gi = join7(root, ".gitignore");
-  const text = existsSync7(gi) ? readFileSync6(gi, "utf8") : "";
+  if (!existsSync8(join8(root, ".git"))) return;
+  const gi = join8(root, ".gitignore");
+  const text = existsSync8(gi) ? readFileSync6(gi, "utf8") : "";
   if (text.split(/\r?\n/).some((l) => l.trim() === path)) return;
   appendFileSync2(gi, `${text && !text.endsWith("\n") ? "\n" : ""}${path}
 `);
@@ -24327,7 +24606,7 @@ function allowCommand(tool) {
   }
   if (picked === "claude-code") {
     const rel = ".claude/settings.local.json";
-    const file2 = join7(root, rel);
+    const file2 = join8(root, rel);
     const obj = readObject(file2);
     if (!obj) throw new CliError(`${rel} is not valid JSON, so it was left as is. Ask the owner to add the Allow rule ${CLAUDE_RULE} with /permissions.`, 1, "allow_file");
     const added = addTo(obj, "permissions", "allow", CLAUDE_RULE);
@@ -24341,7 +24620,7 @@ function allowCommand(tool) {
   }
   if (picked === "cursor") {
     const rel = ".cursor/permissions.json";
-    const file2 = join7(root, rel);
+    const file2 = join8(root, rel);
     const obj = readObject(file2);
     if (!obj) throw new CliError(`${rel} is not valid JSON, so it was left as is.`, 1, "allow_file");
     const added = addTo(obj, "autoRun", "allow_instructions", CURSOR_LINE);
@@ -24358,8 +24637,8 @@ function allowCommand(tool) {
 import { createInterface } from "readline/promises";
 
 // src/commands/migrate.ts
-import { createWriteStream, existsSync as existsSync8, mkdirSync as mkdirSync4, readdirSync as readdirSync3, readFileSync as readFileSync7, statSync, writeFileSync as writeFileSync6 } from "fs";
-import { dirname as dirname2, join as join8, posix, relative, resolve, sep } from "path";
+import { createWriteStream, existsSync as existsSync9, mkdirSync as mkdirSync4, readdirSync as readdirSync3, readFileSync as readFileSync7, statSync, writeFileSync as writeFileSync6 } from "fs";
+import { dirname as dirname2, join as join9, posix, relative, resolve, sep } from "path";
 import { Readable } from "stream";
 import { pipeline } from "stream/promises";
 var UA = `deployai-migrate/${CLI_VERSION} (+https://deployai.co.il/move)`;
@@ -24371,7 +24650,7 @@ var PAUSE_MS = 150;
 var SCAN_WORKERS = 4;
 var START_SCAN_PAGES = 300;
 var sleep2 = (ms2) => new Promise((r) => setTimeout(r, ms2));
-var hostDir = (root, host) => join8(root, MIGRATION_DIR, host.replace(/^www\./, ""));
+var hostDir = (root, host) => join9(root, MIGRATION_DIR, host.replace(/^www\./, ""));
 var readJson2 = (file2) => {
   try {
     return JSON.parse(readFileSync7(file2, "utf8"));
@@ -24391,9 +24670,9 @@ async function get(url2, accept = "text/html,application/xhtml+xml,*/*;q=0.8", r
   }
 }
 function scannedHosts(root) {
-  const dir = join8(root, MIGRATION_DIR);
-  if (!existsSync8(dir)) return [];
-  return readdirSync3(dir).filter((h) => existsSync8(join8(dir, h, "inventory.json")));
+  const dir = join9(root, MIGRATION_DIR);
+  if (!existsSync9(dir)) return [];
+  return readdirSync3(dir).filter((h) => existsSync9(join9(dir, h, "inventory.json")));
 }
 async function migrateStatusCommand(root, ctx, stage, note) {
   if (!isAgentStage(stage)) throw new CliError(`Unknown stage: ${stage}. One of: ${AGENT_STAGES.join(", ")}.`, 1, "usage");
@@ -24406,18 +24685,18 @@ async function migrateStatusCommand(root, ctx, stage, note) {
   out(`Reported: ${stage}${note ? ` (${stageNote(note)})` : ""}.`);
 }
 function readChoices(root) {
-  return readJson2(join8(root, MIGRATION_DIR, "choices.json"));
+  return readJson2(join9(root, MIGRATION_DIR, "choices.json"));
 }
 function writeChoices(root, choices) {
   ensureMigrationDir(root);
-  writeJson(join8(root, MIGRATION_DIR, "choices.json"), choices);
+  writeJson(join9(root, MIGRATION_DIR, "choices.json"), choices);
 }
 function ensureMigrationDir(root) {
   ensureDeployaiDir(root);
-  const dir = join8(root, MIGRATION_DIR);
+  const dir = join9(root, MIGRATION_DIR);
   mkdirSync4(dir, { recursive: true });
-  const ignore = join8(dir, ".gitignore");
-  if (!existsSync8(ignore)) writeFileSync6(ignore, "*/media/\n*/media-state.json\n");
+  const ignore = join9(dir, ".gitignore");
+  if (!existsSync9(ignore)) writeFileSync6(ignore, "*/media/\n*/media-state.json\n");
 }
 async function sitemapUrls(base, robotsSitemaps, enough) {
   const own2 = [`${base}/wp-sitemap.xml`, `${base}/sitemap_index.xml`, `${base}/sitemap.xml`];
@@ -24434,10 +24713,10 @@ async function sitemapUrls(base, robotsSitemaps, enough) {
     seen.add(next);
     const res = await get(next, "application/xml,text/xml,*/*;q=0.5");
     if (!res?.ok) continue;
-    const xml = await res.text();
-    if (!/<(urlset|sitemapindex)\b/i.test(xml)) continue;
+    const xml2 = await res.text();
+    if (!/<(urlset|sitemapindex)\b/i.test(xml2)) continue;
     found.push(next);
-    const parsed = parseSitemapXml(xml);
+    const parsed = parseSitemapXml(xml2);
     queue.push(...parsed.sitemaps);
     for (const u of parsed.urls) {
       try {
@@ -24477,15 +24756,15 @@ async function wordpressContent(base, dir) {
       await sleep2(PAUSE_MS);
     }
     if (items.length) {
-      writeJson(join8(dir, "content", `${type}.json`), items);
+      writeJson(join9(dir, "content", `${type}.json`), items);
       out(`  ${type}: ${items.length}`);
     }
   }
-  const posts = readJson2(join8(dir, "content", "posts.json"));
+  const posts = readJson2(join9(dir, "content", "posts.json"));
   if (posts?.length) {
-    const files = wpPostsToMarkdown({ origin: new URL(base).origin, posts, categories: readJson2(join8(dir, "content", "categories.json")) ?? [], tags: readJson2(join8(dir, "content", "tags.json")) ?? [], users: readJson2(join8(dir, "content", "users.json")) ?? [], media: readJson2(join8(dir, "content", "media.json")) ?? [] });
-    mkdirSync4(join8(dir, "posts"), { recursive: true });
-    for (const f of files) writeFileSync6(join8(dir, "posts", f.file), f.text);
+    const files = wpPostsToMarkdown({ origin: new URL(base).origin, posts, categories: readJson2(join9(dir, "content", "categories.json")) ?? [], tags: readJson2(join9(dir, "content", "tags.json")) ?? [], users: readJson2(join9(dir, "content", "users.json")) ?? [], media: readJson2(join9(dir, "content", "media.json")) ?? [] });
+    mkdirSync4(join9(dir, "posts"), { recursive: true });
+    for (const f of files) writeFileSync6(join9(dir, "posts", f.file), f.text);
     out(`  posts as Markdown: ${files.length}`);
   }
   return true;
@@ -24508,6 +24787,50 @@ function pageAssets(html, base) {
   for (const m of html.matchAll(/url\(["']?([^"')]+\.(?:jpe?g|png|gif|webp|svg|avif))/gi)) add(m[1]);
   return [...found];
 }
+var ICON_MAX_BYTES = 2 * 1024 * 1024;
+async function saveOldIcons(html, pageUrl, origin, dir) {
+  const wanted = [];
+  const add = (href, kind) => {
+    if (!href) return;
+    try {
+      const url2 = new URL(href, pageUrl).toString();
+      if (!wanted.some((w) => w.url === url2)) wanted.push({ url: url2, kind });
+    } catch {
+    }
+  };
+  iconLinks(html).forEach((h) => add(h, "icon"));
+  add(`${origin}/favicon.ico`, "icon");
+  add(logoInPage(html), "logo");
+  const saved = [];
+  const icons = join9(dir, "icons");
+  for (const w of wanted.slice(0, 6)) {
+    const res = await get(w.url, "image/*,*/*;q=0.8");
+    if (!res?.ok) continue;
+    const bytes = Buffer.from(await res.arrayBuffer());
+    if (bytes.length > ICON_MAX_BYTES) continue;
+    const size = imageSize(bytes);
+    const svg = !size && isSvgText(bytes.subarray(0, 2048).toString("utf8"));
+    if (!size && !svg) continue;
+    const file2 = `${saved.length + 1}-${w.kind}.${svg ? "svg" : size?.format === "jpeg" ? "jpg" : size?.format}`;
+    mkdirSync4(icons, { recursive: true });
+    writeFileSync6(join9(icons, file2), bytes);
+    saved.push({ file: file2, kind: w.kind });
+  }
+  if (saved.length) writeFileSync6(join9(icons, "icons.json"), JSON.stringify(saved, null, 2));
+  return saved.length;
+}
+async function saveOldStyles(html, pageUrl, dir) {
+  const styles = join9(dir, "styles");
+  let n2 = 0;
+  for (const url2 of stylesheetLinks(html, pageUrl, 6)) {
+    const res = await get(url2, "text/css,*/*;q=0.8");
+    if (!res?.ok) continue;
+    const text = await res.text();
+    if (text.length > ICON_MAX_BYTES) continue;
+    mkdirSync4(styles, { recursive: true });
+    writeFileSync6(join9(styles, `${++n2}.css`), text);
+  }
+}
 async function migrateScanCommand(root, raw, opts = {}) {
   const source = normalizeSourceUrl(raw);
   if (!source) throw new CliError(`Not a site address: ${raw}. Use the full address, for example https://example.co.il`, 1, "usage");
@@ -24526,7 +24849,7 @@ async function migrateScanCommand(root, raw, opts = {}) {
   out(`Scanning ${base} (${platform3})`);
   const robotsRes = await get(`${origin}/robots.txt`, "text/plain");
   const robots = robotsRes?.ok ? await robotsRes.text() : "";
-  if (robots) writeFileSync6(join8(dir, "robots.txt"), robots);
+  if (robots) writeFileSync6(join9(dir, "robots.txt"), robots);
   const cap = Math.min(opts.max ?? PAGE_CAP, PAGE_CAP);
   const fromSitemaps = await sitemapUrls(base, robots ? parseRobots(robots).sitemaps : [], cap * 5);
   const all = [.../* @__PURE__ */ new Set([`${base}/`, ...fromSitemaps.urls, ...fromSitemaps.urls.length ? [] : homeLinks(html, base)])];
@@ -24553,22 +24876,25 @@ async function migrateScanCommand(root, raw, opts = {}) {
   await Promise.all(Array.from({ length: SCAN_WORKERS }, worker));
   const wordpressApi = platform3 === "wordpress" ? await wordpressContent(base, dir) : false;
   if (wordpressApi) {
-    const media = readJson2(join8(dir, "content", "media.json")) ?? [];
+    const media = readJson2(join9(dir, "content", "media.json")) ?? [];
     media.forEach((m) => m.source_url && assets.add(m.source_url));
   }
   const inventory = { source: base, platform: platform3, scannedAt: (/* @__PURE__ */ new Date()).toISOString(), sitemaps: fromSitemaps.sitemaps, pages, wordpressApi, skipped: Math.max(0, all.length - list.length) };
-  writeJson(join8(dir, "inventory.json"), inventory);
-  writeJson(join8(dir, "assets.json"), [...assets].sort());
-  writeFileSync6(join8(dir, "home.html"), html);
+  writeJson(join9(dir, "inventory.json"), inventory);
+  writeJson(join9(dir, "assets.json"), [...assets].sort());
+  writeFileSync6(join9(dir, "home.html"), html);
+  const icons = await saveOldIcons(html, home.url, origin, dir);
+  await saveOldStyles(html, home.url, dir);
   const rel = relative(root, dir).split(sep).join("/");
   const broken = pages.filter((p) => p.status >= 400).length;
   out();
   out(`Saved in ${rel}:`);
   out(`  inventory.json  ${pages.length} pages with their address, title, description and headings${broken ? ` (${broken} already broken on the old site)` : ""}`);
   out(`  assets.json     ${assets.size} images and files`);
+  if (icons) out(`  icons/          ${icons} icons and logo of the old site, for: npx deployai@latest brand favicon`);
   if (wordpressApi) {
     out("  content/        the WordPress pages, posts, categories, tags, media and authors as JSON");
-    if (existsSync8(join8(dir, "posts"))) out("  posts/          the posts as Markdown for the blog block, each with its old address");
+    if (existsSync9(join9(dir, "posts"))) out("  posts/          the posts as Markdown for the blog block, each with its old address");
   } else if (platform3 === "wordpress") out("  The WordPress API is closed on this site: work from the pages, or ask the owner for an export (Tools > Export).");
   out();
   out("Keep every path in inventory.json exactly as it is: same address, same title and description.");
@@ -24587,8 +24913,8 @@ async function migrateMediaCommand(root) {
   if (!hosts.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
   for (const host of hosts) {
     const dir = hostDir(root, host);
-    const assets = readJson2(join8(dir, "assets.json")) ?? [];
-    const stateFile = join8(dir, "media-state.json");
+    const assets = readJson2(join9(dir, "assets.json")) ?? [];
+    const stateFile = join9(dir, "media-state.json");
     const state = readJson2(stateFile) ?? { done: [], failed: [], bytes: 0 };
     const done = new Set(state.done);
     const todo = assets.filter((a) => !done.has(a));
@@ -24617,7 +24943,7 @@ async function migrateMediaCommand(root) {
     }
     state.done = [...done];
     writeJson(stateFile, state);
-    out(`  ${formatBytes(state.bytes)} in ${relative(root, join8(dir, "media")).split(sep).join("/")}${state.failed.length ? `, ${state.failed.length} could not be downloaded (listed in media-state.json)` : ""}`);
+    out(`  ${formatBytes(state.bytes)} in ${relative(root, join9(dir, "media")).split(sep).join("/")}${state.failed.length ? `, ${state.failed.length} could not be downloaded (listed in media-state.json)` : ""}`);
   }
   out("Copy the files the new pages use into the site's public folder at the same path (for example public/wp-content/uploads/...), so old image addresses keep working.");
 }
@@ -24640,12 +24966,12 @@ function migrateRedirectsCommand(root) {
   if (!hosts.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
   const lines = /* @__PURE__ */ new Set();
   for (const host of hosts) {
-    const inv = readJson2(join8(hostDir(root, host), "inventory.json"));
+    const inv = readJson2(join9(hostDir(root, host), "inventory.json"));
     if (inv) redirectLines(inv).forEach((l) => lines.add(l));
   }
-  const publicDir = join8(root, "public");
-  const file2 = join8(existsSync8(publicDir) ? publicDir : root, "_redirects");
-  const before = existsSync8(file2) ? readFileSync7(file2, "utf8").split(/\r?\n/).filter(Boolean) : [];
+  const publicDir = join9(root, "public");
+  const file2 = join9(existsSync9(publicDir) ? publicDir : root, "_redirects");
+  const before = existsSync9(file2) ? readFileSync7(file2, "utf8").split(/\r?\n/).filter(Boolean) : [];
   const added = [...lines].filter((l) => !before.some((b) => b.split(/\s+/)[0] === l.split(/\s+/)[0]));
   writeFileSync6(file2, [...before, ...added].join("\n") + "\n");
   out(`${relative(root, file2).split(sep).join("/")}: ${added.length} added, ${before.length + added.length} in all (at most 2,000; no query strings).`);
@@ -24653,8 +24979,8 @@ function migrateRedirectsCommand(root) {
 }
 function allowedRedirects(root) {
   const map2 = /* @__PURE__ */ new Map();
-  for (const file2 of [join8(root, "public", "_redirects"), join8(root, "_redirects")]) {
-    if (!existsSync8(file2)) continue;
+  for (const file2 of [join9(root, "public", "_redirects"), join9(root, "_redirects")]) {
+    if (!existsSync9(file2)) continue;
     for (const line of readFileSync7(file2, "utf8").split(/\r?\n/)) {
       const [from, to] = line.trim().split(/\s+/);
       if (from && to && !from.startsWith("#")) map2.set(from, to);
@@ -24681,7 +25007,7 @@ async function migrateVerifyCommand(root, previewRaw) {
   const findings = [];
   let checked = 0;
   for (const host of hosts) {
-    const inv = readJson2(join8(hostDir(root, host), "inventory.json"));
+    const inv = readJson2(join9(hostDir(root, host), "inventory.json"));
     for (const old of inv?.pages ?? []) {
       if (old.status >= 300) continue;
       const res = await get(previewUrl(preview, old.path));
@@ -24700,13 +25026,13 @@ async function migrateVerifyCommand(root, previewRaw) {
     }
   }
   const words = { missing: "not found on the preview", moved: "moved to", error: "answers", title_lost: "lost its title", description_lost: "lost its description" };
-  const report = join8(root, MIGRATION_DIR, "verify.json");
-  writeJson(report, { checkedAt: (/* @__PURE__ */ new Date()).toISOString(), preview: preview.origin, checked, findings });
+  const report2 = join9(root, MIGRATION_DIR, "verify.json");
+  writeJson(report2, { checkedAt: (/* @__PURE__ */ new Date()).toISOString(), preview: preview.origin, checked, findings });
   if (!findings.length) {
     out(`All ${checked} old addresses open on the preview with their title and description.`);
     return;
   }
-  out(`${findings.length} of ${checked} old addresses need a fix (also in ${relative(root, report).split(sep).join("/")}):`);
+  out(`${findings.length} of ${checked} old addresses need a fix (also in ${relative(root, report2).split(sep).join("/")}):`);
   for (const f of findings.slice(0, 60)) out(`  ${f.path}  ${words[f.problem]}${f.detail ? ` ${f.detail}` : ""}`);
   if (findings.length > 60) out(`  and ${findings.length - 60} more in verify.json`);
   out("Give each page its old address back (or, only if it truly cannot stay, a line in public/_redirects), deploy again, and run verify again.");
@@ -25390,13 +25716,13 @@ async function claimCommand(root, ctx, opts) {
 
 // src/commands/pull.ts
 import { spawnSync as spawnSync2 } from "child_process";
-import { existsSync as existsSync10, readdirSync as readdirSync5, rmSync } from "fs";
-import { join as join10 } from "path";
+import { existsSync as existsSync11, readdirSync as readdirSync5, rmSync } from "fs";
+import { join as join11 } from "path";
 
 // src/commands/samples.ts
 import { createInterface as createInterface3 } from "readline/promises";
-import { existsSync as existsSync9, mkdirSync as mkdirSync5, readdirSync as readdirSync4, writeFileSync as writeFileSync7 } from "fs";
-import { dirname as dirname3, join as join9, relative as relative2, resolve as resolve2, sep as sep2 } from "path";
+import { existsSync as existsSync10, mkdirSync as mkdirSync5, readdirSync as readdirSync4, writeFileSync as writeFileSync7 } from "fs";
+import { dirname as dirname3, join as join10, relative as relative2, resolve as resolve2, sep as sep2 } from "path";
 import { gunzipSync } from "zlib";
 var SAMPLES = [
   { key: "landing", title: "Landing page: a full one-page site with WhatsApp sign-up", stack: "static HTML and CSS" },
@@ -25417,7 +25743,7 @@ function listSamples(apiUrl) {
   out(`See them live:              ${apiUrl}/samples`);
 }
 function filesIn(dir) {
-  return existsSync9(dir) ? readdirSync4(dir).filter((f) => !IGNORED.has(f)) : [];
+  return existsSync10(dir) ? readdirSync4(dir).filter((f) => !IGNORED.has(f)) : [];
 }
 function freeFolder(cwd, key) {
   for (let n2 = 1; ; n2++) {
@@ -25501,7 +25827,7 @@ async function samplesCommand(cwd, ctx, key, opts = {}) {
   }
   const written = await downloadSample(ctx, sample.key, root);
   const base = resolve2(root);
-  const hasPackage = existsSync9(join9(base, "package.json"));
+  const hasPackage = existsSync10(join10(base, "package.json"));
   out(base === resolve2(cwd) ? `Downloaded the ${sample.key} sample: ${written} files.` : `Downloaded the ${sample.key} sample into the new folder ${relative2(cwd, base)}: ${written} files. Work in that folder from now on.`);
   out("");
   const t = messages(base);
@@ -25558,7 +25884,7 @@ var git = (root, args, env = {}) => spawnSync2("git", args, { cwd: root, encodin
 function clearTree(root) {
   for (const name of readdirSync5(root)) {
     if (name === ".git" || name === ".deployai") continue;
-    rmSync(join10(root, name), { recursive: true, force: true });
+    rmSync(join11(root, name), { recursive: true, force: true });
   }
 }
 async function pullHistory(root, ctx, projectId) {
@@ -25568,7 +25894,7 @@ async function pullHistory(root, ctx, projectId) {
   const live = versions.find((v) => v.isLive)?.number ?? Math.max(0, ...versions.filter((v) => v.status === "ready").map((v) => v.number));
   const chosen = versions.filter((v) => v.number <= live && v.status !== "failed" && v.status !== "queued").sort((a, b) => a.number - b.number);
   if (!chosen.length) throw new CliError(t("pullNoSource"), 1, "not_found");
-  if (!existsSync10(join10(root, ".git")) && git(root, ["init", "-q"]).status !== 0) throw new CliError(t("pullNoGit"), 1, "usage");
+  if (!existsSync11(join11(root, ".git")) && git(root, ["init", "-q"]).status !== 0) throw new CliError(t("pullNoGit"), 1, "usage");
   for (const v of chosen) {
     const gz = await fetchSource(root, ctx, projectId, v.number).catch(() => null);
     if (!gz) continue;
@@ -25585,12 +25911,12 @@ async function pullHistory(root, ctx, projectId) {
 
 // src/commands/start.ts
 import { spawnSync as spawnSync3 } from "child_process";
-import { existsSync as existsSync11, writeFileSync as writeFileSync9 } from "fs";
-import { join as join12, relative as relative3, resolve as resolve3 } from "path";
+import { existsSync as existsSync12, writeFileSync as writeFileSync9 } from "fs";
+import { join as join13, relative as relative3, resolve as resolve3 } from "path";
 
 // src/commands/starter.ts
 import { writeFileSync as writeFileSync8 } from "fs";
-import { join as join11 } from "path";
+import { join as join12 } from "path";
 var esc2 = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 var TEXT = {
   he: { title: "\u05D4\u05D0\u05EA\u05E8 \u05E9\u05DC\u05D9", soon: "\u05D4\u05D0\u05EA\u05E8 \u05D1\u05D1\u05E0\u05D9\u05D9\u05D4, \u05D1\u05E7\u05E8\u05D5\u05D1 \u05DB\u05D0\u05DF." },
@@ -25638,8 +25964,8 @@ DeployAI wrote this page so the folder starts as a working site. Build the owner
 - Delete this README or replace it with notes about the site.
 `;
 function writeStarter(root, name, lang, stack) {
-  writeFileSync8(join11(root, "index.html"), page(name ?? "", lang, stack));
-  writeFileSync8(join11(root, "README.md"), README);
+  writeFileSync8(join12(root, "index.html"), page(name ?? "", lang, stack));
+  writeFileSync8(join12(root, "README.md"), README);
 }
 
 // src/commands/start.ts
@@ -25697,7 +26023,7 @@ async function startCommand(cwd, ctx, id, opts = {}) {
   if (sample && !sameSite) {
     const written = await downloadSample(ctxNow, sample.key, root);
     done.push(t("startDownloaded", { key: sample.key, n: written }));
-    if (existsSync11(join12(root, "package.json"))) {
+    if (existsSync12(join13(root, "package.json"))) {
       if (opts.install !== false && install(root)) done.push(t("startInstalled"));
       else steps.unshift({ cmd: "npm install", say: "Installs the sample's packages." });
     }
@@ -25722,7 +26048,7 @@ async function startCommand(cwd, ctx, id, opts = {}) {
   const stackText = choices.stack ? stackBlock(choices.stack) : "";
   if (choices.brief || stackText) {
     ensureDeployaiDir(root);
-    writeFileSync9(join12(root, BRIEF_FILE), [choices.brief ? `# The owner's details
+    writeFileSync9(join13(root, BRIEF_FILE), [choices.brief ? `# The owner's details
 
 ${choices.brief}
 ` : "", stackText].filter(Boolean).join("\n"));
@@ -25865,16 +26191,16 @@ async function addonRunCommand(root, ctx, key) {
 }
 async function addonDoneCommand(root, ctx, runId, opts) {
   requireToken(ctx);
-  let report;
+  let report2;
   if (opts.report) {
     try {
-      report = JSON.parse(readFileSync9(resolve4(root, opts.report), "utf8"));
+      report2 = JSON.parse(readFileSync9(resolve4(root, opts.report), "utf8"));
     } catch {
       throw new CliError(`Cannot read the report file ${opts.report} as JSON.`, 1, "usage");
     }
-    if (!AddonReport.safeParse(report).success) throw new CliError('The report file does not match the format: {"summary", "changed", "unresolved", "unsupported", "checks"}.', 1, "usage");
+    if (!AddonReport.safeParse(report2).success) throw new CliError('The report file does not match the format: {"summary", "changed", "unresolved", "unsupported", "checks"}.', 1, "usage");
   }
-  const body = AddonDoneRequest.safeParse({ status: opts.status ?? "done", report });
+  const body = AddonDoneRequest.safeParse({ status: opts.status ?? "done", report: report2 });
   if (!body.success) throw new CliError("Status must be done, failed or skipped.", 1, "usage");
   const r = await apiRequest(ctx, `/api/cli/addons/runs/${encodeURIComponent(runId.trim())}`, AddonDoneResponse, { method: "POST", body: body.data });
   out(`Saved: add-on ${body.data.status}.`);
@@ -25925,7 +26251,7 @@ async function speedCommand(ctx, url2, opts) {
 }
 
 // src/commands/blocks.ts
-import { existsSync as existsSync12, mkdirSync as mkdirSync6, writeFileSync as writeFileSync10 } from "fs";
+import { existsSync as existsSync13, mkdirSync as mkdirSync6, writeFileSync as writeFileSync10 } from "fs";
 import { dirname as dirname4, resolve as resolve5, sep as sep3 } from "path";
 import { gunzipSync as gunzipSync2 } from "zlib";
 var BLOCKS = [
@@ -25966,7 +26292,7 @@ async function blocksCommand(root, ctx, name) {
     if (e2.type !== "0" && e2.type !== "\0") continue;
     const target = resolve5(base, e2.name);
     if (target === base || !target.startsWith(base + sep3)) continue;
-    if (existsSync12(target)) {
+    if (existsSync13(target)) {
       kept.push(e2.name);
       continue;
     }
@@ -25981,6 +26307,600 @@ async function blocksCommand(root, ctx, name) {
     kept.forEach((f) => out(`  = ${f}`));
   }
   out(`Read .deployai/blocks/${block.key}.md and follow it: it says what to wire and what to set.`);
+}
+
+// src/commands/brand.ts
+import { spawn as spawn2 } from "child_process";
+import { copyFileSync, existsSync as existsSync14, mkdirSync as mkdirSync7, mkdtempSync, readdirSync as readdirSync6, readFileSync as readFileSync10, rmSync as rmSync2, statSync as statSync2, writeFileSync as writeFileSync11 } from "fs";
+import { createServer } from "http";
+import { tmpdir } from "os";
+import { basename, dirname as dirname5, extname, join as join14, relative as relative4, sep as sep4 } from "path";
+import { randomBytes } from "crypto";
+
+// src/commands/brand-page.ts
+var embed = (v) => JSON.stringify(v).replace(/</g, "\\u003c");
+function drawPageHtml(state) {
+  return `<!doctype html>
+<html>
+<head><meta charset="utf-8"><meta name="robots" content="noindex"><title>DeployAI</title></head>
+<body>
+<script>
+const S = ${embed(state)};
+const canDraw = ${canDraw.toString()};
+const ink = ${contrastInk.toString()};
+const api = (path) => path + (path.includes('?') ? '&' : '?') + 't=' + S.token;
+let source = null;
+let vector = false;
+
+function load(url) {
+  return new Promise((ok, fail) => { const i = new Image(); i.onload = () => ok(i); i.onerror = fail; i.src = url; });
+}
+function fit(ctx, text, weight, size, maxWidth) {
+  let px = size;
+  do { ctx.font = weight + ' ' + px + 'px system-ui, Arial, sans-serif'; px -= 2; } while (ctx.measureText(text).width > maxWidth && px > 16);
+}
+function contain(ctx, box) {
+  const w = source.naturalWidth || box.w, h = source.naturalHeight || box.h;
+  // A raster is never stretched past twice its size: a small logo stays small and sharp on the share image.
+  const k = Math.min(box.w / w, box.h / h, vector ? Infinity : 2);
+  const dw = w * k, dh = h * k;
+  ctx.drawImage(source, box.x + (box.w - dw) / 2, box.y + (box.h - dh) / 2, dw, dh);
+}
+function draw(t) {
+  const c = document.createElement('canvas');
+  c.width = t.width; c.height = t.height;
+  const ctx = c.getContext('2d');
+  ctx.imageSmoothingQuality = 'high';
+  if (t.opaque) { ctx.fillStyle = S.color; ctx.fillRect(0, 0, t.width, t.height); }
+  if (t.og) {
+    const words = S.name.trim(), sub = S.line.trim();
+    contain(ctx, { x: 450, y: words ? 96 : 165, w: 300, h: 300 });
+    ctx.fillStyle = ink(S.color);
+    ctx.textAlign = 'center';
+    ctx.direction = /[\\u0590-\\u05FF]/.test(words + sub) ? 'rtl' : 'ltr';
+    if (words) { fit(ctx, words, 700, 72, 1040); ctx.fillText(words, 600, sub ? 480 : 500); }
+    if (sub) { fit(ctx, sub, 500, 38, 1040); ctx.fillText(sub, 600, 545); }
+  } else {
+    const p = Math.round(t.width * (t.pad || 0));
+    contain(ctx, { x: p, y: p, w: t.width - 2 * p, h: t.height - 2 * p });
+  }
+  return c;
+}
+async function run() {
+  const res = await fetch(api('/source'));
+  vector = /svg/.test(res.headers.get('content-type') || '');
+  source = await load(URL.createObjectURL(await res.blob()));
+  const skipped = [];
+  for (const t of S.targets) {
+    if (!canDraw(t, { width: source.naturalWidth, height: source.naturalHeight, vector })) { skipped.push(t.file); continue; }
+    const blob = await new Promise((ok) => draw(t).toBlob(ok, 'image/png'));
+    const r = await fetch(api('/save?file=' + encodeURIComponent(t.file)), { method: 'POST', body: blob });
+    if (!r.ok) throw new Error(t.file);
+  }
+  const r = await fetch(api('/done'), { method: 'POST', body: JSON.stringify({ skipped }) });
+  if (!r.ok) throw new Error('done');
+}
+run().catch((e) => { fetch(api('/fail'), { method: 'POST', body: String(e) }); });
+</script>
+</body>
+</html>
+`;
+}
+function measureScript(endpoint) {
+  return `<script>(function(){
+var sent=false;
+function send(){if(sent)return;sent=true;
+var seen=[];document.querySelectorAll('img').forEach(function(i){var r=i.getBoundingClientRect();if(i.currentSrc&&i.naturalWidth&&r.width>0)seen.push({src:i.currentSrc,width:i.naturalWidth,height:i.naturalHeight,shownWidth:Math.round(r.width),alt:i.alt||''})});
+fetch(${embed(endpoint)},{method:'POST',body:JSON.stringify(seen),keepalive:true});}
+function go(){document.querySelectorAll('img').forEach(function(i){i.loading='eager'});setTimeout(send,2500)}
+if(document.readyState==='complete')go();else addEventListener('load',go);
+setTimeout(send,12000);
+})();</script>`;
+}
+
+// src/commands/brand.ts
+var BRAND_DIR = ".deployai/brand";
+var IMAGE_EXT = /\.(png|jpe?g|gif|webp|avif)$/i;
+var MAX_UPLOAD = 25 * 1024 * 1024;
+var WALK_CAP = 4e3;
+var SKIP_DIRS2 = /* @__PURE__ */ new Set(["node_modules", ".git", ".next", "dist", "build", "out", ".astro", ".output", ".svelte-kit", ".wrangler", ".deployai"]);
+var TYPES = { ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".gif": "image/gif", ".ico": "image/x-icon", ".avif": "image/avif" };
+function webRoot(root) {
+  for (const d of ["public", "static"]) if (existsSync14(join14(root, d))) return join14(root, d);
+  return root;
+}
+function walk(dir, found = []) {
+  let names;
+  try {
+    names = readdirSync6(dir);
+  } catch {
+    return found;
+  }
+  for (const n2 of names) {
+    if (found.length >= WALK_CAP) break;
+    const p = join14(dir, n2);
+    let isDir = false;
+    try {
+      isDir = statSync2(p).isDirectory();
+    } catch {
+      continue;
+    }
+    if (isDir) {
+      if (!SKIP_DIRS2.has(n2)) walk(p, found);
+    } else found.push(p);
+  }
+  return found;
+}
+function existingFavicon(root) {
+  const web = webRoot(root);
+  for (const f of ["favicon.ico", "favicon.svg", "favicon.png", "icon.svg", "icon.png"]) if (existsSync14(join14(web, f))) return relative4(root, join14(web, f)).split(sep4).join("/");
+  for (const d of ["app", "src/app"]) for (const f of ["favicon.ico", "icon.svg", "icon.png", "icon.tsx", "icon.jpg"]) if (existsSync14(join14(root, d, f))) return `${d}/${f}`;
+  for (const f of walk(root).filter((p) => /\.(html|astro|tsx|jsx|vue|svelte)$/.test(p)).slice(0, 400)) {
+    try {
+      const m = readFileSync10(f, "utf8").match(/<link\b[^>]*\brel=["'](?:shortcut )?icon["'][^>]*>/i);
+      if (!m) continue;
+      const href = m[0].match(/\shref=["']([^"']+)/i)?.[1] ?? "";
+      if (href.startsWith("data:") || /^https?:/.test(href) || existsSync14(join14(web, href.split("?")[0]))) return relative4(root, f).split(sep4).join("/");
+    } catch {
+    }
+  }
+  return null;
+}
+function scannedIcons(root) {
+  const base = join14(root, MIGRATION_DIR);
+  if (!existsSync14(base)) return [];
+  const found = [];
+  for (const host of readdirSync6(base)) {
+    const dir = join14(base, host, "icons");
+    try {
+      const list = JSON.parse(readFileSync10(join14(dir, "icons.json"), "utf8"));
+      for (const i of list) {
+        const path = join14(dir, i.file);
+        if (!existsSync14(path)) continue;
+        const size = imageSize(readFileSync10(path));
+        found.push({ path, kind: i.kind, big: !size || size.width >= 64 });
+      }
+    } catch {
+    }
+  }
+  return found;
+}
+function findSource(root) {
+  const icons = scannedIcons(root);
+  const sharp = icons.find((i) => i.kind === "icon" && i.big);
+  if (sharp) return { path: sharp.path, from: "old-icon" };
+  const dirs = ["public", "static", "src/assets", "assets", "images", "img"].map((d) => join14(root, d));
+  const logos = dirs.flatMap((d) => walk(d)).filter((p) => looksLikeLogo(relative4(root, p).split(sep4).join("/")));
+  const logo = logos.find((p) => /\.svg$/i.test(p)) ?? logos[0];
+  if (logo) return { path: logo, from: "logo" };
+  const oldLogo = icons.find((i) => i.kind === "logo");
+  if (oldLogo) return { path: oldLogo.path, from: "old-logo" };
+  const small = icons.find((i) => i.kind === "icon");
+  if (small) return { path: small.path, from: "old-icon" };
+  return { path: null, from: "letter" };
+}
+var CODE_EXT2 = /\.(css|scss|sass|less|html|astro|vue|svelte)$/i;
+var READ_CAP = 300;
+function readText(path) {
+  try {
+    return readFileSync10(path, "utf8");
+  } catch {
+    return "";
+  }
+}
+function scanDirs(root) {
+  const base = join14(root, MIGRATION_DIR);
+  try {
+    return readdirSync6(base).map((h) => join14(base, h)).filter((d) => existsSync14(join14(d, "home.html")));
+  } catch {
+    return [];
+  }
+}
+function homePage(root) {
+  for (const d of scanDirs(root)) return readText(join14(d, "home.html"));
+  for (const f of ["index.html", "public/index.html", "src/index.html", "src/pages/index.astro", "src/pages/index.html", "app/layout.tsx", "src/app/layout.tsx", "src/layouts/Layout.astro"]) {
+    const text = readText(join14(root, f));
+    if (text) return text;
+  }
+  return "";
+}
+function siteFacts(root, given = {}) {
+  if (given.color !== void 0 && !/^#[0-9a-f]{6}$/i.test(given.color)) throw new CliError(`Not a color: ${given.color}. Use the form #112233.`, 1, "usage");
+  const home = homePage(root);
+  const id = readSiteIdentity(home);
+  let pkg;
+  try {
+    pkg = JSON.parse(readFileSync10(join14(root, "package.json"), "utf8")).name;
+  } catch {
+  }
+  const name = given.name?.trim() || readProject(root)?.name || id.name || (pkg && !pkg.startsWith("@") ? pkg : "") || basename(root);
+  if (given.color) return { name, line: given.line ?? id.line ?? "", color: given.color, colorFrom: "given" };
+  const old = scanDirs(root).flatMap((d) => walkAll(join14(d, "styles")).map((f) => ({ text: readText(f) })));
+  const fromOld = scanDirs(root).length ? pickBrandColor([{ text: home, themeColor: id.themeColor }, ...old]) : null;
+  const sources = [{ text: home, themeColor: id.themeColor }];
+  for (const f of ["tailwind.config.js", "tailwind.config.ts", "tailwind.config.mjs", "tailwind.config.cjs"]) sources.push({ text: readText(join14(root, f)) });
+  const code = ["src", "app", "styles", "css", "public", "static"].flatMap((d) => walk(join14(root, d))).filter((p) => CODE_EXT2.test(p));
+  const plain2 = readdirSync6(root).filter((f) => CODE_EXT2.test(f)).map((f) => join14(root, f));
+  for (const f of [...plain2, ...code].slice(0, READ_CAP)) sources.push({ text: readText(f) });
+  const color = fromOld ?? pickBrandColor(sources);
+  return { name, line: given.line ?? id.line ?? "", color: color ?? BRAND_DEFAULT_COLOR, colorFrom: color ? "site" : "default" };
+}
+function writeSiteFile(root, file2, data) {
+  const target = join14(webRoot(root), file2);
+  if (existsSync14(target)) {
+    const keep = join14(root, BRAND_DIR, "originals");
+    mkdirSync7(keep, { recursive: true });
+    copyFileSync(target, join14(keep, file2));
+  }
+  mkdirSync7(dirname5(target), { recursive: true });
+  writeFileSync11(target, data);
+}
+var send = (res, status, body = "", type = "text/plain; charset=utf-8") => {
+  res.writeHead(status, { "content-type": type, "cache-control": "no-store", "x-content-type-options": "nosniff" });
+  res.end(body);
+};
+function readBody(req) {
+  return new Promise((ok, fail) => {
+    const parts = [];
+    let size = 0;
+    req.on("data", (c) => {
+      size += c.length;
+      if (size > MAX_UPLOAD) {
+        req.destroy();
+        fail(new Error("too large"));
+      } else parts.push(c);
+    });
+    req.on("end", () => ok(Buffer.concat(parts)));
+    req.on("error", fail);
+  });
+}
+function listen(server) {
+  return new Promise((ok, fail) => {
+    server.once("error", fail);
+    server.listen(0, "127.0.0.1", () => {
+      const a = server.address();
+      if (a && typeof a === "object") ok(a.port);
+      else fail(new Error("no port"));
+    });
+  });
+}
+function allowed(req, url2, port, token) {
+  return req.headers.host === `127.0.0.1:${port}` && url2.searchParams.get("t") === token;
+}
+async function headless(browser, url2, width, until, timeoutMs) {
+  const profile = mkdtempSync(join14(tmpdir(), "deployai-brand-"));
+  const child = spawn2(browser, ["--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check", "--disable-extensions", `--user-data-dir=${profile}`, `--window-size=${width},900`, url2], { stdio: "ignore", windowsHide: true });
+  child.on("error", () => {
+  });
+  let timer;
+  try {
+    await Promise.race([until, new Promise((_, fail) => {
+      timer = setTimeout(() => fail(new Error("timeout")), timeoutMs);
+    })]);
+  } finally {
+    if (timer) clearTimeout(timer);
+    await new Promise((done) => {
+      if (child.exitCode !== null || child.pid === void 0) return done();
+      child.once("exit", () => done());
+      if (process.platform === "win32") spawn2("taskkill", ["/PID", String(child.pid), "/T", "/F"], { stdio: "ignore", windowsHide: true }).on("error", () => {
+      });
+      else child.kill();
+      setTimeout(done, 3e3);
+    });
+    try {
+      rmSync2(profile, { recursive: true, force: true, maxRetries: 3, retryDelay: 200 });
+    } catch {
+    }
+  }
+}
+async function drawInBrowser(o, browser) {
+  const token = randomBytes(24).toString("hex");
+  const parts = /* @__PURE__ */ new Map();
+  const source = o.source;
+  let port = 0;
+  let finish;
+  let abort;
+  const finished = new Promise((ok, fail) => {
+    finish = ok;
+    abort = fail;
+  });
+  const allowedFiles = new Set(o.targets.map((t) => t.file));
+  const server = createServer((req, res) => {
+    void (async () => {
+      const url2 = new URL(req.url ?? "/", "http://127.0.0.1");
+      if (!allowed(req, url2, port, token)) return send(res, 403);
+      if (req.method === "GET" && url2.pathname === "/") {
+        return send(res, 200, drawPageHtml({ token, name: o.name, line: o.line, color: o.color, targets: o.targets }), "text/html; charset=utf-8");
+      }
+      if (req.method === "GET" && url2.pathname === "/source") return send(res, 200, source.bytes, source.type);
+      if (req.method !== "POST") return send(res, 404);
+      const body = await readBody(req);
+      if (url2.pathname === "/save") {
+        const file2 = url2.searchParams.get("file") ?? "";
+        if (!allowedFiles.has(file2) || !imageSize(body)) return send(res, 400);
+        parts.set(file2, body);
+        return send(res, 204);
+      }
+      if (url2.pathname === "/fail") {
+        send(res, 204);
+        return abort(new Error(body.toString("utf8").slice(0, 200)));
+      }
+      if (url2.pathname === "/done") {
+        const done = JSON.parse(body.toString("utf8"));
+        const written = [];
+        for (const t of o.targets) {
+          const png = parts.get(t.file);
+          if (!png || t.icoOnly) continue;
+          writeSiteFile(o.root, t.file, png);
+          written.push(t.file);
+        }
+        const ico = ICO_SIZES.flatMap((size) => {
+          const png = parts.get(`ico-${size}.png`);
+          return png ? [{ size, png }] : [];
+        });
+        if (ico.length) {
+          writeSiteFile(o.root, "favicon.ico", buildIco(ico));
+          written.push("favicon.ico");
+        }
+        if (/svg/.test(source.type)) {
+          writeSiteFile(o.root, "favicon.svg", source.bytes);
+          written.push("favicon.svg");
+        }
+        if (o.full && parts.has("icon-192.png") && parts.has("icon-512.png")) {
+          writeSiteFile(o.root, "site.webmanifest", webManifest(o.name, o.color));
+          written.push("site.webmanifest");
+        }
+        send(res, 204);
+        return finish({ written, skipped: done.skipped.filter((f) => !f.startsWith("ico-")) });
+      }
+      return send(res, 404);
+    })().catch(() => {
+      if (!res.headersSent) send(res, 400);
+    });
+  });
+  port = await listen(server);
+  try {
+    await headless(browser, `http://127.0.0.1:${port}/?t=${token}`, 1280, finished, 45e3);
+    return await finished;
+  } finally {
+    server.closeAllConnections();
+    server.close();
+  }
+}
+function sourceBytes(path) {
+  return { bytes: readFileSync10(path), type: TYPES[extname(path).toLowerCase()] ?? "application/octet-stream" };
+}
+function report(root, r) {
+  const where = relative4(root, webRoot(root)).split(sep4).join("/") || "the site root";
+  out(`Written in ${where}: ${r.written.join(", ")}`);
+  if (r.skipped.length) out(`Left out, the picture is too small to stay sharp: ${r.skipped.join(", ")}. A larger logo makes them.`);
+  const tags2 = brandHeadTags(r.written);
+  if (tags2.length) {
+    out("");
+    out("Add these lines to the <head> of every page, in place of any older icon lines:");
+    tags2.forEach((t) => out(`  ${t}`));
+  }
+}
+function plainIcon(root, source, name, color) {
+  if (source.path) {
+    const ext = extname(source.path).toLowerCase();
+    if (ext === ".ico" || ext === ".svg" || ext === ".png") {
+      const file2 = `favicon${ext}`;
+      writeSiteFile(root, file2, readFileSync10(source.path));
+      return [file2];
+    }
+  }
+  writeSiteFile(root, "favicon.svg", letterTileSvg(name, color));
+  return ["favicon.svg"];
+}
+var FROM = {
+  file: "the picture you named",
+  "old-icon": "the old site's icon",
+  logo: "the logo in this folder",
+  "old-logo": "the old site's logo",
+  letter: "the first letter of the name, since there is no icon or logo"
+};
+function printStatus2(root, files) {
+  const web = webRoot(root);
+  const icon = existingFavicon(root);
+  out(icon ? `Icon: ${icon}` : "Icon: missing. Run: npx deployai@latest brand favicon");
+  const missing = files.filter((f) => f !== "favicon.svg" && !existsSync14(join14(web, f)));
+  if (files.length) out(missing.length ? `Missing from the full set: ${missing.join(", ")}` : "The full set is there.");
+}
+function printFacts(f, picture2) {
+  const color = f.colorFrom === "site" ? `${f.color}, from the site's own colors` : f.colorFrom === "given" ? f.color : `${f.color}, since the site has no color of its own`;
+  out(`Name: ${f.name}`);
+  out(`Color: ${color}`);
+  out(`Picture: ${picture2}`);
+}
+function picture(source, facts) {
+  return source.path ? sourceBytes(source.path) : { bytes: new TextEncoder().encode(letterTileSvg(facts.name, facts.color)), type: "image/svg+xml" };
+}
+function withLogoColor(facts, source) {
+  if (facts.colorFrom === "given" || !source.path || !/\.svg$/i.test(source.path)) return facts;
+  const color = svgLogoColor(readText(source.path));
+  return color ? { ...facts, color, colorFrom: "site" } : facts;
+}
+function pickSource(root, from) {
+  const source = from ? { path: from, from: "file" } : findSource(root);
+  if (source.path && !existsSync14(source.path)) throw new CliError(`No such file: ${source.path}`, 1, "usage");
+  return source;
+}
+async function brandFaviconCommand(root, opts) {
+  if (opts.check) return printStatus2(root, []);
+  const has = existingFavicon(root);
+  if (has && !opts.force) {
+    out(`This site has an icon: ${has}. Nothing changed.`);
+    return;
+  }
+  const source = pickSource(root, opts.from);
+  const facts = withLogoColor(siteFacts(root, opts), source);
+  printFacts(facts, FROM[source.from]);
+  const browser = findBrowser();
+  let result = null;
+  if (browser) {
+    try {
+      result = await drawInBrowser({ root, name: facts.name, line: "", color: facts.color, source: picture(source, facts), targets: FAVICON_TARGETS, full: false }, browser);
+    } catch {
+      out("The browser could not draw it, so the icon is kept as a plain file.");
+    }
+  }
+  if (!result) result = { written: plainIcon(root, source, facts.name, facts.color), skipped: [] };
+  report(root, result);
+  if (source.from === "letter") out("Tell the owner in one line: the icon is the first letter of the name in the site's color, and a logo from them would replace it.");
+}
+async function brandIconsCommand(root, opts) {
+  if (opts.check) return printStatus2(root, BRAND_FILES);
+  const browser = findBrowser();
+  if (!browser) throw new CliError("This needs Chrome or Edge on this computer. Install one, or set CHROME_PATH to it, and run this again.", 1, "usage");
+  const source = pickSource(root, opts.from);
+  const facts = withLogoColor(siteFacts(root, opts), source);
+  printFacts(facts, FROM[source.from]);
+  if (facts.line) out(`Line: ${facts.line}`);
+  report(root, await drawInBrowser({ root, name: facts.name, line: facts.line, color: facts.color, source: picture(source, facts), targets: BRAND_TARGETS, full: true }, browser));
+}
+async function measurePage(browser, address, width, scripts) {
+  const token = randomBytes(24).toString("hex");
+  let port = 0;
+  let finish;
+  const finished = new Promise((ok) => {
+    finish = ok;
+  });
+  const res = await fetch(address, { headers: { accept: "text/html" }, signal: AbortSignal.timeout(2e4) });
+  const page2 = await res.text();
+  const server = createServer((req, r) => {
+    void (async () => {
+      const url2 = new URL(req.url ?? "/", "http://127.0.0.1");
+      if (!allowed(req, url2, port, token)) return send(r, 403);
+      if (req.method === "POST" && url2.pathname === "/measure") {
+        const body = await readBody(req);
+        send(r, 204);
+        return finish(JSON.parse(body.toString("utf8")));
+      }
+      const head = `<base href="${res.url.replace(/"/g, "&quot;")}">${measureScript(`http://127.0.0.1:${port}/measure?t=${token}`)}`;
+      const noPolicy = page2.replace(/<meta[^>]+http-equiv=["']?content-security-policy[^>]*>/gi, "");
+      const clean = scripts ? noPolicy : noPolicy.replace(/<script\b[\s\S]*?<\/script>/gi, "");
+      const html = /<head[^>]*>/i.test(clean) ? clean.replace(/<head[^>]*>/i, (m) => m + head) : head + clean;
+      return send(r, 200, html, "text/html; charset=utf-8");
+    })().catch(() => {
+      if (!r.headersSent) send(r, 400);
+    });
+  });
+  port = await listen(server);
+  try {
+    await headless(browser, `http://127.0.0.1:${port}/?t=${token}`, width, finished, 3e4);
+    return await finished;
+  } finally {
+    server.closeAllConnections();
+    server.close();
+  }
+}
+function imageFiles(root) {
+  const dirs = [webRoot(root) === root ? null : webRoot(root), join14(root, "src"), join14(root, MIGRATION_DIR)].filter((d) => !!d);
+  const files = dirs.flatMap((d) => walkAll(d));
+  if (webRoot(root) === root) files.push(...walk(root));
+  return [...new Set(files)].filter((p) => IMAGE_EXT.test(p) && !p.split(sep4).includes("icons") && !BRAND_FILES.includes(basename(p)));
+}
+function walkAll(dir) {
+  const found = [];
+  const go = (d) => {
+    let names = [];
+    try {
+      names = readdirSync6(d);
+    } catch {
+      return;
+    }
+    for (const n2 of names) {
+      if (found.length >= WALK_CAP) return;
+      const p = join14(d, n2);
+      try {
+        if (statSync2(p).isDirectory()) {
+          if (!SKIP_DIRS2.has(n2) || n2 === ".deployai") go(p);
+        } else found.push(p);
+      } catch {
+      }
+    }
+  };
+  go(dir);
+  return found;
+}
+function judgeFiles(root) {
+  const findings = [];
+  const files = imageFiles(root);
+  let total = 0;
+  for (const f of files) {
+    let bytes;
+    try {
+      bytes = readFileSync10(f);
+    } catch {
+      continue;
+    }
+    const size = imageSize(bytes);
+    if (!size) continue;
+    total++;
+    const verdict = judgeImage({ width: size.width, height: size.height, bytes: bytes.length, format: size.format });
+    if (verdict !== "ok") findings.push({ where: relative4(root, f).split(sep4).join("/"), width: size.width, height: size.height, verdict });
+  }
+  return { findings, total };
+}
+var SAY = {
+  ok: "fine",
+  soft: "too few pixels for where it shows",
+  small: "small, check where it shows",
+  compressed: "squeezed until it shows blocks"
+};
+async function brandImagesCommand(root, urls, opts) {
+  for (const u of urls) if (!/^https?:\/\//.test(u)) throw new CliError(`Not a page address: ${u}. Use the full address, with https://`, 1, "usage");
+  if (urls.length > 10) throw new CliError("Up to 10 pages at a time. Pick one page of each kind.", 1, "usage");
+  const { findings, total } = judgeFiles(root);
+  const shown = /* @__PURE__ */ new Map();
+  const browser = urls.length ? findBrowser() : null;
+  const unmeasured = [];
+  if (urls.length && !browser) unmeasured.push(...urls);
+  if (browser) {
+    for (const url2 of urls) {
+      out(`Measuring ${url2}`);
+      try {
+        for (const width of [1440, 390]) {
+          let seen = await measurePage(browser, url2, width, true).catch(() => []);
+          if (!seen.length) seen = await measurePage(browser, url2, width, false);
+          for (const m of seen) {
+            if (/\.svg(\?|$)/i.test(m.src) || m.src.startsWith("data:")) continue;
+            const had = shown.get(m.src);
+            if (!had || m.shownWidth > had.shownWidth) shown.set(m.src, m);
+          }
+        }
+      } catch {
+        unmeasured.push(url2);
+      }
+    }
+  }
+  const onPages = [];
+  for (const m of shown.values()) {
+    const verdict = judgeImage({ width: m.width, height: m.height, shownWidth: m.shownWidth });
+    if (verdict !== "ok") onPages.push({ where: m.src, width: m.width, height: m.height, shownWidth: m.shownWidth, verdict, alt: m.alt });
+  }
+  const weak = [...onPages, ...findings];
+  mkdirSync7(join14(root, BRAND_DIR), { recursive: true });
+  const file2 = `${BRAND_DIR}/images.json`;
+  const data = { measuredAt: (/* @__PURE__ */ new Date()).toISOString(), pages: urls, unmeasured, filesChecked: total, imagesMeasured: shown.size, weak };
+  writeFileSync11(join14(root, file2), `${JSON.stringify(data, null, 2)}
+`);
+  if (opts.json) {
+    out(JSON.stringify(data));
+    return;
+  }
+  out(`Checked ${total} image files${shown.size ? ` and measured ${shown.size} images on the pages` : ""}. Saved in ${file2}. Nothing changed.`);
+  if (unmeasured.length) out(`Not measured, ${browser ? "the page did not answer" : "this needs Chrome or Edge"}: ${unmeasured.join(", ")}`);
+  if (!weak.length) {
+    out("No weak images.");
+    return;
+  }
+  out("");
+  out(rows(weak.slice(0, 40).map((w) => [w.where.length > 70 ? `...${w.where.slice(-67)}` : w.where, `${w.width}x${w.height}${w.shownWidth ? `, shown at ${w.shownWidth}` : ""}: ${SAY[w.verdict]}`])));
+  if (weak.length > 40) out(`and ${weak.length - 40} more in ${file2}`);
+  out("");
+  out("Only with the owner's yes, one by one. Decoration may be replaced. A photo of a real person, product, place or job is never replaced with a made up one: ask the owner for a better photo.");
 }
 
 // src/commands/env.ts
@@ -26061,6 +26981,10 @@ function buildProgram() {
   migrate.command("verify").description("open every old address on the preview: lists pages that moved, are missing or lost their title or description").argument("<preview>", "the preview address deploy printed").action(async (preview, _opts, cmd) => migrateVerifyCommand(root(cmd), preview));
   migrate.command("status").description("a managed move: report a stage to the request (scanning, building, preview_ready, customer_review, live, blocked)").argument("<stage>", "the stage").argument("[note]", "one line: the preview address, what is done, or why it is blocked").action((stage, note, _opts, cmd) => migrateStatusCommand(root(cmd), ctx(cmd), stage, note));
   program.command("blocks").description("list our building blocks, or add one to this site (inbox, blog); never writes over a file").argument("[name]", "inbox or blog").action((name, _opts, cmd) => blocksCommand(root(cmd), ctx(cmd), name));
+  const brand = program.command("brand").description("the site's icons and share image, made by code from the site's own name, colors and logo");
+  brand.command("favicon").description("gives the site an icon if it has none: the old site's, else its logo, else a letter").option("--from <file>", "the logo or picture to use").option("--name <name>", "the site's name, for the letter").option("--color <#rrggbb>", "the background color").option("--force", "replace the icon the site has").option("--check", "only say whether the site has an icon").action((opts, cmd) => brandFaviconCommand(root(cmd), opts));
+  brand.command("icons").description("makes every icon size and the 1200 by 630 share image from the site itself").option("--from <file>", "use this picture instead of the logo it finds").option("--name <name>", "correct the name it reads").option("--line <text>", "correct the line it reads").option("--color <#rrggbb>", "correct the color it reads").option("--check", "only list what is missing").action((opts, cmd) => brandIconsCommand(root(cmd), opts));
+  brand.command("images").description("reports images too weak for where they show, by measuring them; never changes one").argument("[pages...]", "up to 10 page addresses to measure in a browser").option("--json", "print the result as JSON").action((pages, opts, cmd) => brandImagesCommand(root(cmd), pages, opts));
   program.command("addons").description("the add-ons of this site: which it has, which are done and which is next; addons run runs them all in one go").argument("[action]", "run: every add-on that is not done, one after the other").action((action, _opts, cmd) => {
     if (!action) return addonsCommand(root(cmd), ctx(cmd));
     if (action === "run") return addonsRunCommand(root(cmd), ctx(cmd));

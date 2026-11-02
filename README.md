@@ -59,6 +59,7 @@ Node 20 or newer. No other setup: the CLI talks to https://deployai.co.il.
 | `deployai migrate redirects` | Writes `public/_redirects` only for old addresses that cannot stay. |
 | `deployai migrate verify <preview>` | Checks every old address on the preview: moved, missing, an error, or a lost title or description. |
 | `deployai migrate status <stage> [note]` | For a managed move: reports the stage (and a note like the preview address) to the request, so the board and the owner's status page update. |
+| `deployai brand favicon\|icons\|images` | The site's icons and share image, made by code from the site's own name, colors and logo: `favicon` gives a site with none its old icon, its logo or a letter in its color; `icons` makes every size; `images` measures every image against where it shows and changes nothing. |
 | `deployai blocks [inbox\|blog]` | Adds one of DeployAI's building blocks to an existing site, never over a file, with a guide in `.deployai/blocks/<key>.md`. With no key it lists them. |
 | `deployai claim` | Prints this folder's temporary site keep link again. `--email <address>` mails it, with a reminder before the delete. |
 | `deployai samples [name] [folder]` | Lists the six sample sites, or downloads one. More below. |
