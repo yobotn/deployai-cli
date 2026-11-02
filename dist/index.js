@@ -101,10 +101,10 @@ var ISSUES = [
   {
     code: "durable_objects",
     severity: "blocker",
-    titleEn: "Uses Durable Objects, not supported yet",
-    titleHe: "\u05D4\u05D0\u05EA\u05E8 \u05DE\u05E9\u05EA\u05DE\u05E9 \u05D1\u05BEDurable Objects, \u05E9\u05E2\u05D5\u05D3 \u05DC\u05D0 \u05E0\u05EA\u05DE\u05DB\u05D9\u05DD",
-    agentLine: "{loc} declares Durable Objects{detail}.",
-    fixForAgent: "Durable Objects do not run on customer sites yet. Keep the data in D1 (SQLite) and remove durable_objects from the wrangler config. For live updates use polling or server-sent events."
+    titleEn: "Uses a Durable Object from another Worker",
+    titleHe: "\u05D4\u05D0\u05EA\u05E8 \u05DE\u05E9\u05EA\u05DE\u05E9 \u05D1\u05BEDurable Object \u05E9\u05DC Worker \u05D0\u05D7\u05E8",
+    agentLine: "{loc} binds a Durable Object from another Worker (script_name) or without a class_name{detail}.",
+    fixForAgent: "A site here can use only the Durable Objects its own code exports. Export the class from this site's Worker, give the binding a name and a class_name, and remove script_name."
   },
   {
     code: "bundle_too_large",
@@ -740,7 +740,22 @@ function jsoncToJson(src) {
 function durableObjectsOf(v) {
   const list = v && typeof v === "object" ? v.bindings : null;
   if (!Array.isArray(list)) return [];
-  return list.map((x) => x && typeof x === "object" && typeof x.name === "string" ? x.name : "");
+  const str2 = (x) => typeof x === "string" ? x : "";
+  return list.map((x) => {
+    const o = x && typeof x === "object" ? x : {};
+    return { name: str2(o.name), className: str2(o.class_name), script: str2(o.script_name) || null };
+  });
+}
+function tomlDurableObjects(value) {
+  const q = (t, k) => new RegExp(`\\b${k}\\s*=\\s*(?:"([^"]+)"|'([^']+)')`).exec(t);
+  return [...value.matchAll(/\{([^}]*)\}/g)].map((m) => {
+    const t = m[1];
+    const pick2 = (k) => {
+      const r = q(t, k);
+      return r ? r[1] ?? r[2] : "";
+    };
+    return { name: pick2("name"), className: pick2("class_name"), script: pick2("script_name") || null };
+  });
 }
 function bindingsOf(list) {
   if (!Array.isArray(list)) return [];
@@ -784,7 +799,7 @@ function parseWranglerToml(text) {
       section = `[[${arr[1]}]]`;
       if (arr[1] === "d1_databases") decl.d1.push({ binding: "" });
       if (arr[1] === "r2_buckets") decl.r2.push({ binding: "" });
-      if (arr[1] === "durable_objects.bindings") decl.durableObjects.push("");
+      if (arr[1] === "durable_objects.bindings") decl.durableObjects.push({ name: "", className: "", script: null });
       continue;
     }
     const tbl = /^\[\s*([\w.]+)\s*\]$/.exec(line);
@@ -805,12 +820,17 @@ function parseWranglerToml(text) {
         for (const m of value.matchAll(/binding\s*=\s*(?:"([^"]+)"|'([^']+)')/g)) target.push({ binding: m[1] ?? m[2] });
       }
       if (key === "vars") for (const m of value.matchAll(/([\w-]+)\s*=/g)) decl.vars.push(m[1]);
-      if (key === "durable_objects") for (const m of value.matchAll(/\bname\s*=\s*(?:"([^"]+)"|'([^']+)')/g)) decl.durableObjects.push(m[1] ?? m[2]);
+      if (key === "durable_objects") decl.durableObjects.push(...tomlDurableObjects(value));
     } else if (section === "durable_objects" && key === "bindings") {
-      for (const m of value.matchAll(/\bname\s*=\s*(?:"([^"]+)"|'([^']+)')/g)) decl.durableObjects.push(m[1] ?? m[2]);
-    } else if (section === "[[durable_objects.bindings]]" && key === "name") {
+      decl.durableObjects.push(...tomlDurableObjects(value));
+    } else if (section === "[[durable_objects.bindings]]" && (key === "name" || key === "class_name" || key === "script_name")) {
       const v = tomlString(value);
-      if (v != null) decl.durableObjects[decl.durableObjects.length - 1] = v;
+      const last = decl.durableObjects[decl.durableObjects.length - 1];
+      if (v != null && last) {
+        if (key === "name") last.name = v;
+        else if (key === "class_name") last.className = v;
+        else last.script = v || null;
+      }
     } else if (section === "vars") {
       decl.vars.push(key);
     } else if (section === "assets" && key === "directory") {
@@ -959,15 +979,15 @@ var ISSUE_HELP = {
   },
   durable_objects: {
     he: {
-      what: "\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA \u05D4\u05D0\u05EA\u05E8 (wrangler) \u05DE\u05D1\u05E7\u05E9\u05D5\u05EA Durable Objects, \u05D0\u05D7\u05E1\u05D5\u05DF \u05DC\u05DE\u05E6\u05D1 \u05D7\u05D9 \u05DB\u05DE\u05D5 \u05E6\u05F3\u05D0\u05D8 \u05D0\u05D5 \u05DE\u05D5\u05E0\u05D9\u05DD.",
-      why: "\u05D0\u05EA\u05E8\u05D9\u05DD \u05E9\u05DC \u05DC\u05E7\u05D5\u05D7\u05D5\u05EA \u05E2\u05D5\u05D3 \u05DC\u05D0 \u05D9\u05DB\u05D5\u05DC\u05D9\u05DD \u05DC\u05D4\u05E9\u05EA\u05DE\u05E9 \u05D1\u05D4\u05DD. \u05D4\u05D0\u05EA\u05E8 \u05D4\u05D9\u05D4 \u05E2\u05D5\u05DC\u05D4 \u05D5\u05E0\u05D5\u05E4\u05DC \u05D1\u05D1\u05E7\u05E9\u05D4 \u05D4\u05E8\u05D0\u05E9\u05D5\u05E0\u05D4 \u05E9\u05DE\u05D2\u05D9\u05E2\u05D4 \u05D0\u05DC\u05D9\u05D4\u05DD, \u05DC\u05DB\u05DF \u05D4\u05D5\u05D0 \u05DC\u05D0 \u05D9\u05E2\u05DC\u05D4.",
-      fix: ["\u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05E0\u05E9\u05DE\u05E8\u05D9\u05DD \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8.", "\u05DC\u05E2\u05D3\u05DB\u05D5\u05E0\u05D9\u05DD \u05D7\u05D9\u05D9\u05DD \u05D1\u05D5\u05D3\u05E7\u05D9\u05DD \u05DE\u05D7\u05D3\u05E9 \u05DB\u05DC \u05DB\u05DE\u05D4 \u05E9\u05E0\u05D9\u05D5\u05EA, \u05D0\u05D5 \u05DE\u05E9\u05EA\u05DE\u05E9\u05D9\u05DD \u05D1\u05D6\u05E8\u05DD \u05E2\u05D3\u05DB\u05D5\u05E0\u05D9\u05DD \u05DE\u05D4\u05E9\u05E8\u05EA."],
-      prompt: "Durable Objects \u05DC\u05D0 \u05E8\u05E6\u05D9\u05DD \u05E2\u05D3\u05D9\u05D9\u05DF \u05D1\u05D0\u05EA\u05E8\u05D9\u05DD \u05E9\u05DC \u05DC\u05E7\u05D5\u05D7\u05D5\u05EA. \u05E9\u05DE\u05D5\u05E8 \u05D0\u05EA \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05D1\u05BED1 (SQLite) \u05D5\u05D4\u05E1\u05E8 \u05D0\u05EA durable_objects \u05DE\u05E7\u05D5\u05D1\u05E5 \u05D4\u05BEwrangler. \u05DC\u05E2\u05D3\u05DB\u05D5\u05E0\u05D9\u05DD \u05D7\u05D9\u05D9\u05DD \u05D4\u05E9\u05EA\u05DE\u05E9 \u05D1\u05BEpolling \u05D0\u05D5 \u05D1\u05BEserver-sent events."
+      what: "\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA \u05D4\u05D0\u05EA\u05E8 (wrangler) \u05DE\u05D1\u05E7\u05E9\u05D5\u05EA Durable Object \u05E9\u05E0\u05DE\u05E6\u05D0 \u05D1\u05BEWorker \u05D0\u05D7\u05E8, \u05D0\u05D5 \u05D1\u05DC\u05D9 \u05E9\u05DD \u05DE\u05D7\u05DC\u05E7\u05D4.",
+      why: "\u05D0\u05EA\u05E8 \u05D0\u05E6\u05DC\u05E0\u05D5 \u05D9\u05DB\u05D5\u05DC \u05DC\u05D4\u05E9\u05EA\u05DE\u05E9 \u05E8\u05E7 \u05D1\u05BEDurable Objects \u05E9\u05D4\u05E7\u05D5\u05D3 \u05E9\u05DC\u05D5 \u05E2\u05E6\u05DE\u05D5 \u05DE\u05D9\u05D9\u05E6\u05D0. \u05D4\u05D0\u05EA\u05E8 \u05D4\u05D9\u05D4 \u05E2\u05D5\u05DC\u05D4 \u05D5\u05E0\u05D5\u05E4\u05DC \u05D1\u05D1\u05E7\u05E9\u05D4 \u05D4\u05E8\u05D0\u05E9\u05D5\u05E0\u05D4 \u05E9\u05DE\u05D2\u05D9\u05E2\u05D4 \u05DC\u05D0\u05D7\u05D3 \u05DB\u05D6\u05D4, \u05DC\u05DB\u05DF \u05D4\u05D5\u05D0 \u05DC\u05D0 \u05D9\u05E2\u05DC\u05D4.",
+      fix: ["\u05DE\u05D9\u05D9\u05E6\u05D0\u05D9\u05DD \u05D0\u05EA \u05D4\u05DE\u05D7\u05DC\u05E7\u05D4 \u05DE\u05D4\u05E7\u05D5\u05D3 \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8 \u05E2\u05E6\u05DE\u05D5.", "\u05DC\u05DB\u05DC Durable Object \u05E0\u05D5\u05EA\u05E0\u05D9\u05DD name \u05D5\u05BEclass_name, \u05D5\u05DE\u05D5\u05D7\u05E7\u05D9\u05DD \u05D0\u05EA script_name."],
+      prompt: "\u05D0\u05EA\u05E8 \u05D0\u05E6\u05DC\u05E0\u05D5 \u05D9\u05DB\u05D5\u05DC \u05DC\u05D4\u05E9\u05EA\u05DE\u05E9 \u05E8\u05E7 \u05D1\u05BEDurable Objects \u05E9\u05D4\u05E7\u05D5\u05D3 \u05E9\u05DC\u05D5 \u05DE\u05D9\u05D9\u05E6\u05D0. \u05D9\u05D9\u05E6\u05D0 \u05D0\u05EA \u05D4\u05DE\u05D7\u05DC\u05E7\u05D4 \u05DE\u05D4\u05BEWorker \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8, \u05EA\u05DF \u05DC\u05DB\u05DC binding \u05E9\u05DD \u05D5\u05BEclass_name, \u05D5\u05D4\u05E1\u05E8 \u05D0\u05EA script_name \u05DE\u05E7\u05D5\u05D1\u05E5 \u05D4\u05BEwrangler."
     },
     en: {
-      what: "The site settings (wrangler) ask for Durable Objects, storage for live state such as a chat or counters.",
-      why: "Customer sites cannot use them yet. The site would go live and then fail on the first request that reaches one, so it will not go live.",
-      fix: ["Keep the data in the site database.", "For live updates, check again every few seconds, or use a stream of updates from the server."]
+      what: "The site settings (wrangler) ask for a Durable Object that lives in another Worker, or one without a class name.",
+      why: "A site here can use only the Durable Objects its own code exports. The site would go live and then fail on the first request that reaches such one, so it will not go live.",
+      fix: ["Export the class from the site's own code.", "Give each Durable Object a name and a class_name, and remove script_name."]
     }
   },
   websocket_server: {
@@ -22077,8 +22097,8 @@ var BUILD_WITH = [
   "Images: resize at build time or serve them as they are; no native image modules at runtime.",
   "Passwords: bcryptjs or Web Crypto, never native bcrypt.",
   "Server code runs per request: no long-running processes, background servers or child processes.",
-  // D-574: a customer site cannot use Durable Objects yet; it would deploy and fail on its first request that reaches one.
-  "No Durable Objects yet: keep state in D1, and use polling or server-sent events for live updates.",
+  // D-611: Durable Objects run when the site's own code exports them; D1 stays the default, they cost more for plain data.
+  "Data goes in D1 by default. Use a Durable Object only for live state that needs one place to coordinate (a chat room, a live counter, booking slots that must not double-book, presence): export the class from this site's Worker and bind it with a name and class_name in the wrangler config, never script_name. Never remove or rename a class once it is live: that would delete its data, so the upload is refused. A preview starts with empty objects.",
   // D-535: the agent knows our built-in email, so it never adds an email provider or asks the owner for keys to email them.
   "Email to the site owner (a form answer, a new order): the built-in email, with no email provider or keys. POST JSON { subject, text, replyTo } to `${DEPLOYAI_API}/api/site/notify` with the header Authorization: Bearer DEPLOYAI_KEY (both are environment variables every upload gets). It reaches only the owner. On a temporary site it works once the owner has a free account: keep building, and say so only when it is time to go live. Email to customers needs an HTTP email API (Resend, Postmark), never SMTP."
 ];
@@ -22913,7 +22933,7 @@ function messages(root) {
 }
 
 // src/version.ts
-var CLI_VERSION = "0.1.0-beta.19";
+var CLI_VERSION = "0.1.0-beta.20";
 
 // src/api.ts
 function apiContext(apiFlag) {
@@ -23631,8 +23651,8 @@ function analyzeProject(root) {
   for (const name of ["wrangler.toml", "wrangler.json", "wrangler.jsonc"]) {
     if (!existsSync4(join4(root, name))) continue;
     const text = readFileSync4(join4(root, name), "utf8");
-    if (!parseWranglerConfig(name, text).durableObjects.length) break;
-    const at = text.search(/durable_objects/);
+    if (!parseWranglerConfig(name, text).durableObjects.some((o) => o.script || !o.name || !o.className)) break;
+    const at = text.search(/script_name/) >= 0 ? text.search(/script_name/) : text.search(/durable_objects/);
     add({ code: "durable_objects", severity: "blocker", file: name, line: at < 0 ? 1 : text.slice(0, at).split("\n").length, detail: "" });
     break;
   }
