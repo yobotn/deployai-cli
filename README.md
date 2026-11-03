@@ -139,6 +139,7 @@ Sent when on:
 - After each check: compatible or not, blocker and warning codes (for example `fs_write`)
 - OS, architecture and Node version (in the request header)
 - Your user id, only after login
+- With each deploy, which AI tool ran it (for example Claude Code or Codex), when the environment says so
 
 Never sent: source code or file contents, `.env` values or any secret, file paths or file names.
 

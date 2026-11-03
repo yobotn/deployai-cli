@@ -21390,12 +21390,12 @@ var ARCH_NODES = [
   // Outside
   { id: "browser", kind: "actor", zone: "outside", label: "\u05D3\u05E4\u05D3\u05E4\u05DF", labelEn: "Browser", summary: "\u05DC\u05E7\u05D5\u05D7\u05D5\u05EA \u05D5\u05D0\u05D3\u05DE\u05D9\u05E0\u05D9\u05DD \u05E4\u05D5\u05EA\u05D7\u05D9\u05DD \u05D0\u05EA \u05D4\u05D0\u05EA\u05E8, \u05DC\u05D5\u05D7 \u05D4\u05D1\u05E7\u05E8\u05D4 \u05D5\u05D4\u05D0\u05D3\u05DE\u05D9\u05DF.", summaryEn: "Customers and admins open the site, the dashboard and the admin." },
   { id: "cli", kind: "actor", zone: "outside", label: "deployai CLI", summary: "\u05D4\u05E1\u05D5\u05DB\u05DF \u05D0\u05D5 \u05D4\u05DC\u05E7\u05D5\u05D7 \u05DE\u05E8\u05D9\u05E6\u05D9\u05DD check \u05D5\u05BEdeploy, \u05D5\u05D4\u05EA\u05D7\u05D1\u05E8\u05D5\u05EA \u05D1\u05E7\u05D5\u05D3 \u05DE\u05DB\u05E9\u05D9\u05E8.", summaryEn: "The agent or the customer runs check and deploy, and logs in with a device code.", code: ["packages/cli"], docs: ["docs/07-cli.md"] },
-  { id: "board-watcher", kind: "actor", zone: "outside", label: "Board watcher", summary: "\u05E8\u05E5 \u05D0\u05E6\u05DC \u05D4\u05D1\u05E2\u05DC\u05D9\u05DD (pnpm board:watch): \u05DC\u05D5\u05E7\u05D7 \u05DB\u05E8\u05D8\u05D9\u05E1 \u05DE\u05DC\u05D5\u05D7 \u05D4\u05E2\u05D1\u05D5\u05D3\u05D4 (\u05E8\u05E7 \u05DB\u05E9\u05D4\u05DE\u05EA\u05D2 \u05E9\u05DC\u05D5 \u05D1\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA \u05E4\u05D5\u05E2\u05DC), \u05DE\u05E8\u05D9\u05E5 Claude Code \u05DC\u05E7\u05E8\u05D9\u05D0\u05D4 \u05D1\u05DC\u05D1\u05D3 \u05D5\u05DE\u05D7\u05D6\u05D9\u05E8 \u05EA\u05D5\u05DB\u05E0\u05D9\u05EA. \u05DB\u05E8\u05D8\u05D9\u05E1 \u05E2\u05DD \u05D1\u05E0\u05D9\u05D9\u05D4 \u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9\u05EA \u05E9\u05D0\u05D5\u05E9\u05E8 \u05E0\u05D1\u05E0\u05D4 \u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05EA \u05D4\u05E4\u05E8\u05D5\u05D9\u05E7\u05D8, \u05D0\u05D7\u05D3 \u05D1\u05DB\u05DC \u05E4\u05E2\u05DD. \u05D4\u05D5\u05D0 \u05D2\u05DD \u05DB\u05D5\u05EA\u05D1 \u05D2\u05E8\u05E1\u05D0\u05D5\u05EA \u05D7\u05D3\u05E9\u05D5\u05EA \u05DC\u05E1\u05E4\u05E8\u05D9\u05D9\u05EA \u05D4\u05E4\u05E8\u05D5\u05DE\u05E4\u05D8\u05D9\u05DD \u05DC\u05E4\u05D9 \u05D4\u05E2\u05E8\u05D5\u05EA \u05D4\u05D1\u05E2\u05DC\u05D9\u05DD, \u05DC\u05D1\u05D3\u05D9\u05E7\u05D4 \u05D5\u05E4\u05E8\u05E1\u05D5\u05DD.", summaryEn: "Runs on the owner computer (pnpm board:watch): claims a work board ticket (only while its settings switch is on), runs Claude Code read only and posts a plan back. An approved auto build ticket is built in the project folder, one at a time. It also writes new versions of prompt library prompts from the owner notes, for review and publishing.", code: ["scripts/board-watch.ts", "scripts/prompts-sync.ts"], env: ["BOARD_RUNNER_TOKEN", "BOARD_URL"], decisions: ["D-110", "D-127", "D-182", "D-250"] },
+  { id: "board-watcher", kind: "actor", zone: "outside", label: "Board watcher", summary: "\u05E8\u05E5 \u05D0\u05E6\u05DC \u05D4\u05D1\u05E2\u05DC\u05D9\u05DD (pnpm board:watch): \u05DC\u05D5\u05E7\u05D7 \u05DB\u05E8\u05D8\u05D9\u05E1 \u05DE\u05DC\u05D5\u05D7 \u05D4\u05E2\u05D1\u05D5\u05D3\u05D4 (\u05E8\u05E7 \u05DB\u05E9\u05D4\u05DE\u05EA\u05D2 \u05E9\u05DC\u05D5 \u05D1\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA \u05E4\u05D5\u05E2\u05DC, \u05D5\u05E8\u05E7 \u05D0\u05D7\u05E8\u05D9 \u05E9\u05DB\u05E8\u05D8\u05D9\u05E1 \u05D0\u05D5\u05E9\u05E8 \u05D5\u05E0\u05E9\u05DC\u05D7 \u05D0\u05DC\u05D9\u05D5), \u05DE\u05E8\u05D9\u05E5 Claude Code \u05DC\u05E7\u05E8\u05D9\u05D0\u05D4 \u05D1\u05DC\u05D1\u05D3 \u05D5\u05DE\u05D7\u05D6\u05D9\u05E8 \u05EA\u05D5\u05DB\u05E0\u05D9\u05EA. \u05DB\u05E8\u05D8\u05D9\u05E1 \u05E2\u05DD \u05D1\u05E0\u05D9\u05D9\u05D4 \u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9\u05EA \u05E9\u05D0\u05D5\u05E9\u05E8 \u05E0\u05D1\u05E0\u05D4 \u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05EA \u05D4\u05E4\u05E8\u05D5\u05D9\u05E7\u05D8, \u05D0\u05D7\u05D3 \u05D1\u05DB\u05DC \u05E4\u05E2\u05DD. \u05D4\u05D5\u05D0 \u05D2\u05DD \u05DB\u05D5\u05EA\u05D1 \u05D2\u05E8\u05E1\u05D0\u05D5\u05EA \u05D7\u05D3\u05E9\u05D5\u05EA \u05DC\u05E1\u05E4\u05E8\u05D9\u05D9\u05EA \u05D4\u05E4\u05E8\u05D5\u05DE\u05E4\u05D8\u05D9\u05DD \u05DC\u05E4\u05D9 \u05D4\u05E2\u05E8\u05D5\u05EA \u05D4\u05D1\u05E2\u05DC\u05D9\u05DD, \u05DC\u05D1\u05D3\u05D9\u05E7\u05D4 \u05D5\u05E4\u05E8\u05E1\u05D5\u05DD.", summaryEn: "Runs on the owner computer (pnpm board:watch): claims a work board ticket (only while its settings switch is on), runs Claude Code read only and posts a plan back. An approved auto build ticket is built in the project folder, one at a time. It also writes new versions of prompt library prompts from the owner notes, for review and publishing.", code: ["scripts/board-watch.ts", "scripts/prompts-sync.ts"], env: ["BOARD_RUNNER_TOKEN", "BOARD_URL"], decisions: ["D-110", "D-127", "D-182", "D-250"] },
   { id: "visitor", kind: "actor", zone: "outside", label: "\u05DE\u05D1\u05E7\u05E8 \u05D1\u05D0\u05EA\u05E8", labelEn: "Site visitor", summary: "\u05DE\u05D1\u05E7\u05E8 \u05D1\u05D0\u05EA\u05E8 \u05E9\u05DC \u05DC\u05E7\u05D5\u05D7 \u05D1\u05DB\u05EA\u05D5\u05D1\u05EA <slug>.<\u05D3\u05D5\u05DE\u05D9\u05D9\u05DF \u05D0\u05EA\u05E8\u05D9\u05DD> (\u05DB\u05DE\u05D5 deploy-net.com \u05D0\u05D5 freesite.click) \u05D0\u05D5 \u05D1\u05D3\u05D5\u05DE\u05D9\u05D9\u05DF \u05DE\u05E9\u05DC\u05D5.", summaryEn: "A visitor on a customer site at <slug>.<a sites domain> (like deploy-net.com or freesite.click) or on their own domain." },
   // Platform
   { id: "web", kind: "app", zone: "platform", label: "Web app (Next.js)", summary: "\u05D0\u05EA\u05E8 \u05D4\u05E9\u05D9\u05D5\u05D5\u05E7, \u05DC\u05D5\u05D7 \u05D4\u05D1\u05E7\u05E8\u05D4, \u05D4\u05D0\u05D3\u05DE\u05D9\u05DF \u05D5\u05D4\u05BEAPI \u05E9\u05DC \u05D4\u05BECLI. \u05DE\u05DB\u05E0\u05D9\u05E1 \u05E2\u05D1\u05D5\u05D3\u05D5\u05EA \u05DC\u05EA\u05D5\u05E8.", summaryEn: "The marketing site, the dashboard, the admin and the CLI API. Puts jobs in the queue.", code: ["apps/web/src/app", "apps/web/src/server"], env: ["DEPLOYAI_SPACE", "BETTER_AUTH_SECRET", "NEXT_PUBLIC_SUPPORT_WHATSAPP", "DEV_SUPERADMIN_PASSWORD", "OPENAI_APPS_CHALLENGE"], portability: "Our app (site, dashboard, API, builds)", docs: ["docs/04-architecture.md"], decisions: ["D-020", "D-057", "D-104", "D-149", "D-238", "D-293"] },
   { id: "queue", kind: "db", zone: "platform", label: "pg-boss queue", summary: "\u05DB\u05DC \u05DE\u05D4 \u05E9\u05D0\u05D9\u05D8\u05D9 \u05D0\u05D5 \u05E0\u05D5\u05D2\u05E2 \u05D1\u05BECloudflare \u05E8\u05E5 \u05DB\u05E2\u05D1\u05D5\u05D3\u05D4 \u05D1\u05EA\u05D5\u05E8.", summaryEn: "Everything slow or that touches Cloudflare runs as a job in the queue.", code: ["apps/web/src/server/queue.ts"], portability: "Job queue", decisions: ["D-058"] },
-  { id: "worker", kind: "app", zone: "platform", label: "Job worker", summary: "\u05EA\u05D4\u05DC\u05D9\u05DA \u05E0\u05E4\u05E8\u05D3 \u05E9\u05DE\u05E8\u05D9\u05E5 \u05D0\u05EA \u05D4\u05E2\u05D1\u05D5\u05D3\u05D5\u05EA \u05DE\u05D4\u05EA\u05D5\u05E8: \u05D1\u05E0\u05D9\u05D9\u05D4, \u05D4\u05E2\u05DC\u05D0\u05D4, \u05E0\u05D9\u05EA\u05D5\u05D1, \u05D1\u05D9\u05E7\u05D5\u05E8\u05D9\u05DD, \u05E2\u05DC\u05D5\u05D9\u05D5\u05EA \u05D5\u05DE\u05D9\u05D9\u05DC\u05D9\u05DD \u05DC\u05DE\u05E9\u05E4\u05DA (pnpm worker, \u05D0\u05D5 pnpm worker:public \u05DE\u05D0\u05D7\u05D5\u05E8\u05D9 \u05D4\u05BEtunnel).", summaryEn: "A separate process that runs the queued jobs: build, upload, routing, visits, costs and lifecycle emails (pnpm worker, or pnpm worker:public behind the tunnel).", code: ["apps/web/src/server/worker.ts", "apps/web/src/server/jobs.ts", "apps/web/src/server/site-data.ts", "apps/web/src/server/lifecycle", "apps/web/src/server/host-report.ts"], env: ["BUILD_SLOTS", "LIFECYCLE_NOW", "A11Y_RENDER", "DOCKER_HOST", "HOST_REPORT_PATH"], decisions: ["D-058", "D-148", "D-180", "D-340"] },
+  { id: "worker", kind: "app", zone: "platform", label: "Job worker", summary: "\u05EA\u05D4\u05DC\u05D9\u05DA \u05E0\u05E4\u05E8\u05D3 \u05E9\u05DE\u05E8\u05D9\u05E5 \u05D0\u05EA \u05D4\u05E2\u05D1\u05D5\u05D3\u05D5\u05EA \u05DE\u05D4\u05EA\u05D5\u05E8: \u05D1\u05E0\u05D9\u05D9\u05D4, \u05D4\u05E2\u05DC\u05D0\u05D4, \u05E0\u05D9\u05EA\u05D5\u05D1, \u05D1\u05D9\u05E7\u05D5\u05E8\u05D9\u05DD, \u05E2\u05DC\u05D5\u05D9\u05D5\u05EA \u05D5\u05DE\u05D9\u05D9\u05DC\u05D9\u05DD \u05DC\u05DE\u05E9\u05E4\u05DA (pnpm worker, \u05D0\u05D5 pnpm worker:public \u05DE\u05D0\u05D7\u05D5\u05E8\u05D9 \u05D4\u05BEtunnel).", summaryEn: "A separate process that runs the queued jobs: build, upload, routing, visits, costs and lifecycle emails (pnpm worker, or pnpm worker:public behind the tunnel).", code: ["apps/web/src/server/worker.ts", "apps/web/src/server/jobs.ts", "apps/web/src/server/site-data.ts", "apps/web/src/server/lifecycle", "apps/web/src/server/host-report.ts"], env: ["BUILD_SLOTS", "LIFECYCLE_NOW", "A11Y_RENDER", "DOCKER_HOST", "HOST_REPORT_PATH", "APP_SHOTS_SITES"], decisions: ["D-058", "D-148", "D-180", "D-340"] },
   { id: "build", kind: "app", zone: "platform", label: "Build service (Docker)", summary: "\u05E7\u05D5\u05E0\u05D8\u05D9\u05D9\u05E0\u05E8 \u05D7\u05D3\u05E9 \u05DC\u05DB\u05DC \u05E9\u05DC\u05D1, \u05D1\u05DC\u05D9 \u05E1\u05D5\u05D3\u05D5\u05EA. \u05D1\u05D5\u05E0\u05D4 \u05D0\u05EA \u05D4\u05E7\u05D5\u05D3 \u05E9\u05DC \u05D4\u05DC\u05E7\u05D5\u05D7 \u05DC\u05E7\u05D5\u05D1\u05E5 Worker.", summaryEn: "A fresh container for every step, with no secrets. Builds the customer's code into a Worker file.", code: ["apps/web/src/server/build.ts"], env: ["BUILD_MODE"] },
   { id: "postgres", kind: "db", zone: "platform", label: "Postgres", summary: "\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05E9\u05DC\u05E0\u05D5: \u05DE\u05E9\u05EA\u05DE\u05E9\u05D9\u05DD, \u05D0\u05EA\u05E8\u05D9\u05DD, \u05D2\u05E8\u05E1\u05D0\u05D5\u05EA, \u05EA\u05E9\u05DC\u05D5\u05DE\u05D9\u05DD, \u05D1\u05D9\u05E7\u05D5\u05E8\u05D9\u05DD \u05D5\u05D9\u05D5\u05DE\u05DF. \u05D1\u05D9\u05D9\u05E6\u05D5\u05E8 \u05D2\u05D9\u05D1\u05D5\u05D9 pg_dump \u05DC\u05D9\u05DC\u05D9 \u05DC\u05D3\u05DC\u05D9 R2 \u05E0\u05E4\u05E8\u05D3 (14 \u05D9\u05D5\u05DE\u05D9\u05D9\u05DD, 4 \u05E9\u05D1\u05D5\u05E2\u05D9\u05D9\u05DD), \u05DE\u05D5\u05E6\u05E4\u05DF \u05D1\u05BEage, \u05D5\u05DE\u05D2\u05D1\u05D9\u05DD \u05D2\u05DD \u05D9\u05D3\u05E0\u05D9\u05EA \u05DE\u05D0\u05D3\u05DE\u05D9\u05DF, \u05E9\u05E8\u05EA, \u05D2\u05D9\u05D1\u05D5\u05D9\u05D9\u05DD.", summaryEn: "Our database: users, sites, versions, payments, visits and the audit log. In production a nightly pg_dump goes to its own R2 bucket (14 daily, 4 weekly), encrypted with age, plus manual copies from Admin, Server, Backups.", code: ["apps/web/src/server/db/schema.ts", "scripts/backup-db.sh", "apps/web/src/server/backups.ts"], env: ["DATABASE_URL", "BACKUP_S3_ACCESS_KEY_ID", "BACKUP_S3_SECRET_ACCESS_KEY", "BACKUP_AGE_RECIPIENT"], portability: "Our database", docs: ["docs/04-architecture.md", "docs/22-go-live.md", "docs/23-server.md"], decisions: ["D-336", "D-340"] },
   { id: "files", kind: "storage", zone: "platform", label: "Version files", summary: "\u05D0\u05E8\u05DB\u05D9\u05D5\u05E0\u05D9 \u05DE\u05E7\u05D5\u05E8 \u05D5\u05EA\u05D5\u05E6\u05E8\u05D9 \u05D1\u05E0\u05D9\u05D9\u05D4 \u05E9\u05DC \u05DB\u05DC \u05D2\u05E8\u05E1\u05D4, \u05D3\u05E8\u05DA storage.ts \u05D1\u05DC\u05D1\u05D3. \u05D3\u05DC\u05D9 R2 \u05DC\u05DB\u05DC \u05E1\u05D1\u05D9\u05D1\u05D4, \u05D5\u05E0\u05D9\u05E7\u05D5\u05D9 \u05DC\u05D9\u05DC\u05D9 \u05E9\u05DC \u05E7\u05D1\u05E6\u05D9\u05DD \u05E9\u05D0\u05E3 \u05D2\u05E8\u05E1\u05D4 \u05DC\u05D0 \u05DE\u05E9\u05EA\u05DE\u05E9\u05EA \u05D1\u05D4\u05DD. \u05D1\u05D9\u05D9\u05E6\u05D5\u05E8 \u05E9\u05D9\u05E7\u05D5\u05E3 \u05DC\u05D9\u05DC\u05D9 \u05DC\u05D3\u05DC\u05D9 \u05D4\u05D2\u05D9\u05D1\u05D5\u05D9\u05D9\u05DD, \u05EA\u05D7\u05EA files/ (D-473).", summaryEn: "Source archives and build output of every version, through storage.ts only. One R2 bucket per place, and a nightly sweep of files no version uses. In prod a nightly mirror into the backups bucket, under files/ (D-473).", code: ["apps/web/src/server/storage.ts", "apps/web/src/server/storage-sweep.ts", "scripts/mirror-files.sh"], env: ["STORAGE_DIR", "S3_ACCESS_KEY_ID", "S3_SECRET_ACCESS_KEY"], portability: "Version files (uploads and build output)", docs: ["docs/17-portability.md"], decisions: ["D-095", "D-096", "D-316", "D-473"] },
@@ -21832,7 +21832,7 @@ var CLI_MAP_NODES = [
   // The server routes the CLI calls.
   n("api-starts", "server", "GET /api/starts/:id", "\u05D4\u05D1\u05D7\u05D9\u05E8\u05D5\u05EA \u05D5\u05D4\u05D8\u05E7\u05E1\u05D8 \u05DC\u05E1\u05D5\u05DB\u05DF. 7 \u05D9\u05DE\u05D9\u05DD, 5 \u05E9\u05DC\u05D9\u05E4\u05D5\u05EA \u05DC\u05D0\u05EA\u05E8. \u05E9\u05D5\u05E8\u05D4 \u05E9\u05DC \u05D0\u05EA\u05E8 \u05E0\u05E4\u05EA\u05D7\u05EA \u05E8\u05E7 \u05E2\u05DD \u05D4\u05EA\u05D7\u05D1\u05E8\u05D5\u05EA \u05E9\u05DC \u05D4\u05D1\u05E2\u05DC\u05D9\u05DD \u05D0\u05D5 \u05E9\u05DC \u05DE\u05D9 \u05E9\u05D9\u05E9 \u05DC\u05D5 \u05D4\u05E8\u05E9\u05D0\u05EA \u05E2\u05E8\u05D9\u05DB\u05D4.", "The choices and the agent text. 7 days, 5 fetches for a site. A site's line opens only with the login of its owner or an editor."),
   n("api-blocks", "server", "GET /blocks-src/<key>", "\u05E7\u05D5\u05D3 \u05D4\u05DE\u05E7\u05D5\u05E8 \u05E9\u05DC \u05D0\u05D1\u05DF \u05D1\u05E0\u05D9\u05D9\u05DF, \u05E6\u05D9\u05D1\u05D5\u05E8\u05D9.", "A block's source, public."),
-  n("api-migrate-grant", "server", "POST /api/cli/migrations/grant", "\u05D0\u05D7\u05E8\u05D9 link \u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05DE /move: \u05D4\u05EA\u05D5\u05E1\u05E4\u05D9\u05DD \u05D1\u05D7\u05D9\u05E0\u05DD \u05DC\u05D0\u05EA\u05E8 \u05E9\u05E2\u05D1\u05E8, \u05E4\u05E2\u05DD \u05D0\u05D7\u05EA \u05DC\u05DB\u05DC start \u05D5\u05E2\u05D3 3 \u05D0\u05EA\u05E8\u05D9\u05DD \u05DC\u05D7\u05E9\u05D1\u05D5\u05DF.", "After link in a folder from /move: the add-ons free for the moved site, once per start and up to 3 sites an account."),
+  n("api-migrate-grant", "server", "POST /api/cli/migrations/grant", "\u05D0\u05D7\u05E8\u05D9 link \u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05DE /move: \u05D4\u05EA\u05D5\u05E1\u05E4\u05D9\u05DD \u05D1\u05D7\u05D9\u05E0\u05DD \u05DC\u05D0\u05EA\u05E8 \u05E9\u05E2\u05D1\u05E8, \u05E4\u05E2\u05DD \u05D0\u05D7\u05EA \u05DC\u05DB\u05DC start \u05D5\u05E2\u05D3 3 \u05D0\u05EA\u05E8\u05D9\u05DD \u05DC\u05D7\u05E9\u05D1\u05D5\u05DF. \u05DE\u05E2\u05D1\u05E8 \u05DE\u05E0\u05D5\u05D4\u05DC \u05DE\u05E7\u05D1\u05DC \u05DB\u05D0\u05DF \u05D2\u05DD \u05D0\u05EA \u05D4\u05D0\u05EA\u05E8 \u05E9\u05DC\u05D5, \u05E2\u05DD \u05D4\u05DE\u05D1\u05E6\u05E2 \u05D0\u05D5 \u05D1\u05DC\u05E2\u05D3\u05D9\u05D5.", "After link in a folder from /move: the add-ons free for the moved site, once per start and up to 3 sites an account. A managed move also gets its site here, with or without the offer."),
   n("api-migrate-progress", "server", "POST /api/migrations/progress", "\u05DE\u05E2\u05D1\u05E8 \u05DE\u05E0\u05D5\u05D4\u05DC: \u05D4\u05E9\u05DC\u05D1 \u05D5\u05D4\u05E2\u05E8\u05D4 \u05E9\u05DC \u05E9\u05D5\u05E8\u05D4 \u05D0\u05D7\u05EA \u05DE migrate status, \u05DC\u05DC\u05D5\u05D7 \u05D4\u05D1\u05E7\u05E9\u05D5\u05EA \u05D5\u05DC\u05E2\u05DE\u05D5\u05D3 \u05D4\u05E1\u05D8\u05D8\u05D5\u05E1 \u05E9\u05DC \u05D4\u05D1\u05E2\u05DC\u05D9\u05DD.", "Managed move: the stage and a one line note from migrate status, to the requests board and the owner's status page."),
   n("api-samples", "server", "GET /samples-src/<key>", "\u05E7\u05D5\u05D3 \u05D4\u05DE\u05E7\u05D5\u05E8 \u05E9\u05DC \u05D3\u05D5\u05D2\u05DE\u05D4, \u05E6\u05D9\u05D1\u05D5\u05E8\u05D9.", "A sample's source, public."),
   n("api-device", "server", "/api/cli/device/*", "\u05DB\u05E0\u05D9\u05E1\u05D4 \u05D1\u05DE\u05DB\u05E9\u05D9\u05E8: \u05E7\u05D5\u05D3, \u05D0\u05D9\u05E9\u05D5\u05E8 \u05D1\u05D3\u05E4\u05D3\u05E4\u05DF, \u05D8\u05D5\u05E7\u05DF.", "Device login: a code, approval in the browser, a token."),
@@ -22128,6 +22128,8 @@ var BUILD_WITH = [
   // D-616: an icon is part of a finished site, and the command keeps one the site has.
   "Icon: every site has one. npx deployai@latest brand favicon keeps the one it has, or makes one from the site itself: its logo, or the first letter of its name in its own color.",
   "Passwords: bcryptjs or Web Crypto, never native bcrypt.",
+  // D-633: Safari on an iPhone is its own engine, so every site gets these whatever add-ons it has.
+  "iPhone: Safari is its own browser engine, so working in Chrome or on Android proves nothing. Full height sections use svh or dvh, never 100vh. Typing fields are at least 16px, or the page zooms. A video that plays by itself has muted and playsinline. Bars fixed to the bottom pad with env(safe-area-inset-bottom). Nothing needs a hover. Newer CSS and browser features need a working fallback.",
   "Server code runs per request: no long-running processes, background servers or child processes.",
   // D-611: Durable Objects run when the site's own code exports them; D1 stays the default, they cost more for plain data.
   "Data goes in D1 by default. Use a Durable Object only for live state that needs one place to coordinate (a chat room, a live counter, booking slots that must not double-book, presence): export the class from this site's Worker and bind it with a name and class_name in the wrangler config, never script_name. Never remove or rename a class once it is live: that would delete its data, so the upload is refused. A preview starts with empty objects.",
@@ -22611,6 +22613,33 @@ function logoInPage(html) {
     const src = m[0].match(/\ssrc=["']([^"']+)/i)?.[1];
     if (src && !src.startsWith("data:") && /logo/i.test(m[0])) return src;
   }
+  return null;
+}
+
+// ../shared/src/deploy-tools.ts
+var AI_AGENT_NAMES = [
+  [/claude/, "claudeCode"],
+  [/codex/, "codex"],
+  [/cursor/, "cursor"],
+  [/copilot/, "copilot"],
+  [/antigravity/, "antigravity"],
+  [/gemini/, "gemini"],
+  [/opencode/, "opencode"],
+  [/replit/, "replit"]
+];
+function deployToolFromEnv(env) {
+  const named = env.AI_AGENT?.trim().toLowerCase();
+  if (named) return AI_AGENT_NAMES.find(([re]) => re.test(named))?.[1] ?? "other";
+  if (env.CLAUDECODE || env.CLAUDE_CODE) return "claudeCode";
+  if (env.CODEX_SANDBOX || env.CODEX_CI || env.CODEX_THREAD_ID) return "codex";
+  if (env.GEMINI_CLI) return "gemini";
+  if (env.ANTIGRAVITY_AGENT) return "antigravity";
+  if (env.OPENCODE === "1" || env.OPENCODE_CLIENT) return "opencode";
+  if (env.CURSOR_AGENT || env.CURSOR_EXTENSION_HOST_ROLE === "agent-exec") return "cursor";
+  if (env.AUGMENT_AGENT) return "other";
+  if (env.COPILOT_MODEL || env.COPILOT_ALLOW_ALL) return "copilot";
+  if (env.REPL_ID) return "replit";
+  if (env.CURSOR_TRACE_ID) return "cursor";
   return null;
 }
 
@@ -23203,7 +23232,7 @@ function messages(root) {
 }
 
 // src/version.ts
-var CLI_VERSION = "0.1.0-beta.20";
+var CLI_VERSION = "0.1.0-beta.22";
 
 // src/api.ts
 function apiContext(apiFlag) {
@@ -23377,7 +23406,8 @@ var TELEMETRY_SENT = [
   "After each check: compatible or not, blocker and warning codes (for example fs_write)",
   "OS, architecture and Node version (in the request header)",
   "Your user id, only after login (from the login token), and only to the API that issued the login (D-557)",
-  "After a failed version, the one sentence you pass with deploy --fixed (what you changed, no code)"
+  "After a failed version, the one sentence you pass with deploy --fixed (what you changed, no code)",
+  "With each deploy, which AI tool ran it (for example Claude Code or Codex), when the environment says so"
 ];
 var TELEMETRY_NEVER_SENT = [
   "Source code or file contents",
@@ -25543,6 +25573,10 @@ async function prepare(root, ctx, maxBytes) {
   }
   return { archive, info, hasSql: plan.files.some((f) => SQL_FILE.test(f.rel) && !f.rel.includes("node_modules/")) };
 }
+function addTool(form, ctx) {
+  const tool = telemetryEnabled(ctx.config) ? deployToolFromEnv(process.env) : null;
+  if (tool) form.append("tool", tool);
+}
 async function deployVersion(root, ctx, opts, guest) {
   requireToken(ctx);
   const project = readProject(root);
@@ -25563,6 +25597,7 @@ async function deployVersion(root, ctx, opts, guest) {
   form.append("message", message);
   const fixed = (opts.fixed ?? "").replace(/\s+/g, " ").trim().slice(0, 300);
   if (fixed && telemetryEnabled(ctx.config)) form.append("fixNote", fixed);
+  addTool(form, ctx);
   form.append("archive", new Blob([new Uint8Array(archive)], { type: "application/gzip" }), "source.tar.gz");
   const res = await apiRequest(ctx, "/api/cli/deploy", DeployResponse, { method: "POST", form, timeoutMs: 5 * 6e4 });
   out();
@@ -25676,6 +25711,7 @@ async function deployGuest(root, ctx, opts) {
   out(t("uploading"));
   const form = new FormData();
   form.append("message", message);
+  addTool(form, ctx);
   form.append("archive", new Blob([new Uint8Array(archive)], { type: "application/gzip" }), "source.tar.gz");
   const res = await apiRequest(ctx, "/api/cli/guest", GuestResponse, { method: "POST", form, auth: false, timeoutMs: 5 * 6e4 });
   updateConfig({ guestTokens: { ...ctx.config.guestTokens ?? {}, [res.projectId]: res.token }, guestClaims: { ...ctx.config.guestClaims ?? {}, [res.projectId]: res.claimUrl } });
