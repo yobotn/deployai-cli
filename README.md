@@ -50,7 +50,7 @@ Node 20 or newer. No other setup: the CLI talks to https://deployai.co.il.
 | `deployai rollback v5` | Puts version 5 back live, with no rebuild. |
 | `deployai promote v5` | Puts version 5 live. New database changes (SQL) are shown and run first, after a yes; SQL that removes data needs the database name typed. An agent passes `--approve-sql <code>` only after the owner said yes, and never for SQL that removes data. |
 | `deployai sql v5` | The database changes version 5 runs before it goes live. |
-| `deployai status` | Site state, address, live version, the newest version when it is not live yet (with the promote command once it is ready), and queue. |
+| `deployai status` | Site state, address, live version, the newest version when it is not live yet (with the promote command once it is ready), and queue. When the live site is closed to the country you run this from, it says so and how to open it, or to use a VPN. |
 | `deployai deploy --guest` | No login needed: puts the site live as a temporary site with a claim link. More below. |
 | `deployai pull` | Downloads the code of the linked site's live version into this empty folder. Needs login. |
 | `deployai pull --history` | The same, with the site's history as git commits, one per version up to the live one, oldest first. |
@@ -65,9 +65,9 @@ Node 20 or newer. No other setup: the CLI talks to https://deployai.co.il.
 | `deployai samples [name] [folder]` | Lists the six sample sites, or downloads one. More below. |
 | `deployai start <id>` | The one line copied on the DeployAI site. Prepares this folder, then prints the steps for your agent. A site's line logs in first; a temporary site needs no login. More below. |
 | `deployai speed <url>` | Google PageSpeed test of a page: lab results, real visitor data when Google has it and the biggest opportunities. `--desktop` tests a desktop load. |
-| `deployai addons` | The marketplace add-ons of the linked site: which it has, which are done and which is next. Works once the DeployAI marketplace is open; the server checks that the site has each add-on. |
+| `deployai addons` | The marketplace add-ons of the linked site: which it has, which are done and which is next. The server checks that the site has each add-on. It runs what the site has even before the marketplace opens. |
 | `deployai addon next` | Prints the next add-on of the site for your agent. `deployai addon run <name>` prints one by name. |
-| `deployai addons run` | Runs every add-on the site has that is not done, in the run order, with no ask between them. The owner still approves each plan. |
+| `deployai addons run` | With more than one add-on waiting, prints a question for the owner. `--one-by-one` (recommended): after each add-on, the owner chooses whether to publish. `--all`: they all finish first, then one publish at the end. The owner still approves each plan. |
 | `deployai addon done <runId>` | Saves the report of a finished add-on (`--status done\|failed\|skipped`, `--report .deployai/addon-report.json`) and prints the next one. |
 | `deployai telemetry status\|on\|off` | Shows exactly what is sent, or turns it on or off. |
 

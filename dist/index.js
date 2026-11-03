@@ -21315,7 +21315,9 @@ var StatusResponse = external_exports.object({
     goingLive: external_exports.boolean().optional(),
     /** The go live check found it broken and the previous version came back (D-297, D-528). */
     wentBack: external_exports.object({ previous: external_exports.number(), reason: external_exports.string() }).nullable().optional()
-  }).nullable().optional()
+  }).nullable().optional(),
+  /** The live site's country rule shuts out the country this call came from (D-682). `settingsUrl` is null when only the owner can change it. */
+  closedHere: external_exports.object({ country: external_exports.string(), countries: external_exports.array(external_exports.string()), settingsUrl: external_exports.string().nullable() }).nullable().optional()
 });
 var ApiError = external_exports.object({
   error: external_exports.string(),
@@ -21331,6 +21333,8 @@ var AddonItem = external_exports.object({
   name: external_exports.string(),
   owned: external_exports.boolean(),
   status: AddonRunStatus,
+  /** Its work no longer matches the live site (D-683); status is then todo. */
+  outdated: external_exports.boolean().optional(),
   lastRunAt: external_exports.string().nullable(),
   /** Null when owned. */
   buyUrl: external_exports.string().nullable()
@@ -21653,6 +21657,17 @@ var ARCH_FLOWS = [
   }
 ];
 
+// ../shared/src/domain-sales.ts
+var IL_TLDS = ["co.il", "org.il", "net.il"];
+var DEFAULT_LIVEDNS_POINTS = { 5: 9100, 10: 8900, 20: 8700, 50: 8500, 100: 8200 };
+var pointCost = (points, pack) => Math.round(points[pack] / (1 + VAT_RATE));
+var DEFAULT_DOMAIN_REGISTRARS = {
+  cloudflare: { enabled: true, feeRate: 0.03, maxUsdCentsPerDay: 1e4 },
+  livedns: { enabled: true, feeRate: 0.01, pack: 5, costAgorot: pointCost(DEFAULT_LIVEDNS_POINTS, 5) },
+  manual: { enabled: true, feeRate: 0.01, costAgorot: 7500 }
+};
+var LIVEDNS_TLDS = [...IL_TLDS, "com", "net", "org"];
+
 // ../shared/src/cost-model.ts
 var DEFAULT_FLEET = {
   mix: { basic: 0.65, business: 0.3, agency: 0.05 },
@@ -21809,6 +21824,7 @@ var PLAN_FEATURES = [
   { key: "pageViews", limit: "maxPageViewsMonth" },
   { key: "deploys", limit: "maxDeploysDay" },
   { key: "emails", limit: "maxEmailsMonth" },
+  { key: "domainEmail", limit: "includedEmailDomains" },
   { key: "versions", limit: "maxVersionsMb" },
   { key: "helpDeploys" },
   { key: "helpEmail" },
@@ -21826,6 +21842,7 @@ var MIGRATION_DIR = ".deployai/migration";
 var BRIEF_FILE = ".deployai/brief.md";
 var CHECK = { cmd: "npx deployai@latest check", say: "Fix every blocker it lists, then run it again until it shows none." };
 var DEPLOY_ASK_RULE = 'Never deploy on your own, and never after each small edit: every deploy is a full build. Deploy only when what the owner asked for is done. Then say in short what changed and ask: "Put it live, see a preview first, or not yet?" Put it live: deploy with --live. Preview first: deploy without it and send the owner the preview address. Not yet: keep working, and the next change goes up in the same deploy. If the owner said to always put changes live, deploy with --live without asking. Database changes still get their own yes.';
+var ASK_OWNER_RULE = "When a question to the owner has set answers, use your tool's own question feature with clickable choices if it has one, for example AskUserQuestion in Claude Code, AskQuestion in Cursor, askQuestions in Copilot in VS Code, or request_user_input in Codex. Use the owner's language, with each answer as its own choice. If your tool has no such feature, or it is refused or fails, ask the same question once in plain text and go on. Never change a mode or a setting to get it. A yes or no question has set answers too. A question about going live names the site and its address when you know it, and says anyone will be able to see it, so the owner's answer is about this exact site (D-691). Open details, like a phone number or hours, stay in plain text, in one short list.";
 var ASK = { say: DEPLOY_ASK_RULE };
 var GUEST_ASK = { say: 'Deploy only when what the owner asked for is done. Say in short what you made and ask: "Put it up now, or not yet?" On Not yet, keep working and ask again when the next request is done.' };
 var FAVICON = { cmd: "npx deployai@latest brand favicon", say: "Gives the site an icon if it has none, made from the site itself: the old site's icon, else its logo, else the first letter of its name in its own color. Add the head lines it prints to every page. It changes nothing when the site has an icon." };
@@ -21833,7 +21850,7 @@ var LOGIN = { cmd: "npx deployai@latest login", say: "The owner approves it in t
 var PROMOTE = { cmd: "npx deployai@latest promote v<N>", say: "Only when deploy ran without --live, and only after the owner approves the preview. N is the version number deploy printed. Then give the owner the live address." };
 var DEPLOY_SAY = "Add --live only if the owner chose to put it live right away. It waits for the build: with --live it ends with the live address, else with the preview address to send the owner. When it prints database changes, a yes to going live does not cover them (D-541): show the owner the changes and ask the question it prints, and only after a yes run the promote --approve-sql command it printed; changes it says remove data only the owner approves, never you. Write the -m message in a few words in the language of the owner, about what they see changed.";
 var BUILD = { say: "This folder had no site, so start wrote a starter page. Do not ask where the site comes from or which way to start: build a first version of the owner's site in its place now. Use what you know (the instructions above, .deployai/brief.md if it exists, the folder name) and choose the layout, colors and wording yourself. Ask at most one short question, and only if you cannot tell what the site is for. Leave out what you do not know (phone, prices, hours) instead of asking for it. Then show it to the owner and offer to add those details. Run check only after that." };
-var ADDONS_RUN = { cmd: "npx deployai@latest addons run", say: "Runs every add-on of the site in one go. Work through each step it prints, run check between add-ons, and report each one as it says." };
+var ADDONS_RUN = { cmd: "npx deployai@latest addons run", say: "With more than one add-on waiting, it prints a question: one by one (recommended) or all at once. Ask the owner, run the command for their answer, work through each step it prints, and report each add-on as it says." };
 var MIGRATE_STEPS = [
   { cmd: "npx deployai@latest blocks inbox", say: "Only if the old site has a contact or quote form: the form with its own messages page for the owner." },
   { cmd: "npx deployai@latest blocks blog", say: "Only if the old site has posts, news or articles: the blog, with the posts as Markdown files." },
@@ -21842,22 +21859,37 @@ var MIGRATE_STEPS = [
   { cmd: "npx deployai@latest brand images <the old site address> <one address of each kind of page>", say: "Measures every image against where it shows and changes nothing. Add each weak one to .deployai/migration/plan.md as Needs me, with what it shows. A move keeps the images as they are: only the owner chooses to replace one, and a photo of a real person, product or place is never replaced with a made up one." },
   { ...CHECK },
   LOGIN,
-  { cmd: 'npx deployai@latest link --create "<the site name>"', say: "Makes the site in the owner's account and links this folder. The add-ons come with it for free while the offer lasts." },
+  { cmd: 'npx deployai@latest link --create "<the site name>"', say: "Makes the site in the owner's account and links this folder. The add-ons come with it for free while the offer lasts. Do not run them now: the last step offers them, once the move is done." },
   { cmd: 'npx deployai@latest deploy -m "moved from the old site"', say: "Without --live: the first version of a moved site is always a preview. It waits for the build and prints the preview address." },
-  { cmd: "npx deployai@latest migrate verify <preview address>", say: "Compares every old address with the preview: a page that moved, lost its title or description, or does not open. Fix each one, deploy again and run it again until it lists none." },
-  ADDONS_RUN,
+  { cmd: "npx deployai@latest migrate verify <preview address>", say: "Compares every old address with the preview: a page that moved, lost its title or description, or does not open, and any credit to a site builder still on it. Fix each one, deploy again and run it again until it lists none. A credit the owner asked to keep is the only one that may stay: say so in .deployai/migration/plan.md." },
   { say: 'Send the owner the preview address and the table from .deployai/migration/plan.md. Ask: "Put it live now, or change something first?" Deploy again for each change.' },
   PROMOTE,
   { say: "Only after it is live: tell the owner how to connect their domain in the dashboard (Domains), to keep their email records (MX) as they are, and to keep the old hosting for a few weeks before they cancel it." }
 ];
+var MOVE_ADDONS = { cmd: "npx deployai@latest addons", say: 'The move is done, so offer the second part: the free add-ons. This lists the ones this site has; never offer the ones to buy here. If none is waiting, finish. Else tell the owner in one short line what the waiting ones add, in plain words, and ask once: "Your site moved. Go on to the free add-ons?" with three answers. One by one (recommended): run npx deployai@latest addons run --one-by-one, and after each add-on the owner chooses whether to publish. All at once: run npx deployai@latest addons run --all, with one publish at the end. Not now: finish here, and tell them the add-ons stay with this site, on its page in the dashboard, with no time limit. Never start an add-on without their answer.' };
 var managedStatus = (stage, note, say) => ({ cmd: `npx deployai@latest migrate status ${stage} "${note}"`, say });
+var stepWith = (part) => MIGRATE_STEPS.find((step) => step.cmd?.includes(part));
 var MANAGED_STEPS = [
   managedStatus("building", "<what is done>", "First, once the plan in .deployai/migration/plan.md is agreed: the request shows the build started."),
-  ...MIGRATE_STEPS.slice(0, 11).filter((step) => step !== ADDONS_RUN),
+  stepWith("migrate media"),
+  { say: "A first look, before the rest of the site: build the real home page now, as step 3 says, with the owner's logo, colors, photos and words from the scan, and only the contact details found there. Its menu and buttons lead only to what already works on this one page; leave the rest out for now. Never write coming soon or under construction." },
+  FAVICON,
+  CHECK,
+  LOGIN,
+  stepWith("link --create"),
+  { cmd: 'npx deployai@latest deploy -m "first look"', say: "Never with --live, and do not ask first: this one deploy is a private preview that visitors and Google do not see, and the old site and its domain stay as they are. It waits for the build and prints the preview address. Deploy it once, not for each small fix. If it fails and you cannot fix it soon, skip the next step and go on: the full preview is what the owner approves." },
+  managedStatus("first_look", "<preview address>", "The owner gets one email that leads to this private link. Then build the rest of the site with the steps below."),
+  stepWith("blocks inbox"),
+  stepWith("blocks blog"),
+  stepWith("brand images"),
+  CHECK,
+  stepWith("moved from the old site"),
+  managedStatus("first_look", "<the new preview address>", "A site keeps one preview, so this deploy ended the old link. Report the new one, and again after any deploy below, until preview_ready. It sends no second email."),
+  stepWith("migrate verify"),
   managedStatus("preview_ready", "<preview address>", "The owner gets an email with the preview address."),
-  ...MIGRATE_STEPS.slice(11, 13),
+  ...MIGRATE_STEPS.slice(10, 12),
   managedStatus("live", "<live address>", "Only after it is live. Then the team transfers the site to the owner."),
-  ...MIGRATE_STEPS.slice(13)
+  ...MIGRATE_STEPS.slice(12)
 ];
 var PULL = { cmd: "npx deployai@latest pull", say: "This folder was empty, so it downloads the code of the live site first. Work on that code." };
 function startSteps(kind, opts = {}) {
@@ -21883,7 +21915,7 @@ function stepsOf(kind, opts) {
         PROMOTE
       ];
     case "migrate":
-      return (opts.managed ? MANAGED_STEPS : MIGRATE_STEPS).map((step) => ({ ...step }));
+      return (opts.managed ? MANAGED_STEPS : [...MIGRATE_STEPS, MOVE_ADDONS]).map((step) => ({ ...step }));
     case "guest":
       return [
         ...opts.starter ? [BUILD] : [],
@@ -21898,7 +21930,7 @@ function stepsOf(kind, opts) {
   }
 }
 var allowCommandsUrl = (lang = "he") => `${HELP_ORIGIN}${lang === "he" ? "" : "/en"}/go-live#allow`;
-var runCommandsRule = (lang = "he") => `Run every npx deployai@latest command yourself. If your tool asks before it runs one, ask the owner one short yes or no question that names the command, for example "Run npx deployai@latest check? (yes or no)", and run it when they say yes. Never ask the owner to copy, paste or type a command. After the first command runs, ask the owner once: "Allow DeployAI commands in this folder without asking each time? (yes or no)", and only on yes run npx deployai@latest allow (add your tool's name if it asks: claude-code, cursor, copilot, codex or antigravity). Never change your tool's settings any other way. If it is still blocked after their yes, tell them in plain words and send them ${allowCommandsUrl(lang)}, which shows them the one setting that allows it.`;
+var runCommandsRule = (lang = "he") => `Run every npx deployai@latest command yourself. If your tool shows the owner its own approval for a command, that approval is the question, so do not ask again. If it needs approval and shows the owner nothing, ask the owner one short yes or no question that names the command, for example "Run npx deployai@latest check?", and run it when they say yes. Never ask the owner to copy, paste or type a command. Right after the first command runs, before any other work, ask the owner once, unless your tool already allows our commands here: "Let your coding tool run DeployAI commands in this folder without asking each time? It adds one allow rule for npx deployai@latest to the tool's settings in this folder. Going live still waits for your answer." Only on yes run npx deployai@latest allow (add your tool's name if it asks: claude-code, cursor, copilot, codex or antigravity). Either way go on without stopping, and do not ask again. Never change your tool's settings any other way. If a command is still blocked after their yes, also by a safety check of your tool, never retry it, change it or run it another way. Say in plain words what was stopped, send them ${allowCommandsUrl(lang)}, which shows how to approve it in their tool, and ask: "Your coding tool stopped this step. I approved it, or not yet?" If the stopped command was a deploy with --live, also offer a preview first. On I approved it, try once more.`;
 var START_FAIL_LINE = "If anything fails, tell the owner in plain words what happened and what you will do next.";
 
 // ../shared/src/cli-map.ts
@@ -21911,7 +21943,7 @@ var CLI_MAP_NODES = [
   n("page-site", "site", "/project/<id>", "\u05E2\u05DE\u05D5\u05D3 \u05D4\u05D0\u05EA\u05E8: \u05E9\u05D5\u05E8\u05EA \u05D4\u05EA\u05D7\u05DC\u05D4 \u05E2\u05D3 \u05D4\u05D2\u05E8\u05E1\u05D4 \u05D4\u05E8\u05D0\u05E9\u05D5\u05E0\u05D4, \u05D5\u05D0\u05D7\u05E8\u05D9\u05D4 \u05E9\u05D5\u05E8\u05EA \u05E2\u05D3\u05DB\u05D5\u05DF.", "The site page: a new site line until the first version, then an update line."),
   n("page-move-url", "site", "/move", "\u05D4\u05E2\u05D1\u05D9\u05E8\u05D5 \u05D0\u05EA \u05D4\u05D0\u05EA\u05E8 \u05E9\u05DC\u05D9: \u05DB\u05EA\u05D5\u05D1\u05EA \u05D4\u05D0\u05EA\u05E8 \u05D4\u05D9\u05E9\u05DF, \u05D4\u05E4\u05DC\u05D8\u05E4\u05D5\u05E8\u05DE\u05D4, \u05E1\u05D5\u05D2 \u05D4\u05D0\u05EA\u05E8 \u05D5\u05D4\u05E2\u05D9\u05E6\u05D5\u05D1. \u05D4 id \u05E0\u05D5\u05E9\u05D0 \u05D0\u05EA \u05DB\u05D5\u05DC\u05DD.", "Move my site: the old site address, the platform, the kind of site and the design. The id carries them all."),
   n("page-addons", "site", "/project/<id>/addons", "\u05D4\u05E8\u05E6\u05EA \u05EA\u05D5\u05E1\u05E4\u05D9\u05DD: \u05E9\u05D5\u05E8\u05D4 \u05E9\u05DE\u05E8\u05D9\u05E6\u05D4 \u05D0\u05EA \u05D4\u05EA\u05D5\u05E1\u05E4\u05D9\u05DD \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8, \u05D2\u05DD \u05DE\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05E8\u05D9\u05E7\u05D4.", "Run add-ons: a line that runs the site's add-ons, from an empty folder too."),
-  n("page-refresh", "site", "/project/<id>/refresh", "\u05E8\u05E2\u05E0\u05D5\u05DF \u05D4\u05E2\u05D9\u05E6\u05D5\u05D1: \u05E9\u05D5\u05E8\u05D4 \u05DC\u05E2\u05D9\u05E6\u05D5\u05D1 \u05D7\u05D3\u05E9 \u05DC\u05D0\u05EA\u05E8 \u05D7\u05D9, \u05DE\u05EA\u05D5\u05DA \u05D4\u05D0\u05EA\u05E8\u05D9\u05DD \u05E9\u05DC\u05D9.", "Freshen it up: a line for a new look on a live site, from My sites."),
+  n("page-refresh", "site", "/project/<id>/refresh", "\u05E8\u05E2\u05E0\u05D5\u05DF \u05D4\u05E2\u05D9\u05E6\u05D5\u05D1: \u05E9\u05D5\u05E8\u05D4 \u05DC\u05E2\u05D9\u05E6\u05D5\u05D1 \u05D7\u05D3\u05E9 \u05DC\u05D0\u05EA\u05E8 \u05D7\u05D9, \u05DE\u05EA\u05D5\u05DA \u05D4\u05D0\u05EA\u05E8\u05D9\u05DD \u05E9\u05DC\u05D9.", "Freshen it up, hidden for now (D-663): a line for a new look on a live site."),
   n("page-move", "site", "/dashboard", "\u05D9\u05E9 \u05DC\u05D9 \u05DB\u05D1\u05E8 \u05D0\u05EA\u05E8: \u05E9\u05D5\u05E8\u05D4 \u05DC\u05D4\u05E2\u05D1\u05E8\u05EA \u05D4\u05D0\u05EA\u05E8 \u05E9\u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4.", "I already have a site: a line to move the site in the folder."),
   // The CLI: every command (packages/cli/src/cli.ts).
   n("cmd-start", "cli", "start <id>", "\u05DE\u05DB\u05D9\u05DF \u05D0\u05EA \u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05DC\u05E4\u05D9 \u05DB\u05DC \u05D4\u05D1\u05D7\u05D9\u05E8\u05D5\u05EA: \u05EA\u05D9\u05E7\u05D9\u05D9\u05D4, \u05D3\u05D5\u05D2\u05DE\u05D4 \u05D5\u05D4\u05EA\u05E7\u05E0\u05D4, \u05E7\u05D5\u05D1\u05E5 \u05D4\u05E4\u05E8\u05D8\u05D9\u05DD \u05D5\u05D7\u05D9\u05D1\u05D5\u05E8 \u05DC\u05D0\u05EA\u05E8. \u05DE\u05D3\u05E4\u05D9\u05E1 \u05DC\u05E1\u05D5\u05DB\u05DF \u05D0\u05EA \u05D4\u05D8\u05E7\u05E1\u05D8 \u05D5\u05D0\u05EA \u05D4\u05E4\u05E7\u05D5\u05D3\u05D5\u05EA.", "Prepares the folder with every choice: folder, sample and install, the details file and the site link. Prints the text and the commands for the agent."),
@@ -21968,7 +22000,8 @@ var CLI_MAP_NODES = [
   n("text-update", "agent", "site.update", "\u05E2\u05D5\u05E9\u05D9\u05DD \u05D0\u05EA \u05D4\u05E9\u05D9\u05E0\u05D5\u05D9 \u05E9\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D1\u05D9\u05E7\u05E9.", "Make the change the owner asked for."),
   n("text-refresh", "agent", "site.refresh", "\u05E2\u05D9\u05E6\u05D5\u05D1 \u05D7\u05D3\u05E9 \u05DC\u05D0\u05EA\u05E8 \u05D7\u05D9: \u05DB\u05DC \u05E2\u05DE\u05D5\u05D3, \u05DB\u05EA\u05D5\u05D1\u05EA, \u05DE\u05D9\u05DC\u05D4 \u05D5\u05DE\u05D5\u05EA\u05D2 \u05E0\u05E9\u05D0\u05E8\u05D9\u05DD, \u05EA\u05E6\u05D5\u05D2\u05D4 \u05DE\u05E7\u05D3\u05D9\u05DE\u05D4 \u05DC\u05E4\u05E0\u05D9 \u05E9\u05E2\u05D5\u05DC\u05D4.", "A new look for a live site: every page, address, word and the brand stay, a preview before it goes live."),
   n("text-run-addons", "agent", "site.addons", "\u05DE\u05E8\u05D9\u05E6\u05D9\u05DD \u05D0\u05EA \u05D4\u05EA\u05D5\u05E1\u05E4\u05D9\u05DD \u05E9\u05DC \u05D0\u05EA\u05E8 \u05D7\u05D9, \u05D0\u05D7\u05D3 \u05D0\u05D7\u05E8\u05D9 \u05D4\u05E9\u05E0\u05D9: \u05D4\u05D0\u05EA\u05E8 \u05E0\u05E9\u05D0\u05E8 \u05DB\u05DE\u05D5 \u05E9\u05D4\u05D5\u05D0 \u05E2\u05D3 \u05E9\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05DE\u05D0\u05E9\u05E8.", "Run a live site's add-ons one by one: the site stays as it is until the owner approves."),
-  n("text-migrate", "agent", "site.migrate", "\u05D1\u05D5\u05E0\u05D9\u05DD \u05DE\u05D7\u05D3\u05E9 \u05D0\u05EA \u05D4\u05D0\u05EA\u05E8 \u05D4\u05D9\u05E9\u05DF \u05E2\u05DC \u05D4\u05D3\u05D5\u05D2\u05DE\u05D4, \u05E9\u05D5\u05DE\u05E8\u05D9\u05DD \u05DB\u05DC \u05DB\u05EA\u05D5\u05D1\u05EA \u05D5\u05DB\u05D5\u05EA\u05E8\u05EA, \u05EA\u05D5\u05DB\u05E0\u05D9\u05EA \u05E2\u05DD \u05E1\u05D8\u05D8\u05D5\u05E1 \u05DC\u05DB\u05DC \u05D9\u05DB\u05D5\u05DC\u05EA.", "Rebuild the old site on the sample, keep every address and title, a plan with a status for each feature."),
+  n("text-migrate-keep", "agent", "site.migrate-keep", "\u05D1\u05E8\u05D9\u05E8\u05EA \u05D4\u05DE\u05D7\u05D3\u05DC: \u05DE\u05E2\u05D1\u05D9\u05E8\u05D9\u05DD \u05D0\u05EA \u05D4\u05D0\u05EA\u05E8 \u05D4\u05D9\u05E9\u05DF \u05DB\u05DE\u05D5 \u05E9\u05D4\u05D5\u05D0, \u05E2\u05DD \u05D4\u05E2\u05D9\u05E6\u05D5\u05D1 \u05D5\u05D4\u05E1\u05E7\u05E8\u05D9\u05E4\u05D8\u05D9\u05DD \u05E9\u05DC\u05D5, \u05D5\u05DE\u05E9\u05D5\u05D5\u05D9\u05DD \u05E6\u05D9\u05DC\u05D5\u05DE\u05D9 \u05DE\u05E1\u05DA. \u05DE\u05E0\u05E7\u05D9\u05DD \u05E8\u05E7 \u05DE\u05D4 \u05E9\u05DE\u05D1\u05E7\u05E8 \u05DC\u05D0 \u05E8\u05D5\u05D0\u05D4.", "The default: move the old site exactly as it is, with its own front end, and compare screenshots. Clean up only what a visitor cannot see."),
+  n("text-migrate", "agent", "site.migrate", "\u05D1\u05E0\u05D9\u05D9\u05D4 \u05DE\u05D7\u05D3\u05E9, \u05E8\u05E7 \u05DB\u05E9\u05D4\u05E6\u05D5\u05D5\u05EA \u05D1\u05D7\u05E8 \u05D1\u05D6\u05D4 \u05D1\u05D1\u05E7\u05E9\u05EA \u05D4\u05E2\u05D1\u05E8\u05D4: \u05D1\u05D5\u05E0\u05D9\u05DD \u05DE\u05D7\u05D3\u05E9 \u05D0\u05EA \u05D4\u05D0\u05EA\u05E8 \u05D4\u05D9\u05E9\u05DF \u05E2\u05DC \u05D4\u05D3\u05D5\u05D2\u05DE\u05D4, \u05E9\u05D5\u05DE\u05E8\u05D9\u05DD \u05DB\u05DC \u05DB\u05EA\u05D5\u05D1\u05EA \u05D5\u05DB\u05D5\u05EA\u05E8\u05EA, \u05EA\u05D5\u05DB\u05E0\u05D9\u05EA \u05E2\u05DD \u05E1\u05D8\u05D8\u05D5\u05E1 \u05DC\u05DB\u05DC \u05D9\u05DB\u05D5\u05DC\u05EA.", "Rebuild the old site on the sample, keep every address and title, a plan with a status for each feature."),
   n("text-move", "agent", "site.move", "\u05DE\u05E2\u05D1\u05D9\u05E8\u05D9\u05DD \u05D0\u05EA\u05E8 \u05E7\u05D9\u05D9\u05DD \u05D1\u05DC\u05D9 \u05DC\u05E9\u05E0\u05D5\u05EA \u05D0\u05EA \u05D4\u05E2\u05D9\u05E6\u05D5\u05D1 \u05D0\u05D5 \u05D4\u05DE\u05E1\u05D2\u05E8\u05EA.", "Move an existing site without changing its design or framework."),
   n("text-guest", "agent", "site.guest / site.guest-sample", "\u05D0\u05EA\u05E8 \u05D6\u05DE\u05E0\u05D9: \u05D4\u05DE\u05D2\u05D1\u05DC\u05D5\u05EA, \u05D5\u05DE\u05D4 \u05DC\u05E9\u05D0\u05D5\u05DC \u05D0\u05EA \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8.", "A temporary site: the limits, and what to ask the owner."),
   n("text-addons", "agent", "core.workflow-frame", "\u05D4\u05DE\u05E1\u05D2\u05E8\u05EA \u05E9\u05DC \u05DB\u05DC \u05EA\u05D5\u05E1\u05E3. \u05D4\u05EA\u05D5\u05E1\u05E4\u05D9\u05DD \u05E2\u05E6\u05DE\u05DD \u05D1\u05E2\u05DE\u05D5\u05D3 \u05D4\u05EA\u05D5\u05E1\u05E4\u05D9\u05DD.", "The frame of every add-on. The add-ons themselves are on the marketplace page.")
@@ -22015,6 +22048,7 @@ var CLI_MAP_EDGES = [
   e("cmd-rollback", "api-promote"),
   e("cmd-start", "cmd-brand"),
   e("page-move-url", "cmd-start"),
+  e("cmd-start", "text-migrate-keep"),
   e("cmd-start", "text-migrate"),
   e("cmd-start", "cmd-migrate"),
   e("cmd-blocks", "api-blocks"),
@@ -22026,17 +22060,6 @@ var CLI_MAP_EDGES = [
   e("cmd-speed", "api-speed"),
   e("cmd-env", "api-env")
 ];
-
-// ../shared/src/domain-sales.ts
-var IL_TLDS = ["co.il", "org.il", "net.il"];
-var DEFAULT_LIVEDNS_POINTS = { 5: 9100, 10: 8900, 20: 8700, 50: 8500, 100: 8200 };
-var pointCost = (points, pack) => Math.round(points[pack] / (1 + VAT_RATE));
-var DEFAULT_DOMAIN_REGISTRARS = {
-  cloudflare: { enabled: true, feeRate: 0.03, maxUsdCentsPerDay: 1e4 },
-  livedns: { enabled: true, feeRate: 0.01, pack: 5, costAgorot: pointCost(DEFAULT_LIVEDNS_POINTS, 5) },
-  manual: { enabled: true, feeRate: 0.01, costAgorot: 7500 }
-};
-var LIVEDNS_TLDS = [...IL_TLDS, "com", "net", "org"];
 
 // ../shared/src/env-scopes.ts
 var ENV_KEYS = {
@@ -22192,7 +22215,7 @@ var BUILD_WITH = [
   // D-616: an icon is part of a finished site, and the command keeps one the site has.
   "Icon: every site has one. npx deployai@latest brand favicon keeps the one it has, or makes one from the site itself: its logo, or the first letter of its name in its own color.",
   // D-661: the site carries its owner's name. Our badge comes with the Free plan, so nothing here may hide it (D-179).
-  `Footer: the site carries its own name, not its builder's. No "Built with" or "Powered by" credit for a platform or tool. Use \xA9 <year> <name>, with a year that follows the date. Keep a credit a template's license requires. Never remove or hide the DeployAI badge: the hosting adds it on the Free plan, and a paid plan removes it.`,
+  `Footer: the site carries its own name, not its builder's. No "Built with" or "Powered by" credit for a platform or tool. Use \xA9 <year> <name>, with a year that follows the date. Ask the owner, Remove or Keep, about a credit to a real designer or agency. Keep a credit a template's license requires. Never remove or hide the DeployAI badge: the hosting adds it on the Free plan, and a paid plan removes it.`,
   "Passwords: bcryptjs or Web Crypto, never native bcrypt.",
   // D-633: Safari on an iPhone is its own engine, so every site gets these whatever add-ons it has.
   "iPhone: Safari is its own browser engine, so working in Chrome or on Android proves nothing. Full height sections use svh or dvh, never 100vh. Typing fields are at least 16px, or the page zooms. A video that plays by itself has muted and playsinline. Bars fixed to the bottom pad with env(safe-area-inset-bottom). Nothing needs a hover. Newer CSS and browser features need a working fallback.",
@@ -22421,7 +22444,7 @@ ${t.join("\n")}` : "tags: []",
     return { file: file2, text: front + (p.content?.rendered ?? "").replace(sameHost, "").trim() + "\n" };
   });
 }
-var AGENT_STAGES = ["scanning", "building", "preview_ready", "customer_review", "live", "blocked"];
+var AGENT_STAGES = ["scanning", "building", "first_look", "preview_ready", "customer_review", "live", "blocked"];
 var STAGE_NOTE_MAX = 300;
 var isAgentStage = (s) => AGENT_STAGES.includes(s);
 var stageNote = (s) => (s ?? "").replace(/[\u0000-\u001f\u007f]+/g, " ").replace(/\s+/g, " ").trim().slice(0, STAGE_NOTE_MAX);
@@ -22681,6 +22704,33 @@ function logoInPage(html) {
   }
   return null;
 }
+var NOT_WORD_BEFORE = "(?<![\\p{L}\\p{N}])";
+var NOT_WORD_AFTER = "(?![\\p{L}\\p{N}])";
+var BUILDER_NAMES = "wix(?:\\.com)?|squarespace|wordpress(?:\\.(?:com|org))?|webflow|shopify|woocommerce|weebly|godaddy|jimdo|elementor|wpbakery|divi|lovable|bolt(?:\\.new)?|v0|replit|base44|manus|framer|astro|next\\.?js|nuxt|gatsby|hostinger|vercel|netlify|cloudflare|github\\s+pages|durable|site123|mobirise|duda|webnode|ucraft|tilda|carrd|bluehost|hostgator|cursor|claude|chatgpt|gemini|\u05D5\u05D5\u05D9\u05E7\u05E1|\u05D5\u05D9\u05E7\u05E1|\u05D5\u05D5\u05E8\u05D3\u05E4\u05E8\u05E1|\u05D5\u05E8\u05D3\u05E4\u05E8\u05E1|\u05E9\u05D5\u05E4\u05D9\u05E4\u05D9\u05D9";
+var BUILDER_CREDITS = [
+  new RegExp(`${NOT_WORD_BEFORE}(?:proudly\\s+)?(?:built|made|created|designed|developed|powered|hosted|published|generated|running|runs|edit|site|website)(?:\\s+\\p{L}+)?\\s+(?:with|by|on|using|in|at)\\s+(?:the\\s+)?(?:${BUILDER_NAMES})${NOT_WORD_AFTER}`, "giu"),
+  new RegExp(`${NOT_WORD_BEFORE}just\\s+another\\s+wordpress\\s+site${NOT_WORD_AFTER}`, "giu"),
+  new RegExp(`${NOT_WORD_BEFORE}(?:\u05E0\u05D1\u05E0\u05D4|\u05E0\u05D1\u05E0\u05EA\u05D4|\u05E0\u05D5\u05E6\u05E8|\u05E0\u05D5\u05E6\u05E8\u05D4|\u05D1\u05E0\u05D5\u05D9|\u05D1\u05E0\u05D5\u05D9\u05D4|\u05DE\u05D5\u05E4\u05E2\u05DC|\u05DE\u05D5\u05E4\u05E2\u05DC\u05EA|\u05DE\u05D1\u05D5\u05E1\u05E1|\u05DE\u05D1\u05D5\u05E1\u05E1\u05EA|\u05DE\u05D0\u05D5\u05D7\u05E1\u05DF|\u05DE\u05D0\u05D5\u05D7\u05E1\u05E0\u05EA|\u05DE\u05EA\u05D0\u05E8\u05D7|\u05DE\u05EA\u05D0\u05E8\u05D7\u05EA)\\s+(?:\u05D1-?|\u05E2\u05DC\\s+\u05D9\u05D3\u05D9\\s+|\u05D1\u05D0\u05DE\u05E6\u05E2\u05D5\u05EA\\s+|\u05E2\u05DD\\s+|\u05E2\u05DC\\s+)\\s*(?:${BUILDER_NAMES})${NOT_WORD_AFTER}`, "giu")
+];
+var BUILDER_TRACES = [
+  /<meta\b[^>]*\bname=["']?generator\b[^>]*>/gi,
+  /lovable-badge|edit-with-lovable|cdn\.gpteng\.co|wix-?ads|webflow-badge|framer-badge|bolt-badge|replit-badge/gi,
+  new RegExp(`<title\\b[^>]*>[^<]*[|\\-\u2013\u2014:\xB7]\\s*(?:${BUILDER_NAMES})\\s*</title>`, "giu")
+];
+var FOOTER_TAIL = 1500;
+var pageText = (html) => html.replace(/<!--[\s\S]*?-->/g, " ").replace(/<(script|style)\b[\s\S]*?<\/\1\s*>/gi, " ").replace(/<[^>]*>/g, " ").replace(/&nbsp;|&#160;/gi, " ").replace(/\s+/g, " ");
+function builderCredits(html) {
+  const found = /* @__PURE__ */ new Set();
+  const say = (text) => {
+    const t = text.replace(/\s+/g, " ").trim();
+    found.add(t.length > 80 ? `${t.slice(0, 77)}...` : t);
+  };
+  const footers = [...html.matchAll(/<footer\b[\s\S]*?<\/footer\s*>/gi)].map((m) => pageText(m[0])).join(" ");
+  const end = footers || pageText(html).slice(-FOOTER_TAIL);
+  for (const re of BUILDER_CREDITS) for (const m of end.matchAll(re)) say(m[0]);
+  for (const re of BUILDER_TRACES) for (const m of html.matchAll(re)) say(m[0]);
+  return [...found];
+}
 
 // ../shared/src/deploy-tools.ts
 var AI_AGENT_NAMES = [
@@ -22878,7 +22928,7 @@ var M = {
     pasteFix: "  Paste the prompt below into your AI editor, then run: npx deployai@latest check",
     copied: "  (copied to clipboard)",
     runDeploy: '  Run: npx deployai@latest deploy -m "<message>"',
-    moveOfferGranted: "Moved from /move: the site got {n} add-ons free. Run them all with: npx deployai@latest addons run",
+    moveOfferGranted: "Moved from /move: the site got {n} add-ons free. They wait until the move is done, and the last step offers them.",
     moveOfferCap: "The free add-ons for moved sites were already used on 3 sites of this account.",
     moveOfferOver: "The free add-ons offer for moved sites is over.",
     initHint: "  So your agent follows the DeployAI rules, run: npx deployai@latest init",
@@ -22929,12 +22979,18 @@ var M = {
     promoteReady: "  After the owner approves the preview: npx deployai@latest promote v{n} (to put it live)",
     askOwner: '  Version {n} is ready and not live. Ask the owner: "Version {n} is ready. Do you want to put it live?"',
     showPreview: "  Send them the preview first: {url}",
+    creditLeft: "  The site still shows a builder's credit: {text}",
+    creditFix: "  Remove it and put the site's own name and the year in its place, unless the owner asked to keep it.",
     askLiveFirst: "Put it live as soon as the build is done? No shows you the preview first. (y/N) ",
     askLiveNow: "Put v{n} live now? (y/N) ",
     waitBuild: "Waiting for the build of v{n}. Ctrl+C stops the waiting, not the build.",
     waitState: "  v{n}: {s}",
     buildSlow: "The build of v{n} is taking longer than usual.",
     liveNow: "v{n} is live: {url}",
+    closedHere: "This site opens only to visitors from {countries}. From here ({country}) it shows a blocked page.",
+    closedHereOpen: "  Open it to {country}: {url}",
+    closedHereAsk: "  Ask the site owner to open it to {country}.",
+    closedHereVpn: "  Or use a VPN through a country it is open to.",
     promoteLater: "  To put it live later: npx deployai@latest promote v{n}",
     notPublished: "not published yet",
     none: "none",
@@ -23098,7 +23154,7 @@ var M = {
     pasteFix: "  \u05D4\u05D3\u05D1\u05D9\u05E7\u05D5 \u05D0\u05EA \u05D4\u05E4\u05E8\u05D5\u05DE\u05E4\u05D8 \u05E9\u05DC\u05DE\u05D8\u05D4 \u05DC\u05E1\u05D5\u05DB\u05DF, \u05D5\u05D0\u05D6 \u05D4\u05E8\u05D9\u05E6\u05D5: npx deployai@latest check",
     copied: "  (\u05D4\u05D5\u05E2\u05EA\u05E7)",
     runDeploy: '  \u05D4\u05E8\u05D9\u05E6\u05D5: npx deployai@latest deploy -m "<message>"',
-    moveOfferGranted: "\u05D4\u05D0\u05EA\u05E8 \u05E2\u05D1\u05E8 \u05DE /move \u05D5\u05E7\u05D9\u05D1\u05DC {n} \u05EA\u05D5\u05E1\u05E4\u05D9\u05DD \u05D1\u05D7\u05D9\u05E0\u05DD. \u05DE\u05E8\u05D9\u05E6\u05D9\u05DD \u05D0\u05EA \u05DB\u05D5\u05DC\u05DD \u05E2\u05DD: npx deployai@latest addons run",
+    moveOfferGranted: "\u05D4\u05D0\u05EA\u05E8 \u05E2\u05D1\u05E8 \u05DE /move \u05D5\u05E7\u05D9\u05D1\u05DC {n} \u05EA\u05D5\u05E1\u05E4\u05D9\u05DD \u05D1\u05D7\u05D9\u05E0\u05DD. \u05D4\u05DD \u05DE\u05D7\u05DB\u05D9\u05DD \u05DC\u05E1\u05D5\u05E3 \u05D4\u05DE\u05E2\u05D1\u05E8, \u05D5\u05D4\u05E9\u05DC\u05D1 \u05D4\u05D0\u05D7\u05E8\u05D5\u05DF \u05DE\u05E6\u05D9\u05E2 \u05D0\u05D5\u05EA\u05DD.",
     moveOfferCap: "\u05D4\u05EA\u05D5\u05E1\u05E4\u05D9\u05DD \u05D4\u05D7\u05D9\u05E0\u05DE\u05D9\u05D9\u05DD \u05DC\u05D0\u05EA\u05E8\u05D9\u05DD \u05E9\u05E2\u05D1\u05E8\u05D5 \u05DB\u05D1\u05E8 \u05E0\u05D5\u05E6\u05DC\u05D5 \u05D1 3 \u05D0\u05EA\u05E8\u05D9\u05DD \u05D1\u05D7\u05E9\u05D1\u05D5\u05DF \u05D4\u05D6\u05D4.",
     moveOfferOver: "\u05DE\u05D1\u05E6\u05E2 \u05D4\u05EA\u05D5\u05E1\u05E4\u05D9\u05DD \u05D4\u05D7\u05D9\u05E0\u05DE\u05D9\u05D9\u05DD \u05DC\u05D0\u05EA\u05E8\u05D9\u05DD \u05E9\u05E2\u05D1\u05E8\u05D5 \u05D4\u05E1\u05EA\u05D9\u05D9\u05DD.",
     initHint: "  \u05DB\u05D3\u05D9 \u05E9\u05D4\u05E1\u05D5\u05DB\u05DF \u05D9\u05E2\u05D1\u05D5\u05D3 \u05DC\u05E4\u05D9 \u05D4\u05DB\u05DC\u05DC\u05D9\u05DD \u05E9\u05DC DeployAI, \u05D4\u05E8\u05D9\u05E6\u05D5: npx deployai@latest init",
@@ -23149,12 +23205,18 @@ var M = {
     promoteReady: "  \u05D0\u05D7\u05E8\u05D9 \u05E9\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D0\u05D9\u05E9\u05E8 \u05D0\u05EA \u05D4\u05EA\u05E6\u05D5\u05D2\u05D4 \u05D4\u05DE\u05E7\u05D3\u05D9\u05DE\u05D4: npx deployai@latest promote v{n} (\u05DB\u05D3\u05D9 \u05DC\u05D4\u05E2\u05DC\u05D5\u05EA \u05D0\u05D5\u05EA\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8)",
     askOwner: '  \u05D2\u05E8\u05E1\u05D4 {n} \u05DE\u05D5\u05DB\u05E0\u05D4 \u05D5\u05E2\u05D5\u05D3 \u05DC\u05D0 \u05D1\u05D0\u05D5\u05D5\u05D9\u05E8. \u05E9\u05D0\u05DC\u05D5 \u05D0\u05EA \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8: "\u05D2\u05E8\u05E1\u05D4 {n} \u05DE\u05D5\u05DB\u05E0\u05D4. \u05DC\u05D4\u05E2\u05DC\u05D5\u05EA \u05D0\u05D5\u05EA\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8?"',
     showPreview: "  \u05E9\u05DC\u05D7\u05D5 \u05E7\u05D5\u05D3\u05DD \u05D0\u05EA \u05D4\u05EA\u05E6\u05D5\u05D2\u05D4 \u05D4\u05DE\u05E7\u05D3\u05D9\u05DE\u05D4: {url}",
+    creditLeft: "  \u05D4\u05D0\u05EA\u05E8 \u05E2\u05D3\u05D9\u05D9\u05DF \u05DE\u05E6\u05D9\u05D2 \u05E7\u05E8\u05D3\u05D9\u05D8 \u05E9\u05DC \u05D1\u05D5\u05E0\u05D4 \u05D0\u05EA\u05E8\u05D9\u05DD: {text}",
+    creditFix: "  \u05D4\u05E1\u05D9\u05E8\u05D5 \u05D0\u05D5\u05EA\u05D5 \u05D5\u05E9\u05D9\u05DE\u05D5 \u05D1\u05DE\u05E7\u05D5\u05DE\u05D5 \u05D0\u05EA \u05E9\u05DD \u05D4\u05D0\u05EA\u05E8 \u05D5\u05D4\u05E9\u05E0\u05D4, \u05D0\u05DC\u05D0 \u05D0\u05DD \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D1\u05D9\u05E7\u05E9 \u05DC\u05D4\u05E9\u05D0\u05D9\u05E8 \u05D0\u05D5\u05EA\u05D5.",
     askLiveFirst: "\u05DC\u05D4\u05E2\u05DC\u05D5\u05EA \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8 \u05DE\u05D9\u05D3 \u05DB\u05E9\u05D4\u05D1\u05E0\u05D9\u05D9\u05D4 \u05DE\u05E1\u05EA\u05D9\u05D9\u05DE\u05EA? \u05DC\u05D0 \u05DE\u05E6\u05D9\u05D2 \u05E7\u05D5\u05D3\u05DD \u05D0\u05EA \u05D4\u05EA\u05E6\u05D5\u05D2\u05D4 \u05D4\u05DE\u05E7\u05D3\u05D9\u05DE\u05D4. (y/N) ",
     askLiveNow: "\u05DC\u05D4\u05E2\u05DC\u05D5\u05EA \u05D0\u05EA v{n} \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8 \u05E2\u05DB\u05E9\u05D9\u05D5? (y/N) ",
     waitBuild: "\u05DE\u05D7\u05DB\u05D9\u05DD \u05DC\u05D1\u05E0\u05D9\u05D9\u05D4 \u05E9\u05DC v{n}. Ctrl+C \u05DE\u05E4\u05E1\u05D9\u05E7 \u05D0\u05EA \u05D4\u05D4\u05DE\u05EA\u05E0\u05D4, \u05DC\u05D0 \u05D0\u05EA \u05D4\u05D1\u05E0\u05D9\u05D9\u05D4.",
     waitState: "  v{n}: {s}",
     buildSlow: "\u05D4\u05D1\u05E0\u05D9\u05D9\u05D4 \u05E9\u05DC v{n} \u05DC\u05D5\u05E7\u05D7\u05EA \u05D9\u05D5\u05EA\u05E8 \u05D6\u05DE\u05DF \u05DE\u05D4\u05E8\u05D2\u05D9\u05DC.",
     liveNow: "v{n} \u05D1\u05D0\u05D5\u05D5\u05D9\u05E8: {url}",
+    closedHere: "\u05D4\u05D0\u05EA\u05E8 \u05E4\u05EA\u05D5\u05D7 \u05E8\u05E7 \u05DC\u05DE\u05D1\u05E7\u05E8\u05D9\u05DD \u05DE: {countries}. \u05DE\u05DB\u05D0\u05DF ({country}) \u05DE\u05D5\u05E6\u05D2 \u05D3\u05E3 \u05D7\u05E1\u05D5\u05DD.",
+    closedHereOpen: "  \u05E4\u05EA\u05D7\u05D5 \u05D0\u05D5\u05EA\u05D5 \u05D2\u05DD \u05DC\u05BE{country}: {url}",
+    closedHereAsk: "  \u05D1\u05E7\u05E9\u05D5 \u05DE\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05DC\u05E4\u05EA\u05D5\u05D7 \u05D0\u05D5\u05EA\u05D5 \u05D2\u05DD \u05DC\u05BE{country}.",
+    closedHereVpn: "  \u05D0\u05D5 \u05D4\u05E9\u05EA\u05DE\u05E9\u05D5 \u05D1\u05BEVPN \u05D3\u05E8\u05DA \u05DE\u05D3\u05D9\u05E0\u05D4 \u05E9\u05D4\u05D0\u05EA\u05E8 \u05E4\u05EA\u05D5\u05D7 \u05D1\u05D4.",
     promoteLater: "  \u05DB\u05D3\u05D9 \u05DC\u05D4\u05E2\u05DC\u05D5\u05EA \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8 \u05D0\u05D7\u05E8 \u05DB\u05DA: npx deployai@latest promote v{n}",
     notPublished: "\u05E2\u05D3\u05D9\u05D9\u05DF \u05DC\u05D0 \u05D1\u05D0\u05D5\u05D5\u05D9\u05E8",
     none: "\u05D0\u05D9\u05DF",
@@ -23303,7 +23365,7 @@ function messages(root) {
 }
 
 // src/version.ts
-var CLI_VERSION = "0.1.0-beta.24";
+var CLI_VERSION = "0.1.0-beta.25";
 
 // src/api.ts
 function apiContext(apiFlag) {
@@ -24273,6 +24335,10 @@ ${KEEP_DATA_RULES.join("\n")}
 
 ${runCommandsRule()}
 
+## Asking the owner
+
+${ASK_OWNER_RULE}
+
 Never stop building for an account, a plan or a limit. Build what the owner asks; say once, in one plain line, what going live will need, and ask about it only at the deploy step.
 
 ## When to deploy
@@ -24373,7 +24439,8 @@ var PROMPT_RULES = [
   "Explain every step to the user in simple words, in the language they write to you in.",
   "For the database, use D1 as shown in the DeployAI CRUD sample.",
   "Follow DEPLOYAI.md for every future change. If it is missing, run: npx deployai@latest init",
-  runCommandsRule()
+  runCommandsRule(),
+  ASK_OWNER_RULE
 ];
 var DATA_CODES = /* @__PURE__ */ new Set(["fs_write", "unsupported_db_postgres", "unsupported_db_mysql", "unsupported_db_mongodb", "unsupported_db_sqlite_file", "native_module_bcrypt"]);
 var MAX_LOCATIONS = 3;
@@ -24783,7 +24850,8 @@ function allowCommand(tool) {
       ignoreInGit(root, rel);
     }
     out(added ? `Done: Claude Code runs npx deployai@latest commands in this folder without asking (${rel}).` : "Already allowed in this folder.");
-    out("Other commands still ask. The owner can take it back with /permissions.");
+    out("Other commands still ask, and going live still waits for the owner. The owner can take it back with /permissions.");
+    out(`If a safety check of the tool still stops a command, do not run it another way: send the owner ${allowCommandsUrl()} (D-691).`);
     return;
   }
   if (picked === "cursor") {
@@ -24953,7 +25021,40 @@ function pageAssets(html, base) {
   }
   add(html.match(/<meta[^>]+property=["']og:image["'][^>]*content=["']([^"']+)/i)?.[1]);
   for (const m of html.matchAll(/url\(["']?([^"')]+\.(?:jpe?g|png|gif|webp|svg|avif))/gi)) add(m[1]);
+  const own2 = (u) => {
+    if (!u) return;
+    try {
+      if (new URL(u.trim(), base).hostname.replace(/^www\./, "") === new URL(base).hostname.replace(/^www\./, "")) add(u);
+    } catch {
+    }
+  };
+  for (const m of html.matchAll(/<script\b[^>]*\ssrc=["']([^"']+)/gi)) own2(m[1]);
+  for (const u of stylesheetLinks(html, base, 50)) own2(u);
   return [...found];
+}
+function stylesheetAssets(css, cssUrl) {
+  const host = new URL(cssUrl).hostname.replace(/^www\./, "");
+  const found = /* @__PURE__ */ new Set();
+  for (const m of css.matchAll(/url\(\s*["']?([^"')]+)/gi)) {
+    const u = m[1].trim();
+    if (u.startsWith("data:") || u.startsWith("#")) continue;
+    try {
+      const url2 = new URL(u, cssUrl);
+      url2.hash = "";
+      if (!url2.search) url2.search = "";
+      if (/^https?:$/.test(url2.protocol) && url2.hostname.replace(/^www\./, "") === host) found.add(url2.toString());
+    } catch {
+    }
+  }
+  return [...found];
+}
+async function addStylesheetAssets(assets) {
+  for (const url2 of [...assets].filter((a) => /\.css(\?|$)/i.test(a)).slice(0, 50)) {
+    const res = await get(url2, "text/css,*/*;q=0.8");
+    if (!res?.ok) continue;
+    stylesheetAssets(await res.text(), url2).forEach((a) => assets.add(a));
+    await sleep2(PAUSE_MS);
+  }
 }
 var ICON_MAX_BYTES = 2 * 1024 * 1024;
 async function saveOldIcons(html, pageUrl, origin, dir) {
@@ -25042,6 +25143,7 @@ async function migrateScanCommand(root, raw, opts = {}) {
     }
   };
   await Promise.all(Array.from({ length: SCAN_WORKERS }, worker));
+  await addStylesheetAssets(assets);
   const wordpressApi = platform3 === "wordpress" ? await wordpressContent(base, dir) : false;
   if (wordpressApi) {
     const media = readJson2(join9(dir, "content", "media.json")) ?? [];
@@ -25058,7 +25160,7 @@ async function migrateScanCommand(root, raw, opts = {}) {
   out();
   out(`Saved in ${rel}:`);
   out(`  inventory.json  ${pages.length} pages with their address, title, description and headings${broken ? ` (${broken} already broken on the old site)` : ""}`);
-  out(`  assets.json     ${assets.size} images and files`);
+  out(`  assets.json     ${assets.size} images, stylesheets, scripts, fonts and files`);
   if (icons) out(`  icons/          ${icons} icons and logo of the old site, for: npx deployai@latest brand favicon`);
   if (wordpressApi) {
     out("  content/        the WordPress pages, posts, categories, tags, media and authors as JSON");
@@ -25095,7 +25197,8 @@ async function migrateMediaCommand(root) {
       const target = mediaTarget(dir, url2);
       const res = target ? await get(url2, "*/*") : null;
       const size = Number(res?.headers.get("content-length") ?? 0);
-      if (!target || !res?.ok || !res.body || size > MEDIA_FILE_CAP) {
+      const pageForFile = !/\.html?$/i.test(new URL(url2).pathname) && /text\/html/i.test(res?.headers.get("content-type") ?? "");
+      if (!target || !res?.ok || !res.body || size > MEDIA_FILE_CAP || pageForFile) {
         if (!state.failed.includes(url2)) state.failed.push(url2);
         done.add(url2);
         continue;
@@ -25173,6 +25276,7 @@ async function migrateVerifyCommand(root, previewRaw) {
   if (!hosts.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
   const redirects = allowedRedirects(root);
   const findings = [];
+  const credits = /* @__PURE__ */ new Map();
   let checked = 0;
   for (const host of hosts) {
     const inv = readJson2(join9(hostDir(root, host), "inventory.json"));
@@ -25186,6 +25290,7 @@ async function migrateVerifyCommand(root, previewRaw) {
         u.searchParams.delete("deployai_preview");
         const body = res.ok ? await res.text() : "";
         const seo = body ? readPageSeo(body) : null;
+        for (const c of builderCredits(body)) if (!credits.has(c)) credits.set(c, old.path);
         next = { status: res.status, finalPath: u.pathname + u.search, title: seo?.title ?? null, description: seo?.description ?? null };
       }
       const f = comparePage(old, next, redirects.get(old.path.split("?")[0]));
@@ -25195,7 +25300,13 @@ async function migrateVerifyCommand(root, previewRaw) {
   }
   const words = { missing: "not found on the preview", moved: "moved to", error: "answers", title_lost: "lost its title", description_lost: "lost its description" };
   const report2 = join9(root, MIGRATION_DIR, "verify.json");
-  writeJson(report2, { checkedAt: (/* @__PURE__ */ new Date()).toISOString(), preview: preview.origin, checked, findings });
+  writeJson(report2, { checkedAt: (/* @__PURE__ */ new Date()).toISOString(), preview: preview.origin, checked, findings, credits: [...credits.keys()] });
+  if (credits.size) {
+    out(`A builder's credit is still on the preview:`);
+    for (const [text, path] of credits) out(`  ${path}  ${text}`);
+    out("Remove each and put the site's own name and the year in its place, unless the owner asked to keep it, then deploy again and run verify again.");
+    process.exitCode = 1;
+  }
   if (!findings.length) {
     out(`All ${checked} old addresses open on the preview with their title and description.`);
     return;
@@ -25516,6 +25627,17 @@ async function statusCommand(root, ctx) {
   const projectId = linkedProjectId(root);
   printStatus(root, ctx, projectId, await fetchStatus(ctx, projectId));
 }
+function printClosedHere(root, s) {
+  if (!s.closedHere) return;
+  const { country, countries, settingsUrl } = s.closedHere;
+  const t = messages(root);
+  const names = new Intl.DisplayNames([cliLang(root)], { type: "region" });
+  const name = (code) => names.of(code) ?? code;
+  out();
+  out(t("closedHere", { countries: countries.map(name).join(", "), country: name(country) }));
+  out(settingsUrl ? t("closedHereOpen", { country: name(country), url: settingsUrl }) : t("closedHereAsk", { country: name(country) }));
+  out(t("closedHereVpn"));
+}
 function printStatus(root, ctx, projectId, s) {
   const p = s.project;
   const t = messages(root);
@@ -25533,6 +25655,7 @@ function printStatus(root, ctx, projectId, s) {
       [t("queue"), s.queue.running ? t("buildingNow") : s.queue.position > 0 ? queueText(s.queue.position, root) : t("idle")]
     ])
   );
+  printClosedHere(root, s);
   if (s.latest?.goingLive) {
     out();
     out(t("goingLive", { n: s.latest.number }));
@@ -25766,6 +25889,7 @@ async function deployVersion(root, ctx, opts, guest) {
   }
   await afterBuild(root, ctx, project.projectId, res.number, { live, pollMs: opts.pollMs ?? 3e3 });
 }
+var CREDIT_WAIT_MS = 1e4;
 var sleep3 = (ms2) => new Promise((r) => setTimeout(r, ms2));
 async function poll(root, ctx, projectId, n2, pollMs, maxMs, done) {
   const end = Date.now() + maxMs;
@@ -25793,6 +25917,7 @@ async function afterBuild(root, ctx, projectId, n2, o) {
     return;
   }
   const ready = built.latest?.number === n2 && built.latest.status === "ready" && built.project.liveVersion !== n2;
+  if (ready && built.latest?.preview) await creditHint(root, built.latest.preview);
   const sqlWaits = ready && built.latest?.migrationStatus === "waiting";
   let approval = null;
   let live = o.live;
@@ -25825,6 +25950,7 @@ async function afterBuild(root, ctx, projectId, n2, o) {
   out();
   if (after?.project.liveVersion === n2 && !after.latest?.wentBack) {
     out(t("liveNow", { n: n2, url: after.project.url ?? "" }));
+    printClosedHere(root, after);
     return;
   }
   if (!after) {
@@ -25833,6 +25959,19 @@ async function afterBuild(root, ctx, projectId, n2, o) {
   }
   printStatus(root, ctx, projectId, after);
   process.exitCode = 1;
+}
+async function creditHint(root, url2) {
+  try {
+    const res = await fetch(url2, { headers: { accept: "text/html" }, signal: AbortSignal.timeout(CREDIT_WAIT_MS) });
+    if (!res.ok || !/html/i.test(res.headers.get("content-type") ?? "")) return;
+    const credits = builderCredits(await res.text());
+    if (!credits.length) return;
+    const t = messages(root);
+    out(t("creditLeft", { text: credits.join(", ") }));
+    out(t("creditFix"));
+    out();
+  } catch {
+  }
 }
 function pageHint(res, root) {
   if (!res.page) return;
@@ -26266,6 +26405,7 @@ ${choices.brief}
   steps.forEach((s, i) => out(`${i + 1}. ${s.cmd ? `Run ${s.cmd}. ` : ""}${s.say}`));
   out();
   out(runCommandsRule(langOf(choices.ownerLanguage)));
+  out(ASK_OWNER_RULE);
   out(START_FAIL_LINE);
 }
 
@@ -26288,7 +26428,7 @@ async function addonsCommand(root, ctx) {
   }
   const owned = r.addons.filter((a) => a.owned);
   out(owned.length ? "Add-ons of this site" : "This site has no add-ons yet.");
-  owned.forEach((a, i) => out(`  ${String(i + 1).padStart(2)}. ${a.key.padEnd(17)} ${STATUS_WORDS[a.status] ?? a.status}`));
+  owned.forEach((a, i) => out(`  ${String(i + 1).padStart(2)}. ${a.key.padEnd(17)} ${a.outdated ? "out of date: the site changed after it ran" : STATUS_WORDS[a.status] ?? a.status}`));
   const forSale = r.addons.filter((a) => !a.owned && a.buyUrl);
   if (forSale.length) {
     out();
@@ -26301,10 +26441,11 @@ async function addonsCommand(root, ctx) {
     out("Every add-on of this site is done or skipped. To run one again: npx deployai@latest addon run <name>");
     return;
   }
-  out(`Next: ${r.next}. Run them all in one go: npx deployai@latest addons run (or one: npx deployai@latest addon run <name>)`);
+  out(`Next: ${r.next}. To run what is waiting: npx deployai@latest addons run (or one: npx deployai@latest addon run <name>)`);
 }
-async function addonsRunCommand(root, ctx) {
+async function addonsRunCommand(root, ctx, opts = {}) {
   requireToken(ctx);
+  if (opts.all && opts.oneByOne) throw new CliError("Choose one: --one-by-one or --all.", 1, "usage");
   const projectId = linkedProjectId2(root);
   const r = await apiRequest(ctx, `/api/cli/addons?projectId=${encodeURIComponent(projectId)}`, AddonsResponse);
   if (!r.open) {
@@ -26317,10 +26458,27 @@ async function addonsRunCommand(root, ctx) {
     out(r.addons.some((a) => a.owned) ? "Every add-on of this site is done or skipped. To run one again: npx deployai@latest addon run <name>" : "This site has no add-ons yet. See them: npx deployai@latest addons");
     return;
   }
-  updateProject(root, { addonsAll: true });
-  out(`Running every add-on of this site in one go: ${todo.map((a) => a.key).join(", ")}.`);
-  out("Do each one fully, run npx deployai@latest check after it, and report it with addon done as it says; the next one starts right after, without asking. The owner still approves each plan before you change any file. Tell the owner in one line which add-on you are on.");
-  out();
+  const all = opts.all === true || !opts.oneByOne && readProject(root)?.addonsAll === true;
+  if (!all && !opts.oneByOne && todo.length > 1) {
+    out(`This site has ${todo.length} add-ons waiting: ${todo.map((a) => a.key).join(", ")}.`);
+    out('Ask the owner: "Run the add-ons one by one, or all at once?"');
+    out("- One by one (recommended): after each add-on, choose whether to publish.");
+    out("  Run: npx deployai@latest addons run --one-by-one");
+    out("- All at once: they all finish first, then one publish at the end.");
+    out("  Run: npx deployai@latest addons run --all");
+    out("If the owner has no preference, use one by one.");
+    return;
+  }
+  updateProject(root, { addonsAll: all });
+  if (all) {
+    out(`Running every add-on of this site in one go: ${todo.map((a) => a.key).join(", ")}.`);
+    out('Do each one fully, build the site, run npx deployai@latest check after it, and report it with addon done as it says; the next one starts right after, without asking. Do not deploy between add-ons: tell the owner once, "I will publish once, after all the add-ons are done." The owner still approves each plan before you change any file. Tell the owner in one line which add-on you are on.');
+    out();
+  } else if (todo.length > 1) {
+    out(`Running the add-ons of this site one by one: ${todo.map((a) => a.key).join(", ")}.`);
+    out("The owner approves each plan before you change any file, and after each add-on chooses whether to publish and whether to go on.");
+    out();
+  }
   await addonNextCommand(root, ctx);
 }
 async function addonBuyCommand(root, ctx, key) {
@@ -26382,11 +26540,12 @@ async function addonDoneCommand(root, ctx, runId, opts) {
   const r = await apiRequest(ctx, `/api/cli/addons/runs/${encodeURIComponent(runId.trim())}`, AddonDoneResponse, { method: "POST", body: body.data });
   out(`Saved: add-on ${body.data.status}.`);
   const all = readProject(root)?.addonsAll === true;
-  if (r.next && all) out(`Next: ${r.next}. Run npx deployai@latest check, then at once: npx deployai@latest addon next`);
+  if (r.next && all) out(`Next: ${r.next}. Do not deploy yet: everything goes up in one deploy after the last add-on. Run npx deployai@latest check, then at once: npx deployai@latest addon next`);
   else if (r.next) out(`Next: ${r.next}. Tell the site owner what is next, and only with their OK run: npx deployai@latest addon next`);
   else {
     if (all) updateProject(root, { addonsAll: false });
     out("Every add-on of this site is done or skipped.");
+    if (all) out('Now the one publish. Run npx deployai@latest check, then ask the owner once, naming the site and its address: "Put it live, see a preview first, or not yet?" If a check waits for a preview, offer only a preview or not yet. Then run once: npx deployai@latest deploy -m "<the add-ons, in a few words>", with --live only if they chose to put it live. Run the checks that waited on that preview and fix what they find; deploy again only if a fix was needed.');
   }
 }
 
@@ -27160,15 +27319,15 @@ ${AGENT_FEEDBACK_RULES.join("\n\n")}
   migrate.command("media").description("download the images and files the old site uses, at their old paths; run again to go on").action((_opts, cmd) => migrateMediaCommand(root(cmd)));
   migrate.command("redirects").description("write public/_redirects for the old addresses that cannot stay (feeds, attachment pages)").action((_opts, cmd) => migrateRedirectsCommand(root(cmd)));
   migrate.command("verify").description("open every old address on the preview: lists pages that moved, are missing or lost their title or description").argument("<preview>", "the preview address deploy printed").action(async (preview, _opts, cmd) => migrateVerifyCommand(root(cmd), preview));
-  migrate.command("status").description("a managed move: report a stage to the request (scanning, building, preview_ready, customer_review, live, blocked)").argument("<stage>", "the stage").argument("[note]", "one line: the preview address, what is done, or why it is blocked").action((stage, note, _opts, cmd) => migrateStatusCommand(root(cmd), ctx(cmd), stage, note));
+  migrate.command("status").description("a managed move: report a stage to the request (scanning, building, first_look, preview_ready, customer_review, live, blocked)").argument("<stage>", "the stage").argument("[note]", "one line: the preview address, what is done, or why it is blocked").action((stage, note, _opts, cmd) => migrateStatusCommand(root(cmd), ctx(cmd), stage, note));
   program.command("blocks").description("list our building blocks, or add one to this site (inbox, blog); never writes over a file").argument("[name]", "inbox or blog").action((name, _opts, cmd) => blocksCommand(root(cmd), ctx(cmd), name));
   const brand = program.command("brand").description("the site's icons and share image, made by code from the site's own name, colors and logo");
   brand.command("favicon").description("gives the site an icon if it has none: the old site's, else its logo, else a letter").option("--from <file>", "the logo or picture to use").option("--name <name>", "the site's name, for the letter").option("--color <#rrggbb>", "the background color").option("--force", "replace the icon the site has").option("--check", "only say whether the site has an icon").action((opts, cmd) => brandFaviconCommand(root(cmd), opts));
   brand.command("icons").description("makes every icon size and the 1200 by 630 share image from the site itself").option("--from <file>", "use this picture instead of the logo it finds").option("--name <name>", "correct the name it reads").option("--line <text>", "correct the line it reads").option("--color <#rrggbb>", "correct the color it reads").option("--check", "only list what is missing").action((opts, cmd) => brandIconsCommand(root(cmd), opts));
   brand.command("images").description("reports images too weak for where they show, by measuring them; never changes one").argument("[pages...]", "up to 10 page addresses to measure in a browser").option("--json", "print the result as JSON").action((pages, opts, cmd) => brandImagesCommand(root(cmd), pages, opts));
-  program.command("addons").description("the add-ons of this site: which it has, which are done and which is next; addons run runs them all in one go").argument("[action]", "run: every add-on that is not done, one after the other").action((action, _opts, cmd) => {
+  program.command("addons").description("the add-ons of this site: which it has, which are done and which is next; addons run asks how to run what is waiting").argument("[action]", "run: the add-ons that are not done, one by one or all at once").option("--one-by-one", "after each add-on, the owner chooses whether to publish (recommended)").option("--all", "finish every add-on first, then one publish at the end").action((action, opts, cmd) => {
     if (!action) return addonsCommand(root(cmd), ctx(cmd));
-    if (action === "run") return addonsRunCommand(root(cmd), ctx(cmd));
+    if (action === "run") return addonsRunCommand(root(cmd), ctx(cmd), opts);
     throw new CliError(`Unknown: addons ${action}. Use npx deployai@latest addons, or npx deployai@latest addons run`, 1, "usage");
   });
   const addon = program.command("addon").description("run the add-ons of this site, one at a time");
