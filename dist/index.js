@@ -21293,6 +21293,8 @@ var SqlPlanResponse = external_exports.object({
   hash: external_exports.string(),
   /** Only the owner approves SQL; a teammate gets the dashboard page to send them. */
   canApprove: external_exports.boolean(),
+  /** The logged-in account's email when it cannot approve, so the CLI can say who is logged in. Never the owner's. */
+  account: external_exports.string().optional(),
   url: external_exports.string()
 });
 var StatusResponse = external_exports.object({
@@ -21831,6 +21833,7 @@ var LOGIN = { cmd: "npx deployai@latest login", say: "The owner approves it in t
 var PROMOTE = { cmd: "npx deployai@latest promote v<N>", say: "Only when deploy ran without --live, and only after the owner approves the preview. N is the version number deploy printed. Then give the owner the live address." };
 var DEPLOY_SAY = "Add --live only if the owner chose to put it live right away. It waits for the build: with --live it ends with the live address, else with the preview address to send the owner. When it prints database changes, a yes to going live does not cover them (D-541): show the owner the changes and ask the question it prints, and only after a yes run the promote --approve-sql command it printed; changes it says remove data only the owner approves, never you. Write the -m message in a few words in the language of the owner, about what they see changed.";
 var BUILD = { say: "This folder had no site, so start wrote a starter page. Do not ask where the site comes from or which way to start: build a first version of the owner's site in its place now. Use what you know (the instructions above, .deployai/brief.md if it exists, the folder name) and choose the layout, colors and wording yourself. Ask at most one short question, and only if you cannot tell what the site is for. Leave out what you do not know (phone, prices, hours) instead of asking for it. Then show it to the owner and offer to add those details. Run check only after that." };
+var ADDONS_RUN = { cmd: "npx deployai@latest addons run", say: "Runs every add-on of the site in one go. Work through each step it prints, run check between add-ons, and report each one as it says." };
 var MIGRATE_STEPS = [
   { cmd: "npx deployai@latest blocks inbox", say: "Only if the old site has a contact or quote form: the form with its own messages page for the owner." },
   { cmd: "npx deployai@latest blocks blog", say: "Only if the old site has posts, news or articles: the blog, with the posts as Markdown files." },
@@ -21842,7 +21845,7 @@ var MIGRATE_STEPS = [
   { cmd: 'npx deployai@latest link --create "<the site name>"', say: "Makes the site in the owner's account and links this folder. The add-ons come with it for free while the offer lasts." },
   { cmd: 'npx deployai@latest deploy -m "moved from the old site"', say: "Without --live: the first version of a moved site is always a preview. It waits for the build and prints the preview address." },
   { cmd: "npx deployai@latest migrate verify <preview address>", say: "Compares every old address with the preview: a page that moved, lost its title or description, or does not open. Fix each one, deploy again and run it again until it lists none." },
-  { cmd: "npx deployai@latest addons run", say: "Runs every add-on of the site in one go. Work through each step it prints, run check between add-ons, and report each one as it says." },
+  ADDONS_RUN,
   { say: 'Send the owner the preview address and the table from .deployai/migration/plan.md. Ask: "Put it live now, or change something first?" Deploy again for each change.' },
   PROMOTE,
   { say: "Only after it is live: tell the owner how to connect their domain in the dashboard (Domains), to keep their email records (MX) as they are, and to keep the old hosting for a few weeks before they cancel it." }
@@ -21850,7 +21853,7 @@ var MIGRATE_STEPS = [
 var managedStatus = (stage, note, say) => ({ cmd: `npx deployai@latest migrate status ${stage} "${note}"`, say });
 var MANAGED_STEPS = [
   managedStatus("building", "<what is done>", "First, once the plan in .deployai/migration/plan.md is agreed: the request shows the build started."),
-  ...MIGRATE_STEPS.slice(0, 11),
+  ...MIGRATE_STEPS.slice(0, 11).filter((step) => step !== ADDONS_RUN),
   managedStatus("preview_ready", "<preview address>", "The owner gets an email with the preview address."),
   ...MIGRATE_STEPS.slice(11, 13),
   managedStatus("live", "<live address>", "Only after it is live. Then the team transfers the site to the owner."),
@@ -21866,6 +21869,7 @@ function stepsOf(kind, opts) {
       return [...opts.starter ? [BUILD] : [], FAVICON, CHECK, ASK, LOGIN, { cmd: 'npx deployai@latest deploy -m "first version"', say: DEPLOY_SAY }, PROMOTE];
     case "update": {
       const deploy = { cmd: 'npx deployai@latest deploy -m "<what changed, in a few words>"', say: DEPLOY_SAY };
+      if (opts.addons) return [LOGIN, ...opts.emptyFolder ? [PULL] : [], ADDONS_RUN, CHECK, ASK, deploy, PROMOTE];
       return opts.emptyFolder ? [LOGIN, PULL, CHECK, ASK, deploy, PROMOTE] : [CHECK, ASK, LOGIN, deploy, PROMOTE];
     }
     case "move":
@@ -21906,6 +21910,7 @@ var CLI_MAP_NODES = [
   n("page-new", "site", "/dashboard/new", "\u05D0\u05EA\u05E8 \u05D7\u05D3\u05E9: \u05D4\u05D3\u05D5\u05D2\u05DE\u05D4, \u05D4\u05E9\u05DD \u05D5\u05D4\u05E4\u05E8\u05D8\u05D9\u05DD \u05E0\u05E9\u05DE\u05E8\u05D9\u05DD \u05D1\u05D0\u05EA\u05E8, \u05D5\u05D4 id \u05E0\u05D5\u05E9\u05D0 \u05D0\u05EA \u05DB\u05D5\u05DC\u05DD.", "New site: the sample, name and details are saved on the site, and the id carries them all."),
   n("page-site", "site", "/project/<id>", "\u05E2\u05DE\u05D5\u05D3 \u05D4\u05D0\u05EA\u05E8: \u05E9\u05D5\u05E8\u05EA \u05D4\u05EA\u05D7\u05DC\u05D4 \u05E2\u05D3 \u05D4\u05D2\u05E8\u05E1\u05D4 \u05D4\u05E8\u05D0\u05E9\u05D5\u05E0\u05D4, \u05D5\u05D0\u05D7\u05E8\u05D9\u05D4 \u05E9\u05D5\u05E8\u05EA \u05E2\u05D3\u05DB\u05D5\u05DF.", "The site page: a new site line until the first version, then an update line."),
   n("page-move-url", "site", "/move", "\u05D4\u05E2\u05D1\u05D9\u05E8\u05D5 \u05D0\u05EA \u05D4\u05D0\u05EA\u05E8 \u05E9\u05DC\u05D9: \u05DB\u05EA\u05D5\u05D1\u05EA \u05D4\u05D0\u05EA\u05E8 \u05D4\u05D9\u05E9\u05DF, \u05D4\u05E4\u05DC\u05D8\u05E4\u05D5\u05E8\u05DE\u05D4, \u05E1\u05D5\u05D2 \u05D4\u05D0\u05EA\u05E8 \u05D5\u05D4\u05E2\u05D9\u05E6\u05D5\u05D1. \u05D4 id \u05E0\u05D5\u05E9\u05D0 \u05D0\u05EA \u05DB\u05D5\u05DC\u05DD.", "Move my site: the old site address, the platform, the kind of site and the design. The id carries them all."),
+  n("page-addons", "site", "/project/<id>/addons", "\u05D4\u05E8\u05E6\u05EA \u05EA\u05D5\u05E1\u05E4\u05D9\u05DD: \u05E9\u05D5\u05E8\u05D4 \u05E9\u05DE\u05E8\u05D9\u05E6\u05D4 \u05D0\u05EA \u05D4\u05EA\u05D5\u05E1\u05E4\u05D9\u05DD \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8, \u05D2\u05DD \u05DE\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05E8\u05D9\u05E7\u05D4.", "Run add-ons: a line that runs the site's add-ons, from an empty folder too."),
   n("page-refresh", "site", "/project/<id>/refresh", "\u05E8\u05E2\u05E0\u05D5\u05DF \u05D4\u05E2\u05D9\u05E6\u05D5\u05D1: \u05E9\u05D5\u05E8\u05D4 \u05DC\u05E2\u05D9\u05E6\u05D5\u05D1 \u05D7\u05D3\u05E9 \u05DC\u05D0\u05EA\u05E8 \u05D7\u05D9, \u05DE\u05EA\u05D5\u05DA \u05D4\u05D0\u05EA\u05E8\u05D9\u05DD \u05E9\u05DC\u05D9.", "Freshen it up: a line for a new look on a live site, from My sites."),
   n("page-move", "site", "/dashboard", "\u05D9\u05E9 \u05DC\u05D9 \u05DB\u05D1\u05E8 \u05D0\u05EA\u05E8: \u05E9\u05D5\u05E8\u05D4 \u05DC\u05D4\u05E2\u05D1\u05E8\u05EA \u05D4\u05D0\u05EA\u05E8 \u05E9\u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4.", "I already have a site: a line to move the site in the folder."),
   // The CLI: every command (packages/cli/src/cli.ts).
@@ -21962,6 +21967,7 @@ var CLI_MAP_NODES = [
   n("text-details", "agent", "site.details / site.ask-details", "\u05E7\u05D5\u05E8\u05D0\u05D9\u05DD \u05D0\u05EA \u05D4\u05E4\u05E8\u05D8\u05D9\u05DD \u05DE .deployai/brief.md, \u05D0\u05D5 \u05E9\u05D5\u05D0\u05DC\u05D9\u05DD \u05D0\u05EA \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8.", "Read the details from .deployai/brief.md, or ask the owner."),
   n("text-update", "agent", "site.update", "\u05E2\u05D5\u05E9\u05D9\u05DD \u05D0\u05EA \u05D4\u05E9\u05D9\u05E0\u05D5\u05D9 \u05E9\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D1\u05D9\u05E7\u05E9.", "Make the change the owner asked for."),
   n("text-refresh", "agent", "site.refresh", "\u05E2\u05D9\u05E6\u05D5\u05D1 \u05D7\u05D3\u05E9 \u05DC\u05D0\u05EA\u05E8 \u05D7\u05D9: \u05DB\u05DC \u05E2\u05DE\u05D5\u05D3, \u05DB\u05EA\u05D5\u05D1\u05EA, \u05DE\u05D9\u05DC\u05D4 \u05D5\u05DE\u05D5\u05EA\u05D2 \u05E0\u05E9\u05D0\u05E8\u05D9\u05DD, \u05EA\u05E6\u05D5\u05D2\u05D4 \u05DE\u05E7\u05D3\u05D9\u05DE\u05D4 \u05DC\u05E4\u05E0\u05D9 \u05E9\u05E2\u05D5\u05DC\u05D4.", "A new look for a live site: every page, address, word and the brand stay, a preview before it goes live."),
+  n("text-run-addons", "agent", "site.addons", "\u05DE\u05E8\u05D9\u05E6\u05D9\u05DD \u05D0\u05EA \u05D4\u05EA\u05D5\u05E1\u05E4\u05D9\u05DD \u05E9\u05DC \u05D0\u05EA\u05E8 \u05D7\u05D9, \u05D0\u05D7\u05D3 \u05D0\u05D7\u05E8\u05D9 \u05D4\u05E9\u05E0\u05D9: \u05D4\u05D0\u05EA\u05E8 \u05E0\u05E9\u05D0\u05E8 \u05DB\u05DE\u05D5 \u05E9\u05D4\u05D5\u05D0 \u05E2\u05D3 \u05E9\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05DE\u05D0\u05E9\u05E8.", "Run a live site's add-ons one by one: the site stays as it is until the owner approves."),
   n("text-migrate", "agent", "site.migrate", "\u05D1\u05D5\u05E0\u05D9\u05DD \u05DE\u05D7\u05D3\u05E9 \u05D0\u05EA \u05D4\u05D0\u05EA\u05E8 \u05D4\u05D9\u05E9\u05DF \u05E2\u05DC \u05D4\u05D3\u05D5\u05D2\u05DE\u05D4, \u05E9\u05D5\u05DE\u05E8\u05D9\u05DD \u05DB\u05DC \u05DB\u05EA\u05D5\u05D1\u05EA \u05D5\u05DB\u05D5\u05EA\u05E8\u05EA, \u05EA\u05D5\u05DB\u05E0\u05D9\u05EA \u05E2\u05DD \u05E1\u05D8\u05D8\u05D5\u05E1 \u05DC\u05DB\u05DC \u05D9\u05DB\u05D5\u05DC\u05EA.", "Rebuild the old site on the sample, keep every address and title, a plan with a status for each feature."),
   n("text-move", "agent", "site.move", "\u05DE\u05E2\u05D1\u05D9\u05E8\u05D9\u05DD \u05D0\u05EA\u05E8 \u05E7\u05D9\u05D9\u05DD \u05D1\u05DC\u05D9 \u05DC\u05E9\u05E0\u05D5\u05EA \u05D0\u05EA \u05D4\u05E2\u05D9\u05E6\u05D5\u05D1 \u05D0\u05D5 \u05D4\u05DE\u05E1\u05D2\u05E8\u05EA.", "Move an existing site without changing its design or framework."),
   n("text-guest", "agent", "site.guest / site.guest-sample", "\u05D0\u05EA\u05E8 \u05D6\u05DE\u05E0\u05D9: \u05D4\u05DE\u05D2\u05D1\u05DC\u05D5\u05EA, \u05D5\u05DE\u05D4 \u05DC\u05E9\u05D0\u05D5\u05DC \u05D0\u05EA \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8.", "A temporary site: the limits, and what to ask the owner."),
@@ -21974,6 +21980,7 @@ var CLI_MAP_EDGES = [
   e("page-new", "cmd-start"),
   e("page-site", "cmd-start"),
   e("page-refresh", "cmd-start"),
+  e("page-addons", "cmd-start"),
   e("page-move", "cmd-start"),
   e("cmd-start", "api-starts"),
   e("cmd-start", "cmd-login"),
@@ -21984,6 +21991,7 @@ var CLI_MAP_EDGES = [
   e("cmd-start", "text-details"),
   e("cmd-start", "text-update"),
   e("cmd-start", "text-refresh"),
+  e("cmd-start", "text-run-addons"),
   e("cmd-start", "text-move"),
   e("cmd-start", "text-guest"),
   e("cmd-login", "api-device"),
@@ -22183,6 +22191,8 @@ var BUILD_WITH = [
   "Images: resize at build time or serve them as they are; no native image modules at runtime.",
   // D-616: an icon is part of a finished site, and the command keeps one the site has.
   "Icon: every site has one. npx deployai@latest brand favicon keeps the one it has, or makes one from the site itself: its logo, or the first letter of its name in its own color.",
+  // D-661: the site carries its owner's name. Our badge comes with the Free plan, so nothing here may hide it (D-179).
+  `Footer: the site carries its own name, not its builder's. No "Built with" or "Powered by" credit for a platform or tool. Use \xA9 <year> <name>, with a year that follows the date. Keep a credit a template's license requires. Never remove or hide the DeployAI badge: the hosting adds it on the Free plan, and a paid plan removes it.`,
   "Passwords: bcryptjs or Web Crypto, never native bcrypt.",
   // D-633: Safari on an iPhone is its own engine, so every site gets these whatever add-ons it has.
   "iPhone: Safari is its own browser engine, so working in Chrome or on Android proves nothing. Full height sections use svh or dvh, never 100vh. Typing fields are at least 16px, or the page zooms. A video that plays by itself has muted and playsinline. Bars fixed to the bottom pad with env(safe-area-inset-bottom). Nothing needs a hover. Newer CSS and browser features need a working fallback.",
@@ -23026,7 +23036,8 @@ var M = {
     sqlDestructive: "These remove or overwrite data, and a rollback does not bring it back:",
     sqlRunningNow: "The database changes of v{n} are already running. It goes live when they finish.",
     sqlRunningNowShort: "The database changes are already running. The version goes live when they finish: {url}",
-    sqlOwnerOnly: "Only the site owner approves database changes. Send them this page: {url}",
+    sqlOwnerOnly: "This account does not own the site, and only the site's owner approves database changes. Send the owner this page: {url}\nIf you own the site, log in with the account that owns it: npx deployai@latest login. Then run this again.",
+    sqlNotOwner: "This CLI is logged in as {account}, which does not own the site, and only the site's owner approves database changes. Send the owner this page: {url}\nIf you own the site, log in with the account that owns it: npx deployai@latest login. Then run this again.",
     sqlDashboard: "These database changes are sorted out in the dashboard: {url}",
     sqlTypeDatabase: "To run them and put v{n} live, type the database name ({db}): ",
     sqlAskRun: "Run them on {db} and put v{n} live? (y/N) ",
@@ -23245,7 +23256,8 @@ var M = {
     sqlDestructive: "\u05D0\u05DC\u05D4 \u05DE\u05D5\u05D7\u05E7\u05D9\u05DD \u05D0\u05D5 \u05D3\u05D5\u05E8\u05E1\u05D9\u05DD \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD, \u05D5\u05D7\u05D6\u05E8\u05D4 \u05DC\u05D2\u05E8\u05E1\u05D4 \u05E7\u05D5\u05D3\u05DE\u05EA \u05DC\u05D0 \u05DE\u05D7\u05D6\u05D9\u05E8\u05D4 \u05D0\u05D5\u05EA\u05DD:",
     sqlRunningNow: "\u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05E9\u05DC v{n} \u05DB\u05D1\u05E8 \u05E8\u05E6\u05D9\u05DD. \u05D4\u05D9\u05D0 \u05E2\u05D5\u05DC\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8 \u05DB\u05E9\u05D4\u05DD \u05DE\u05E1\u05EA\u05D9\u05D9\u05DE\u05D9\u05DD.",
     sqlRunningNowShort: "\u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05DB\u05D1\u05E8 \u05E8\u05E6\u05D9\u05DD. \u05D4\u05D2\u05E8\u05E1\u05D4 \u05E2\u05D5\u05DC\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8 \u05DB\u05E9\u05D4\u05DD \u05DE\u05E1\u05EA\u05D9\u05D9\u05DE\u05D9\u05DD: {url}",
-    sqlOwnerOnly: "\u05E8\u05E7 \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05DE\u05D0\u05E9\u05E8 \u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD. \u05E9\u05DC\u05D7\u05D5 \u05D0\u05EA \u05D4\u05D3\u05E3 \u05D4\u05D6\u05D4 \u05DC\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8: {url}",
+    sqlOwnerOnly: "\u05D4\u05D7\u05E9\u05D1\u05D5\u05DF \u05D4\u05D6\u05D4 \u05D0\u05D9\u05E0\u05D5 \u05D4\u05D1\u05E2\u05DC\u05D9\u05DD \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8, \u05D5\u05E8\u05E7 \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05DE\u05D0\u05E9\u05E8 \u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD. \u05E9\u05DC\u05D7\u05D5 \u05D0\u05EA \u05D4\u05D3\u05E3 \u05D4\u05D6\u05D4 \u05DC\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8: {url}\n\u05D0\u05DD \u05D4\u05D0\u05EA\u05E8 \u05E9\u05DC\u05DB\u05DD, \u05D4\u05EA\u05D7\u05D1\u05E8\u05D5 \u05E2\u05DD \u05D4\u05D7\u05E9\u05D1\u05D5\u05DF \u05E9\u05D1\u05D1\u05E2\u05DC\u05D5\u05EA\u05D5 \u05D4\u05D0\u05EA\u05E8: npx deployai@latest login \u05D5\u05D0\u05D6 \u05D4\u05E8\u05D9\u05E6\u05D5 \u05E9\u05D5\u05D1.",
+    sqlNotOwner: "\u05D4-CLI \u05DE\u05D7\u05D5\u05D1\u05E8 \u05D1\u05EA\u05D5\u05E8 {account}, \u05E9\u05D0\u05D9\u05E0\u05D5 \u05D4\u05D1\u05E2\u05DC\u05D9\u05DD \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8, \u05D5\u05E8\u05E7 \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05DE\u05D0\u05E9\u05E8 \u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD. \u05E9\u05DC\u05D7\u05D5 \u05D0\u05EA \u05D4\u05D3\u05E3 \u05D4\u05D6\u05D4 \u05DC\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8: {url}\n\u05D0\u05DD \u05D4\u05D0\u05EA\u05E8 \u05E9\u05DC\u05DB\u05DD, \u05D4\u05EA\u05D7\u05D1\u05E8\u05D5 \u05E2\u05DD \u05D4\u05D7\u05E9\u05D1\u05D5\u05DF \u05E9\u05D1\u05D1\u05E2\u05DC\u05D5\u05EA\u05D5 \u05D4\u05D0\u05EA\u05E8: npx deployai@latest login \u05D5\u05D0\u05D6 \u05D4\u05E8\u05D9\u05E6\u05D5 \u05E9\u05D5\u05D1.",
     sqlDashboard: "\u05D0\u05EA \u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D4\u05D0\u05DC\u05D4 \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05DE\u05E1\u05D3\u05E8\u05D9\u05DD \u05D1\u05DC\u05D5\u05D7 \u05D4\u05D1\u05E7\u05E8\u05D4: {url}",
     sqlTypeDatabase: "\u05DB\u05D3\u05D9 \u05DC\u05D4\u05E8\u05D9\u05E5 \u05D0\u05D5\u05EA\u05DD \u05D5\u05DC\u05D4\u05E2\u05DC\u05D5\u05EA \u05D0\u05EA v{n} \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8, \u05D4\u05E7\u05DC\u05D9\u05D3\u05D5 \u05D0\u05EA \u05E9\u05DD \u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD ({db}): ",
     sqlAskRun: "\u05DC\u05D4\u05E8\u05D9\u05E5 \u05D0\u05D5\u05EA\u05DD \u05E2\u05DC {db} \u05D5\u05DC\u05D4\u05E2\u05DC\u05D5\u05EA \u05D0\u05EA v{n} \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8? (y/N) ",
@@ -23291,7 +23303,7 @@ function messages(root) {
 }
 
 // src/version.ts
-var CLI_VERSION = "0.1.0-beta.23";
+var CLI_VERSION = "0.1.0-beta.24";
 
 // src/api.ts
 function apiContext(apiFlag) {
@@ -25577,6 +25589,9 @@ function printSqlPlan(root, plan) {
     for (const d of plan.destructive) out(`  ${d.file}: ${d.statement}`);
   }
 }
+function notOwnerLine(t, plan) {
+  return plan.account ? t("sqlNotOwner", { account: plan.account, url: plan.url }) : t("sqlOwnerOnly", { url: plan.url });
+}
 async function approveSqlStep(root, ctx, projectId, n2, approve) {
   const t = messages(root);
   const plan = await fetchSqlPlan(ctx, projectId, n2);
@@ -25586,7 +25601,7 @@ async function approveSqlStep(root, ctx, projectId, n2, approve) {
   }
   printSqlPlan(root, plan);
   out();
-  if (!plan.canApprove) throw new CliError(t("sqlOwnerOnly", { url: plan.url }), 1, "sql_owner_only");
+  if (!plan.canApprove) throw new CliError(notOwnerLine(t, plan), 1, "sql_owner_only");
   if (!plan.database || plan.stuck.length) throw new CliError(t("sqlDashboard", { url: plan.url }), 1, "sql_dashboard");
   if (isInteractive()) {
     if (plan.destructive.length) {
@@ -25630,7 +25645,7 @@ async function sqlCommand(root, ctx, version2) {
   if (plan.migrationStatus !== "waiting" && plan.migrationStatus !== "failed") return;
   out();
   out(t("nextStep"));
-  if (!plan.canApprove) out(t("sqlOwnerOnly", { url: plan.url }));
+  if (!plan.canApprove) out(notOwnerLine(t, plan));
   else if (plan.destructive.length) out(t("sqlAgentDestructive", { n: n2, url: plan.url }));
   else out(t("sqlAgentThen", { n: n2, hash: plan.hash }));
 }
@@ -26179,7 +26194,7 @@ async function startCommand(cwd, ctx, id, opts = {}) {
   const empty = !filesIn(root).length;
   const starter = (kind === "new" || kind === "guest") && !sample && empty;
   const signedIn = Boolean(choices.projectId && tokenIfOwnApi(ctxNow));
-  const steps = startSteps(kind, { emptyFolder: kind === "update" && empty, starter, managed: Boolean(choices.migration?.requestId), signedIn });
+  const steps = startSteps(kind, { emptyFolder: kind === "update" && empty, starter, managed: Boolean(choices.migration?.requestId), signedIn, addons: Boolean(choices.runAddons) });
   updateProject(root, { lang: langOf(choices.ownerLanguage) });
   const t = messages(root);
   if (sample && !sameSite) {
