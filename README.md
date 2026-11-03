@@ -67,7 +67,7 @@ Node 20 or newer. No other setup: the CLI talks to https://deployai.co.il.
 | `deployai speed <url>` | Google PageSpeed test of a page: lab results, real visitor data when Google has it and the biggest opportunities. `--desktop` tests a desktop load. |
 | `deployai addons` | The marketplace add-ons of the linked site: which it has, which are done and which is next. Works once the DeployAI marketplace is open; the server checks that the site has each add-on. |
 | `deployai addon next` | Prints the next add-on of the site for your agent. `deployai addon run <name>` prints one by name. |
-| `deployai addons run` | Runs every add-on the site has that is not done, one after the other, with no ask between them. |
+| `deployai addons run` | Runs every add-on the site has that is not done, in the run order, with no ask between them. The owner still approves each plan. |
 | `deployai addon done <runId>` | Saves the report of a finished add-on (`--status done\|failed\|skipped`, `--report .deployai/addon-report.json`) and prints the next one. |
 | `deployai telemetry status\|on\|off` | Shows exactly what is sent, or turns it on or off. |
 
