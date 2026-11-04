@@ -21504,7 +21504,8 @@ var ARCH_NODES = [
   // Outside
   { id: "browser", kind: "actor", zone: "outside", label: "\u05D3\u05E4\u05D3\u05E4\u05DF", labelEn: "Browser", summary: "\u05DC\u05E7\u05D5\u05D7\u05D5\u05EA \u05D5\u05D0\u05D3\u05DE\u05D9\u05E0\u05D9\u05DD \u05E4\u05D5\u05EA\u05D7\u05D9\u05DD \u05D0\u05EA \u05D4\u05D0\u05EA\u05E8, \u05DC\u05D5\u05D7 \u05D4\u05D1\u05E7\u05E8\u05D4 \u05D5\u05D4\u05D0\u05D3\u05DE\u05D9\u05DF.", summaryEn: "Customers and admins open the site, the dashboard and the admin." },
   { id: "cli", kind: "actor", zone: "outside", label: "deployai CLI", summary: "\u05D4\u05E1\u05D5\u05DB\u05DF \u05D0\u05D5 \u05D4\u05DC\u05E7\u05D5\u05D7 \u05DE\u05E8\u05D9\u05E6\u05D9\u05DD check \u05D5\u05BEdeploy, \u05D5\u05D4\u05EA\u05D7\u05D1\u05E8\u05D5\u05EA \u05D1\u05E7\u05D5\u05D3 \u05DE\u05DB\u05E9\u05D9\u05E8.", summaryEn: "The agent or the customer runs check and deploy, and logs in with a device code.", code: ["packages/cli"], docs: ["docs/07-cli.md"] },
-  { id: "board-watcher", kind: "actor", zone: "outside", label: "Board watcher", summary: "\u05E8\u05E5 \u05D0\u05E6\u05DC \u05D4\u05D1\u05E2\u05DC\u05D9\u05DD (pnpm board:watch): \u05DC\u05D5\u05E7\u05D7 \u05DB\u05E8\u05D8\u05D9\u05E1 \u05DE\u05DC\u05D5\u05D7 \u05D4\u05E2\u05D1\u05D5\u05D3\u05D4 (\u05E8\u05E7 \u05DB\u05E9\u05D4\u05DE\u05EA\u05D2 \u05E9\u05DC\u05D5 \u05D1\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA \u05E4\u05D5\u05E2\u05DC, \u05D5\u05E8\u05E7 \u05D0\u05D7\u05E8\u05D9 \u05E9\u05DB\u05E8\u05D8\u05D9\u05E1 \u05D0\u05D5\u05E9\u05E8 \u05D5\u05E0\u05E9\u05DC\u05D7 \u05D0\u05DC\u05D9\u05D5), \u05DE\u05E8\u05D9\u05E5 Claude Code \u05DC\u05E7\u05E8\u05D9\u05D0\u05D4 \u05D1\u05DC\u05D1\u05D3 \u05D5\u05DE\u05D7\u05D6\u05D9\u05E8 \u05EA\u05D5\u05DB\u05E0\u05D9\u05EA. \u05DB\u05E8\u05D8\u05D9\u05E1 \u05E2\u05DD \u05D1\u05E0\u05D9\u05D9\u05D4 \u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9\u05EA \u05E9\u05D0\u05D5\u05E9\u05E8 \u05E0\u05D1\u05E0\u05D4 \u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05EA \u05D4\u05E4\u05E8\u05D5\u05D9\u05E7\u05D8, \u05D0\u05D7\u05D3 \u05D1\u05DB\u05DC \u05E4\u05E2\u05DD. \u05D4\u05D5\u05D0 \u05D2\u05DD \u05DB\u05D5\u05EA\u05D1 \u05D2\u05E8\u05E1\u05D0\u05D5\u05EA \u05D7\u05D3\u05E9\u05D5\u05EA \u05DC\u05E1\u05E4\u05E8\u05D9\u05D9\u05EA \u05D4\u05E4\u05E8\u05D5\u05DE\u05E4\u05D8\u05D9\u05DD \u05DC\u05E4\u05D9 \u05D4\u05E2\u05E8\u05D5\u05EA \u05D4\u05D1\u05E2\u05DC\u05D9\u05DD, \u05DC\u05D1\u05D3\u05D9\u05E7\u05D4 \u05D5\u05E4\u05E8\u05E1\u05D5\u05DD.", summaryEn: "Runs on the owner computer (pnpm board:watch): claims a work board ticket (only while its settings switch is on), runs Claude Code read only and posts a plan back. An approved auto build ticket is built in the project folder, one at a time. It also writes new versions of prompt library prompts from the owner notes, for review and publishing.", code: ["scripts/board-watch.ts", "scripts/prompts-sync.ts"], env: ["BOARD_RUNNER_TOKEN", "BOARD_URL"], decisions: ["D-110", "D-127", "D-182", "D-250"] },
+  { id: "board-watcher", kind: "actor", zone: "outside", label: "Board watcher", summary: "\u05E8\u05E5 \u05D0\u05E6\u05DC \u05D4\u05D1\u05E2\u05DC\u05D9\u05DD (pnpm board:watch): \u05DC\u05D5\u05E7\u05D7 \u05DB\u05E8\u05D8\u05D9\u05E1 \u05DE\u05DC\u05D5\u05D7 \u05D4\u05E2\u05D1\u05D5\u05D3\u05D4 (\u05E8\u05E7 \u05DB\u05E9\u05D4\u05DE\u05EA\u05D2 \u05E9\u05DC\u05D5 \u05D1\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA \u05E4\u05D5\u05E2\u05DC, \u05D5\u05E8\u05E7 \u05D0\u05D7\u05E8\u05D9 \u05E9\u05DB\u05E8\u05D8\u05D9\u05E1 \u05D0\u05D5\u05E9\u05E8 \u05D5\u05E0\u05E9\u05DC\u05D7 \u05D0\u05DC\u05D9\u05D5), \u05DE\u05E8\u05D9\u05E5 Claude Code \u05DC\u05E7\u05E8\u05D9\u05D0\u05D4 \u05D1\u05DC\u05D1\u05D3 \u05D5\u05DE\u05D7\u05D6\u05D9\u05E8 \u05EA\u05D5\u05DB\u05E0\u05D9\u05EA. \u05DB\u05E8\u05D8\u05D9\u05E1 \u05E2\u05DD \u05D1\u05E0\u05D9\u05D9\u05D4 \u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9\u05EA \u05E9\u05D0\u05D5\u05E9\u05E8 \u05E0\u05D1\u05E0\u05D4 \u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05EA \u05D4\u05E4\u05E8\u05D5\u05D9\u05E7\u05D8, \u05D0\u05D7\u05D3 \u05D1\u05DB\u05DC \u05E4\u05E2\u05DD. \u05D4\u05D5\u05D0 \u05D2\u05DD \u05DB\u05D5\u05EA\u05D1 \u05D4\u05E6\u05E2\u05EA \u05E0\u05D9\u05E1\u05D5\u05D7 \u05DC\u05E4\u05E8\u05D5\u05DE\u05E4\u05D8 \u05DC\u05E4\u05D9 \u05D4\u05E2\u05E8\u05D5\u05EA \u05D4\u05D1\u05E2\u05DC\u05D9\u05DD, \u05D5\u05D4\u05D4\u05E6\u05E2\u05D4 \u05DE\u05DE\u05EA\u05D9\u05E0\u05D4 \u05E2\u05D3 \u05E9\u05DE\u05E7\u05D1\u05DC\u05D9\u05DD \u05D0\u05D5 \u05D3\u05D5\u05D7\u05D9\u05DD \u05D0\u05D5\u05EA\u05D4.", summaryEn: "Runs on the owner computer (pnpm board:watch): claims a work board ticket (only while its settings switch is on), runs Claude Code read only and posts a plan back. An approved auto build ticket is built in the project folder, one at a time. It also writes a suggested rewrite of a prompt from the owner notes, which waits until it is accepted or rejected.", code: ["scripts/board-watch.ts"], decisions: ["D-110", "D-127", "D-182", "D-189", "D-250", "D-696"] },
+  { id: "local-scripts", kind: "actor", zone: "outside", label: "Local scripts", summary: "\u05E4\u05E7\u05D5\u05D3\u05D5\u05EA \u05E9\u05D4\u05E6\u05D5\u05D5\u05EA \u05DE\u05E8\u05D9\u05E5 \u05DE\u05D4\u05DE\u05D7\u05E9\u05D1: prompts:pull \u05D5\u05BEprompts:push (\u05E7\u05D5\u05D1\u05E5 \u05E4\u05E8\u05D5\u05DE\u05E4\u05D8 \u05DE\u05D5\u05DC \u05D4\u05D8\u05E7\u05E1\u05D8 \u05D4\u05D7\u05D9), costs:push (\u05DE\u05D7\u05D9\u05E8\u05D9 Cloudflare), content:push \u05D5\u05BEcontent:pull (\u05D4\u05EA\u05D5\u05DB\u05DF \u05D1\u05D9\u05DF \u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05E9\u05DC \u05D4\u05DE\u05D7\u05E9\u05D1 \u05DC\u05D6\u05D4 \u05E9\u05DC \u05D4\u05E9\u05E8\u05EA, \u05D3\u05E8\u05DA SSH). LOCAL_SCRIPTS_TOKEN \u05E4\u05D5\u05EA\u05D7 \u05D0\u05EA \u05D4\u05BEAPI \u05E9\u05DC \u05D4\u05E4\u05E7\u05D5\u05D3\u05D5\u05EA \u05D4\u05D0\u05DC\u05D4 \u05D5\u05E9\u05DC \u05D4\u05BEBoard watcher, \u05D5\u05D9\u05DB\u05D5\u05DC \u05DC\u05E9\u05E0\u05D5\u05EA \u05E4\u05E8\u05D5\u05DE\u05E4\u05D8\u05D9\u05DD \u05D5\u05DE\u05D7\u05D9\u05E8\u05D9\u05DD \u05D7\u05D9\u05D9\u05DD.", summaryEn: "Commands the team runs from the computer: prompts:pull and prompts:push (a prompt file against the live text), costs:push (Cloudflare prices), content:push and content:pull (content between the computer's database and the server's, over SSH). LOCAL_SCRIPTS_TOKEN opens the API of these commands and of the Board watcher, and can change live prompts and prices.", code: ["scripts/prompts-sync.ts", "scripts/costs-push.ts", "scripts/content-sync.ts"], env: ["LOCAL_SCRIPTS_TOKEN", "BOARD_URL"], docs: ["docs/13-run-locally.md"], decisions: ["D-204", "D-471", "D-677", "D-696"] },
   { id: "visitor", kind: "actor", zone: "outside", label: "\u05DE\u05D1\u05E7\u05E8 \u05D1\u05D0\u05EA\u05E8", labelEn: "Site visitor", summary: "\u05DE\u05D1\u05E7\u05E8 \u05D1\u05D0\u05EA\u05E8 \u05E9\u05DC \u05DC\u05E7\u05D5\u05D7 \u05D1\u05DB\u05EA\u05D5\u05D1\u05EA <slug>.<\u05D3\u05D5\u05DE\u05D9\u05D9\u05DF \u05D0\u05EA\u05E8\u05D9\u05DD> (\u05DB\u05DE\u05D5 deploy-net.com \u05D0\u05D5 freesite.click) \u05D0\u05D5 \u05D1\u05D3\u05D5\u05DE\u05D9\u05D9\u05DF \u05DE\u05E9\u05DC\u05D5.", summaryEn: "A visitor on a customer site at <slug>.<a sites domain> (like deploy-net.com or freesite.click) or on their own domain." },
   // Platform
   { id: "web", kind: "app", zone: "platform", label: "Web app (Next.js)", summary: "\u05D0\u05EA\u05E8 \u05D4\u05E9\u05D9\u05D5\u05D5\u05E7, \u05DC\u05D5\u05D7 \u05D4\u05D1\u05E7\u05E8\u05D4, \u05D4\u05D0\u05D3\u05DE\u05D9\u05DF \u05D5\u05D4\u05BEAPI \u05E9\u05DC \u05D4\u05BECLI. \u05DE\u05DB\u05E0\u05D9\u05E1 \u05E2\u05D1\u05D5\u05D3\u05D5\u05EA \u05DC\u05EA\u05D5\u05E8.", summaryEn: "The marketing site, the dashboard, the admin and the CLI API. Puts jobs in the queue.", code: ["apps/web/src/app", "apps/web/src/server"], env: ["DEPLOYAI_SPACE", "BETTER_AUTH_SECRET", "NEXT_PUBLIC_SUPPORT_WHATSAPP", "DEV_SUPERADMIN_PASSWORD", "OPENAI_APPS_CHALLENGE"], portability: "Our app (site, dashboard, API, builds)", docs: ["docs/04-architecture.md"], decisions: ["D-020", "D-057", "D-104", "D-149", "D-238", "D-293"] },
@@ -21544,6 +21545,8 @@ var ARCH_EDGES = [
   { id: "npm-cli", from: "npm", to: "cli", kind: "deploy", label: "npx deployai" },
   { id: "cli-web", from: "cli", to: "web", kind: "api", label: "/api/cli/*" },
   { id: "board-watcher-web", from: "board-watcher", to: "web", kind: "api", label: "/api/board/*, /api/library-prompts/*" },
+  { id: "local-scripts-web", from: "local-scripts", to: "web", kind: "api", label: "/api/library-prompts/*, /api/costs/push" },
+  { id: "local-scripts-postgres", from: "local-scripts", to: "postgres", kind: "deploy", label: "content:push over SSH" },
   { id: "web-postgres", from: "web", to: "postgres", kind: "sql", label: "Drizzle" },
   { id: "web-queue", from: "web", to: "queue", kind: "queue", label: "enqueue" },
   { id: "web-files", from: "web", to: "files", kind: "api", label: "upload source" },
@@ -21653,6 +21656,19 @@ var ARCH_FLOWS = [
       { edge: "worker-cfapi", text: "\u05E2\u05D1\u05D5\u05D3\u05EA cf-billing \u05DE\u05D1\u05D9\u05D0\u05D4 \u05D0\u05EA \u05D4\u05D7\u05E9\u05D1\u05D5\u05DF \u05D4\u05D0\u05DE\u05D9\u05EA\u05D9 (\u05DE\u05E1\u05DC\u05D5\u05DC\u05D9\u05DD \u05D5\u05E9\u05D9\u05DE\u05D5\u05E9 \u05DC\u05E4\u05D9 \u05E9\u05D9\u05E8\u05D5\u05EA) \u05DE\u05BEBilling API, \u05DC\u05D9\u05D3 \u05D4\u05D4\u05E2\u05E8\u05DB\u05D4 \u05E9\u05DC\u05E0\u05D5 (D-281).", textEn: "The cf-billing job reads the real bill (plans and usage per service) from the Billing APIs, next to our estimate (D-281)." },
       { edge: "worker-cfapi", text: "\u05E2\u05D1\u05D5\u05D3\u05EA cf-caps \u05E1\u05D5\u05E4\u05E8\u05EA \u05D0\u05EA \u05D4\u05D7\u05E9\u05D1\u05D5\u05DF \u05DE\u05D5\u05DC \u05D4\u05DE\u05D2\u05D1\u05DC\u05D5\u05EA \u05E9\u05DC Cloudflare (\u05DB\u05EA\u05D5\u05D1\u05D5\u05EA \u05DE\u05D5\u05EA\u05D0\u05DE\u05D5\u05EA, D1, R2, \u05E1\u05E7\u05E8\u05D9\u05E4\u05D8\u05D9\u05DD) \u05D5\u05DE\u05D5\u05E6\u05D0\u05EA \u05E9\u05D0\u05E8\u05D9\u05D5\u05EA, \u05D1\u05DB\u05DE\u05D4 \u05E7\u05E8\u05D9\u05D0\u05D5\u05EA \u05E7\u05E8\u05D9\u05D0\u05D4 \u05D1\u05DC\u05D1\u05D3 (D-283).", textEn: "The cf-caps job counts the account against Cloudflare's limits (custom hostnames, D1, R2, scripts) and finds leftovers, in a few read only calls (D-283)." },
       { edge: "worker-postgres", text: "\u05DB\u05DC \u05E7\u05E8\u05D9\u05D0\u05D4 \u05DC\u05BECloudflare \u05E0\u05E1\u05E4\u05E8\u05EA \u05DC\u05E4\u05D9 \u05D3\u05E7\u05D4 \u05D1\u05BEcf_api_minutes, \u05DE\u05D5\u05DC 1,200 \u05E7\u05E8\u05D9\u05D0\u05D5\u05EA \u05D5\u05BE320 \u05E9\u05D0\u05D9\u05DC\u05EA\u05D5\u05EA GraphQL \u05D1\u05BE5 \u05D3\u05E7\u05D5\u05EA (D-283).", textEn: "Every Cloudflare call is counted per minute in cf_api_minutes, against 1,200 calls and 320 GraphQL queries per 5 minutes (D-283)." }
+    ]
+  },
+  {
+    id: "content-sync",
+    label: "\u05E2\u05D3\u05DB\u05D5\u05DF \u05EA\u05D5\u05DB\u05DF: \u05E4\u05E8\u05D5\u05DE\u05E4\u05D8\u05D9\u05DD, \u05D0\u05D9\u05DE\u05D9\u05D9\u05DC\u05D9\u05DD, \u05EA\u05D5\u05E1\u05E4\u05D9\u05DD \u05D5\u05DE\u05E1\u05DC\u05D5\u05DC\u05D9\u05DD",
+    labelEn: "Content sync: prompts, emails, add-ons and plans",
+    steps: [
+      { edge: "web-postgres", text: "\u05D3\u05E8\u05DA \u05D4\u05E7\u05D5\u05D3: \u05E4\u05E8\u05D9\u05E1\u05D4 \u05D5\u05D4\u05E4\u05E2\u05DC\u05EA \u05D4\u05D0\u05E4\u05DC\u05D9\u05E7\u05E6\u05D9\u05D4 \u05DE\u05D1\u05D9\u05D0\u05D5\u05EA \u05D8\u05E7\u05E1\u05D8\u05D9\u05DD \u05D7\u05D3\u05E9\u05D9\u05DD \u05DC\u05DE\u05E1\u05D3, \u05E9\u05D3\u05D4 \u05D0\u05D7\u05E8 \u05E9\u05D3\u05D4. \u05E9\u05D3\u05D4 \u05E9\u05E0\u05E2\u05E8\u05DA \u05D1\u05D0\u05D3\u05DE\u05D9\u05DF \u05E0\u05E9\u05D0\u05E8.", textEn: "From the code: a deploy and the app start bring new texts into the database, field by field. A field edited in admin stays." },
+      { edge: "local-scripts-postgres", text: "\u05E2\u05E8\u05D9\u05DB\u05D5\u05EA \u05DE\u05D4\u05D0\u05D3\u05DE\u05D9\u05DF \u05D1\u05DE\u05D7\u05E9\u05D1: content:push \u05DE\u05D9\u05D9\u05E6\u05D0 \u05E7\u05D5\u05D1\u05E5, \u05DE\u05E2\u05EA\u05D9\u05E7 \u05D0\u05D5\u05EA\u05D5 \u05DC\u05E9\u05E8\u05EA \u05D1\u05BESSH \u05D5\u05DE\u05E8\u05D0\u05D4 \u05DE\u05D4 \u05D9\u05E9\u05EA\u05E0\u05D4. \u05E8\u05E7 --apply \u05DB\u05D5\u05EA\u05D1.", textEn: "Edits from the admin on the computer: content:push exports a file, copies it to the server over SSH and lists what would change. Only --apply writes." },
+      { edge: "browser-tunnel", text: "\u05D1\u05D0\u05D5\u05EA\u05D4 \u05D3\u05E8\u05DA \u05D1\u05D9\u05D3: Export \u05D5\u05BEImport \u05D1\u05E2\u05DE\u05D5\u05D3 /admin/server/content.", textEn: "The same by hand: Export and Import on /admin/server/content." },
+      { edge: "tunnel-web", text: "Import \u05DE\u05E6\u05D9\u05D2 \u05E7\u05D5\u05D3\u05DD \u05EA\u05E6\u05D5\u05D2\u05D4 \u05DE\u05E7\u05D3\u05D9\u05DE\u05D4 \u05E9\u05DC \u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD, \u05D5\u05D0\u05D6 \u05DE\u05D1\u05E7\u05E9 \u05D0\u05D9\u05E9\u05D5\u05E8.", textEn: "Import first shows a preview of the changes, then asks to confirm." },
+      { edge: "web-postgres", text: "\u05D4\u05DB\u05EA\u05D9\u05D1\u05D4 \u05E7\u05D5\u05E8\u05D9\u05EA \u05D1\u05D1\u05EA \u05D0\u05D7\u05EA. \u05D4\u05E9\u05D5\u05E8\u05D5\u05EA \u05D4\u05E7\u05D5\u05D3\u05DE\u05D5\u05EA \u05E0\u05E9\u05DE\u05E8\u05D5\u05EA \u05DC\u05BEUndo, \u05D5\u05E1\u05D5\u05D3\u05D5\u05EA, \u05E0\u05EA\u05D5\u05E0\u05D9 \u05DC\u05E7\u05D5\u05D7\u05D5\u05EA \u05D5\u05DE\u05EA\u05D2 \u05D4\u05D4\u05E4\u05E2\u05DC\u05D4 \u05E9\u05DC \u05D0\u05D9\u05DE\u05D9\u05D9\u05DC \u05DC\u05D0 \u05E2\u05D5\u05D1\u05E8\u05D9\u05DD.", textEn: "The write happens at once. The rows before are kept for Undo, and secrets, customer data and an email's on switch never travel." },
+      { edge: "local-scripts-web", text: "\u05E4\u05E8\u05D5\u05DE\u05E4\u05D8 \u05D3\u05D7\u05D5\u05E3 \u05D1\u05D9\u05DF \u05E4\u05E8\u05D9\u05E1\u05D5\u05EA: prompts:push \u05E9\u05D5\u05DC\u05D7 \u05E7\u05D5\u05D1\u05E5 \u05D0\u05D7\u05D3 \u05DB\u05D8\u05E7\u05E1\u05D8 \u05D4\u05D7\u05D9 \u05E2\u05DD LOCAL_SCRIPTS_TOKEN, \u05D5\u05E0\u05D3\u05D7\u05D4 \u05D0\u05DD \u05D4\u05D8\u05E7\u05E1\u05D8 \u05D4\u05D7\u05D9 \u05D4\u05E9\u05EA\u05E0\u05D4 \u05DE\u05D0\u05D6 \u05D4\u05BEpull.", textEn: "An urgent prompt between deploys: prompts:push sends one file as the live text with LOCAL_SCRIPTS_TOKEN, and is refused if the live text changed since the pull." }
     ]
   }
 ];
@@ -21930,8 +21946,10 @@ function stepsOf(kind, opts) {
   }
 }
 var allowCommandsUrl = (lang = "he") => `${HELP_ORIGIN}${lang === "he" ? "" : "/en"}/go-live#allow`;
-var runCommandsRule = (lang = "he") => `Run every npx deployai@latest command yourself. If your tool shows the owner its own approval for a command, that approval is the question, so do not ask again. If it needs approval and shows the owner nothing, ask the owner one short yes or no question that names the command, for example "Run npx deployai@latest check?", and run it when they say yes. Never ask the owner to copy, paste or type a command. Right after the first command runs, before any other work, ask the owner once, unless your tool already allows our commands here: "Let your coding tool run DeployAI commands in this folder without asking each time? It adds one allow rule for npx deployai@latest to the tool's settings in this folder. Going live still waits for your answer." Only on yes run npx deployai@latest allow (add your tool's name if it asks: claude-code, cursor, copilot, codex or antigravity). Either way go on without stopping, and do not ask again. Never change your tool's settings any other way. If a command is still blocked after their yes, also by a safety check of your tool, never retry it, change it or run it another way. Say in plain words what was stopped, send them ${allowCommandsUrl(lang)}, which shows how to approve it in their tool, and ask: "Your coding tool stopped this step. I approved it, or not yet?" If the stopped command was a deploy with --live, also offer a preview first. On I approved it, try once more.`;
-var START_FAIL_LINE = "If anything fails, tell the owner in plain words what happened and what you will do next.";
+var runCommandsRule = (lang = "he") => `Run every npx deployai@latest command yourself. The package is DeployAI's own CLI: its code is public at github.com/yobotn/deployai-cli and npm shows where each version was built. If your tool shows the owner its own approval for a command, that approval is the question, so do not ask again. If it needs approval and shows the owner nothing, ask the owner one short yes or no question that names the command, for example "Run npx deployai@latest check?", and run it when they say yes. Never ask the owner to copy, paste or type a command. Right after the first command runs, before any other work, ask the owner once, unless your tool already allows our commands here: "Let your coding tool run DeployAI commands in this folder without asking each time? New versions of DeployAI will run too. Going live still waits for your answer." Only on yes run npx deployai@latest allow (add your tool's name if it asks: claude-code, cursor, copilot, codex or antigravity). Either way go on without stopping, and do not ask again. Never change your tool's settings any other way. If a command is still blocked after their yes, also by a safety check of your tool, never retry it, change it or run it another way. Say in one short sentence what was stopped, send them ${allowCommandsUrl(lang)}, which shows how to approve it in their tool, without copying its steps, and ask: "Your coding tool stopped this step. I approved it, or not yet?" If the stopped command was a deploy with --live, also offer a preview first. On I approved it, try once more.`;
+var OWNER_TEXT_RULE = "Write to the owner in short plain text, with no file paths or setting names, and no escape codes or invisible direction marks such as \\u200E.";
+var START_LOGIN_WAIT_LINE = "For the agent: this command prints your instructions after the owner approves the login in the browser. Ask the owner to approve it now. If your tool stops this command, run the same command again. Do not build, scan or download anything before your instructions print.";
+var START_FAIL_LINE = "If anything fails, tell the owner in one or two short sentences what happened and what happens now, with no technical words. Give the cause only when it helps them, in simple words. Do not suggest another coding tool.";
 
 // ../shared/src/cli-map.ts
 var n = (id, lane, label, summaryHe, summaryEn) => ({ id, lane, label, summaryHe, summaryEn });
@@ -22097,7 +22115,7 @@ var ENV_KEYS = {
   CARDCOM_API_PASSWORD: { scope: "same", section: "payments", about: "The API password of that terminal." },
   CARDCOM_INVOICES: { scope: "same", section: "payments", about: "0 stops Cardcom from issuing a tax invoice per charge (on by default)." },
   CARDCOM_DEPARTMENT_ID: { scope: "same", section: "payments", about: "Optional. The Cardcom department number put on every invoice and credit invoice, for reports on a shared terminal (D-371)." },
-  CARDCOM_CSS_URL: { scope: "own", section: "payments", about: "Our stylesheet for Cardcom's card page, https only. Leave unset: the app address is used, the tunnel in dev." },
+  CARDCOM_CSS_URL: { scope: "own", section: "payments", about: "Our stylesheet for Cardcom's card page, https only, test terminals only (D-699). Leave unset: the app address is used, the tunnel in dev." },
   CARDCOM_TOKEN_KEY: { scope: "server", section: "payments", required: ["server"], about: "32 bytes in base64 that seal saved card tokens (openssl rand -base64 32). Back it up offline; without it no saved card works." },
   BUILD_MODE: { scope: "own", section: "builds", sample: { server: "docker" }, about: "docker = a fresh container per build. Default local." },
   BUILD_SLOTS: { scope: "own", section: "builds", about: "Builds running at the same time in the queue worker. Default 2." },
@@ -22119,7 +22137,7 @@ var ENV_KEYS = {
   UPTIME_ALERT_TO: { scope: "own", section: "tools", about: "Who gets the down and back up emails of the uptime Worker, comma separated. Without it no email is sent." },
   UPTIME_ALERT_TOKEN: { scope: "own", section: "tools", about: "A Cloudflare token with Email Sending edit only, stored as the uptime Worker's secret. Default CF_API_TOKEN." },
   A11Y_RENDER: { scope: "same", section: "tools", about: "0 turns off Cloudflare Browser Rendering for the online accessibility check (D-191)." },
-  BOARD_RUNNER_TOKEN: { scope: "own", section: "board", about: "Token the local watcher (pnpm board:watch) sends, 24 characters or more. Each machine its own." },
+  LOCAL_SCRIPTS_TOKEN: { scope: "own", section: "board", about: "Token our local scripts send to the app: board:watch, prompts:pull, prompts:push and costs:push. It can change live prompts and prices. 24 characters or more. Each machine its own." },
   BOARD_URL: { scope: "own", section: "board", about: "The app pnpm board:watch, prompts:push and costs:push talk to. Default http://localhost:3000; the live address to push there." },
   LIFECYCLE_NOW: { scope: "local", section: "testing", about: "An ISO date the lifecycle job uses as today, to trigger each email (D-180). Ignored in production." },
   CHROME_PATH: { scope: "local", section: "testing", about: "The browser pnpm samples:shots uses. Default Chrome or Edge in their usual places." },
@@ -22206,6 +22224,7 @@ var SPACES = {
 };
 
 // ../shared/src/agent-rules.ts
+var IPHONE_RULE = "iPhone: Safari is its own browser engine, so working in Chrome or on Android proves nothing. Full height sections use svh or dvh, never 100vh. Typing fields are at least 16px, or the page zooms. A video that plays by itself has muted and playsinline. Bars fixed to the bottom pad with env(safe-area-inset-bottom). Nothing needs a hover. Newer CSS and browser features need a working fallback.";
 var BUILD_WITH = [
   `Frameworks: ${SUPPORTED_FRAMEWORKS.map((f) => f.name).join(", ")}. In beta: ${BETA_FRAMEWORKS.map((f) => f.name).join(", ")} (Next.js through the OpenNext Cloudflare adapter).`,
   "Database: Cloudflare D1 (SQLite), through Drizzle with drizzle-orm/d1 or Prisma with the D1 adapter.",
@@ -22217,8 +22236,7 @@ var BUILD_WITH = [
   // D-661: the site carries its owner's name. Our badge comes with the Free plan, so nothing here may hide it (D-179).
   `Footer: the site carries its own name, not its builder's. No "Built with" or "Powered by" credit for a platform or tool. Use \xA9 <year> <name>, with a year that follows the date. Ask the owner, Remove or Keep, about a credit to a real designer or agency. Keep a credit a template's license requires. Never remove or hide the DeployAI badge: the hosting adds it on the Free plan, and a paid plan removes it.`,
   "Passwords: bcryptjs or Web Crypto, never native bcrypt.",
-  // D-633: Safari on an iPhone is its own engine, so every site gets these whatever add-ons it has.
-  "iPhone: Safari is its own browser engine, so working in Chrome or on Android proves nothing. Full height sections use svh or dvh, never 100vh. Typing fields are at least 16px, or the page zooms. A video that plays by itself has muted and playsinline. Bars fixed to the bottom pad with env(safe-area-inset-bottom). Nothing needs a hover. Newer CSS and browser features need a working fallback.",
+  IPHONE_RULE,
   "Server code runs per request: no long-running processes, background servers or child processes.",
   // D-611: Durable Objects run when the site's own code exports them; D1 stays the default, they cost more for plain data.
   "Data goes in D1 by default. Use a Durable Object only for live state that needs one place to coordinate (a chat room, a live counter, booking slots that must not double-book, presence): export the class from this site's Worker and bind it with a name and class_name in the wrangler config, never script_name. Never remove or rename a class once it is live: that would delete its data, so the upload is refused. A preview starts with empty objects.",
@@ -22233,7 +22251,8 @@ var KEEP_DATA_RULES = [
   "- Sessions and cache (Redis, memory): these can be lost, and users may have to log in again. Say so.",
   "Never delete the old database, files or storage service."
 ];
-var AGENT_POINTER = "Read DEPLOYAI.md before you write code, change the plan or add a dependency: this project is published with DeployAI.";
+var AGENT_POINTER = "Read DEPLOYAI.md before your first answer and before you write code, change the plan or add a dependency: this project is published with DeployAI.";
+var FOLDER_READY_RULE = `This folder is already set up. When the owner has not asked for anything yet, say only, in their language: "The folder is set up and ready. What do you want to change?" Add the site's name when .deployai/project.json has it. If the folder has no site files yet, ask instead: "The folder is set up and ready. What do you want to build?" Never ask them for a start line, a command or an id. While the folder holds a site, never offer a sample or a new start: go on with that site.`;
 
 // ../shared/src/stack.ts
 var SITE_LANG_INFO = {
@@ -22348,6 +22367,55 @@ function uiPartsText() {
 }
 
 // ../shared/src/migration.ts
+var BLOCKED_MOVE_ENDINGS = ["gov", "gov.il", "mil", "mil.il", "idf.il", "muni.il", "bank", "insurance"];
+var BLOCKED_MOVE_HOSTS = [
+  // Banks and payment cards in Israel, and the central bank.
+  "leumi.co.il",
+  "bankhapoalim.co.il",
+  "discountbank.co.il",
+  "mizrahi-tefahot.co.il",
+  "fibi.co.il",
+  "mercantile.co.il",
+  "bankjerusalem.co.il",
+  "boi.org.il",
+  "isracard.co.il",
+  "cal-online.co.il",
+  "max.co.il",
+  // Health funds and hospitals in Israel.
+  "clalit.co.il",
+  "maccabi4u.co.il",
+  "meuhedet.co.il",
+  "leumit.co.il",
+  "sheba.co.il",
+  "hadassah.org.il",
+  "tasmc.org.il",
+  "rambam.org.il",
+  "szmc.org.il",
+  "assuta.co.il",
+  // Insurers in Israel.
+  "harel-group.co.il",
+  "migdal.co.il",
+  "fnx.co.il",
+  "menoramivt.co.il",
+  "clalbit.co.il",
+  // Payment services and large banks abroad.
+  "paypal.com",
+  "stripe.com",
+  "chase.com",
+  "bankofamerica.com",
+  "wellsfargo.com",
+  "hsbc.com",
+  "barclays.co.uk"
+];
+function isBlockedMoveSite(url2) {
+  let host;
+  try {
+    host = new URL(url2).hostname.toLowerCase().replace(/\.$/, "");
+  } catch {
+    return false;
+  }
+  return [...BLOCKED_MOVE_ENDINGS, ...BLOCKED_MOVE_HOSTS].some((name) => host === name || host.endsWith(`.${name}`));
+}
 function normalizeSourceUrl(raw) {
   const text = raw.trim();
   if (!text || text.length > 300) return null;
@@ -22905,6 +22973,7 @@ var M = {
   en: {
     startTitle: "DeployAI start",
     startNewFolder: "This folder already has files, so the new site is in a new folder: {dir}",
+    startUpdateFolder: "This folder holds other files, so the site's live code is in a new folder: {dir}. Nothing here changed.",
     startDownloaded: "Downloaded the {key} sample: {n} files.",
     startInstalled: "Installed its packages (npm install).",
     startBrief: "Wrote the owner's details to {file} (kept out of git and never uploaded).",
@@ -23031,6 +23100,7 @@ var M = {
     notOnSite: "This site belongs to another account. Ask its owner to add you as an editor. If it is your site, log in with the account that owns it: npx deployai@latest logout, then npx deployai@latest login",
     viewOnly: "This account can only view this site. Ask its owner to make you an editor.",
     startLoginFirst: "This line opens only for the site's owner or an editor, so first log in.",
+    startLoginExpired: "The login code expired. Run the same line again: npx deployai@latest start {id}",
     notFound: "DeployAI did not find it, or this account cannot see it. Check the name or the link, and that you logged in with the account that made the site: npx deployai@latest whoami",
     badArchive: "The upload arrived broken or empty. Run the same command again. If it happens again, update the CLI: npx deployai@latest",
     invalidRequest: "DeployAI did not accept this request. Run it again with the newest CLI: npx deployai@latest",
@@ -23131,6 +23201,7 @@ var M = {
   he: {
     startTitle: "DeployAI start",
     startNewFolder: "\u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5 \u05DB\u05D1\u05E8 \u05D9\u05E9 \u05E7\u05D1\u05E6\u05D9\u05DD, \u05D0\u05D6 \u05D4\u05D0\u05EA\u05E8 \u05D4\u05D7\u05D3\u05E9 \u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D7\u05D3\u05E9\u05D4: {dir}",
+    startUpdateFolder: "\u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5 \u05D9\u05E9 \u05E7\u05D1\u05E6\u05D9\u05DD \u05D0\u05D7\u05E8\u05D9\u05DD, \u05D0\u05D6 \u05D4\u05E7\u05D5\u05D3 \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8 \u05E0\u05DE\u05E6\u05D0 \u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D7\u05D3\u05E9\u05D4: {dir}. \u05DC\u05D0 \u05E9\u05D9\u05E0\u05D9\u05E0\u05D5 \u05DB\u05D0\u05DF \u05DB\u05DC\u05D5\u05DD.",
     startDownloaded: "\u05D4\u05D3\u05D5\u05D2\u05DE\u05D4 {key} \u05D4\u05D5\u05E8\u05D3\u05D4: {n} \u05E7\u05D1\u05E6\u05D9\u05DD.",
     startInstalled: "\u05D4\u05D7\u05D1\u05D9\u05DC\u05D5\u05EA \u05E9\u05DC\u05D4 \u05D4\u05D5\u05EA\u05E7\u05E0\u05D5 (npm install).",
     startBrief: "\u05D4\u05E4\u05E8\u05D8\u05D9\u05DD \u05E9\u05DC \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05E0\u05DB\u05EA\u05D1\u05D5 \u05DC {file} (\u05DC\u05D0 \u05E0\u05DB\u05E0\u05E1\u05D9\u05DD \u05DC\u05BEgit \u05D5\u05DC\u05D0 \u05E2\u05D5\u05DC\u05D9\u05DD \u05DC\u05D0\u05EA\u05E8).",
@@ -23257,6 +23328,7 @@ var M = {
     notOnSite: "\u05D4\u05D0\u05EA\u05E8 \u05D4\u05D6\u05D4 \u05E9\u05D9\u05D9\u05DA \u05DC\u05D7\u05E9\u05D1\u05D5\u05DF \u05D0\u05D7\u05E8. \u05D1\u05E7\u05E9\u05D5 \u05DE\u05D4\u05D1\u05E2\u05DC\u05D9\u05DD \u05E9\u05DC\u05D5 \u05DC\u05D4\u05D5\u05E1\u05D9\u05E3 \u05D0\u05EA\u05DB\u05DD \u05E2\u05DD \u05D4\u05E8\u05E9\u05D0\u05EA \u05E2\u05E8\u05D9\u05DB\u05D4. \u05D0\u05DD \u05D4\u05D0\u05EA\u05E8 \u05E9\u05DC\u05DB\u05DD, \u05D4\u05EA\u05D7\u05D1\u05E8\u05D5 \u05E2\u05DD \u05D4\u05D7\u05E9\u05D1\u05D5\u05DF \u05E9\u05D4\u05D5\u05D0 \u05E9\u05D9\u05D9\u05DA \u05DC\u05D5: npx deployai@latest logout \u05D5\u05D0\u05D6 npx deployai@latest login",
     viewOnly: "\u05DC\u05D7\u05E9\u05D1\u05D5\u05DF \u05D4\u05D6\u05D4 \u05D9\u05E9 \u05D4\u05E8\u05E9\u05D0\u05EA \u05E6\u05E4\u05D9\u05D9\u05D4 \u05D1\u05DC\u05D1\u05D3 \u05D1\u05D0\u05EA\u05E8 \u05D4\u05D6\u05D4. \u05D1\u05E7\u05E9\u05D5 \u05DE\u05D4\u05D1\u05E2\u05DC\u05D9\u05DD \u05DC\u05EA\u05EA \u05DC\u05DB\u05DD \u05D4\u05E8\u05E9\u05D0\u05EA \u05E2\u05E8\u05D9\u05DB\u05D4.",
     startLoginFirst: "\u05D4\u05E9\u05D5\u05E8\u05D4 \u05D4\u05D6\u05D5 \u05E0\u05E4\u05EA\u05D7\u05EA \u05E8\u05E7 \u05DC\u05D1\u05E2\u05DC\u05D9\u05DD \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D0\u05D5 \u05DC\u05DE\u05D9 \u05E9\u05D9\u05E9 \u05DC\u05D5 \u05D4\u05E8\u05E9\u05D0\u05EA \u05E2\u05E8\u05D9\u05DB\u05D4, \u05D0\u05D6 \u05E7\u05D5\u05D3\u05DD \u05DE\u05EA\u05D7\u05D1\u05E8\u05D9\u05DD.",
+    startLoginExpired: "\u05E7\u05D5\u05D3 \u05D4\u05DB\u05E0\u05D9\u05E1\u05D4 \u05E4\u05D2. \u05D4\u05E8\u05D9\u05E6\u05D5 \u05E9\u05D5\u05D1 \u05D0\u05EA \u05D0\u05D5\u05EA\u05D4 \u05D4\u05E9\u05D5\u05E8\u05D4: npx deployai@latest start {id}",
     notFound: "DeployAI \u05DC\u05D0 \u05DE\u05E6\u05D0 \u05D0\u05EA \u05D6\u05D4, \u05D0\u05D5 \u05E9\u05D4\u05D7\u05E9\u05D1\u05D5\u05DF \u05D4\u05D6\u05D4 \u05DC\u05D0 \u05E8\u05D5\u05D0\u05D4 \u05D0\u05EA \u05D6\u05D4. \u05D1\u05D3\u05E7\u05D5 \u05D0\u05EA \u05D4\u05E9\u05DD \u05D0\u05D5 \u05D4\u05E7\u05D9\u05E9\u05D5\u05E8, \u05D5\u05E9\u05E0\u05DB\u05E0\u05E1\u05EA\u05DD \u05E2\u05DD \u05D4\u05D7\u05E9\u05D1\u05D5\u05DF \u05E9\u05D9\u05E6\u05E8 \u05D0\u05EA \u05D4\u05D0\u05EA\u05E8: npx deployai@latest whoami",
     badArchive: "\u05D4\u05D4\u05E2\u05DC\u05D0\u05D4 \u05D4\u05D2\u05D9\u05E2\u05D4 \u05E4\u05D2\u05D5\u05DE\u05D4 \u05D0\u05D5 \u05E8\u05D9\u05E7\u05D4. \u05D4\u05E8\u05D9\u05E6\u05D5 \u05E9\u05D5\u05D1 \u05D0\u05EA \u05D0\u05D5\u05EA\u05D4 \u05E4\u05E7\u05D5\u05D3\u05D4. \u05D0\u05DD \u05D6\u05D4 \u05D7\u05D5\u05D6\u05E8, \u05E2\u05D3\u05DB\u05E0\u05D5 \u05D0\u05EA \u05D4\u05BECLI: npx deployai@latest",
     invalidRequest: "DeployAI \u05DC\u05D0 \u05E7\u05D9\u05D1\u05DC \u05D0\u05EA \u05D4\u05D1\u05E7\u05E9\u05D4. \u05D4\u05E8\u05D9\u05E6\u05D5 \u05D0\u05D5\u05EA\u05D4 \u05E9\u05D5\u05D1 \u05E2\u05DD \u05D4\u05BECLI \u05D4\u05E2\u05D3\u05DB\u05E0\u05D9: npx deployai@latest",
@@ -23365,7 +23437,7 @@ function messages(root) {
 }
 
 // src/version.ts
-var CLI_VERSION = "0.1.0-beta.25";
+var CLI_VERSION = "0.1.0-beta.26";
 
 // src/api.ts
 function apiContext(apiFlag) {
@@ -23534,7 +23606,7 @@ function formatBytes(n2) {
 import { arch as arch2, platform as platform2 } from "os";
 var TELEMETRY_SENT = [
   "Install id (random, made on this computer) and CLI version",
-  "After each command: command name, result (success, blocked, error category), how long it took and which AI tool ran it, when the environment says so",
+  "After each command: command name, result (success, blocked, error category), how long it took and which AI tool ran it, when the environment says so. A start that has to wait for a login sends one more, before it waits",
   "After an error: the error line with addresses, paths, file names, emails and ids removed, or the wrong command or flag name",
   "A note your agent sends with the feedback command: what got in its way and what would help, one sentence each, shown to you as it was sent",
   "Linked project id, detected framework and version",
@@ -24302,7 +24374,13 @@ var DEPLOYAI_MD = `# DeployAI rules
 
 This project is published with DeployAI.
 
+${FOLDER_READY_RULE}
+
 Always explain to the user in simple words, in the language they write to you in. The user may not read English.
+
+${START_FAIL_LINE}
+
+${OWNER_TEXT_RULE}
 
 When you install or set something up, say what it does for the site, not the package name. Say "installing the site runtime" or "setting up a local test database", not "installing the Cloudflare adapter" or "installing wrangler".
 
@@ -24312,7 +24390,7 @@ Before you write code or change the plan, compare it with these rules. If someth
 
 ${BUILD_WITH.map((l) => `- ${l}`).join("\n")}
 
-To start from working code, see the samples: npx deployai@latest samples
+Only when this folder has no site yet and the owner asks to start from working code: npx deployai@latest samples
 
 ## Do not add
 
@@ -24359,13 +24437,31 @@ Files:
 - .deployai/last-check.json: latest check result (not committed)
 `;
 var AGENT_FILES = ["AGENTS.md", "CLAUDE.md"];
+var LATER_RULES = [
+  { has: "iPhone:", text: IPHONE_RULE },
+  { has: "set up and ready", text: FOLDER_READY_RULE },
+  { has: "one or two short sentences", text: START_FAIL_LINE },
+  { has: "direction marks", text: OWNER_TEXT_RULE },
+  { has: "deployai@latest feedback", text: AGENT_FEEDBACK_RULES.join(" ") }
+];
+function addMissingRules(md) {
+  const text = readFileSync5(md, "utf8");
+  const missing = LATER_RULES.filter((r) => !text.includes(r.has));
+  if (!missing.length) return false;
+  const eol = text.includes("\r\n") ? "\r\n" : "\n";
+  const gap = text.endsWith("\n") ? eol : eol + eol;
+  appendFileSync(md, `${gap}## Added later by DeployAI${eol}${eol}${missing.map((r) => r.text).join(eol + eol)}${eol}`);
+  return true;
+}
 function runInit(root, opts = {}) {
   const created = [];
   const kept = [];
   const updated = [];
   const md = join5(root, "DEPLOYAI.md");
+  let rulesAdded = false;
   if (existsSync5(md) && !opts.force) {
     kept.push("DEPLOYAI.md");
+    rulesAdded = addMissingRules(md);
   } else {
     writeFileSync3(md, DEPLOYAI_MD);
     created.push("DEPLOYAI.md");
@@ -24398,7 +24494,7 @@ function runInit(root, opts = {}) {
     created.push(".deployai/project.json");
   }
   const hasCode = existsSync5(join5(root, "package.json")) || framework !== "unknown";
-  return { created, kept, updated, hasCode };
+  return { rulesAdded, created, kept, updated, hasCode };
 }
 function initCommand(root, opts) {
   const res = runInit(root, opts);
@@ -24436,11 +24532,12 @@ var PROMPT_RULES = [
   "Do not remove features without asking.",
   "Keep the project runnable outside DeployAI.",
   "Never add credentials to source code.",
-  "Explain every step to the user in simple words, in the language they write to you in.",
+  "Write to the user briefly, in simple words, in the language they write to you in.",
   "For the database, use D1 as shown in the DeployAI CRUD sample.",
   "Follow DEPLOYAI.md for every future change. If it is missing, run: npx deployai@latest init",
   runCommandsRule(),
-  ASK_OWNER_RULE
+  ASK_OWNER_RULE,
+  OWNER_TEXT_RULE
 ];
 var DATA_CODES = /* @__PURE__ */ new Set(["fs_write", "unsupported_db_postgres", "unsupported_db_mysql", "unsupported_db_mongodb", "unsupported_db_sqlite_file", "native_module_bcrypt"]);
 var MAX_LOCATIONS = 3;
@@ -24851,7 +24948,7 @@ function allowCommand(tool) {
     }
     out(added ? `Done: Claude Code runs npx deployai@latest commands in this folder without asking (${rel}).` : "Already allowed in this folder.");
     out("Other commands still ask, and going live still waits for the owner. The owner can take it back with /permissions.");
-    out(`If a safety check of the tool still stops a command, do not run it another way: send the owner ${allowCommandsUrl()} (D-691).`);
+    out(`If a safety check of the tool still stops a command, do not run it another way: send the owner ${allowCommandsUrl()}, the link only, not its steps (D-691).`);
     return;
   }
   if (picked === "cursor") {
@@ -24933,6 +25030,17 @@ function ensureMigrationDir(root) {
   mkdirSync4(dir, { recursive: true });
   const ignore = join9(dir, ".gitignore");
   if (!existsSync9(ignore)) writeFileSync6(ignore, "*/media/\n*/media-state.json\n");
+}
+function sameAddress(from, to) {
+  try {
+    const a = new URL(from);
+    const b = new URL(to, from);
+    const host = (u) => u.hostname.replace(/^www\./, "");
+    const path = (u) => u.pathname.replace(/\/+$/, "");
+    return host(a) === host(b) && path(a) === path(b) && a.search === b.search;
+  } catch {
+    return false;
+  }
 }
 async function sitemapUrls(base, robotsSitemaps, enough) {
   const own2 = [`${base}/wp-sitemap.xml`, `${base}/sitemap_index.xml`, `${base}/sitemap.xml`];
@@ -25103,6 +25211,7 @@ async function saveOldStyles(html, pageUrl, dir) {
 async function migrateScanCommand(root, raw, opts = {}) {
   const source = normalizeSourceUrl(raw);
   if (!source) throw new CliError(`Not a site address: ${raw}. Use the full address, for example https://example.co.il`, 1, "usage");
+  if (isBlockedMoveSite(source)) throw new CliError("We do not move sites of banks, hospitals, health funds, insurers, payment services or government bodies. Tell the owner this in one line and stop.", 1, "blocked_site");
   const home = await get(source);
   if (!home) throw new CliError(`Could not reach ${source}. Check the address, or that the site is up.`, 1, "network");
   if (home.status === 401 || home.status === 403) throw new CliError(`${source} answers ${home.status}: it is behind a login or blocks visitors. Ask the owner to open it to the public while it moves, or work from their export.`, 1, "blocked");
@@ -25132,7 +25241,9 @@ async function migrateScanCommand(root, raw, opts = {}) {
     while (next < list.length) {
       const i = next++;
       const url2 = list[i];
-      const res = i === 0 ? null : await get(url2, void 0, "manual");
+      let res = i === 0 ? null : await get(url2, void 0, "manual");
+      const moved = res && res.status >= 300 && res.status < 400 ? res.headers.get("location") : null;
+      if (moved && sameAddress(url2, moved)) res = await get(new URL(moved, url2).href);
       const status = i === 0 ? home.status : res?.status ?? 0;
       const body = i === 0 ? html : res && res.ok ? await res.text() : "";
       const seo = body ? readPageSeo(body) : null;
@@ -26316,8 +26427,13 @@ async function startCommand(cwd, ctx, id, opts = {}) {
   let start = await fetchStart(ctxNow, key);
   if (start === "login_required") {
     out(messages(process.cwd())("startLoginFirst"));
+    out(START_LOGIN_WAIT_LINE);
     out();
-    await loginCommand(ctxNow, { pollMs: opts.pollMs, quiet: true });
+    await sendTelemetryEvent(ctxNow, buildTelemetryEvent(ctxNow.config.installId, "start", "blocked"));
+    await loginCommand(ctxNow, { pollMs: opts.pollMs, quiet: true }).catch((e2) => {
+      if (e2 instanceof CliError && e2.category === "auth_expired") throw new CliError(messages(process.cwd())("startLoginExpired", { id: key }), 1, "auth_expired");
+      throw e2;
+    });
     ctxNow = { ...ctxNow, config: loadConfig() };
     start = await fetchStart(ctxNow, key);
     if (start === "login_required") throw new CliError(messages(process.cwd())("sessionExpired"), 1, "auth");
@@ -26328,12 +26444,14 @@ async function startCommand(cwd, ctx, id, opts = {}) {
   const fresh = kind === "new" || kind === "migrate" || kind === "guest" && sample;
   const here = resolve3(cwd);
   const sameSite = Boolean(choices.projectId && readProject(here)?.projectId === choices.projectId);
-  const root = fresh && filesIn(here).length && !opts.here && !sameSite ? freeFolder(here, choices.slug ?? sample?.key ?? "site") : here;
+  const update = kind === "update" && Boolean(choices.projectId);
+  const root = (fresh || update) && filesIn(here).length && !opts.here && !sameSite ? freeFolder(here, choices.slug ?? sample?.key ?? "site") : here;
   const done = [];
   const empty = !filesIn(root).length;
   const starter = (kind === "new" || kind === "guest") && !sample && empty;
   const signedIn = Boolean(choices.projectId && tokenIfOwnApi(ctxNow));
-  const steps = startSteps(kind, { emptyFolder: kind === "update" && empty, starter, managed: Boolean(choices.migration?.requestId), signedIn, addons: Boolean(choices.runAddons) });
+  const pullNow = update && empty && signedIn;
+  const steps = startSteps(kind, { emptyFolder: kind === "update" && empty && !pullNow, starter, managed: Boolean(choices.migration?.requestId), signedIn, addons: Boolean(choices.runAddons) });
   updateProject(root, { lang: langOf(choices.ownerLanguage) });
   const t = messages(root);
   if (sample && !sameSite) {
@@ -26374,15 +26492,17 @@ ${choices.brief}
     updateProject(root, { stack: choices.stack });
     done.push(t("startStack", { stack: stackSummary(choices.stack) }));
   }
-  if (runInit(root).created.includes("DEPLOYAI.md")) done.push(t("startRules"));
+  const init = runInit(root);
+  if (init.created.includes("DEPLOYAI.md") || init.rulesAdded) done.push(t("startRules"));
   if (choices.projectId) {
     const before = readProject(root);
     writeProject(root, { ...before ?? {}, projectId: choices.projectId, name: choices.name ?? void 0, slug: choices.slug ?? void 0, createdAt: before?.createdAt ?? (/* @__PURE__ */ new Date()).toISOString() });
     done.push(t(before?.projectId && before.projectId !== choices.projectId ? "startRelinked" : "startLinked", { name: choices.name ?? "" }));
   }
+  if (pullNow) await pullCommand(root, ctxNow);
   out(t("startTitle"));
   out();
-  if (root !== here) out(t("startNewFolder", { dir: relative3(here, root) }));
+  if (root !== here) out(t(update ? "startUpdateFolder" : "startNewFolder", { dir: relative3(here, root) }));
   for (const line of done) out(`- ${line}`);
   out();
   out("----- Instructions for the agent -----");
@@ -26406,6 +26526,7 @@ ${choices.brief}
   out();
   out(runCommandsRule(langOf(choices.ownerLanguage)));
   out(ASK_OWNER_RULE);
+  out(OWNER_TEXT_RULE);
   out(START_FAIL_LINE);
 }
 

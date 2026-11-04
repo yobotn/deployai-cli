@@ -134,7 +134,7 @@ Never uploaded:
 Sent when on:
 
 - Install id (random, made on this computer) and CLI version
-- After each command: command name and result (success, blocked, error category)
+- After each command: command name and result (success, blocked, error category). A start that has to wait for a login sends one more, before it waits
 - Linked project id, detected framework and version
 - After each check: compatible or not, blocker and warning codes (for example `fs_write`)
 - OS, architecture and Node version (in the request header)
