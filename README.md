@@ -34,6 +34,8 @@ npm i -g deployai
 
 Node 20 or newer. No other setup: the CLI talks to https://deployai.co.il.
 
+It stays up to date by itself. `npx deployai@latest` always runs the newest version. An installed copy checks npm at most once an hour, installs a newer version once into `~/.deployai/cli`, and runs every command on it. Set `DEPLOYAI_NO_UPDATE=1` to stay on the installed version; `CI` does the same.
+
 ## Commands
 
 | Command | What it does |
@@ -56,6 +58,8 @@ Node 20 or newer. No other setup: the CLI talks to https://deployai.co.il.
 | `deployai pull --history` | The same, with the site's history as git commits, one per version up to the live one, oldest first. |
 | `deployai migrate scan <url>` | Scans the old site you are moving: every page's address, title and description, the platform, and on WordPress its posts as Markdown. Up to 300 pages, `--max <n>` up to 1,000. Writes into `.deployai/migration/<host>/` only. |
 | `deployai migrate media` | Downloads the old site's files at their old paths, resumable (25 MB a file, 1 GB a move). |
+| `deployai migrate pages` | Lists every page the move keeps in the dashboard's Pages, at its old address, with the old menu. |
+| `deployai migrate legal` | Starts the dashboard's Documents and Accessibility pages from the scan: what to look at, never marked done. Asks nothing. |
 | `deployai migrate redirects` | Writes `public/_redirects` only for old addresses that cannot stay. |
 | `deployai migrate verify <preview>` | Checks every old address on the preview: moved, missing, an error, or a lost title or description. |
 | `deployai migrate status <stage> [note]` | For a managed move: reports the stage (and a note like the preview address) to the request, so the board and the owner's status page update. |
@@ -71,7 +75,7 @@ Node 20 or newer. No other setup: the CLI talks to https://deployai.co.il.
 | `deployai addon done <runId>` | Saves the report of a finished add-on (`--status done\|failed\|skipped`, `--report .deployai/addon-report.json`) and prints the next one. |
 | `deployai telemetry status\|on\|off` | Shows exactly what is sent, or turns it on or off. |
 | `deployai sound on\|off\|status\|test` | A sound on this computer when your site is ready. Off until you say yes. |
-| `deployai sound agent on\|off` | Claude Code only so far: a dot in the tab title and a sound when it asks you, in this folder only. Sends nothing and never reads your prompts. |
+| `deployai sound agent on\|off` | Claude Code only so far: a dot in the tab title and a sound when it finishes or asks you, in this folder only. `sound on` already does this inside Claude Code. Sends nothing and never reads your prompts. |
 
 Global options:
 - `--api <url>` (or env `DEPLOYAI_API_URL`)
