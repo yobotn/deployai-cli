@@ -70,6 +70,8 @@ Node 20 or newer. No other setup: the CLI talks to https://deployai.co.il.
 | `deployai addons run` | With more than one add-on waiting, prints a question for the owner. `--one-by-one` (recommended): after each add-on, the owner chooses whether to publish. `--all`: they all finish first, then one publish at the end. The owner still approves each plan. |
 | `deployai addon done <runId>` | Saves the report of a finished add-on (`--status done\|failed\|skipped`, `--report .deployai/addon-report.json`) and prints the next one. |
 | `deployai telemetry status\|on\|off` | Shows exactly what is sent, or turns it on or off. |
+| `deployai sound on\|off\|status\|test` | A sound on this computer when your site is ready. Off until you say yes. |
+| `deployai sound agent on\|off` | Claude Code only so far: a dot in the tab title and a sound when it asks you, in this folder only. Sends nothing and never reads your prompts. |
 
 Global options:
 - `--api <url>` (or env `DEPLOYAI_API_URL`)
