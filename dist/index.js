@@ -24737,7 +24737,7 @@ function messages(root) {
 }
 
 // src/version.ts
-var CLI_VERSION = "0.1.0-beta.31";
+var CLI_VERSION = "0.1.0-beta.32";
 
 // src/api.ts
 function apiContext(apiFlag) {
@@ -26556,6 +26556,16 @@ function soundCommand(root, action, state, tool, opts = {}) {
   }
   if (act !== "status") throw new CliError("Usage: npx deployai@latest sound on|off|status|test, or sound agent on|off", 1, "usage");
   out(t(soundWanted(cfg) ? "soundOn" : "soundOff"));
+}
+function refreshAgentScript(root) {
+  const script = join10(root, AGENT_SCRIPT);
+  if (!existsSync10(script)) return false;
+  const text2 = agentScript(soundsDir());
+  const now = readFileSync8(script, "utf8");
+  if (now === text2 || !now.startsWith("// DeployAI's sound and tab dot")) return false;
+  writeSoundFiles();
+  writeFileSync7(script, text2);
+  return true;
 }
 
 // src/commands/link.ts
@@ -28657,15 +28667,16 @@ ${choices.brief}
   say("Then, in this order:");
   steps.forEach((s, i) => say(`${i + 1}. ${s.cmd ? `Run ${s.cmd}. ` : ""}${s.say}`));
   say();
-  say(runCommandsRule(langOf(choices.ownerLanguage)));
-  say(MODEL_FLAG_RULE);
+  const server = await serverRules(ctx.apiUrl);
+  const lang = langOf(choices.ownerLanguage);
+  say(rule(server, `runCommands.${lang}`, runCommandsRule(lang)));
+  say(rule(server, "modelFlag", MODEL_FLAG_RULE));
   const askLine2 = toolAskLine(deployToolFromEnv(process.env));
   if (askLine2) say(askLine2);
-  const server = await serverRules(ctx.apiUrl);
   say(rule(server, "askOwner", ASK_OWNER_RULE));
   say(rule(server, "ownerText", OWNER_TEXT_RULE));
   for (const line of server.extra) say(line);
-  say(START_FAIL_LINE);
+  say(rule(server, "startFail", START_FAIL_LINE));
   ensureDeployaiDir(root);
   writeFileSync13(join17(root, START_FILE), `${lines.join("\n")}
 `);
@@ -29950,6 +29961,10 @@ async function main(argv = process.argv) {
   program.hook("preAction", (_this, actionCmd) => {
     command = commandPath(actionCmd);
     apiFlag = actionCmd.optsWithGlobals().api;
+    try {
+      refreshAgentScript(process.cwd());
+    } catch {
+    }
   });
   const exitBefore = process.exitCode;
   let result = "success";
