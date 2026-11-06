@@ -10,7 +10,7 @@ Website: https://deployai.co.il. For developers: https://deployai.co.il/develope
 
 The easiest start is on https://deployai.co.il:
 1. Choose a sample or "Go live now".
-2. Copy the one line it gives you into an AI agent that can run commands in your folder (Claude Code, Cursor, GitHub Copilot in VS Code, Codex in the ChatGPT app, or Google Antigravity).
+2. Copy the one line it gives you into an AI agent that can run commands in your folder (Claude Code, Cursor, GitHub Copilot in VS Code, Codex in the ChatGPT app, Google Antigravity, or Grok Build).
 
 The line is `npx deployai@latest start <id>`. It carries every choice you made there, prepares the folder, and prints the steps for the agent.
 
@@ -69,6 +69,8 @@ It stays up to date by itself. `npx deployai@latest` always runs the newest vers
 | `deployai samples [name] [folder]` | Lists the six sample sites, or downloads one. More below. |
 | `deployai start <id>` | The one line copied on the DeployAI site. Prepares this folder, then prints the steps for your agent. A site's line logs in first; a temporary site needs no login. More below. |
 | `deployai speed <url>` | Google PageSpeed test of a page: lab results, real visitor data when Google has it and the biggest opportunities. `--desktop` tests a desktop load. |
+| `deployai shot <url>` | Phone (390) and desktop (1440) pictures of a page, full page, with the Chrome or Edge already on the computer. `--webkit` uses Safari's engine. |
+| `deployai optimize [folder]` | AVIF and WebP next to every JPG and PNG under public/, plus a phone width for wide images. Originals never change. |
 | `deployai addons` | The marketplace add-ons of the linked site: which it has, which are done and which is next. The server checks that the site has each add-on. It runs what the site has even before the marketplace opens. |
 | `deployai addon next` | Prints the next add-on of the site for your agent. `deployai addon run <name>` prints one by name. |
 | `deployai addons run` | With more than one add-on waiting, prints a question for the owner. `--one-by-one` (recommended): after each add-on, the owner chooses whether to publish. `--all`: they all finish first, then one publish at the end. The owner still approves each plan. |
