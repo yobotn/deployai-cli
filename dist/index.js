@@ -22289,6 +22289,8 @@ var CHECK = { cmd: "npx deployai@latest check", say: "Fix every blocker it lists
 var FIRST_LOOK_MESSAGE = "first look";
 var FIRST_SITE_RULE = 'A site that has never been live (this folder is not linked yet, or npx deployai@latest status shows no live version) follows this, and not the rule for later changes. Right at the start, before you build, ask once, naming the site and its address when you know it: "When your site is ready, should I put it live for you? Anyone will be able to see it." The answers: Yes, put it live (recommended), or Show me first. Then go on working, and do not ask it again for this first version. Deploy twice. First, the first look: when a first version works, deploy without --live and send the owner the preview address. Make every change they ask for in the folder, without deploying. Second, when everything they asked for is done: on Yes, deploy with --live and give them the live address, with no more questions. On Show me first, deploy without it, send the preview address and ask: "Put it live, or change something first?" If nothing changed since the first look, there is nothing to build: run promote on that version instead of a second deploy. Deploy again only when a deploy failed, or the owner asks for more after the last one, and then put all of it in one deploy. Database changes still get their own yes.';
 var DEPLOY_ASK_RULE = 'Once a site has been live, never deploy on your own, and never after each small edit: every deploy is a full build. Deploy only when what the owner asked for is done. Then say in short what changed and ask: "Put it live, see a preview first, or not yet?" Put it live: deploy with --live. Preview first: deploy without it and send the owner the preview address. Not yet: keep working, and the next change goes up in the same deploy. If the owner said to always put changes live, deploy with --live without asking. Database changes still get their own yes.';
+var LOCAL_PREVIEW_RULE = "While you build, show the site on this computer, never a deploy after each change. Start the site's own dev command (the dev script in package.json, for example npm run dev) yourself, in the background, so it keeps running while you work: in Claude Code as a background command, in another tool with its own way to run a command in the background or in a terminal of its own. Never ask the owner to open a terminal or type a command. If a local preview of this folder is already running, use it instead of starting a second one. Send the owner the local address it prints once, as a link, and say in one line that it updates by itself while you work and opens only on this computer. Check every change there yourself. The local preview is not the hosting: it has a local test database that starts empty, and the built-in email to the owner, visitor countries, 301 redirects and the DeployAI badge work only on a deployed preview, so test those there, and the owner checks a phone there. When to deploy does not change. When the work is done, stop the local preview you started.";
+var GIT_HISTORY_RULE = "Keep the site's history with git in this folder: run git init if there is none, commit before you start and after each part that works, with a short message in the owner's language about what they see changed. Never commit .env files or secrets. When the owner asks to undo a change, or to bring back or remove a feature, do it from the git history yourself and tell them in one line what changed; never ask them to run git. Git brings back code, not data: rows, files and tables that were deleted stay deleted, so ask the owner before a change that removes data.";
 var ASK_OWNER_RULE = `When a question to the owner has set answers, use your tool's own question feature with clickable choices if it has one, for example AskUserQuestion in Claude Code, AskQuestion in Cursor, askQuestions in Copilot in VS Code, request_user_input in Codex, or ask_user_question in Grok Build. Use the owner's language, with each answer as its own choice. If your tool has no such feature, or it is refused or fails, ask the same question once in plain text and go on. Never change a mode or a setting to get it. A yes or no question has set answers too. This holds for every question, also one you think of yourself in the middle of the work: say what you have to say, then ask through the feature, never as the last line of your message. A question about going live names the site and its address when you know it, and says anyone will be able to see it, so the owner's answer is about this exact site (D-691). Open details, like a phone number or hours, stay in plain text, in one short list. How the owner wants you to work is saved in .deployai/owner-mode (D-865): on-my-own or check-with-me. If the file is missing, ask once, "How should I work?", with "On my own (recommended)": I build and choose the recommended option at every step, I stop only for money, deleting your content or your real domain, and I leave you a short list at the end; and "Check with me". Save the answer there, and change it when the owner says so. On my own: take the recommended option without asking, install the tools you need, and stop only for money, deleting the owner's content, a real domain going live or a fact you would have to invent, which you leave out and list. Every question opens with a short tag naming who asks, like "Search add-on \xB7 1 of 2" or "Move \xB7 forms", and a question with several items offers "Approve all (recommended)" first. Never ask the owner about a package, library, framework, tool, file path or size: ask about the outcome in plain words.`;
 var QUESTION_FEATURE = { claudeCode: "AskUserQuestion", cursor: "AskQuestion", copilot: "askQuestions", codex: "request_user_input", grok: "ask_user_question" };
 function toolAskLine(tool) {
@@ -22296,6 +22298,7 @@ function toolAskLine(tool) {
   return feature ? `You run in ${DEPLOY_TOOL_NAMES[tool]}, so every question with set answers goes through ${feature}.` : "";
 }
 var ASK = { say: DEPLOY_ASK_RULE };
+var LOCAL_STEP = { say: `${LOCAL_PREVIEW_RULE} ${GIT_HISTORY_RULE}` };
 var GUEST_ASK = { say: 'Right at the start, before you build, ask once: "When your site is ready, should I put it up for you? Anyone with the address will be able to see it." The answers: Yes, put it up (recommended), or Ask me first. Then go on working. Deploy twice at most, never after each small edit: once when a first version works, as the first look (on Ask me first, ask then: "Put it up now, or not yet?", and on Not yet keep working), and once when everything the owner asked for is done. The second deploy keeps the same address.' };
 var FAVICON = { cmd: "npx deployai@latest brand favicon", say: "Gives the site an icon if it has none, made from the site itself: the old site's icon, else its logo, else the first letter of its name in its own color. Add the head lines it prints to every page. It changes nothing when the site has an icon." };
 var LOGIN = { cmd: "npx deployai@latest login", say: "The owner approves it in the browser window it opens." };
@@ -22323,6 +22326,7 @@ var SELF_SEND = { say: 'If the owner chose to put it live when it is ready: when
 var MIGRATE_STEPS = [
   TAGS_SEEN,
   MOVE_REPORT,
+  LOCAL_STEP,
   { cmd: "npx deployai@latest migrate media", say: "Downloads the old site's images and files into .deployai/migration/media; run it again if it stops, it goes on where it stopped. Move the files the new pages use into the site." },
   LOOK_BUILD,
   FAVICON,
@@ -22352,6 +22356,7 @@ var MANAGED_STEPS = [
   TAGS_SEEN,
   { cmd: MOVE_REPORT.cmd, say: `${REPORT_SAY} ${PLAN_SHOW} Then ask: "Go ahead with this plan?" The answers: Go ahead (recommended), or Change something.` },
   managedStatus("building", "<what is done>", "First, once the plan in .deployai/migration/plan.md is agreed: the request shows the build started."),
+  LOCAL_STEP,
   stepWith("migrate media"),
   LOOK_BUILD,
   FAVICON,
@@ -22395,15 +22400,16 @@ var startStepsQuery = (kind, opts) => `kind=${kind}&o=${["emptyFolder", "starter
 function stepsOf(kind, opts) {
   switch (kind) {
     case "new":
-      return [FIRST_ASK, ...opts.starter ? [BUILD] : [], FAVICON, CHECK, LOGIN, FIRST_LOOK, FIRST_DONE, PROMOTE, OFFER_DASHBOARD];
+      return [FIRST_ASK, LOCAL_STEP, ...opts.starter ? [BUILD] : [], FAVICON, CHECK, LOGIN, FIRST_LOOK, FIRST_DONE, PROMOTE, OFFER_DASHBOARD];
     case "update": {
       const deploy = { cmd: 'npx deployai@latest deploy -m "<what changed, in a few words>"', say: DEPLOY_SAY };
-      if (opts.addons) return [LOGIN, ...opts.emptyFolder ? [PULL] : [], ADDONS_RUN, CHECK, ASK, deploy, PROMOTE];
-      return opts.emptyFolder ? [LOGIN, PULL, CHECK, ASK, deploy, PROMOTE] : [CHECK, ASK, LOGIN, deploy, PROMOTE];
+      if (opts.addons) return [LOGIN, ...opts.emptyFolder ? [PULL] : [], LOCAL_STEP, ADDONS_RUN, CHECK, ASK, deploy, PROMOTE];
+      return opts.emptyFolder ? [LOGIN, PULL, LOCAL_STEP, CHECK, ASK, deploy, PROMOTE] : [LOCAL_STEP, CHECK, ASK, LOGIN, deploy, PROMOTE];
     }
     case "move":
       return [
         FIRST_ASK,
+        LOCAL_STEP,
         FAVICON,
         CHECK,
         LOGIN,
@@ -22418,6 +22424,7 @@ function stepsOf(kind, opts) {
     case "guest":
       return [
         GUEST_ASK,
+        LOCAL_STEP,
         ...opts.starter ? [BUILD] : [],
         FAVICON,
         { ...CHECK, say: "Fix every blocker it lists, then run it again until it shows none. If the site needs environment variables, secrets, file storage or sending email, never stop building for it: tell the owner once, in one plain line, that putting those parts live needs a free account (one link, about a minute), keep building what they asked, and ask about the account only at the deploy step." },
@@ -23293,7 +23300,7 @@ When the owner wants an outside service, such as card payments, invoices or send
 
 - local file system writes
 - database drivers DeployAI does not support (see: npx deployai@latest inspect)
-- long-running processes or background servers
+- long-running processes or background servers in the site's code (the local preview while you build is fine)
 - Durable Objects (not supported yet; keep state in D1)
 - native binary modules
 - DeployAI or any cloud credentials in source code
@@ -23320,6 +23327,12 @@ Never stop building for an account, a plan or a limit. Build what the owner asks
 
 ${FIRST_SITE_RULE}
 
+## While you build
+
+${LOCAL_PREVIEW_RULE}
+
+${GIT_HISTORY_RULE}
+
 ## When to deploy
 
 ${DEPLOY_ASK_RULE}
@@ -23344,7 +23357,9 @@ var DEPLOYAI_LATER_RULES = [
   { has: "one or two short sentences", text: START_FAIL_LINE },
   { has: "direction marks", text: OWNER_TEXT_RULE },
   { has: "deployai@latest feedback", text: AGENT_FEEDBACK_RULES.join(" ") },
-  { has: "never been live", text: FIRST_SITE_RULE }
+  { has: "never been live", text: FIRST_SITE_RULE },
+  { has: "local preview", text: LOCAL_PREVIEW_RULE },
+  { has: "git history", text: GIT_HISTORY_RULE }
 ];
 function parseLaterRules(json2) {
   try {
@@ -24831,7 +24846,7 @@ function messages(root) {
 }
 
 // src/version.ts
-var CLI_VERSION = "0.1.0-beta.34";
+var CLI_VERSION = "0.1.0-beta.35";
 
 // src/api.ts
 function apiContext(apiFlag) {
