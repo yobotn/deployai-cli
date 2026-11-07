@@ -6,7 +6,8 @@ var __export = (target, all) => {
 };
 
 // src/cli.ts
-import { resolve as resolve8 } from "path";
+import { existsSync as existsSync21 } from "fs";
+import { join as join24, resolve as resolve8 } from "path";
 import { Command, CommanderError } from "commander";
 
 // ../shared/src/plans.ts
@@ -21149,16 +21150,11 @@ function privateProjectFile(path) {
   const base = parts2[parts2.length - 1] ?? "";
   return PRIVATE_FILES.has(base) || parts2.slice(0, -1).some((p) => PRIVATE_DIRS.has(p)) || PRIVATE_DIRS.has(base);
 }
-function dotPath(path) {
-  const parts2 = segments(path);
-  if (parts2[0] === SERVED_DOT_DIR) parts2.shift();
-  return parts2.some((p) => p.startsWith("."));
-}
 function neverUploadedFile(rel) {
   if (privateProjectFile(rel)) return true;
   const parts2 = segments(rel);
   if (parts2.length === 1 && BUILD_DOTFILES.has(parts2[0])) return false;
-  return dotPath(rel);
+  return parts2.some((p) => p.startsWith(".") && p !== SERVED_DOT_DIR);
 }
 
 // ../shared/src/agent-feedback.ts
@@ -22484,6 +22480,7 @@ var CLI_MAP_NODES = [
   n("cmd-shot", "cli", "shot <url>", "\u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05D8\u05DC\u05E4\u05D5\u05DF \u05D5\u05DE\u05D7\u05E9\u05D1 \u05E9\u05DC \u05E2\u05DE\u05D5\u05D3, \u05D1\u05D3\u05E4\u05D3\u05E4\u05DF \u05E9\u05DB\u05D1\u05E8 \u05D1\u05DE\u05D7\u05E9\u05D1.", "Phone and desktop pictures of a page, with the browser already on the computer."),
   n("cmd-optimize", "cli", "optimize [folder]", "AVIF \u05D5\u05BEWebP \u05DC\u05D9\u05D3 \u05DB\u05DC \u05EA\u05DE\u05D5\u05E0\u05D4, \u05D1\u05DC\u05D9 \u05DC\u05D2\u05E2\u05EA \u05D1\u05DE\u05E7\u05D5\u05E8.", "AVIF and WebP next to each image, originals untouched."),
   n("cmd-allow", "cli", "allow [tool]", "\u05D0\u05D7\u05E8\u05D9 \u05E9\u05D4\u05D1\u05E2\u05DC\u05D9\u05DD \u05D0\u05D9\u05E9\u05E8: \u05DB\u05DC\u05D9 \u05D4\u05E7\u05D5\u05D3 \u05DE\u05E4\u05E1\u05D9\u05E7 \u05DC\u05E9\u05D0\u05D5\u05DC \u05DC\u05E4\u05E0\u05D9 \u05DB\u05DC \u05E4\u05E7\u05D5\u05D3\u05EA DeployAI, \u05E8\u05E7 \u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5.", "After the owner says yes: the coding tool stops asking before every DeployAI command, in this folder only."),
+  n("cmd-rules", "cli", "rules", "\u05DE\u05D3\u05E4\u05D9\u05E1 \u05D0\u05EA \u05D4\u05DB\u05DC\u05DC\u05D9\u05DD \u05D4\u05E2\u05D3\u05DB\u05E0\u05D9\u05D9\u05DD \u05DC\u05E1\u05D5\u05DB\u05DF \u05DE\u05D4\u05E9\u05E8\u05EA \u05D5\u05DE\u05E2\u05D3\u05DB\u05DF \u05D0\u05DC\u05D9\u05D4\u05DD \u05D0\u05EA DEPLOYAI.md. \u05DB\u05DC \u05E4\u05E7\u05D5\u05D3\u05D4 \u05D0\u05D7\u05E8\u05EA \u05DE\u05E2\u05D3\u05DB\u05E0\u05EA \u05D0\u05EA DEPLOYAI.md \u05D1\u05E2\u05E6\u05DE\u05D4, \u05D0\u05DD \u05DC\u05D0 \u05E0\u05E2\u05E8\u05DA.", "Prints the current agent rules from the server and brings DEPLOYAI.md up to them. Every other command updates DEPLOYAI.md too, unless it was edited."),
   n("cmd-sound", "cli", "sound", "\u05E6\u05DC\u05D9\u05DC \u05D1\u05DE\u05D7\u05E9\u05D1 \u05DB\u05E9\u05D4\u05D0\u05EA\u05E8 \u05DE\u05D5\u05DB\u05DF, \u05D0\u05D7\u05E8\u05D9 \u05E9\u05D4\u05D1\u05E2\u05DC\u05D9\u05DD \u05D0\u05D9\u05E9\u05E8. \u05D1-Claude Code \u05D4\u05D0\u05D9\u05E9\u05D5\u05E8 \u05D4\u05D6\u05D4 \u05DE\u05D5\u05E1\u05D9\u05E3 \u05D2\u05DD \u05E6\u05DC\u05D9\u05DC \u05D5\u05E0\u05E7\u05D5\u05D3\u05D4 \u05D1\u05DC\u05E9\u05D5\u05E0\u05D9\u05EA \u05E9\u05DC \u05D4\u05D8\u05E8\u05DE\u05D9\u05E0\u05DC.", "A sound on this computer when the site is ready, after the owner says yes. In Claude Code that yes also adds a sound and a tab dot in the terminal."),
   n("cmd-telemetry", "cli", "telemetry", "\u05D4\u05E4\u05E2\u05DC\u05D4 \u05D0\u05D5 \u05DB\u05D9\u05D1\u05D5\u05D9 \u05E9\u05DC \u05E0\u05EA\u05D5\u05E0\u05D9 \u05E9\u05D9\u05DE\u05D5\u05E9 \u05D0\u05E0\u05D5\u05E0\u05D9\u05DE\u05D9\u05D9\u05DD.", "Turns anonymous usage data on or off."),
   n("cmd-feedback", "cli", "feedback", "\u05D4\u05E1\u05D5\u05DB\u05DF \u05DE\u05E1\u05E4\u05E8 \u05DC\u05E0\u05D5 \u05DE\u05D4 \u05D4\u05E4\u05E8\u05D9\u05E2 \u05DC\u05D5 \u05D5\u05DE\u05D4 \u05D4\u05D9\u05D4 \u05E2\u05D5\u05D6\u05E8, \u05D1\u05DC\u05D9 \u05E7\u05D5\u05D3, \u05E9\u05DE\u05D5\u05EA \u05D0\u05D5 \u05DB\u05EA\u05D5\u05D1\u05D5\u05EA.", "The agent tells us what got in its way and what would help, with no code, names or addresses."),
@@ -23339,6 +23336,7 @@ Ask the owner before removing any existing functionality.
 Files:
 - .deployai/project.json: project id and settings (safe to commit)
 - .deployai/last-check.json: latest check result (not committed)
+- .deployai/rules.json: which rules this file has. Every DeployAI command updates this file to the current rules unless it was edited. The current rules: npx deployai@latest rules
 `;
 var DEPLOYAI_LATER_RULES = [
   { has: "iPhone:", text: IPHONE_RULE },
@@ -24294,7 +24292,7 @@ function ensureDeployaiDir(root) {
   if (!existsSync2(dir)) mkdirSync2(dir, { recursive: true });
   const ignore = join2(dir, ".gitignore");
   const have = existsSync2(ignore) ? readFileSync3(ignore, "utf8") : "";
-  const missing = ["last-check.json", "brief.md", "start.md"].filter((f) => !have.split(/\r?\n/).includes(f));
+  const missing = ["last-check.json", "brief.md", "start.md", "blocks/*.md"].filter((f) => !have.split(/\r?\n/).includes(f));
   if (missing.length) writeFileSync2(ignore, have + (have && !have.endsWith("\n") ? "\n" : "") + missing.join("\n") + "\n");
 }
 function readProject(root) {
@@ -24833,7 +24831,7 @@ function messages(root) {
 }
 
 // src/version.ts
-var CLI_VERSION = "0.1.0-beta.33";
+var CLI_VERSION = "0.1.0-beta.34";
 
 // src/api.ts
 function apiContext(apiFlag) {
@@ -25142,8 +25140,8 @@ async function feedbackCommand(root, ctx, opts) {
 }
 
 // src/commands/init.ts
-import { appendFileSync, existsSync as existsSync5, readFileSync as readFileSync6, writeFileSync as writeFileSync4 } from "fs";
-import { join as join6 } from "path";
+import { appendFileSync as appendFileSync2, existsSync as existsSync6, readFileSync as readFileSync7, writeFileSync as writeFileSync5 } from "fs";
+import { join as join7 } from "path";
 
 // src/analyze.ts
 import { execFileSync } from "child_process";
@@ -25840,36 +25838,76 @@ async function serverSteps(apiUrl, query, fetcher = fetch) {
   }
 }
 
-// src/commands/init.ts
-var AGENT_FILES = ["AGENTS.md", "CLAUDE.md"];
-function addMissingRules(md, later = DEPLOYAI_LATER_RULES) {
-  const text2 = readFileSync6(md, "utf8");
+// src/rules-file.ts
+import { createHash } from "crypto";
+import { appendFileSync, existsSync as existsSync5, readFileSync as readFileSync6, writeFileSync as writeFileSync4 } from "fs";
+import { join as join6 } from "path";
+var RULES_FILE = "DEPLOYAI.md";
+var RULES_STAMP = `${DEPLOYAI_DIR}/rules.json`;
+var rulesHash = (text2) => createHash("sha256").update(text2.replace(/\r\n/g, "\n")).digest("hex");
+function readStamp(root) {
+  try {
+    const v = readJson(join6(root, RULES_STAMP));
+    return typeof v.deployaiMd === "string" ? v.deployaiMd : null;
+  } catch {
+    return null;
+  }
+}
+function writeStamp(root, text2) {
+  ensureDeployaiDir(root);
+  writeFileSync4(join6(root, RULES_STAMP), `${JSON.stringify({ deployaiMd: rulesHash(text2) }, null, 2)}
+`);
+}
+function writeRulesFile(root, md) {
+  writeFileSync4(join6(root, RULES_FILE), md);
+  writeStamp(root, md);
+}
+function addMissingRules(file2, text2, later) {
   const missing = later.filter((r) => !text2.includes(r.has));
   if (!missing.length) return false;
   const eol = text2.includes("\r\n") ? "\r\n" : "\n";
   const gap = text2.endsWith("\n") ? eol : eol + eol;
-  appendFileSync(md, `${gap}## Added later by DeployAI${eol}${eol}${missing.map((r) => r.text).join(eol + eol)}${eol}`);
+  appendFileSync(file2, `${gap}## Added later by DeployAI${eol}${eol}${missing.map((r) => r.text).join(eol + eol)}${eol}`);
   return true;
 }
+function syncRulesFile(root, md, later = DEPLOYAI_LATER_RULES) {
+  const file2 = join6(root, RULES_FILE);
+  if (!existsSync5(file2)) return "none";
+  const text2 = readFileSync6(file2, "utf8");
+  const now = rulesHash(text2);
+  if (now === rulesHash(md)) {
+    if (readStamp(root) !== now) writeStamp(root, md);
+    return "current";
+  }
+  if (readStamp(root) === now) {
+    writeRulesFile(root, text2.includes("\r\n") ? md.replace(/\r?\n/g, "\r\n") : md);
+    return "updated";
+  }
+  return addMissingRules(file2, text2, later) ? "added" : "edited";
+}
+
+// src/commands/init.ts
+var AGENT_FILES = ["AGENTS.md", "CLAUDE.md"];
 function runInit(root, opts = {}) {
   const created = [];
   const kept = [];
   const updated = [];
-  const md = join6(root, "DEPLOYAI.md");
+  const md = join7(root, "DEPLOYAI.md");
   let rulesAdded = false;
-  if (existsSync5(md) && !opts.force) {
+  if (existsSync6(md) && !opts.force) {
     kept.push("DEPLOYAI.md");
-    rulesAdded = addMissingRules(md, opts.texts?.later);
+    const sync = syncRulesFile(root, opts.texts?.md ?? DEPLOYAI_MD, opts.texts?.later);
+    rulesAdded = sync === "updated" || sync === "added";
   } else {
-    writeFileSync4(md, opts.texts?.md ?? DEPLOYAI_MD);
+    writeRulesFile(root, opts.texts?.md ?? DEPLOYAI_MD);
     created.push("DEPLOYAI.md");
   }
   if (opts.agentFiles !== false) {
     for (const name of AGENT_FILES) {
-      const file2 = join6(root, name);
-      const text2 = existsSync5(file2) ? readFileSync6(file2, "utf8") : null;
+      const file2 = join7(root, name);
+      const text2 = existsSync6(file2) ? readFileSync7(file2, "utf8") : null;
       if (text2 === null) {
-        writeFileSync4(file2, `${AGENT_POINTER}
+        writeFileSync5(file2, `${AGENT_POINTER}
 `);
         created.push(name);
       } else if (text2.includes("DEPLOYAI.md")) {
@@ -25877,7 +25915,7 @@ function runInit(root, opts = {}) {
       } else {
         const eol = text2.includes("\r\n") ? "\r\n" : "\n";
         const gap = !text2.trim() ? "" : text2.endsWith("\n") ? eol : eol + eol;
-        appendFileSync(file2, `${gap}${AGENT_POINTER}${eol}`);
+        appendFileSync2(file2, `${gap}${AGENT_POINTER}${eol}`);
         updated.push(name);
       }
     }
@@ -25891,7 +25929,7 @@ function runInit(root, opts = {}) {
     writeProject(root, { projectId: null, framework, createdAt: (/* @__PURE__ */ new Date()).toISOString() });
     created.push(".deployai/project.json");
   }
-  const hasCode = existsSync5(join6(root, "package.json")) || framework !== "unknown";
+  const hasCode = existsSync6(join7(root, "package.json")) || framework !== "unknown";
   return { rulesAdded, created, kept, updated, hasCode };
 }
 async function initCommand(root, opts, apiUrl) {
@@ -25920,8 +25958,8 @@ async function initCommand(root, opts, apiUrl) {
 }
 
 // src/commands/check.ts
-import { existsSync as existsSync7, writeFileSync as writeFileSync5 } from "fs";
-import { join as join8 } from "path";
+import { existsSync as existsSync8, writeFileSync as writeFileSync6 } from "fs";
+import { join as join9 } from "path";
 
 // src/prompt.ts
 var PROMPT_RULES = [
@@ -25990,8 +26028,8 @@ function buildPrompt(analysis) {
 
 // src/system.ts
 import { spawn, spawnSync } from "child_process";
-import { existsSync as existsSync6 } from "fs";
-import { join as join7 } from "path";
+import { existsSync as existsSync7 } from "fs";
+import { join as join8 } from "path";
 function copyToClipboard(text2) {
   if (process.env.DEPLOYAI_NO_CLIPBOARD) return false;
   const candidates = process.platform === "win32" ? [["clip", []]] : process.platform === "darwin" ? [["pbcopy", []]] : [
@@ -26011,9 +26049,9 @@ function copyToClipboard(text2) {
 function findBrowser() {
   if (process.env.DEPLOYAI_NO_BROWSER) return null;
   const set2 = process.env.CHROME_PATH;
-  if (set2 && existsSync6(set2)) return set2;
-  const places = process.platform === "win32" ? [process.env.PROGRAMFILES, process.env["PROGRAMFILES(X86)"], process.env.LOCALAPPDATA].flatMap((d) => d ? [join7(d, "Google/Chrome/Application/chrome.exe"), join7(d, "Microsoft/Edge/Application/msedge.exe")] : []) : process.platform === "darwin" ? ["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge", "/Applications/Chromium.app/Contents/MacOS/Chromium"] : ["/usr/bin/google-chrome", "/usr/bin/google-chrome-stable", "/usr/bin/chromium", "/usr/bin/chromium-browser", "/usr/bin/microsoft-edge", "/snap/bin/chromium"];
-  return places.find((p) => existsSync6(p)) ?? null;
+  if (set2 && existsSync7(set2)) return set2;
+  const places = process.platform === "win32" ? [process.env.PROGRAMFILES, process.env["PROGRAMFILES(X86)"], process.env.LOCALAPPDATA].flatMap((d) => d ? [join8(d, "Google/Chrome/Application/chrome.exe"), join8(d, "Microsoft/Edge/Application/msedge.exe")] : []) : process.platform === "darwin" ? ["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge", "/Applications/Chromium.app/Contents/MacOS/Chromium"] : ["/usr/bin/google-chrome", "/usr/bin/google-chrome-stable", "/usr/bin/chromium", "/usr/bin/chromium-browser", "/usr/bin/microsoft-edge", "/snap/bin/chromium"];
+  return places.find((p) => existsSync7(p)) ?? null;
 }
 function openBrowser(url2) {
   if (process.env.DEPLOYAI_NO_BROWSER || process.env.CI) return false;
@@ -26113,7 +26151,7 @@ async function runCheck(root, ctx, opts = {}) {
   const json2 = checkJson(a, prompt);
   try {
     ensureDeployaiDir(root);
-    writeFileSync5(lastCheckFile(root), JSON.stringify(json2, null, 2) + "\n");
+    writeFileSync6(lastCheckFile(root), JSON.stringify(json2, null, 2) + "\n");
   } catch {
   }
   const empty = a.findings.length > 0 && a.findings.every((f) => f.code === "no_files");
@@ -26123,7 +26161,7 @@ async function runCheck(root, ctx, opts = {}) {
     out("DeployAI check");
     out();
     out(messages(root)("emptyFolder"));
-    if (!existsSync7(join8(root, "DEPLOYAI.md"))) out(messages(root)("initHint"));
+    if (!existsSync8(join9(root, "DEPLOYAI.md"))) out(messages(root)("initHint"));
   } else if (opts.print !== false) {
     printCheck(a);
     out();
@@ -26150,7 +26188,7 @@ async function runCheck(root, ctx, opts = {}) {
     } else {
       out(t("runDeploy"));
     }
-    if (!existsSync7(join8(root, "DEPLOYAI.md"))) out(t("initHint"));
+    if (!existsSync8(join9(root, "DEPLOYAI.md"))) out(t("initHint"));
   }
   await telemetry;
   return a;
@@ -26293,8 +26331,8 @@ function telemetryCommand(action) {
 }
 
 // src/commands/allow.ts
-import { existsSync as existsSync8, mkdirSync as mkdirSync4, readFileSync as readFileSync7, writeFileSync as writeFileSync6, appendFileSync as appendFileSync2 } from "fs";
-import { dirname, join as join9 } from "path";
+import { existsSync as existsSync9, mkdirSync as mkdirSync4, readFileSync as readFileSync8, writeFileSync as writeFileSync7, appendFileSync as appendFileSync3 } from "fs";
+import { dirname, join as join10 } from "path";
 var ALLOW_TOOLS = ["claude-code", "cursor", "copilot", "codex", "antigravity", "grok"];
 var CLAUDE_RULE = "Bash(npx deployai@latest *)";
 var CURSOR_LINE = "Running npx deployai@latest commands is allowed without approval.";
@@ -26304,7 +26342,7 @@ var CLICKS = {
   antigravity: "Antigravity: when it asks to run npx deployai@latest, choose Accept."
 };
 function readObject(file2) {
-  if (!existsSync8(file2)) return {};
+  if (!existsSync9(file2)) return {};
   try {
     const v = readJson(file2);
     return v && typeof v === "object" && !Array.isArray(v) ? v : null;
@@ -26314,7 +26352,7 @@ function readObject(file2) {
 }
 function writeObject(file2, value) {
   mkdirSync4(dirname(file2), { recursive: true });
-  writeFileSync6(file2, `${JSON.stringify(value, null, 2)}
+  writeFileSync7(file2, `${JSON.stringify(value, null, 2)}
 `);
 }
 function addTo(obj, key, list, value) {
@@ -26326,11 +26364,11 @@ function addTo(obj, key, list, value) {
   return true;
 }
 function ignoreInGit(root, path) {
-  if (!existsSync8(join9(root, ".git"))) return;
-  const gi = join9(root, ".gitignore");
-  const text2 = existsSync8(gi) ? readFileSync7(gi, "utf8") : "";
+  if (!existsSync9(join10(root, ".git"))) return;
+  const gi = join10(root, ".gitignore");
+  const text2 = existsSync9(gi) ? readFileSync8(gi, "utf8") : "";
   if (text2.split(/\r?\n/).some((l) => l.trim() === path)) return;
-  appendFileSync2(gi, `${text2 && !text2.endsWith("\n") ? "\n" : ""}${path}
+  appendFileSync3(gi, `${text2 && !text2.endsWith("\n") ? "\n" : ""}${path}
 `);
 }
 function detectTool() {
@@ -26351,7 +26389,7 @@ function allowCommand(tool) {
   if (picked === "claude-code" || picked === "grok") {
     const grok = picked === "grok";
     const rel = ".claude/settings.local.json";
-    const file2 = join9(root, rel);
+    const file2 = join10(root, rel);
     const obj = readObject(file2);
     if (!obj) throw new CliError(`${rel} is not valid JSON, so it was left as is. Ask the owner to add the Allow rule ${CLAUDE_RULE} with /permissions.`, 1, "allow_file");
     const added = addTo(obj, "permissions", "allow", CLAUDE_RULE);
@@ -26372,7 +26410,7 @@ function allowCommand(tool) {
   }
   if (picked === "cursor") {
     const rel = ".cursor/permissions.json";
-    const file2 = join9(root, rel);
+    const file2 = join10(root, rel);
     const obj = readObject(file2);
     if (!obj) throw new CliError(`${rel} is not valid JSON, so it was left as is.`, 1, "allow_file");
     const added = addTo(obj, "autoRun", "allow_instructions", CURSOR_LINE);
@@ -26386,14 +26424,14 @@ function allowCommand(tool) {
 }
 
 // src/commands/sound.ts
-import { existsSync as existsSync10, readFileSync as readFileSync8, rmSync, writeFileSync as writeFileSync8 } from "fs";
+import { existsSync as existsSync11, readFileSync as readFileSync9, rmSync, writeFileSync as writeFileSync9 } from "fs";
 import { homedir as homedir2 } from "os";
-import { join as join11 } from "path";
+import { join as join12 } from "path";
 
 // src/sound.ts
 import { spawn as spawn2 } from "child_process";
-import { existsSync as existsSync9, mkdirSync as mkdirSync5, statSync, writeFileSync as writeFileSync7 } from "fs";
-import { join as join10 } from "path";
+import { existsSync as existsSync10, mkdirSync as mkdirSync5, statSync, writeFileSync as writeFileSync8 } from "fs";
+import { join as join11 } from "path";
 
 // src/sound-files.ts
 var SOUND_FILES = {
@@ -26410,13 +26448,13 @@ function soundWanted(cfg, env = process.env) {
   const s = env.DEPLOYAI_SOUND;
   return !(s !== void 0 && ["0", "false", "off", "no"].includes(s.toLowerCase()));
 }
-var soundsDir = () => join10(configDir(), "sounds");
+var soundsDir = () => join11(configDir(), "sounds");
 function writeSoundFiles() {
   mkdirSync5(soundsDir(), { recursive: true });
   for (const [name, b64] of Object.entries(SOUND_FILES)) {
     const data = Buffer.from(b64, "base64");
-    const file2 = join10(soundsDir(), `${name}.wav`);
-    if (!existsSync9(file2) || statSync(file2).size !== data.length) writeFileSync7(file2, data);
+    const file2 = join11(soundsDir(), `${name}.wav`);
+    if (!existsSync10(file2) || statSync(file2).size !== data.length) writeFileSync8(file2, data);
   }
 }
 function playerFor(platform3, file2) {
@@ -26429,7 +26467,7 @@ function playSound(name, cfg) {
   if (!soundWanted(cfg)) return;
   try {
     writeSoundFiles();
-    const player = playerFor(process.platform, join10(soundsDir(), `${name}.wav`));
+    const player = playerFor(process.platform, join11(soundsDir(), `${name}.wav`));
     if (!player) return;
     const child = spawn2(player.cmd, player.args, { detached: true, stdio: "ignore", windowsHide: true });
     child.on("error", () => void 0);
@@ -26508,17 +26546,17 @@ function foreignHooks(files) {
   return [...found];
 }
 function agentOn(root, opts = {}) {
-  const file2 = join11(root, SETTINGS);
+  const file2 = join12(root, SETTINGS);
   const obj = readObject(file2);
   if (!obj) throw new CliError(`${SETTINGS} is not valid JSON, so it was left as is.`, 1, "allow_file");
-  const home = process.env.CLAUDE_CONFIG_DIR || join11(opts.home ?? homedir2(), ".claude");
-  if (!opts.alongside && foreignHooks([join11(home, "settings.json"), join11(root, ".claude/settings.json"), file2]).length) return "has_own";
+  const home = process.env.CLAUDE_CONFIG_DIR || join12(opts.home ?? homedir2(), ".claude");
+  if (!opts.alongside && foreignHooks([join12(home, "settings.json"), join12(root, ".claude/settings.json"), file2]).length) return "has_own";
   writeSoundFiles();
   ensureDeployaiDir(root);
-  const script = join11(root, AGENT_SCRIPT);
+  const script = join12(root, AGENT_SCRIPT);
   const text2 = agentScript(soundsDir());
-  const scriptSame = existsSync10(script) && readFileSync8(script, "utf8") === text2;
-  if (!scriptSame) writeFileSync8(script, text2);
+  const scriptSame = existsSync11(script) && readFileSync9(script, "utf8") === text2;
+  if (!scriptSame) writeFileSync9(script, text2);
   const hooks = hooksOf(obj);
   const env = obj.env && typeof obj.env === "object" ? obj.env : {};
   let added = env[TITLE_ENV] !== "1";
@@ -26536,7 +26574,7 @@ function agentOn(root, opts = {}) {
   return added || !scriptSame ? "on" : "already";
 }
 function agentOff(root) {
-  const file2 = join11(root, SETTINGS);
+  const file2 = join12(root, SETTINGS);
   const obj = readObject(file2);
   if (!obj) throw new CliError(`${SETTINGS} is not valid JSON, so it was left as is.`, 1, "allow_file");
   const hooks = hooksOf(obj);
@@ -26558,8 +26596,8 @@ function agentOff(root) {
     else delete obj.hooks;
     writeObject(file2, obj);
   }
-  const script = join11(root, AGENT_SCRIPT);
-  if (existsSync10(script)) {
+  const script = join12(root, AGENT_SCRIPT);
+  if (existsSync11(script)) {
     rmSync(script);
     removed = true;
   }
@@ -26626,22 +26664,46 @@ function soundCommand(root, action, state, tool, opts = {}) {
   out(t(soundWanted(cfg) ? "soundOn" : "soundOff"));
 }
 function refreshAgentScript(root) {
-  const script = join11(root, AGENT_SCRIPT);
-  if (!existsSync10(script)) return false;
+  const script = join12(root, AGENT_SCRIPT);
+  if (!existsSync11(script)) return false;
   const text2 = agentScript(soundsDir());
-  const now = readFileSync8(script, "utf8");
+  const now = readFileSync9(script, "utf8");
   if (now === text2 || !now.startsWith("// DeployAI's sound and tab dot")) return false;
   writeSoundFiles();
-  writeFileSync8(script, text2);
+  writeFileSync9(script, text2);
   return true;
+}
+
+// src/commands/rules.ts
+var SAID = {
+  updated: "DEPLOYAI.md was updated to the current DeployAI rules. Read it again before you go on.",
+  added: "DEPLOYAI.md got the DeployAI rules it lacked, at its end. Read them before you go on."
+};
+async function rulesCommand(root, apiUrl) {
+  const texts = initTexts(await serverRules(apiUrl));
+  out(texts.md.trimEnd());
+  out();
+  const sync = syncRulesFile(root, texts.md, texts.later);
+  if (sync === "current") out("DEPLOYAI.md here has these rules.");
+  else if (sync === "none") out("No DEPLOYAI.md in this folder. To add one: npx deployai@latest init");
+  else if (SAID[sync]) out(SAID[sync]);
+  else out("DEPLOYAI.md here was edited, so it was left as it is. Follow the rules above. To replace it with them: npx deployai@latest init --force");
+}
+async function refreshRules(root, apiUrl) {
+  try {
+    const texts = initTexts(await serverRules(apiUrl));
+    const sync = syncRulesFile(root, texts.md, texts.later);
+    if (SAID[sync]) err(SAID[sync]);
+  } catch {
+  }
 }
 
 // src/commands/link.ts
 import { createInterface } from "readline/promises";
 
 // src/commands/migrate.ts
-import { createWriteStream, existsSync as existsSync11, mkdirSync as mkdirSync6, readdirSync as readdirSync3, readFileSync as readFileSync9, statSync as statSync2, writeFileSync as writeFileSync9 } from "fs";
-import { dirname as dirname2, join as join12, posix, relative, resolve, sep } from "path";
+import { createWriteStream, existsSync as existsSync12, mkdirSync as mkdirSync6, readdirSync as readdirSync3, readFileSync as readFileSync10, statSync as statSync2, writeFileSync as writeFileSync10 } from "fs";
+import { dirname as dirname2, join as join13, posix, relative, resolve, sep } from "path";
 import { Readable } from "stream";
 import { pipeline } from "stream/promises";
 var UA = `deployai-migrate/${CLI_VERSION} (+https://deployai.co.il/move)`;
@@ -26653,7 +26715,7 @@ var PAUSE_MS = 150;
 var SCAN_WORKERS = 4;
 var START_SCAN_PAGES = 300;
 var sleep2 = (ms2) => new Promise((r) => setTimeout(r, ms2));
-var hostDir = (root, host) => join12(root, MIGRATION_DIR, host.replace(/^www\./, ""));
+var hostDir = (root, host) => join13(root, MIGRATION_DIR, host.replace(/^www\./, ""));
 var readJson3 = (file2) => {
   try {
     return readJson(file2);
@@ -26663,7 +26725,7 @@ var readJson3 = (file2) => {
 };
 var writeJson = (file2, data) => {
   mkdirSync6(dirname2(file2), { recursive: true });
-  writeFileSync9(file2, JSON.stringify(data, null, 2) + "\n");
+  writeFileSync10(file2, JSON.stringify(data, null, 2) + "\n");
 };
 async function get(url2, accept = "text/html,application/xhtml+xml,*/*;q=0.8", redirect = "follow", cookie) {
   try {
@@ -26673,9 +26735,9 @@ async function get(url2, accept = "text/html,application/xhtml+xml,*/*;q=0.8", r
   }
 }
 function scannedHosts(root) {
-  const dir = join12(root, MIGRATION_DIR);
-  if (!existsSync11(dir)) return [];
-  return readdirSync3(dir).filter((h) => existsSync11(join12(dir, h, "inventory.json")));
+  const dir = join13(root, MIGRATION_DIR);
+  if (!existsSync12(dir)) return [];
+  return readdirSync3(dir).filter((h) => existsSync12(join13(dir, h, "inventory.json")));
 }
 async function migrateStatusCommand(root, ctx, stage, note) {
   if (!isAgentStage(stage)) throw new CliError(`Unknown stage: ${stage}. One of: ${AGENT_STAGES.join(", ")}.`, 1, "usage");
@@ -26688,18 +26750,18 @@ async function migrateStatusCommand(root, ctx, stage, note) {
   out(`Reported: ${stage}${note ? ` (${stageNote(note)})` : ""}.`);
 }
 function readChoices(root) {
-  return readJson3(join12(root, MIGRATION_DIR, "choices.json"));
+  return readJson3(join13(root, MIGRATION_DIR, "choices.json"));
 }
 function writeChoices(root, choices) {
   ensureMigrationDir(root);
-  writeJson(join12(root, MIGRATION_DIR, "choices.json"), choices);
+  writeJson(join13(root, MIGRATION_DIR, "choices.json"), choices);
 }
 function ensureMigrationDir(root) {
   ensureDeployaiDir(root);
-  const dir = join12(root, MIGRATION_DIR);
+  const dir = join13(root, MIGRATION_DIR);
   mkdirSync6(dir, { recursive: true });
-  const ignore = join12(dir, ".gitignore");
-  if (!existsSync11(ignore)) writeFileSync9(ignore, "*/media/\n*/media-state.json\n");
+  const ignore = join13(dir, ".gitignore");
+  if (!existsSync12(ignore)) writeFileSync10(ignore, "*/media/\n*/media-state.json\n");
 }
 function sameAddress(from, to) {
   try {
@@ -26770,15 +26832,15 @@ async function wordpressContent(base, dir) {
       await sleep2(PAUSE_MS);
     }
     if (items.length) {
-      writeJson(join12(dir, "content", `${type}.json`), items);
+      writeJson(join13(dir, "content", `${type}.json`), items);
       out(`  ${type}: ${items.length}`);
     }
   }
-  const posts = readJson3(join12(dir, "content", "posts.json"));
+  const posts = readJson3(join13(dir, "content", "posts.json"));
   if (posts?.length) {
-    const files = wpPostsToMarkdown({ origin: new URL(base).origin, posts, categories: readJson3(join12(dir, "content", "categories.json")) ?? [], tags: readJson3(join12(dir, "content", "tags.json")) ?? [], users: readJson3(join12(dir, "content", "users.json")) ?? [], media: readJson3(join12(dir, "content", "media.json")) ?? [] });
-    mkdirSync6(join12(dir, "posts"), { recursive: true });
-    for (const f of files) writeFileSync9(join12(dir, "posts", f.file), f.text);
+    const files = wpPostsToMarkdown({ origin: new URL(base).origin, posts, categories: readJson3(join13(dir, "content", "categories.json")) ?? [], tags: readJson3(join13(dir, "content", "tags.json")) ?? [], users: readJson3(join13(dir, "content", "users.json")) ?? [], media: readJson3(join13(dir, "content", "media.json")) ?? [] });
+    mkdirSync6(join13(dir, "posts"), { recursive: true });
+    for (const f of files) writeFileSync10(join13(dir, "posts", f.file), f.text);
     out(`  posts as Markdown: ${files.length}`);
   }
   return true;
@@ -26849,7 +26911,7 @@ async function saveOldIcons(html, pageUrl, origin, dir) {
   add(`${origin}/favicon.ico`, "icon");
   add(logoInPage(html), "logo");
   const saved = [];
-  const icons = join12(dir, "icons");
+  const icons = join13(dir, "icons");
   for (const w of wanted.slice(0, 6)) {
     const res = await get(w.url, "image/*,*/*;q=0.8");
     if (!res?.ok) continue;
@@ -26860,14 +26922,14 @@ async function saveOldIcons(html, pageUrl, origin, dir) {
     if (!size && !svg) continue;
     const file2 = `${saved.length + 1}-${w.kind}.${svg ? "svg" : size?.format === "jpeg" ? "jpg" : size?.format}`;
     mkdirSync6(icons, { recursive: true });
-    writeFileSync9(join12(icons, file2), bytes);
+    writeFileSync10(join13(icons, file2), bytes);
     saved.push({ file: file2, kind: w.kind });
   }
-  if (saved.length) writeFileSync9(join12(icons, "icons.json"), JSON.stringify(saved, null, 2));
+  if (saved.length) writeFileSync10(join13(icons, "icons.json"), JSON.stringify(saved, null, 2));
   return saved.length;
 }
 async function saveOldStyles(html, pageUrl, dir) {
-  const styles = join12(dir, "styles");
+  const styles = join13(dir, "styles");
   let n2 = 0;
   for (const url2 of stylesheetLinks(html, pageUrl, 6)) {
     const res = await get(url2, "text/css,*/*;q=0.8");
@@ -26875,7 +26937,7 @@ async function saveOldStyles(html, pageUrl, dir) {
     const text2 = await res.text();
     if (text2.length > ICON_MAX_BYTES) continue;
     mkdirSync6(styles, { recursive: true });
-    writeFileSync9(join12(styles, `${++n2}.css`), text2);
+    writeFileSync10(join13(styles, `${++n2}.css`), text2);
   }
 }
 var TRIGGER_PAGES_CAP = 30;
@@ -26903,15 +26965,15 @@ async function hasRootFile(origin, path, query = "", cookie) {
   const res = await get(`${origin}${path}${query}`, "*/*", "follow", cookie);
   return Boolean(res?.ok && !/text\/html/i.test(res.headers.get("content-type") ?? ""));
 }
-var tagsFile = (dir) => join12(dir, "tags.json");
-var stateFile = (dir) => join12(dir, "report-state.json");
+var tagsFile = (dir) => join13(dir, "tags.json");
+var stateFile = (dir) => join13(dir, "report-state.json");
 function kitMap(root) {
-  if (!existsSync11(join12(root, "src/kit/schema.ts"))) return {};
+  if (!existsSync12(join13(root, "src/kit/schema.ts"))) return {};
   const cut = (s, n2) => String(s ?? "").slice(0, n2);
-  const pages = (readJson3(join12(root, MOVED_PAGES_FILE)) ?? []).slice(0, 150).map((p) => ({ path: cut(p.path, 300), title: cut(p.title, 80), inNav: Boolean(p.inNav) }));
-  const posts = readJson3(join12(root, "src/kit/moved-posts.json")) ?? [];
-  const docs = [...new Set((readJson3(join12(root, MOVED_LEGAL_FILE))?.docs ?? []).map((d) => d.key).filter((k) => k === "privacy" || k === "terms" || k === "cancellation"))];
-  const forms = (readJson3(join12(root, "src/kit/forms.json")) ?? []).filter((f) => /^[a-z0-9-]{1,40}$/.test(f.key ?? "")).slice(0, 30).map((f) => ({
+  const pages = (readJson3(join13(root, MOVED_PAGES_FILE)) ?? []).slice(0, 150).map((p) => ({ path: cut(p.path, 300), title: cut(p.title, 80), inNav: Boolean(p.inNav) }));
+  const posts = readJson3(join13(root, "src/kit/moved-posts.json")) ?? [];
+  const docs = [...new Set((readJson3(join13(root, MOVED_LEGAL_FILE))?.docs ?? []).map((d) => d.key).filter((k) => k === "privacy" || k === "terms" || k === "cancellation"))];
+  const forms = (readJson3(join13(root, "src/kit/forms.json")) ?? []).filter((f) => /^[a-z0-9-]{1,40}$/.test(f.key ?? "")).slice(0, 30).map((f) => ({
     key: f.key,
     label: cut(f.label, 80),
     ...f.page ? { page: cut(f.page, 300) } : {},
@@ -26922,11 +26984,11 @@ function kitMap(root) {
 }
 async function sendReport(root, ctx, host, open2, verify) {
   const dir = hostDir(root, host);
-  const inv = readJson3(join12(dir, "inventory.json"));
+  const inv = readJson3(join13(dir, "inventory.json"));
   const site = readJson3(tagsFile(dir));
   const startId = readChoices(root)?.startId;
   if (!inv || !site) return;
-  const dns = readJson3(join12(dir, "dns.json"));
+  const dns = readJson3(join13(dir, "dns.json"));
   const thanksPages = findThanksPages(inv.pages);
   if (open2 === "scan") {
     if (thanksPages.length && site.forms.length) {
@@ -26956,9 +27018,9 @@ async function sendReport(root, ctx, host, open2, verify) {
     return;
   }
   const state = readJson3(stateFile(dir)) ?? {};
-  const plan = existsSync11(join12(root, MIGRATION_DIR, "plan.md")) ? readFileSync9(join12(root, MIGRATION_DIR, "plan.md"), "utf8") : "";
-  const saved = verify ?? readJson3(join12(dir, "verify-report.json"))?.report ?? null;
-  const assets = readJson3(join12(dir, "assets.json")) ?? [];
+  const plan = existsSync12(join13(root, MIGRATION_DIR, "plan.md")) ? readFileSync10(join13(root, MIGRATION_DIR, "plan.md"), "utf8") : "";
+  const saved = verify ?? readJson3(join13(dir, "verify-report.json"))?.report ?? null;
+  const assets = readJson3(join13(dir, "assets.json")) ?? [];
   const report2 = {
     source: inv.source,
     platform: inv.platform,
@@ -27015,7 +27077,7 @@ async function migrateScanCommand(root, raw, opts = {}) {
   out(`Scanning ${base} (${platform3})`);
   const robotsRes = await get(`${origin}/robots.txt`, "text/plain");
   const robots = robotsRes?.ok ? await robotsRes.text() : "";
-  if (robots) writeFileSync9(join12(dir, "robots.txt"), robots);
+  if (robots) writeFileSync10(join13(dir, "robots.txt"), robots);
   const cap = Math.min(opts.max ?? PAGE_CAP, PAGE_CAP);
   const fromSitemaps = await sitemapUrls(base, robots ? parseRobots(robots).sitemaps : [], cap * 5);
   const all = [.../* @__PURE__ */ new Set([`${base}/`, ...fromSitemaps.urls, ...fromSitemaps.urls.length ? [] : homeLinks(html, base)])];
@@ -27055,7 +27117,7 @@ async function migrateScanCommand(root, raw, opts = {}) {
   await addStylesheetAssets(assets);
   const wordpressApi = platform3 === "wordpress" ? await wordpressContent(base, dir) : false;
   if (wordpressApi) {
-    const media = readJson3(join12(dir, "content", "media.json")) ?? [];
+    const media = readJson3(join13(dir, "content", "media.json")) ?? [];
     media.forEach((m) => m.source_url && assets.add(m.source_url));
   }
   const known = new Set(pages.map((p) => p.path));
@@ -27080,13 +27142,13 @@ async function migrateScanCommand(root, raw, opts = {}) {
   const bare = registrableDomain(host);
   try {
     const { records, unread } = await collectSnapshot(bare, { extraNames: [...site.ownNames, ...site.serverContainers], deadlineMs: 3e4 });
-    writeJson(join12(dir, "dns.json"), { records: records.slice(0, 600), unread: unread.slice(0, 300), services: dnsServices(records).slice(0, 40) });
+    writeJson(join13(dir, "dns.json"), { records: records.slice(0, 600), unread: unread.slice(0, 300), services: dnsServices(records).slice(0, 40) });
   } catch {
   }
   const inventory = { source: base, platform: platform3, scannedAt: (/* @__PURE__ */ new Date()).toISOString(), sitemaps: fromSitemaps.sitemaps, pages, wordpressApi, skipped: Math.max(0, all.length - list.length) };
-  writeJson(join12(dir, "inventory.json"), inventory);
-  writeJson(join12(dir, "assets.json"), [...assets].sort());
-  writeFileSync9(join12(dir, "home.html"), html);
+  writeJson(join13(dir, "inventory.json"), inventory);
+  writeJson(join13(dir, "assets.json"), [...assets].sort());
+  writeFileSync10(join13(dir, "home.html"), html);
   const icons = await saveOldIcons(html, home.url, origin, dir);
   await saveOldStyles(html, home.url, dir);
   const rel = relative(root, dir).split(sep).join("/");
@@ -27100,7 +27162,7 @@ async function migrateScanCommand(root, raw, opts = {}) {
   if (icons) out(`  icons/          ${icons} icons and logo of the old site, for: npx deployai@latest brand favicon`);
   if (wordpressApi) {
     out("  content/        the WordPress pages, posts, categories, tags, media and authors as JSON");
-    if (existsSync11(join12(dir, "posts"))) out("  posts/          the posts as Markdown for the blog block, each with its old address");
+    if (existsSync12(join13(dir, "posts"))) out("  posts/          the posts as Markdown for the blog block, each with its old address");
   } else if (platform3 === "wordpress") out("  The WordPress API is closed on this site: work from the pages, or ask the owner for an export (Tools > Export).");
   out();
   out("Keep every path in inventory.json exactly as it is: same address, same title and description.");
@@ -27120,8 +27182,8 @@ async function migrateMediaCommand(root) {
   if (!hosts.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
   for (const host of hosts) {
     const dir = hostDir(root, host);
-    const assets = readJson3(join12(dir, "assets.json")) ?? [];
-    const stateFile2 = join12(dir, "media-state.json");
+    const assets = readJson3(join13(dir, "assets.json")) ?? [];
+    const stateFile2 = join13(dir, "media-state.json");
     const state = readJson3(stateFile2) ?? { done: [], failed: [], bytes: 0 };
     const done = new Set(state.done);
     const todo = assets.filter((a) => !done.has(a));
@@ -27151,7 +27213,7 @@ async function migrateMediaCommand(root) {
     }
     state.done = [...done];
     writeJson(stateFile2, state);
-    out(`  ${formatBytes(state.bytes)} in ${relative(root, join12(dir, "media")).split(sep).join("/")}${state.failed.length ? `, ${state.failed.length} could not be downloaded (listed in media-state.json)` : ""}`);
+    out(`  ${formatBytes(state.bytes)} in ${relative(root, join13(dir, "media")).split(sep).join("/")}${state.failed.length ? `, ${state.failed.length} could not be downloaded (listed in media-state.json)` : ""}`);
   }
   out("Copy the files the new pages use into the site's public folder at the same path (for example public/wp-content/uploads/...), so old image addresses keep working.");
 }
@@ -27172,19 +27234,19 @@ function redirectLines(inv, rss = "/rss.xml") {
 function migratePostsCommand(root) {
   const hosts = scannedHosts(root);
   if (!hosts.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
-  if (!existsSync11(join12(root, "src/kit/schema.ts"))) throw new CliError("The dashboard is not in this folder yet. Run: npx deployai@latest blocks dashboard", 1, "usage");
+  if (!existsSync12(join13(root, "src/kit/schema.ts"))) throw new CliError("The dashboard is not in this folder yet. Run: npx deployai@latest blocks dashboard", 1, "usage");
   const posts = [];
   for (const host of hosts) {
     const dir = hostDir(root, host);
-    const inv = readJson3(join12(dir, "inventory.json"));
-    const list = readJson3(join12(dir, "content", "posts.json"));
-    if (inv && list?.length) posts.push(...wpPostsToKit({ origin: new URL(inv.source).origin, posts: list, categories: readJson3(join12(dir, "content", "categories.json")) ?? [], media: readJson3(join12(dir, "content", "media.json")) ?? [] }));
+    const inv = readJson3(join13(dir, "inventory.json"));
+    const list = readJson3(join13(dir, "content", "posts.json"));
+    if (inv && list?.length) posts.push(...wpPostsToKit({ origin: new URL(inv.source).origin, posts: list, categories: readJson3(join13(dir, "content", "categories.json")) ?? [], media: readJson3(join13(dir, "content", "media.json")) ?? [] }));
   }
   if (!posts.length) {
     out("No posts in the scan. If the old site has posts, write src/kit/moved-posts.json yourself: .deployai/blocks/dashboard.md says how.");
     return;
   }
-  writeFileSync9(join12(root, "src/kit/moved-posts.json"), JSON.stringify(posts.map(({ lost: _lost, ...p }) => p), null, 1));
+  writeFileSync10(join13(root, "src/kit/moved-posts.json"), JSON.stringify(posts.map(({ lost: _lost, ...p }) => p), null, 1));
   out(`Wrote ${posts.length} posts to src/kit/moved-posts.json. Turn on blog in src/kit/site.config.ts.`);
   const short = posts.filter((p) => p.lost.length);
   if (short.length) {
@@ -27195,31 +27257,31 @@ function migratePostsCommand(root) {
 function migratePagesCommand(root) {
   const hosts = scannedHosts(root);
   if (!hosts.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
-  if (!existsSync11(join12(root, "src/kit/schema.ts"))) throw new CliError("The dashboard is not in this folder yet. Run: npx deployai@latest blocks dashboard", 1, "usage");
-  const file2 = join12(root, MOVED_PAGES_FILE);
+  if (!existsSync12(join13(root, "src/kit/schema.ts"))) throw new CliError("The dashboard is not in this folder yet. Run: npx deployai@latest blocks dashboard", 1, "usage");
+  const file2 = join13(root, MOVED_PAGES_FILE);
   const before = readJson3(file2);
   const pages = [];
   for (const host of hosts) {
     const dir = hostDir(root, host);
-    const inv = readJson3(join12(dir, "inventory.json"));
+    const inv = readJson3(join13(dir, "inventory.json"));
     if (!inv) continue;
-    const homeHtml = existsSync11(join12(dir, "home.html")) ? readFileSync9(join12(dir, "home.html"), "utf8") : null;
+    const homeHtml = existsSync12(join13(dir, "home.html")) ? readFileSync10(join13(dir, "home.html"), "utf8") : null;
     for (const p of movedPagesFromScan({ pages: inv.pages, homeHtml, origin: new URL(inv.source).origin })) if (!pages.some((x) => x.path === p.path)) pages.push(p);
   }
   const kept = before?.length ? pages.filter((p) => before.some((b) => b.path === p.path)) : pages;
-  writeFileSync9(file2, JSON.stringify(kept, null, 1));
+  writeFileSync10(file2, JSON.stringify(kept, null, 1));
   out(`Wrote ${MOVED_PAGES_FILE}: ${kept.length} pages for the dashboard's Pages, ${kept.filter((p) => p.inNav).length} of them in the menu.`);
   out("Build each page at exactly its path, as a page of the site's code with its own look and words. Draw the site's menu from navItems() in src/kit/store.ts. A page the plan drops: remove it from this file.");
 }
 function migrateLegalCommand(root) {
   const hosts = scannedHosts(root);
   if (!hosts.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
-  if (!existsSync11(join12(root, "src/kit/schema.ts"))) throw new CliError("The dashboard is not in this folder yet. Run: npx deployai@latest blocks dashboard", 1, "usage");
+  if (!existsSync12(join13(root, "src/kit/schema.ts"))) throw new CliError("The dashboard is not in this folder yet. Run: npx deployai@latest blocks dashboard", 1, "usage");
   const pages = [];
   const site = emptySiteTags();
   for (const host of hosts) {
     const dir = hostDir(root, host);
-    pages.push(...readJson3(join12(dir, "inventory.json"))?.pages ?? []);
+    pages.push(...readJson3(join13(dir, "inventory.json"))?.pages ?? []);
     const found = readJson3(tagsFile(dir));
     if (found) {
       site.tags.push(...found.tags);
@@ -27227,9 +27289,9 @@ function migrateLegalCommand(root) {
       site.forms.push(...found.forms);
     }
   }
-  const file2 = join12(root, MOVED_LEGAL_FILE);
+  const file2 = join13(root, MOVED_LEGAL_FILE);
   const legal = { ...movedLegalFromScan({ pages, site }), docs: readJson3(file2)?.docs ?? [] };
-  writeFileSync9(file2, JSON.stringify(legal, null, 1));
+  writeFileSync10(file2, JSON.stringify(legal, null, 1));
   out(`Wrote ${MOVED_LEGAL_FILE}: ${legal.duties.length} rows for the dashboard's Documents page, ${legal.forms.length} forms, ${legal.services.length} outside services.`);
   for (const d of legal.duties) if (d.old) out(`  ${d.key}: the old site has its own page at ${d.old}. Keep it. See "Accessibility and documents" in .deployai/blocks/dashboard.md.`);
   out("Nothing here is finished or checked: it tells the owner what to look at. Keep tags, forms and pages as they are.");
@@ -27239,22 +27301,22 @@ function migrateRedirectsCommand(root) {
   if (!hosts.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
   const lines = /* @__PURE__ */ new Set();
   for (const host of hosts) {
-    const inv = readJson3(join12(hostDir(root, host), "inventory.json"));
+    const inv = readJson3(join13(hostDir(root, host), "inventory.json"));
     if (inv) redirectLines(inv).forEach((l) => lines.add(l));
   }
-  const publicDir = join12(root, "public");
-  const file2 = join12(existsSync11(publicDir) ? publicDir : root, "_redirects");
-  const before = existsSync11(file2) ? readFileSync9(file2, "utf8").split(/\r?\n/).filter(Boolean) : [];
+  const publicDir = join13(root, "public");
+  const file2 = join13(existsSync12(publicDir) ? publicDir : root, "_redirects");
+  const before = existsSync12(file2) ? readFileSync10(file2, "utf8").split(/\r?\n/).filter(Boolean) : [];
   const added = [...lines].filter((l) => !before.some((b) => b.split(/\s+/)[0] === l.split(/\s+/)[0]));
-  writeFileSync9(file2, [...before, ...added].join("\n") + "\n");
+  writeFileSync10(file2, [...before, ...added].join("\n") + "\n");
   out(`${relative(root, file2).split(sep).join("/")}: ${added.length} added, ${before.length + added.length} in all (at most 2,000; no query strings).`);
   out('Add a line "<old path> <new path> 301" only for a page that truly could not keep its address.');
 }
 function allowedRedirects(root) {
   const map2 = /* @__PURE__ */ new Map();
-  for (const file2 of [join12(root, "public", "_redirects"), join12(root, "_redirects")]) {
-    if (!existsSync11(file2)) continue;
-    for (const line of readFileSync9(file2, "utf8").split(/\r?\n/)) {
+  for (const file2 of [join13(root, "public", "_redirects"), join13(root, "_redirects")]) {
+    if (!existsSync12(file2)) continue;
+    for (const line of readFileSync10(file2, "utf8").split(/\r?\n/)) {
       const [from, to] = line.trim().split(/\s+/);
       if (from && to && !from.startsWith("#")) map2.set(from, to);
     }
@@ -27284,11 +27346,11 @@ async function migrateTagsCommand(root, ctx, opts) {
     const [k, v] = a.split("=");
     if (!QUESTION_KEYS.includes(k) || !ANSWERS.includes(v)) throw new CliError(`Not an answer: ${a}. Use one of ${QUESTION_KEYS.join(", ")} = ${ANSWERS.join(", ")}, for example serverPixel=yes.`, 1, "usage");
   }
-  const urls = opts.requests ? readFileSync9(resolve(root, opts.requests), "utf8").split(/\r?\n/) : [];
+  const urls = opts.requests ? readFileSync10(resolve(root, opts.requests), "utf8").split(/\r?\n/) : [];
   for (const host of hosts) {
     const dir = hostDir(root, host);
     const site = readJson3(tagsFile(dir));
-    const inv = readJson3(join12(dir, "inventory.json"));
+    const inv = readJson3(join13(dir, "inventory.json"));
     if (!site || !inv) continue;
     const state = readJson3(stateFile(dir)) ?? {};
     if (urls.length && opts.fired) {
@@ -27358,7 +27420,7 @@ async function migrateVerifyCommand(root, previewRaw, ctx, retryMs = PREVIEW_RET
   const tagFindings = [];
   const perHost = [];
   for (const host of hosts) {
-    const inv = readJson3(join12(hostDir(root, host), "inventory.json"));
+    const inv = readJson3(join13(hostDir(root, host), "inventory.json"));
     const oldSite = readJson3(tagsFile(hostDir(root, host)));
     const state = readJson3(stateFile(hostDir(root, host))) ?? {};
     const nextSite = emptySiteTags();
@@ -27407,7 +27469,7 @@ async function migrateVerifyCommand(root, previewRaw, ctx, retryMs = PREVIEW_RET
     }
   }
   const words = { missing: "not found on the preview", moved: "moved to", error: "answers", title_lost: "lost its title", description_lost: "lost its description" };
-  const report2 = join12(root, MIGRATION_DIR, "verify.json");
+  const report2 = join13(root, MIGRATION_DIR, "verify.json");
   writeJson(report2, { checkedAt: (/* @__PURE__ */ new Date()).toISOString(), preview: preview.origin, checked, findings, credits: [...credits.keys()], vendors: [...vendors.keys()], tags: tagFindings });
   if (credits.size) {
     out(`A builder's credit is still on the preview:`);
@@ -27432,7 +27494,7 @@ async function migrateVerifyCommand(root, previewRaw, ctx, retryMs = PREVIEW_RET
   for (const h of perHost) {
     const dir = hostDir(root, h.host);
     const verify = { checkedAt: (/* @__PURE__ */ new Date()).toISOString(), pagesChecked: h.checked, pageProblems: h.problems, findings: h.found.map((f) => ({ problem: f.problem, what: f.what.slice(0, 240), ...f.detail ? { detail: f.detail.slice(0, 300) } : {}, ...f.page ? { page: f.page.slice(0, 300) } : {} })).slice(0, 300), seen: h.seen.slice(0, 300), removed: h.removed, vendors: [...vendors.keys()].map((v) => v.slice(0, 80)).slice(0, 40) };
-    writeJson(join12(dir, "verify-report.json"), { report: verify });
+    writeJson(join13(dir, "verify-report.json"), { report: verify });
     await sendReport(root, ctx, h.host, clean3 ? "verify" : null, verify);
   }
   if (!findings.length) {
@@ -27560,32 +27622,32 @@ async function askYes(question) {
 }
 
 // src/same-name.ts
-import { createHash } from "crypto";
-import { mkdirSync as mkdirSync7, readFileSync as readFileSync10, writeFileSync as writeFileSync10 } from "fs";
-import { dirname as dirname3, join as join13 } from "path";
+import { createHash as createHash2 } from "crypto";
+import { mkdirSync as mkdirSync7, readFileSync as readFileSync11, writeFileSync as writeFileSync11 } from "fs";
+import { dirname as dirname3, join as join14 } from "path";
 var LAST_FILES = ".deployai/last-files.json";
 var KEPT = /^(public|static)\/.*\.(avif|webp|png|jpe?g|gif|svg|ico|woff2?|ttf|otf|mp4|webm|css|js|mjs)$/i;
 var HASHED = /[.-][A-Za-z0-9_]{6,20}\.[a-z0-9]+$/;
-var digest = (abs) => createHash("sha1").update(readFileSync10(abs)).digest("hex").slice(0, 16);
+var digest = (abs) => createHash2("sha1").update(readFileSync11(abs)).digest("hex").slice(0, 16);
 function changedUnderSameName(root, files) {
   const now = {};
   for (const f of files) if (KEPT.test(f.rel) && !HASHED.test(f.rel.split("/").pop() ?? "")) now[f.rel] = digest(f.abs);
   let before = {};
   try {
-    before = readJson(join13(root, LAST_FILES));
+    before = readJson(join14(root, LAST_FILES));
   } catch {
   }
   const changed = Object.keys(now).filter((rel) => before[rel] && before[rel] !== now[rel]).sort();
   try {
-    mkdirSync7(dirname3(join13(root, LAST_FILES)), { recursive: true });
-    writeFileSync10(join13(root, LAST_FILES), JSON.stringify(now));
+    mkdirSync7(dirname3(join14(root, LAST_FILES)), { recursive: true });
+    writeFileSync11(join14(root, LAST_FILES), JSON.stringify(now));
   } catch {
   }
   return changed;
 }
 
 // src/tar.ts
-import { readFileSync as readFileSync11 } from "fs";
+import { readFileSync as readFileSync12 } from "fs";
 import { gzipSync } from "zlib";
 var BLOCK = 512;
 function writeString(buf, offset, length, value) {
@@ -27669,7 +27731,7 @@ function packFiles(files) {
   return createTarGz(
     files.map((f) => ({
       name: f.rel,
-      data: readFileSync11(f.abs),
+      data: readFileSync12(f.abs),
       mtimeMs: f.mtimeMs,
       mode: f.mode & 64 ? 493 : 420
     }))
@@ -28267,13 +28329,13 @@ async function claimCommand(root, ctx, opts) {
 
 // src/commands/pull.ts
 import { spawnSync as spawnSync2 } from "child_process";
-import { existsSync as existsSync13, readdirSync as readdirSync5, rmSync as rmSync2 } from "fs";
-import { join as join15 } from "path";
+import { existsSync as existsSync14, readdirSync as readdirSync5, rmSync as rmSync2 } from "fs";
+import { join as join16 } from "path";
 
 // src/commands/samples.ts
 import { createInterface as createInterface3 } from "readline/promises";
-import { existsSync as existsSync12, mkdirSync as mkdirSync8, readdirSync as readdirSync4, writeFileSync as writeFileSync11 } from "fs";
-import { dirname as dirname4, join as join14, relative as relative2, resolve as resolve2, sep as sep2 } from "path";
+import { existsSync as existsSync13, mkdirSync as mkdirSync8, readdirSync as readdirSync4, writeFileSync as writeFileSync12 } from "fs";
+import { dirname as dirname4, join as join15, relative as relative2, resolve as resolve2, sep as sep2 } from "path";
 import { gunzipSync } from "zlib";
 var SAMPLES = [
   { key: "landing", title: "Landing page: a full one-page site with WhatsApp sign-up", stack: "static HTML and CSS" },
@@ -28294,7 +28356,7 @@ function listSamples(apiUrl) {
   out(`See them live:              ${apiUrl}/samples`);
 }
 function filesIn(dir) {
-  return existsSync12(dir) ? readdirSync4(dir).filter((f) => !IGNORED.has(f)) : [];
+  return existsSync13(dir) ? readdirSync4(dir).filter((f) => !IGNORED.has(f)) : [];
 }
 function freeFolder(cwd, key) {
   for (let n2 = 1; ; n2++) {
@@ -28354,7 +28416,7 @@ function extractInto(gz, root, damaged) {
     const target = resolve2(base, e3.name);
     if (target !== base && !target.startsWith(base + sep2)) continue;
     mkdirSync8(dirname4(target), { recursive: true });
-    writeFileSync11(target, e3.data);
+    writeFileSync12(target, e3.data);
     written++;
   }
   return written;
@@ -28378,7 +28440,7 @@ async function samplesCommand(cwd, ctx, key, opts = {}) {
   }
   const written = await downloadSample(ctx, sample.key, root);
   const base = resolve2(root);
-  const hasPackage = existsSync12(join14(base, "package.json"));
+  const hasPackage = existsSync13(join15(base, "package.json"));
   out(base === resolve2(cwd) ? `Downloaded the ${sample.key} sample: ${written} files.` : `Downloaded the ${sample.key} sample into the new folder ${relative2(cwd, base)}: ${written} files. Work in that folder from now on.`);
   out("");
   const t = messages(base);
@@ -28435,7 +28497,7 @@ var git = (root, args, env = {}) => spawnSync2("git", args, { cwd: root, encodin
 function clearTree(root) {
   for (const name of readdirSync5(root)) {
     if (name === ".git" || name === ".deployai") continue;
-    rmSync2(join15(root, name), { recursive: true, force: true });
+    rmSync2(join16(root, name), { recursive: true, force: true });
   }
 }
 async function pullHistory(root, ctx, projectId) {
@@ -28445,7 +28507,7 @@ async function pullHistory(root, ctx, projectId) {
   const live = versions.find((v) => v.isLive)?.number ?? Math.max(0, ...versions.filter((v) => v.status === "ready").map((v) => v.number));
   const chosen = versions.filter((v) => v.number <= live && v.status !== "failed" && v.status !== "queued").sort((a, b) => a.number - b.number);
   if (!chosen.length) throw new CliError(t("pullNoSource"), 1, "not_found");
-  if (!existsSync13(join15(root, ".git")) && git(root, ["init", "-q"]).status !== 0) throw new CliError(t("pullNoGit"), 1, "usage");
+  if (!existsSync14(join16(root, ".git")) && git(root, ["init", "-q"]).status !== 0) throw new CliError(t("pullNoGit"), 1, "usage");
   for (const v of chosen) {
     const gz = await fetchSource(root, ctx, projectId, v.number).catch(() => null);
     if (!gz) continue;
@@ -28496,12 +28558,12 @@ async function requestsOpenCommand(root, ctx, path, open2) {
 
 // src/commands/start.ts
 import { spawnSync as spawnSync3 } from "child_process";
-import { existsSync as existsSync14, writeFileSync as writeFileSync13 } from "fs";
-import { join as join17, relative as relative3, resolve as resolve3 } from "path";
+import { existsSync as existsSync15, writeFileSync as writeFileSync14 } from "fs";
+import { join as join18, relative as relative3, resolve as resolve3 } from "path";
 
 // src/commands/starter.ts
-import { writeFileSync as writeFileSync12 } from "fs";
-import { join as join16 } from "path";
+import { writeFileSync as writeFileSync13 } from "fs";
+import { join as join17 } from "path";
 var esc2 = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 var TEXT = {
   he: { title: "\u05D4\u05D0\u05EA\u05E8 \u05E9\u05DC\u05D9", soon: "\u05D4\u05D0\u05EA\u05E8 \u05D1\u05D1\u05E0\u05D9\u05D9\u05D4, \u05D1\u05E7\u05E8\u05D5\u05D1 \u05DB\u05D0\u05DF." },
@@ -28549,8 +28611,8 @@ DeployAI wrote this page so the folder starts as a working site. Build the owner
 - Delete this README or replace it with notes about the site.
 `;
 function writeStarter(root, name, lang, stack) {
-  writeFileSync12(join16(root, "index.html"), page2(name ?? "", lang, stack));
-  writeFileSync12(join16(root, "README.md"), README);
+  writeFileSync13(join17(root, "index.html"), page2(name ?? "", lang, stack));
+  writeFileSync13(join17(root, "README.md"), README);
 }
 
 // src/commands/start.ts
@@ -28624,7 +28686,7 @@ async function startCommand(cwd, ctx, id, opts = {}) {
   if (sample && !sameSite) {
     const written = await downloadSample(ctxNow, sample.key, root);
     done.push(t("startDownloaded", { key: sample.key, n: written }));
-    if (existsSync14(join17(root, "package.json"))) {
+    if (existsSync15(join18(root, "package.json"))) {
       if (opts.install !== false && install(root)) done.push(t("startInstalled"));
       else steps.unshift({ cmd: "npm install", say: "Installs the sample's packages." });
     }
@@ -28649,7 +28711,7 @@ async function startCommand(cwd, ctx, id, opts = {}) {
   const stackText = choices.stack ? stackBlock(choices.stack) : "";
   if (choices.brief || stackText) {
     ensureDeployaiDir(root);
-    writeFileSync13(join17(root, BRIEF_FILE), [choices.brief ? `# The owner's details
+    writeFileSync14(join18(root, BRIEF_FILE), [choices.brief ? `# The owner's details
 
 ${choices.brief}
 ` : "", stackText].filter(Boolean).join("\n"));
@@ -28707,14 +28769,14 @@ ${choices.brief}
   for (const line of server.extra) say(line);
   say(rule(server, "startFail", START_FAIL_LINE));
   ensureDeployaiDir(root);
-  writeFileSync13(join17(root, START_FILE), `${lines.join("\n")}
+  writeFileSync14(join18(root, START_FILE), `${lines.join("\n")}
 `);
 }
 
 // src/commands/addon.ts
-import { dirname as dirname5, join as join18, resolve as resolve4 } from "path";
+import { dirname as dirname5, join as join19, resolve as resolve4 } from "path";
 import { mkdirSync as mkdirSync9 } from "fs";
-import { existsSync as existsSync15, writeFileSync as writeFileSync14 } from "fs";
+import { existsSync as existsSync16, writeFileSync as writeFileSync15 } from "fs";
 function linkedProjectId2(root) {
   const id = readProject(root)?.projectId;
   if (!id) throw new CliError("This folder is not linked to a DeployAI site. Run: npx deployai@latest login, then npx deployai@latest link", 1, "not_linked");
@@ -28771,7 +28833,7 @@ async function addonsRunCommand(root, ctx, opts = {}) {
   const all = opts.all === true || !opts.oneByOne && readProject(root)?.addonsAll === true;
   if (!order && r.picked && !r.agreed && todo.length > 1 && (opts.all || !all)) {
     const stamps = readStamps(root);
-    const items = todo.map((a) => ({ ...a, trace: addonTrace(a.key, (path) => existsSync15(join18(root, path)), stamps) }));
+    const items = todo.map((a) => ({ ...a, trace: addonTrace(a.key, (path) => existsSync16(join19(root, path)), stamps) }));
     addonOrderBrief(items, opts.all ? "all" : opts.oneByOne ? "one-by-one" : null).forEach((line) => out(line));
     return;
   }
@@ -28819,19 +28881,19 @@ async function addonBuyCommand(root, ctx, key) {
 }
 function readStamps(root) {
   try {
-    return readJson(join18(root, ADDON_STAMP_FILE));
+    return readJson(join19(root, ADDON_STAMP_FILE));
   } catch {
     return {};
   }
 }
 function writeStamps(root, stamps) {
-  const file2 = join18(root, ADDON_STAMP_FILE);
+  const file2 = join19(root, ADDON_STAMP_FILE);
   mkdirSync9(dirname5(file2), { recursive: true });
-  writeFileSync14(file2, JSON.stringify(stamps, null, 2));
+  writeFileSync15(file2, JSON.stringify(stamps, null, 2));
 }
 function printAddon(root, a) {
   const stamps = readStamps(root);
-  const trace = addonTrace(a.key, (path) => existsSync15(join18(root, path)), stamps);
+  const trace = addonTrace(a.key, (path) => existsSync16(join19(root, path)), stamps);
   writeStamps(root, { ...stamps, [a.key]: { ...stamps[a.key], runId: a.runId } });
   out(`DeployAI add-on ${a.position} of ${a.total}: ${a.name} (${a.key}, run ${a.runId}).`);
   const line = addonTraceLine(a.key, a.runId, trace);
@@ -28890,9 +28952,9 @@ async function addonDoneCommand(root, ctx, runId, opts) {
 
 // src/commands/speed.ts
 import { spawn as spawn3 } from "child_process";
-import { mkdtempSync, readFileSync as readFileSync12, rmSync as rmSync3 } from "fs";
+import { mkdtempSync, readFileSync as readFileSync13, rmSync as rmSync3 } from "fs";
 import { tmpdir } from "os";
-import { join as join19 } from "path";
+import { join as join20 } from "path";
 var ms = (v) => v >= 1e3 ? `${(v / 1e3).toFixed(1)} s` : `${Math.round(v)} ms`;
 var LOCAL_WAIT_MS = 18e4;
 function runLighthouse(url2, strategy, browser, file2) {
@@ -28916,11 +28978,11 @@ function runLighthouse(url2, strategy, browser, file2) {
 }
 async function localSpeed(url2, strategy, run = runLighthouse, browser = findBrowser()) {
   if (!browser) return null;
-  const dir = mkdtempSync(join19(tmpdir(), "deployai-speed-"));
+  const dir = mkdtempSync(join20(tmpdir(), "deployai-speed-"));
   try {
-    const file2 = join19(dir, "report.json");
+    const file2 = join20(dir, "report.json");
     await run(url2, strategy, browser, file2);
-    const lighthouseResult = JSON.parse(readFileSync12(file2, "utf8"));
+    const lighthouseResult = JSON.parse(readFileSync13(file2, "utf8"));
     return lighthouseResult.categories ? mapPsi({ lighthouseResult }, strategy) : null;
   } catch {
     return null;
@@ -28984,8 +29046,8 @@ async function speedCommand(ctx, url2, opts, deps = {}) {
 
 // src/commands/shot.ts
 import { spawn as spawn4 } from "child_process";
-import { existsSync as existsSync16, mkdirSync as mkdirSync10 } from "fs";
-import { join as join20, resolve as resolve5 } from "path";
+import { existsSync as existsSync17, mkdirSync as mkdirSync10 } from "fs";
+import { join as join21, resolve as resolve5 } from "path";
 var SHOT_SIZES = [{ name: "phone", size: "390,844" }, { name: "desktop", size: "1440,900" }];
 var PLAYWRIGHT = "playwright@1.56";
 var WAIT_MS3 = 18e4;
@@ -29021,14 +29083,14 @@ async function shotCommand(root, address, opts = {}, run = runNpx) {
   const browser = opts.webkit ? null : findBrowser();
   if (!opts.webkit && !browser) throw new CliError("No Chrome or Edge was found on this computer. Install Chrome, set CHROME_PATH to its path, or run shot again with --webkit (it downloads Safari's engine first).", 1, "no_browser");
   if (opts.webkit && await run(["--yes", PLAYWRIGHT, "install", "webkit"]) !== 0) throw new CliError("Safari's engine could not be installed. Run shot without --webkit to use Chrome or Edge.", 1, "shot_failed");
-  const dir = resolve5(root, opts.out ?? join20(".deployai", "shots"));
+  const dir = resolve5(root, opts.out ?? join21(".deployai", "shots"));
   mkdirSync10(dir, { recursive: true });
   const saved = [];
   for (const s of SHOT_SIZES) {
-    const file2 = join20(dir, shotName(url2.toString(), s.name));
+    const file2 = join21(dir, shotName(url2.toString(), s.name));
     const engine = opts.webkit ? ["--browser=webkit"] : [`--channel=${channelFor(browser)}`];
     const code = await run(["--yes", PLAYWRIGHT, "screenshot", ...engine, `--viewport-size=${s.size}`, "--full-page", "--wait-for-timeout=1500", url2.toString(), file2]);
-    if (code !== 0 || !existsSync16(file2)) throw new CliError(`The ${s.name} picture of ${url2} could not be taken. Check that the page opens, then run shot again.`, 1, "shot_failed");
+    if (code !== 0 || !existsSync17(file2)) throw new CliError(`The ${s.name} picture of ${url2} could not be taken. Check that the page opens, then run shot again.`, 1, "shot_failed");
     saved.push(file2);
     out(`${s.name.padEnd(8)} ${file2}`);
   }
@@ -29038,10 +29100,10 @@ async function shotCommand(root, address, opts = {}, run = runNpx) {
 
 // src/commands/images.ts
 import { spawnSync as spawnSync4 } from "child_process";
-import { existsSync as existsSync17, mkdirSync as mkdirSync11, readdirSync as readdirSync6, statSync as statSync3, writeFileSync as writeFileSync15 } from "fs";
+import { existsSync as existsSync18, mkdirSync as mkdirSync11, readdirSync as readdirSync6, statSync as statSync3, writeFileSync as writeFileSync16 } from "fs";
 import { createRequire } from "module";
 import { homedir as homedir3 } from "os";
-import { extname, join as join21, relative as relative4, resolve as resolve6 } from "path";
+import { extname, join as join22, relative as relative4, resolve as resolve6 } from "path";
 var PHONE_WIDTH = 640;
 var SHARP = "sharp@0.34";
 var SKIP_DIRS2 = /* @__PURE__ */ new Set(["node_modules", ".git", ".deployai", "dist", ".astro", ".next"]);
@@ -29049,14 +29111,14 @@ function imagesIn(dir) {
   const found = [];
   const walk2 = (d) => {
     for (const name of readdirSync6(d)) {
-      const p = join21(d, name);
+      const p = join22(d, name);
       const st = statSync3(p);
       if (st.isDirectory()) {
         if (!SKIP_DIRS2.has(name)) walk2(p);
       } else if (/\.(jpe?g|png)$/i.test(name)) found.push(p);
     }
   };
-  if (existsSync17(dir)) walk2(dir);
+  if (existsSync18(dir)) walk2(dir);
   return found.sort();
 }
 function outputsFor(file2, width) {
@@ -29066,15 +29128,15 @@ function outputsFor(file2, width) {
   return list;
 }
 function loadSharp() {
-  const dir = join21(homedir3(), ".deployai", "tools", "sharp");
-  if (!existsSync17(join21(dir, "node_modules", "sharp"))) {
+  const dir = join22(homedir3(), ".deployai", "tools", "sharp");
+  if (!existsSync18(join22(dir, "node_modules", "sharp"))) {
     mkdirSync11(dir, { recursive: true });
-    if (!existsSync17(join21(dir, "package.json"))) writeFileSync15(join21(dir, "package.json"), '{"private":true}');
+    if (!existsSync18(join22(dir, "package.json"))) writeFileSync16(join22(dir, "package.json"), '{"private":true}');
     out("Getting the image tool once (it stays outside the site)...");
     const r = spawnSync4(process.platform === "win32" ? "npm.cmd" : "npm", ["install", SHARP, "--no-audit", "--no-fund", "--silent"], { cwd: dir, stdio: "ignore", shell: process.platform === "win32" });
     if (r.status !== 0) throw new CliError("The image tool could not be installed. Check the internet connection and run optimize again.", 1, "images_failed");
   }
-  return createRequire(join21(dir, "package.json"))("sharp");
+  return createRequire(join22(dir, "package.json"))("sharp");
 }
 async function imagesCommand(root, folder, sharp = loadSharp) {
   const dir = resolve6(root, folder ?? "public");
@@ -29091,7 +29153,7 @@ async function imagesCommand(root, folder, sharp = loadSharp) {
     const size = statSync3(file2).size;
     const meta3 = await make(file2).metadata();
     const outputs = outputsFor(file2, meta3.width);
-    if (outputs.every((o) => existsSync17(o.file) && statSync3(o.file).mtimeMs >= statSync3(file2).mtimeMs)) {
+    if (outputs.every((o) => existsSync18(o.file) && statSync3(o.file).mtimeMs >= statSync3(file2).mtimeMs)) {
       skipped++;
       continue;
     }
@@ -29110,8 +29172,8 @@ async function imagesCommand(root, folder, sharp = loadSharp) {
 }
 
 // src/commands/blocks.ts
-import { createHash as createHash2 } from "crypto";
-import { existsSync as existsSync18, mkdirSync as mkdirSync12, readFileSync as readFileSync13, writeFileSync as writeFileSync16 } from "fs";
+import { createHash as createHash3 } from "crypto";
+import { existsSync as existsSync19, mkdirSync as mkdirSync12, readFileSync as readFileSync14, writeFileSync as writeFileSync17 } from "fs";
 import { dirname as dirname6, resolve as resolve7, sep as sep3 } from "path";
 import { gunzipSync as gunzipSync2 } from "zlib";
 var BLOCKS = [
@@ -29121,7 +29183,7 @@ var BLOCKS = [
   { key: "late-tags", title: "Tracking tags (Tag Manager, Google, Meta, Clarity) that load a moment after the page shows, at once on conversion pages and ad clicks" }
 ];
 var MAX_BYTES3 = 5 * 1024 * 1024;
-var sha = (data) => createHash2("sha256").update(data).digest("hex");
+var sha = (data) => createHash3("sha256").update(data).digest("hex");
 var lockPath = (base, key) => resolve7(base, ".deployai", "blocks", `${key}.lock.json`);
 function readLock(base, key) {
   try {
@@ -29165,12 +29227,12 @@ async function blocksCommand(root, ctx, name, opts = {}) {
     if (e3.type !== "0" && e3.type !== "\0") continue;
     const target = resolve7(base, e3.name);
     if (target === base || !target.startsWith(base + sep3)) continue;
-    if (existsSync18(target)) {
-      const now = sha(readFileSync13(target));
+    if (existsSync19(target)) {
+      const now = sha(readFileSync14(target));
       if (now === sha(e3.data)) {
         lock[e3.name] = now;
       } else if (opts.update && lock[e3.name] === now) {
-        writeFileSync16(target, e3.data);
+        writeFileSync17(target, e3.data);
         lock[e3.name] = sha(e3.data);
         updated.push(e3.name);
       } else {
@@ -29179,12 +29241,12 @@ async function blocksCommand(root, ctx, name, opts = {}) {
       continue;
     }
     mkdirSync12(dirname6(target), { recursive: true });
-    writeFileSync16(target, e3.data);
+    writeFileSync17(target, e3.data);
     lock[e3.name] = sha(e3.data);
     written.push(e3.name);
   }
   mkdirSync12(dirname6(lockPath(base, block.key)), { recursive: true });
-  writeFileSync16(lockPath(base, block.key), `${JSON.stringify(lock, null, 2)}
+  writeFileSync17(lockPath(base, block.key), `${JSON.stringify(lock, null, 2)}
 `);
   out(`Added the ${block.key} block: ${written.length} files.`);
   written.forEach((f) => out(`  + ${f}`));
@@ -29245,10 +29307,10 @@ async function integrationsCommand(ctx, name, opts = {}) {
 
 // src/commands/brand.ts
 import { spawn as spawn5 } from "child_process";
-import { copyFileSync, existsSync as existsSync19, mkdirSync as mkdirSync13, mkdtempSync as mkdtempSync2, readdirSync as readdirSync7, readFileSync as readFileSync14, rmSync as rmSync4, statSync as statSync4, writeFileSync as writeFileSync17 } from "fs";
+import { copyFileSync, existsSync as existsSync20, mkdirSync as mkdirSync13, mkdtempSync as mkdtempSync2, readdirSync as readdirSync7, readFileSync as readFileSync15, rmSync as rmSync4, statSync as statSync4, writeFileSync as writeFileSync18 } from "fs";
 import { createServer } from "http";
 import { tmpdir as tmpdir2 } from "os";
-import { basename as basename2, dirname as dirname7, extname as extname2, join as join22, relative as relative5, sep as sep4 } from "path";
+import { basename as basename2, dirname as dirname7, extname as extname2, join as join23, relative as relative5, sep as sep4 } from "path";
 import { randomBytes } from "crypto";
 
 // src/commands/brand-page.ts
@@ -29340,7 +29402,7 @@ var WALK_CAP = 4e3;
 var SKIP_DIRS3 = /* @__PURE__ */ new Set(["node_modules", ".git", ".next", "dist", "build", "out", ".astro", ".output", ".svelte-kit", ".wrangler", ".deployai"]);
 var TYPES = { ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".gif": "image/gif", ".ico": "image/x-icon", ".avif": "image/avif" };
 function webRoot(root) {
-  for (const d of ["public", "static"]) if (existsSync19(join22(root, d))) return join22(root, d);
+  for (const d of ["public", "static"]) if (existsSync20(join23(root, d))) return join23(root, d);
   return root;
 }
 function walk(dir, found = []) {
@@ -29352,7 +29414,7 @@ function walk(dir, found = []) {
   }
   for (const n2 of names) {
     if (found.length >= WALK_CAP) break;
-    const p = join22(dir, n2);
+    const p = join23(dir, n2);
     let isDir = false;
     try {
       isDir = statSync4(p).isDirectory();
@@ -29367,31 +29429,31 @@ function walk(dir, found = []) {
 }
 function existingFavicon(root) {
   const web = webRoot(root);
-  for (const f of ["favicon.ico", "favicon.svg", "favicon.png", "icon.svg", "icon.png"]) if (existsSync19(join22(web, f))) return relative5(root, join22(web, f)).split(sep4).join("/");
-  for (const d of ["app", "src/app"]) for (const f of ["favicon.ico", "icon.svg", "icon.png", "icon.tsx", "icon.jpg"]) if (existsSync19(join22(root, d, f))) return `${d}/${f}`;
+  for (const f of ["favicon.ico", "favicon.svg", "favicon.png", "icon.svg", "icon.png"]) if (existsSync20(join23(web, f))) return relative5(root, join23(web, f)).split(sep4).join("/");
+  for (const d of ["app", "src/app"]) for (const f of ["favicon.ico", "icon.svg", "icon.png", "icon.tsx", "icon.jpg"]) if (existsSync20(join23(root, d, f))) return `${d}/${f}`;
   for (const f of walk(root).filter((p) => /\.(html|astro|tsx|jsx|vue|svelte)$/.test(p)).slice(0, 400)) {
     try {
-      const m = readFileSync14(f, "utf8").match(/<link\b[^>]*\brel=["'](?:shortcut )?icon["'][^>]*>/i);
+      const m = readFileSync15(f, "utf8").match(/<link\b[^>]*\brel=["'](?:shortcut )?icon["'][^>]*>/i);
       if (!m) continue;
       const href = m[0].match(/\shref=["']([^"']+)/i)?.[1] ?? "";
-      if (href.startsWith("data:") || /^https?:/.test(href) || existsSync19(join22(web, href.split("?")[0]))) return relative5(root, f).split(sep4).join("/");
+      if (href.startsWith("data:") || /^https?:/.test(href) || existsSync20(join23(web, href.split("?")[0]))) return relative5(root, f).split(sep4).join("/");
     } catch {
     }
   }
   return null;
 }
 function scannedIcons(root) {
-  const base = join22(root, MIGRATION_DIR);
-  if (!existsSync19(base)) return [];
+  const base = join23(root, MIGRATION_DIR);
+  if (!existsSync20(base)) return [];
   const found = [];
   for (const host of readdirSync7(base)) {
-    const dir = join22(base, host, "icons");
+    const dir = join23(base, host, "icons");
     try {
-      const list = readJson(join22(dir, "icons.json"));
+      const list = readJson(join23(dir, "icons.json"));
       for (const i of list) {
-        const path = join22(dir, i.file);
-        if (!existsSync19(path)) continue;
-        const size = imageSize(readFileSync14(path));
+        const path = join23(dir, i.file);
+        if (!existsSync20(path)) continue;
+        const size = imageSize(readFileSync15(path));
         found.push({ path, kind: i.kind, big: !size || size.width >= 64 });
       }
     } catch {
@@ -29403,7 +29465,7 @@ function findSource(root) {
   const icons = scannedIcons(root);
   const sharp = icons.find((i) => i.kind === "icon" && i.big);
   if (sharp) return { path: sharp.path, from: "old-icon" };
-  const dirs = ["public", "static", "src/assets", "assets", "images", "img"].map((d) => join22(root, d));
+  const dirs = ["public", "static", "src/assets", "assets", "images", "img"].map((d) => join23(root, d));
   const logos = dirs.flatMap((d) => walk(d)).filter((p) => looksLikeLogo(relative5(root, p).split(sep4).join("/")));
   const logo = logos.find((p) => /\.svg$/i.test(p)) ?? logos[0];
   if (logo) return { path: logo, from: "logo" };
@@ -29417,23 +29479,23 @@ var CODE_EXT2 = /\.(css|scss|sass|less|html|astro|vue|svelte)$/i;
 var READ_CAP = 300;
 function readText2(path) {
   try {
-    return readFileSync14(path, "utf8");
+    return readFileSync15(path, "utf8");
   } catch {
     return "";
   }
 }
 function scanDirs(root) {
-  const base = join22(root, MIGRATION_DIR);
+  const base = join23(root, MIGRATION_DIR);
   try {
-    return readdirSync7(base).map((h) => join22(base, h)).filter((d) => existsSync19(join22(d, "home.html")));
+    return readdirSync7(base).map((h) => join23(base, h)).filter((d) => existsSync20(join23(d, "home.html")));
   } catch {
     return [];
   }
 }
 function homePage(root) {
-  for (const d of scanDirs(root)) return readText2(join22(d, "home.html"));
+  for (const d of scanDirs(root)) return readText2(join23(d, "home.html"));
   for (const f of ["index.html", "public/index.html", "src/index.html", "src/pages/index.astro", "src/pages/index.html", "app/layout.tsx", "src/app/layout.tsx", "src/layouts/Layout.astro"]) {
-    const text2 = readText2(join22(root, f));
+    const text2 = readText2(join23(root, f));
     if (text2) return text2;
   }
   return "";
@@ -29444,30 +29506,30 @@ function siteFacts(root, given = {}) {
   const id = readSiteIdentity(home);
   let pkg;
   try {
-    pkg = readJson(join22(root, "package.json")).name;
+    pkg = readJson(join23(root, "package.json")).name;
   } catch {
   }
   const name = given.name?.trim() || readProject(root)?.name || id.name || (pkg && !pkg.startsWith("@") ? pkg : "") || basename2(root);
   if (given.color) return { name, line: given.line ?? id.line ?? "", color: given.color, colorFrom: "given" };
-  const old = scanDirs(root).flatMap((d) => walkAll(join22(d, "styles")).map((f) => ({ text: readText2(f) })));
+  const old = scanDirs(root).flatMap((d) => walkAll(join23(d, "styles")).map((f) => ({ text: readText2(f) })));
   const fromOld = scanDirs(root).length ? pickBrandColor([{ text: home, themeColor: id.themeColor }, ...old]) : null;
   const sources = [{ text: home, themeColor: id.themeColor }];
-  for (const f of ["tailwind.config.js", "tailwind.config.ts", "tailwind.config.mjs", "tailwind.config.cjs"]) sources.push({ text: readText2(join22(root, f)) });
-  const code = ["src", "app", "styles", "css", "public", "static"].flatMap((d) => walk(join22(root, d))).filter((p) => CODE_EXT2.test(p));
-  const plain2 = readdirSync7(root).filter((f) => CODE_EXT2.test(f)).map((f) => join22(root, f));
+  for (const f of ["tailwind.config.js", "tailwind.config.ts", "tailwind.config.mjs", "tailwind.config.cjs"]) sources.push({ text: readText2(join23(root, f)) });
+  const code = ["src", "app", "styles", "css", "public", "static"].flatMap((d) => walk(join23(root, d))).filter((p) => CODE_EXT2.test(p));
+  const plain2 = readdirSync7(root).filter((f) => CODE_EXT2.test(f)).map((f) => join23(root, f));
   for (const f of [...plain2, ...code].slice(0, READ_CAP)) sources.push({ text: readText2(f) });
   const color = fromOld ?? pickBrandColor(sources);
   return { name, line: given.line ?? id.line ?? "", color: color ?? BRAND_DEFAULT_COLOR, colorFrom: color ? "site" : "default" };
 }
 function writeSiteFile(root, file2, data) {
-  const target = join22(webRoot(root), file2);
-  if (existsSync19(target)) {
-    const keep = join22(root, BRAND_DIR, "originals");
+  const target = join23(webRoot(root), file2);
+  if (existsSync20(target)) {
+    const keep = join23(root, BRAND_DIR, "originals");
     mkdirSync13(keep, { recursive: true });
-    copyFileSync(target, join22(keep, file2));
+    copyFileSync(target, join23(keep, file2));
   }
   mkdirSync13(dirname7(target), { recursive: true });
-  writeFileSync17(target, data);
+  writeFileSync18(target, data);
 }
 var send = (res, status, body = "", type = "text/plain; charset=utf-8") => {
   res.writeHead(status, { "content-type": type, "cache-control": "no-store", "x-content-type-options": "nosniff" });
@@ -29502,7 +29564,7 @@ function allowed(req, url2, port, token) {
   return req.headers.host === `127.0.0.1:${port}` && url2.searchParams.get("t") === token;
 }
 async function headless(browser, url2, width, until, timeoutMs) {
-  const profile = mkdtempSync2(join22(tmpdir2(), "deployai-brand-"));
+  const profile = mkdtempSync2(join23(tmpdir2(), "deployai-brand-"));
   const child = spawn5(browser, ["--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check", "--disable-extensions", `--user-data-dir=${profile}`, `--window-size=${width},900`, url2], { stdio: "ignore", windowsHide: true });
   child.on("error", () => {
   });
@@ -29602,7 +29664,7 @@ async function drawInBrowser(o, browser) {
   }
 }
 function sourceBytes(path) {
-  return { bytes: readFileSync14(path), type: TYPES[extname2(path).toLowerCase()] ?? "application/octet-stream" };
+  return { bytes: readFileSync15(path), type: TYPES[extname2(path).toLowerCase()] ?? "application/octet-stream" };
 }
 function report(root, r) {
   const where = relative5(root, webRoot(root)).split(sep4).join("/") || "the site root";
@@ -29620,7 +29682,7 @@ function plainIcon(root, source, name, color) {
     const ext = extname2(source.path).toLowerCase();
     if (ext === ".ico" || ext === ".svg" || ext === ".png") {
       const file2 = `favicon${ext}`;
-      writeSiteFile(root, file2, readFileSync14(source.path));
+      writeSiteFile(root, file2, readFileSync15(source.path));
       return [file2];
     }
   }
@@ -29638,7 +29700,7 @@ function printStatus2(root, files) {
   const web = webRoot(root);
   const icon = existingFavicon(root);
   out(icon ? `Icon: ${icon}` : "Icon: missing. Run: npx deployai@latest brand favicon");
-  const missing = files.filter((f) => f !== "favicon.svg" && !existsSync19(join22(web, f)));
+  const missing = files.filter((f) => f !== "favicon.svg" && !existsSync20(join23(web, f)));
   if (files.length) out(missing.length ? `Missing from the full set: ${missing.join(", ")}` : "The full set is there.");
 }
 function printFacts(f, picture2) {
@@ -29657,7 +29719,7 @@ function withLogoColor(facts, source) {
 }
 function pickSource(root, from) {
   const source = from ? { path: from, from: "file" } : findSource(root);
-  if (source.path && !existsSync19(source.path)) throw new CliError(`No such file: ${source.path}`, 1, "usage");
+  if (source.path && !existsSync20(source.path)) throw new CliError(`No such file: ${source.path}`, 1, "usage");
   return source;
 }
 async function brandFaviconCommand(root, opts) {
@@ -29685,7 +29747,7 @@ async function brandFaviconCommand(root, opts) {
 }
 function iconsToDraw(root, force) {
   const icon = force ? null : existingFavicon(root);
-  const keepOg = !force && existsSync19(join22(webRoot(root), "og-image.png"));
+  const keepOg = !force && existsSync20(join23(webRoot(root), "og-image.png"));
   return {
     targets: BRAND_TARGETS.filter((t) => !(keepOg && t.file === "og-image.png") && !(icon && t.icoOnly)),
     keepIcon: Boolean(icon),
@@ -29741,7 +29803,7 @@ async function measurePage(browser, address, width, scripts) {
   }
 }
 function imageFiles(root) {
-  const dirs = [webRoot(root) === root ? null : webRoot(root), join22(root, "src"), join22(root, MIGRATION_DIR)].filter((d) => !!d);
+  const dirs = [webRoot(root) === root ? null : webRoot(root), join23(root, "src"), join23(root, MIGRATION_DIR)].filter((d) => !!d);
   const files = dirs.flatMap((d) => walkAll(d));
   if (webRoot(root) === root) files.push(...walk(root));
   return [...new Set(files)].filter((p) => IMAGE_EXT.test(p) && !p.split(sep4).includes("icons") && !BRAND_FILES.includes(basename2(p)));
@@ -29757,7 +29819,7 @@ function walkAll(dir) {
     }
     for (const n2 of names) {
       if (found.length >= WALK_CAP) return;
-      const p = join22(d, n2);
+      const p = join23(d, n2);
       try {
         if (statSync4(p).isDirectory()) {
           if (!SKIP_DIRS3.has(n2) || n2 === ".deployai") go(p);
@@ -29776,7 +29838,7 @@ function judgeFiles(root) {
   for (const f of files) {
     let bytes;
     try {
-      bytes = readFileSync14(f);
+      bytes = readFileSync15(f);
     } catch {
       continue;
     }
@@ -29826,10 +29888,10 @@ async function brandImagesCommand(root, urls, opts) {
     if (verdict !== "ok") onPages.push({ where: m.src, width: m.width, height: m.height, shownWidth: m.shownWidth, verdict, alt: m.alt });
   }
   const weak = [...onPages, ...findings];
-  mkdirSync13(join22(root, BRAND_DIR), { recursive: true });
+  mkdirSync13(join23(root, BRAND_DIR), { recursive: true });
   const file2 = `${BRAND_DIR}/images.json`;
   const data = { measuredAt: (/* @__PURE__ */ new Date()).toISOString(), pages: urls, unmeasured, filesChecked: total, imagesMeasured: shown.size, weak };
-  writeFileSync17(join22(root, file2), `${JSON.stringify(data, null, 2)}
+  writeFileSync18(join23(root, file2), `${JSON.stringify(data, null, 2)}
 `);
   if (opts.json) {
     out(JSON.stringify(data));
@@ -29894,7 +29956,12 @@ function buildProgram() {
   const g = (cmd) => cmd.optsWithGlobals();
   const root = (cmd) => resolve8(g(cmd).dir ?? process.cwd());
   const ctx = (cmd) => apiContext(g(cmd).api);
+  program.hook("preAction", async (_p, action) => {
+    if (["init", "start", "rules"].includes(action.name()) || !existsSync21(join24(root(action), "DEPLOYAI.md"))) return;
+    await refreshRules(root(action), ctx(action).apiUrl);
+  });
   program.command("init").description("create DEPLOYAI.md and .deployai/ guard files").option("--force", "overwrite DEPLOYAI.md").option("--no-agent-files", "do not add the DEPLOYAI.md line to AGENTS.md and CLAUDE.md").action((opts, cmd) => initCommand(root(cmd), opts, ctx(cmd).apiUrl));
+  program.command("rules").description("the current DeployAI rules for the agent, and DEPLOYAI.md brought up to them").action((_o, cmd) => rulesCommand(root(cmd), ctx(cmd).apiUrl));
   program.command("inspect").description("show framework, package manager, language, database, storage").option("--json", "machine readable output").action((opts, cmd) => inspectCommand(root(cmd), opts));
   program.command("check").description("can this project run on DeployAI: blockers and warnings, with the AI prompt").option("--json", "machine readable output").option("--no-clipboard", "do not copy the prompt to the clipboard").action(async (opts, cmd) => {
     const a = await runCheck(root(cmd), ctx(cmd), opts);
@@ -30046,8 +30113,8 @@ async function main(argv = process.argv) {
 
 // src/update.ts
 import { spawnSync as spawnSync5 } from "child_process";
-import { existsSync as existsSync20, mkdirSync as mkdirSync14, readdirSync as readdirSync8, readFileSync as readFileSync15, rmSync as rmSync5, writeFileSync as writeFileSync18 } from "fs";
-import { join as join23 } from "path";
+import { existsSync as existsSync22, mkdirSync as mkdirSync14, readdirSync as readdirSync8, readFileSync as readFileSync16, rmSync as rmSync5, writeFileSync as writeFileSync19 } from "fs";
+import { join as join25 } from "path";
 var CHECK_EVERY_MS = 60 * 60 * 1e3;
 var ASK_NPM_MS = 1500;
 var GET_VERSION_MS = 12e4;
@@ -30085,11 +30152,11 @@ function updateAllowed(env, args) {
   return resolveApiUrl(void 0, loadConfig()) === API_BASE_DEFAULT.replace(/\/+$/, "");
 }
 function statePath() {
-  return join23(configDir(), "update-check.json");
+  return join25(configDir(), "update-check.json");
 }
 function readState() {
   try {
-    const data = JSON.parse(readFileSync15(statePath(), "utf8"));
+    const data = JSON.parse(readFileSync16(statePath(), "utf8"));
     return data && typeof data === "object" ? data : {};
   } catch {
     return {};
@@ -30098,7 +30165,7 @@ function readState() {
 function writeState(state) {
   try {
     mkdirSync14(configDir(), { recursive: true });
-    writeFileSync18(statePath(), JSON.stringify(state) + "\n");
+    writeFileSync19(statePath(), JSON.stringify(state) + "\n");
   } catch {
   }
 }
@@ -30114,20 +30181,20 @@ async function askNpmLatest(env) {
   }
 }
 function versionEntry(version2) {
-  return join23(configDir(), "cli", version2, "node_modules", "deployai", "dist", "index.js");
+  return join25(configDir(), "cli", version2, "node_modules", "deployai", "dist", "index.js");
 }
 function getVersion(version2, env) {
   process.stderr.write(`Getting the newest DeployAI CLI, version ${version2}.
 `);
-  const root = join23(configDir(), "cli");
-  const dir = join23(root, version2);
+  const root = join25(configDir(), "cli");
+  const dir = join25(root, version2);
   mkdirSync14(dir, { recursive: true });
-  writeFileSync18(join23(dir, "package.json"), '{"private":true}\n');
+  writeFileSync19(join25(dir, "package.json"), '{"private":true}\n');
   const installed = spawnSync5(`npm install deployai@${version2} --ignore-scripts --no-audit --no-fund --silent`, { cwd: dir, env, shell: true, stdio: "ignore", windowsHide: true, timeout: GET_VERSION_MS });
   if (installed.status !== 0) return false;
   const ran = spawnSync5(process.execPath, [versionEntry(version2), "--version"], { env: { ...env, DEPLOYAI_NO_UPDATE: "1" }, encoding: "utf8", timeout: GET_VERSION_MS });
   if (ran.status !== 0 || ran.stdout.trim() !== version2) return false;
-  for (const old of readdirSync8(root)) if (old !== version2) rmSync5(join23(root, old), { recursive: true, force: true });
+  for (const old of readdirSync8(root)) if (old !== version2) rmSync5(join25(root, old), { recursive: true, force: true });
   return true;
 }
 function runVersion(version2, args, env = process.env) {
@@ -30146,7 +30213,7 @@ async function versionToRun(current, args, env = process.env, deps = {}) {
   }
   const latest = state.latest;
   if (!latest || !PLAIN_VERSION.test(latest) || compareVersions(latest, current) <= 0) return null;
-  if (state.ready === latest && existsSync20(versionEntry(latest))) return latest;
+  if (state.ready === latest && existsSync22(versionEntry(latest))) return latest;
   if (now - (state.triedAt ?? 0) < CHECK_EVERY_MS) return null;
   state.triedAt = now;
   if (get2(latest, env)) state.ready = latest;
