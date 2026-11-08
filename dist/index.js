@@ -6,8 +6,8 @@ var __export = (target, all) => {
 };
 
 // src/cli.ts
-import { existsSync as existsSync21 } from "fs";
-import { join as join24, resolve as resolve8 } from "path";
+import { existsSync as existsSync22 } from "fs";
+import { join as join25, resolve as resolve9 } from "path";
 import { Command, CommanderError } from "commander";
 
 // ../shared/src/plans.ts
@@ -817,36 +817,36 @@ function parseWranglerToml(text2) {
     }
     const kv = /^([\w-]+|"[^"]+")\s*=\s*(.*)$/.exec(line);
     if (!kv) continue;
-    const key = kv[1].replace(/^"|"$/g, "");
+    const key2 = kv[1].replace(/^"|"$/g, "");
     const value = kv[2];
     if (section === "") {
-      if (key === "main") decl.main = tomlString(value);
-      if (key === "compatibility_date") decl.compatibilityDate = tomlString(value);
-      if (key === "compatibility_flags") decl.compatibilityFlags = [...value.matchAll(/"([^"]+)"|'([^']+)'/g)].map((m) => m[1] ?? m[2]);
-      if (key === "d1_databases" || key === "r2_buckets") {
-        const target = key === "d1_databases" ? decl.d1 : decl.r2;
+      if (key2 === "main") decl.main = tomlString(value);
+      if (key2 === "compatibility_date") decl.compatibilityDate = tomlString(value);
+      if (key2 === "compatibility_flags") decl.compatibilityFlags = [...value.matchAll(/"([^"]+)"|'([^']+)'/g)].map((m) => m[1] ?? m[2]);
+      if (key2 === "d1_databases" || key2 === "r2_buckets") {
+        const target = key2 === "d1_databases" ? decl.d1 : decl.r2;
         for (const m of value.matchAll(/binding\s*=\s*(?:"([^"]+)"|'([^']+)')/g)) target.push({ binding: m[1] ?? m[2] });
       }
-      if (key === "vars") for (const m of value.matchAll(/([\w-]+)\s*=/g)) decl.vars.push(m[1]);
-      if (key === "durable_objects") decl.durableObjects.push(...tomlDurableObjects(value));
-    } else if (section === "durable_objects" && key === "bindings") {
+      if (key2 === "vars") for (const m of value.matchAll(/([\w-]+)\s*=/g)) decl.vars.push(m[1]);
+      if (key2 === "durable_objects") decl.durableObjects.push(...tomlDurableObjects(value));
+    } else if (section === "durable_objects" && key2 === "bindings") {
       decl.durableObjects.push(...tomlDurableObjects(value));
-    } else if (section === "[[durable_objects.bindings]]" && (key === "name" || key === "class_name" || key === "script_name")) {
+    } else if (section === "[[durable_objects.bindings]]" && (key2 === "name" || key2 === "class_name" || key2 === "script_name")) {
       const v = tomlString(value);
       const last = decl.durableObjects[decl.durableObjects.length - 1];
       if (v != null && last) {
-        if (key === "name") last.name = v;
-        else if (key === "class_name") last.className = v;
+        if (key2 === "name") last.name = v;
+        else if (key2 === "class_name") last.className = v;
         else last.script = v || null;
       }
     } else if (section === "vars") {
-      decl.vars.push(key);
-    } else if (section === "assets" && key === "directory") {
+      decl.vars.push(key2);
+    } else if (section === "assets" && key2 === "directory") {
       decl.assetsDir = tomlString(value);
-    } else if (section === "[[d1_databases]]" && key === "binding") {
+    } else if (section === "[[d1_databases]]" && key2 === "binding") {
       const v = tomlString(value);
       if (v != null) decl.d1[decl.d1.length - 1].binding = v;
-    } else if (section === "[[r2_buckets]]" && key === "binding") {
+    } else if (section === "[[r2_buckets]]" && key2 === "binding") {
       const v = tomlString(value);
       if (v != null) decl.r2[decl.r2.length - 1].binding = v;
     }
@@ -2114,9 +2114,9 @@ function floatSafeRemainder(val, step) {
   return ratio - roundedRatio;
 }
 var EVALUATING = /* @__PURE__ */ Symbol("evaluating");
-function defineLazy(object2, key, getter) {
+function defineLazy(object2, key2, getter) {
   let value = void 0;
-  Object.defineProperty(object2, key, {
+  Object.defineProperty(object2, key2, {
     get() {
       if (value === EVALUATING) {
         return void 0;
@@ -2128,7 +2128,7 @@ function defineLazy(object2, key, getter) {
       return value;
     },
     set(v) {
-      Object.defineProperty(object2, key, {
+      Object.defineProperty(object2, key2, {
         value: v
         // configurable: true,
       });
@@ -2154,47 +2154,47 @@ function rawShape(def) {
 function sourceShape(schema) {
   return rawShape(schema._zod.def) ?? schema._zod.def.shape;
 }
-function deferProp(target, key, getter) {
-  Object.defineProperty(target, key, {
+function deferProp(target, key2, getter) {
+  Object.defineProperty(target, key2, {
     get() {
       const value = getter();
-      assignProp(this, key, value);
+      assignProp(this, key2, value);
       return value;
     },
     enumerable: true,
     configurable: true
   });
 }
-function putProp(target, key, value) {
-  if (key in target)
-    assignProp(target, key, value);
+function putProp(target, key2, value) {
+  if (key2 in target)
+    assignProp(target, key2, value);
   else
-    target[key] = value;
+    target[key2] = value;
 }
 function mirrorShape(target, source, keys, wrap) {
   const raw = sourceShape(source);
-  for (const key of keys) {
-    const desc = Object.getOwnPropertyDescriptor(raw, key);
+  for (const key2 of keys) {
+    const desc = Object.getOwnPropertyDescriptor(raw, key2);
     if (!desc.enumerable)
       continue;
     if (desc.get) {
-      deferProp(target, key, () => {
-        const value = source._zod.def.shape[key];
-        return wrap ? wrap(value, key) : value;
+      deferProp(target, key2, () => {
+        const value = source._zod.def.shape[key2];
+        return wrap ? wrap(value, key2) : value;
       });
     } else
-      putProp(target, key, wrap ? wrap(desc.value, key) : desc.value);
+      putProp(target, key2, wrap ? wrap(desc.value, key2) : desc.value);
   }
 }
 function mirrorProps(target, source) {
-  for (const key of Reflect.ownKeys(source)) {
-    const desc = Object.getOwnPropertyDescriptor(source, key);
+  for (const key2 of Reflect.ownKeys(source)) {
+    const desc = Object.getOwnPropertyDescriptor(source, key2);
     if (!desc.enumerable)
       continue;
     if (desc.get)
-      deferProp(target, key, () => source[key]);
+      deferProp(target, key2, () => source[key2]);
     else
-      putProp(target, key, desc.value);
+      putProp(target, key2, desc.value);
   }
 }
 function mergeDefs(...defs) {
@@ -2211,11 +2211,11 @@ function cloneDef(schema) {
 function getElementAtPath(obj, path) {
   if (!path)
     return obj;
-  return path.reduce((acc, key) => acc?.[key], obj);
+  return path.reduce((acc, key2) => acc?.[key2], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
-  const promises = keys.map((key) => promisesObj[key]);
+  const promises = keys.map((key2) => promisesObj[key2]);
   return Promise.all(promises).then((results) => {
     const resolvedObj = {};
     for (let i = 0; i < keys.length; i++) {
@@ -2287,8 +2287,8 @@ function shallowClone(o) {
 }
 function numKeys(data) {
   let keyCount = 0;
-  for (const key in data) {
-    if (Object.prototype.hasOwnProperty.call(data, key)) {
+  for (const key2 in data) {
+    if (Object.prototype.hasOwnProperty.call(data, key2)) {
       keyCount++;
     }
   }
@@ -2442,12 +2442,12 @@ function pick(schema, mask) {
 function maskedKeys(schema, mask) {
   const raw = sourceShape(schema);
   const keys = [];
-  for (const key of Reflect.ownKeys(mask)) {
-    if (!Object.getOwnPropertyDescriptor(raw, key)?.enumerable) {
-      throw new Error(`Unrecognized key: "${String(key)}"`);
+  for (const key2 of Reflect.ownKeys(mask)) {
+    if (!Object.getOwnPropertyDescriptor(raw, key2)?.enumerable) {
+      throw new Error(`Unrecognized key: "${String(key2)}"`);
     }
-    if (mask[key])
-      keys.push(key);
+    if (mask[key2])
+      keys.push(key2);
   }
   return keys;
 }
@@ -2460,7 +2460,7 @@ function omit(schema, mask) {
   }
   const omitted = new Set(maskedKeys(schema, mask));
   const newShape = {};
-  mirrorShape(newShape, schema, Reflect.ownKeys(sourceShape(schema)).filter((key) => !omitted.has(key)));
+  mirrorShape(newShape, schema, Reflect.ownKeys(sourceShape(schema)).filter((key2) => !omitted.has(key2)));
   return clone(schema, mergeDefs(currDef, { shape: newShape, checks: [] }));
 }
 function extend(schema, shape) {
@@ -2471,8 +2471,8 @@ function extend(schema, shape) {
   const hasChecks = checks && checks.length > 0;
   if (hasChecks) {
     const existingShape = sourceShape(schema);
-    for (const key of Reflect.ownKeys(shape)) {
-      if (Object.getOwnPropertyDescriptor(existingShape, key) !== void 0) {
+    for (const key2 of Reflect.ownKeys(shape)) {
+      if (Object.getOwnPropertyDescriptor(existingShape, key2) !== void 0) {
         throw new Error("Cannot overwrite keys on object schemas containing refinements. Use `.safeExtend()` instead.");
       }
     }
@@ -2519,15 +2519,15 @@ function partial(Class2, schema, mask, name = "partial") {
   }
   const selected = mask ? new Set(maskedKeys(schema, mask)) : void 0;
   const newShape = {};
-  mirrorShape(newShape, schema, Reflect.ownKeys(sourceShape(schema)), Class2 && ((value, key) => selected && !selected.has(key) ? value : new Class2({ type: "optional", innerType: value })));
+  mirrorShape(newShape, schema, Reflect.ownKeys(sourceShape(schema)), Class2 && ((value, key2) => selected && !selected.has(key2) ? value : new Class2({ type: "optional", innerType: value })));
   return clone(schema, mergeDefs(schema._zod.def, { shape: newShape, checks: [] }));
 }
 function required(Class2, schema, mask) {
   const selected = mask ? new Set(maskedKeys(schema, mask)) : void 0;
   const newShape = {};
-  mirrorShape(newShape, schema, Reflect.ownKeys(sourceShape(schema)), (value, key) => (
+  mirrorShape(newShape, schema, Reflect.ownKeys(sourceShape(schema)), (value, key2) => (
     // overwrite with non-optional
-    selected && !selected.has(key) ? value : new Class2({ type: "nonoptional", innerType: value })
+    selected && !selected.has(key2) ? value : new Class2({ type: "nonoptional", innerType: value })
   ));
   return clone(schema, mergeDefs(schema._zod.def, { shape: newShape }));
 }
@@ -2714,46 +2714,46 @@ var Class = class {
   }
 };
 function members(proto, table) {
-  for (const key in table) {
-    const desc = Object.getOwnPropertyDescriptor(table, key);
+  for (const key2 in table) {
+    const desc = Object.getOwnPropertyDescriptor(table, key2);
     if (desc.get)
-      Object.defineProperty(proto, key, { ...desc, enumerable: false });
+      Object.defineProperty(proto, key2, { ...desc, enumerable: false });
     else
-      defineBound(proto, key, desc.value);
+      defineBound(proto, key2, desc.value);
   }
 }
-function own(inst, key, value, enumerable = true) {
-  Object.defineProperty(inst, key, { configurable: true, writable: true, enumerable, value });
+function own(inst, key2, value, enumerable = true) {
+  Object.defineProperty(inst, key2, { configurable: true, writable: true, enumerable, value });
   return value;
 }
-function hide(inst, key, value) {
-  return own(inst, key, value, false);
+function hide(inst, key2, value) {
+  return own(inst, key2, value, false);
 }
 // @__NO_SIDE_EFFECTS__
 function derived(computes, table) {
-  for (const key in computes) {
-    const compute = computes[key];
-    Object.defineProperty(table, key, {
+  for (const key2 in computes) {
+    const compute = computes[key2];
+    Object.defineProperty(table, key2, {
       configurable: true,
       enumerable: true,
       get() {
-        return own(this, key, compute(this));
+        return own(this, key2, compute(this));
       },
       set(value) {
-        own(this, key, value);
+        own(this, key2, value);
       }
     });
   }
   return table;
 }
-function defineBound(proto, key, fn) {
-  Object.defineProperty(proto, key, {
+function defineBound(proto, key2, fn) {
+  Object.defineProperty(proto, key2, {
     configurable: true,
     get() {
-      return this == null ? fn : own(this, key, fn.bind(this));
+      return this == null ? fn : own(this, key2, fn.bind(this));
     },
     set(value) {
-      own(this, key, value);
+      own(this, key2, value);
     }
   });
 }
@@ -2770,53 +2770,53 @@ var breaker = {
     return void 0;
   }
 };
-function defineLazyInternal(inst, key, compute) {
+function defineLazyInternal(inst, key2, compute) {
   const proto = Object.getPrototypeOf(inst._zod);
-  if (key in proto && installing !== inst._zod) {
+  if (key2 in proto && installing !== inst._zod) {
     installing = void 0;
     return;
   }
   installing = inst._zod;
-  Object.defineProperty(proto, key, {
+  Object.defineProperty(proto, key2, {
     configurable: true,
     get() {
-      Object.defineProperty(this, key, breaker);
+      Object.defineProperty(this, key2, breaker);
       const outer = broke;
       broke = false;
       try {
         const value = compute(this);
         if (broke)
-          delete this[key];
+          delete this[key2];
         else
-          Object.defineProperty(this, key, { configurable: true, writable: true, value });
+          Object.defineProperty(this, key2, { configurable: true, writable: true, value });
         broke = broke || outer;
         return value;
       } catch (err2) {
-        delete this[key];
+        delete this[key2];
         broke = broke || outer;
         throw err2;
       }
     },
     set(value) {
-      Object.defineProperty(this, key, { configurable: true, writable: true, value });
+      Object.defineProperty(this, key2, { configurable: true, writable: true, value });
     }
   });
 }
-function installLazyProp(inst, key, make, enumerable) {
-  const proto = claim(inst, key);
+function installLazyProp(inst, key2, make, enumerable) {
+  const proto = claim(inst, key2);
   if (!proto)
     return;
-  Object.defineProperty(proto, key, {
+  Object.defineProperty(proto, key2, {
     configurable: true,
     get() {
       const desc = { configurable: true, writable: true, enumerable, value: void 0 };
-      Object.defineProperty(this, key, desc);
+      Object.defineProperty(this, key2, desc);
       desc.value = make(this);
-      Object.defineProperty(this, key, desc);
+      Object.defineProperty(this, key2, desc);
       return desc.value;
     },
     set(value) {
-      Object.defineProperty(this, key, { configurable: true, writable: true, enumerable, value });
+      Object.defineProperty(this, key2, { configurable: true, writable: true, enumerable, value });
     }
   });
 }
@@ -2993,15 +2993,15 @@ var $ZodError = $constructor("$ZodError", initializer);
 var $ZodRealError = $constructor("$ZodError", initializer, void 0, {
   Parent: Error
 });
-function node(obj, key, make) {
-  if (!Object.prototype.hasOwnProperty.call(obj, key)) {
-    if (key === "__proto__") {
-      Object.defineProperty(obj, key, { value: make(), writable: true, enumerable: true, configurable: true });
+function node(obj, key2, make) {
+  if (!Object.prototype.hasOwnProperty.call(obj, key2)) {
+    if (key2 === "__proto__") {
+      Object.defineProperty(obj, key2, { value: make(), writable: true, enumerable: true, configurable: true });
     } else {
-      obj[key] = make();
+      obj[key2] = make();
     }
   }
-  return obj[key];
+  return obj[key2];
 }
 function flattenError(error62, mapper = (issue2) => issue2.message) {
   const fieldErrors = {};
@@ -3910,16 +3910,16 @@ var $ZodCheckProperties = /* @__PURE__ */ $constructor("$ZodCheckProperties", (i
       payload.issues.push({ expected: "object", code: "invalid_type", input: payload.value, inst });
       return void 0;
     }
-    entries ?? (entries = Reflect.ownKeys(def.shape).map((key) => [key, def.shape[key]]));
+    entries ?? (entries = Reflect.ownKeys(def.shape).map((key2) => [key2, def.shape[key2]]));
     const input2 = payload.value;
     let proms;
-    for (const [key, schema] of entries) {
-      const result = schema._zod.run({ value: input2[key], issues: [] }, {});
+    for (const [key2, schema] of entries) {
+      const result = schema._zod.run({ value: input2[key2], issues: [] }, {});
       if (result instanceof Promise) {
         proms ?? (proms = []);
-        proms.push(result.then((result2) => handleCheckPropertyResult(result2, payload, key)));
+        proms.push(result.then((result2) => handleCheckPropertyResult(result2, payload, key2)));
       } else {
-        handleCheckPropertyResult(result, payload, key);
+        handleCheckPropertyResult(result, payload, key2);
       }
     }
     if (proms)
@@ -4820,8 +4820,8 @@ var $ZodArray = /* @__PURE__ */ $constructor("$ZodArray", (inst, def) => {
   };
   capSize(inst, arraySize);
 });
-function handlePropertyResult(result, final, key, input2, optin, optout) {
-  const isPresent = key in input2;
+function handlePropertyResult(result, final, key2, input2, optin, optout) {
+  const isPresent = key2 in input2;
   const isOptionalOut = optout === "optional";
   if (!isPresent && isOptionalOut && optin === "optional") {
     return;
@@ -4830,7 +4830,7 @@ function handlePropertyResult(result, final, key, input2, optin, optout) {
     if (optin !== void 0 && isOptionalOut && !isPresent) {
       return;
     }
-    final.issues.push(...prefixIssues(key, result.issues));
+    final.issues.push(...prefixIssues(key2, result.issues));
   }
   if (!isPresent && optin === void 0) {
     if (!result.issues.length) {
@@ -4838,17 +4838,17 @@ function handlePropertyResult(result, final, key, input2, optin, optout) {
         code: "invalid_type",
         expected: "nonoptional",
         input: void 0,
-        path: [key]
+        path: [key2]
       });
     }
     return;
   }
   if (result.value === void 0) {
     if (isPresent || optin === "defaulted" && !isOptionalOut) {
-      final.value[key] = void 0;
+      final.value[key2] = void 0;
     }
   } else {
-    final.value[key] = result.value;
+    final.value[key2] = result.value;
   }
 }
 var NO_SYMBOL_KEYS = [];
@@ -4881,28 +4881,28 @@ function handleCatchall(proms, input2, payload, ctx, def, inst, abortEarly) {
   const optin = _catchall.optin;
   const optout = _catchall.optout;
   let seen = 0;
-  for (const key in input2) {
+  for (const key2 in input2) {
     if (abortEarly && payload.issues.length !== seen) {
       if (aborted(payload, seen))
         break;
       seen = payload.issues.length;
     }
-    if (keySet.has(key))
+    if (keySet.has(key2))
       continue;
-    if (key === "__proto__") {
+    if (key2 === "__proto__") {
       if (t === "never")
-        unrecognized.push(key);
+        unrecognized.push(key2);
       continue;
     }
     if (t === "never") {
-      unrecognized.push(key);
+      unrecognized.push(key2);
       continue;
     }
-    const r = _catchall.run({ value: input2[key], issues: [] }, ctx);
+    const r = _catchall.run({ value: input2[key2], issues: [] }, ctx);
     if (r instanceof Promise) {
-      proms.push(r.then((r2) => handlePropertyResult(r2, payload, key, input2, optin, optout)));
+      proms.push(r.then((r2) => handlePropertyResult(r2, payload, key2, input2, optin, optout)));
     } else {
-      handlePropertyResult(r, payload, key, input2, optin, optout);
+      handlePropertyResult(r, payload, key2, input2, optin, optout);
     }
   }
   if (unrecognized.length) {
@@ -4939,16 +4939,16 @@ var $ZodObject = /* @__PURE__ */ $constructor("$ZodObject", (inst, def) => {
   defineLazyInternal(inst, "propValues", (zod) => {
     const shape = zod.def.shape;
     const propValues = {};
-    for (const key in shape) {
-      const field = shape[key]._zod;
+    for (const key2 in shape) {
+      const field = shape[key2]._zod;
       if (field.values) {
-        if (!Object.prototype.hasOwnProperty.call(propValues, key)) {
-          assignProp(propValues, key, /* @__PURE__ */ new Set());
+        if (!Object.prototype.hasOwnProperty.call(propValues, key2)) {
+          assignProp(propValues, key2, /* @__PURE__ */ new Set());
         }
         for (const v of field.values)
-          propValues[key].add(v);
+          propValues[key2].add(v);
         if (field.optin !== void 0)
-          propValues[key].add(void 0);
+          propValues[key2].add(void 0);
       }
     }
     return propValues;
@@ -4975,22 +4975,22 @@ var $ZodObject = /* @__PURE__ */ $constructor("$ZodObject", (inst, def) => {
     const shape = value.shape;
     const abortEarly = ctx?.abortEarly;
     let seen = payload.issues.length;
-    for (const key of value.allKeys) {
+    for (const key2 of value.allKeys) {
       if (abortEarly && payload.issues.length !== seen) {
         if (aborted(payload, seen))
           break;
         seen = payload.issues.length;
       }
-      if (key === "__proto__")
+      if (key2 === "__proto__")
         continue;
-      const el = shape[key];
+      const el = shape[key2];
       const optin = el._zod.optin;
       const optout = el._zod.optout;
-      const r = el._zod.run({ value: input2[key], issues: [] }, ctx);
+      const r = el._zod.run({ value: input2[key2], issues: [] }, ctx);
       if (r instanceof Promise) {
-        proms.push(r.then((r2) => handlePropertyResult(r2, payload, key, input2, optin, optout)));
+        proms.push(r.then((r2) => handlePropertyResult(r2, payload, key2, input2, optin, optout)));
       } else {
-        handlePropertyResult(r, payload, key, input2, optin, optout);
+        handlePropertyResult(r, payload, key2, input2, optin, optout);
       }
     }
     if (!catchall) {
@@ -5024,17 +5024,17 @@ var $ZodObjectJIT = /* @__PURE__ */ $constructor("$ZodObjectJIT", (inst, def) =>
     doc.write(`const input = payload.value;`);
     const ids = /* @__PURE__ */ Object.create(null);
     let counter = 0;
-    for (const key of normalized.allKeys) {
-      ids[key] = `key_${counter++}`;
+    for (const key2 of normalized.allKeys) {
+      ids[key2] = `key_${counter++}`;
     }
     doc.write(memo2 ? `const newResult = memo.alloc(inst, payload, {}, ctx);` : `const newResult = {};`);
-    for (const key of normalized.allKeys) {
-      if (key === "__proto__")
+    for (const key2 of normalized.allKeys) {
+      if (key2 === "__proto__")
         continue;
-      const id = ids[key];
-      const k = typeof key === "symbol" ? `syms[${syms.indexOf(key)}]` : esc(key);
+      const id = ids[key2];
+      const k = typeof key2 === "symbol" ? `syms[${syms.indexOf(key2)}]` : esc(key2);
       const isPresent = `${k} in input`;
-      const schema = shape[key];
+      const schema = shape[key2];
       const optin = schema?._zod?.optin;
       const isOptionalIn = optin !== void 0;
       const isOptionalOut = schema?._zod?.optout === "optional";
@@ -5368,21 +5368,21 @@ function mergeValues(a, b) {
   }
   if (isPlainObject(a) && isPlainObject(b)) {
     const bKeys = Object.keys(b);
-    const sharedKeys = Object.keys(a).filter((key) => bKeys.indexOf(key) !== -1);
+    const sharedKeys = Object.keys(a).filter((key2) => bKeys.indexOf(key2) !== -1);
     const newObj = { ...a, ...b };
     if (Object.prototype.hasOwnProperty.call(newObj, "__proto__"))
       delete newObj.__proto__;
-    for (const key of sharedKeys) {
-      if (key === "__proto__")
+    for (const key2 of sharedKeys) {
+      if (key2 === "__proto__")
         continue;
-      const sharedValue = mergeValues(a[key], b[key]);
+      const sharedValue = mergeValues(a[key2], b[key2]);
       if (!sharedValue.valid) {
         return {
           valid: false,
-          mergeErrorPath: [key, ...sharedValue.mergeErrorPath]
+          mergeErrorPath: [key2, ...sharedValue.mergeErrorPath]
         };
       }
-      newObj[key] = sharedValue.data;
+      newObj[key2] = sharedValue.data;
     }
     return { valid: true, data: newObj };
   }
@@ -5541,9 +5541,9 @@ var $ZodTuple = /* @__PURE__ */ $constructor("$ZodTuple", (inst, def) => {
     return handleTupleResults(itemResults, payload, items, input2, optoutStart);
   };
 });
-function getTupleOptStart(items, key) {
+function getTupleOptStart(items, key2) {
   for (let i = items.length - 1; i >= 0; i--) {
-    const omittable = key === "optin" ? items[i]._zod.optin !== void 0 : items[i]._zod.optout === "optional";
+    const omittable = key2 === "optin" ? items[i]._zod.optin !== void 0 : items[i]._zod.optout === "optional";
     if (!omittable)
       return i + 1;
   }
@@ -5601,12 +5601,12 @@ var $ZodRecord = /* @__PURE__ */ $constructor("$ZodRecord", (inst, def) => {
     if (values && !def.partial) {
       payload.value = memo2 ? memo2.alloc(inst, payload, {}, ctx) : {};
       const recordKeys = /* @__PURE__ */ new Set();
-      for (const key of values) {
-        if (typeof key === "string" || typeof key === "number" || typeof key === "symbol") {
-          recordKeys.add(typeof key === "number" ? key.toString() : key);
-          if (key === "__proto__")
+      for (const key2 of values) {
+        if (typeof key2 === "string" || typeof key2 === "number" || typeof key2 === "symbol") {
+          recordKeys.add(typeof key2 === "number" ? key2.toString() : key2);
+          if (key2 === "__proto__")
             continue;
-          const keyResult = def.keyType._zod.run({ value: key, issues: [] }, ctx);
+          const keyResult = def.keyType._zod.run({ value: key2, issues: [] }, ctx);
           if (keyResult instanceof Promise) {
             throw new Error("Async schemas not supported in object keys currently");
           }
@@ -5615,8 +5615,8 @@ var $ZodRecord = /* @__PURE__ */ $constructor("$ZodRecord", (inst, def) => {
               code: "invalid_key",
               origin: "record",
               issues: keyResult.issues.map((iss) => finalizeIssue(iss, ctx, config())),
-              input: key,
-              path: [key],
+              input: key2,
+              path: [key2],
               inst
             });
             continue;
@@ -5624,32 +5624,32 @@ var $ZodRecord = /* @__PURE__ */ $constructor("$ZodRecord", (inst, def) => {
           const outKey = keyResult.value;
           if (outKey === "__proto__")
             continue;
-          const result = def.valueType._zod.run({ value: input2[key], issues: [] }, ctx);
+          const result = def.valueType._zod.run({ value: input2[key2], issues: [] }, ctx);
           if (result instanceof Promise) {
             proms.push(result.then((result2) => {
               if (result2.issues.length) {
-                payload.issues.push(...prefixIssues(key, result2.issues));
+                payload.issues.push(...prefixIssues(key2, result2.issues));
               }
               payload.value[outKey] = result2.value;
             }));
           } else {
             if (result.issues.length) {
-              payload.issues.push(...prefixIssues(key, result.issues));
+              payload.issues.push(...prefixIssues(key2, result.issues));
             }
             payload.value[outKey] = result.value;
           }
         }
       }
       let unrecognized;
-      for (const key in input2) {
-        if (!recordKeys.has(key)) {
+      for (const key2 in input2) {
+        if (!recordKeys.has(key2)) {
           if (def.mode === "loose") {
-            if (key === "__proto__")
+            if (key2 === "__proto__")
               continue;
-            payload.value[key] = input2[key];
+            payload.value[key2] = input2[key2];
           } else {
             unrecognized = unrecognized ?? [];
-            unrecognized.push(key);
+            unrecognized.push(key2);
           }
         }
       }
@@ -5665,18 +5665,18 @@ var $ZodRecord = /* @__PURE__ */ $constructor("$ZodRecord", (inst, def) => {
     } else {
       payload.value = memo2 ? memo2.alloc(inst, payload, {}, ctx) : {};
       let unrecognized;
-      for (const key of Reflect.ownKeys(input2)) {
-        if (key === "__proto__")
+      for (const key2 of Reflect.ownKeys(input2)) {
+        if (key2 === "__proto__")
           continue;
-        if (!Object.prototype.propertyIsEnumerable.call(input2, key))
+        if (!Object.prototype.propertyIsEnumerable.call(input2, key2))
           continue;
-        let keyResult = def.keyType._zod.run({ value: key, issues: [] }, ctx);
+        let keyResult = def.keyType._zod.run({ value: key2, issues: [] }, ctx);
         if (keyResult instanceof Promise) {
           throw new Error("Async schemas not supported in object keys currently");
         }
-        const checkNumericKey = typeof key === "string" && number.test(key) && keyResult.issues.length;
+        const checkNumericKey = typeof key2 === "string" && number.test(key2) && keyResult.issues.length;
         if (checkNumericKey) {
-          const retryResult = def.keyType._zod.run({ value: Number(key), issues: [] }, ctx);
+          const retryResult = def.keyType._zod.run({ value: Number(key2), issues: [] }, ctx);
           if (retryResult instanceof Promise) {
             throw new Error("Async schemas not supported in object keys currently");
           }
@@ -5686,17 +5686,17 @@ var $ZodRecord = /* @__PURE__ */ $constructor("$ZodRecord", (inst, def) => {
         }
         if (keyResult.issues.length) {
           if (def.mode === "loose") {
-            payload.value[key] = input2[key];
+            payload.value[key2] = input2[key2];
           } else if (values) {
             unrecognized = unrecognized ?? [];
-            unrecognized.push(key);
+            unrecognized.push(key2);
           } else {
             payload.issues.push({
               code: "invalid_key",
               origin: "record",
               issues: keyResult.issues.map((iss) => finalizeIssue(iss, ctx, config())),
-              input: key,
-              path: [key],
+              input: key2,
+              path: [key2],
               inst
             });
           }
@@ -5705,17 +5705,17 @@ var $ZodRecord = /* @__PURE__ */ $constructor("$ZodRecord", (inst, def) => {
         const outKey = keyResult.value;
         if (outKey === "__proto__")
           continue;
-        const result = def.valueType._zod.run({ value: input2[key], issues: [] }, ctx);
+        const result = def.valueType._zod.run({ value: input2[key2], issues: [] }, ctx);
         if (result instanceof Promise) {
           proms.push(result.then((result2) => {
             if (result2.issues.length) {
-              payload.issues.push(...prefixIssues(key, result2.issues));
+              payload.issues.push(...prefixIssues(key2, result2.issues));
             }
             payload.value[outKey] = result2.value;
           }));
         } else {
           if (result.issues.length) {
-            payload.issues.push(...prefixIssues(key, result.issues));
+            payload.issues.push(...prefixIssues(key2, result.issues));
           }
           payload.value[outKey] = result.value;
         }
@@ -5755,20 +5755,20 @@ var $ZodMap = /* @__PURE__ */ $constructor("$ZodMap", (inst, def) => {
     payload.value = memo2 ? memo2.alloc(inst, payload, /* @__PURE__ */ new Map(), ctx) : /* @__PURE__ */ new Map();
     const abortEarly = ctx?.abortEarly;
     let seen = payload.issues.length;
-    for (const [key, value] of input2) {
+    for (const [key2, value] of input2) {
       if (abortEarly && payload.issues.length !== seen) {
         if (aborted(payload, seen))
           break;
         seen = payload.issues.length;
       }
-      const keyResult = def.keyType._zod.run({ value: key, issues: [] }, ctx);
+      const keyResult = def.keyType._zod.run({ value: key2, issues: [] }, ctx);
       const valueResult = def.valueType._zod.run({ value, issues: [] }, ctx);
       if (keyResult instanceof Promise || valueResult instanceof Promise) {
         proms.push(Promise.all([keyResult, valueResult]).then(([keyResult2, valueResult2]) => {
-          handleMapResult(keyResult2, valueResult2, payload, key, input2, inst, ctx);
+          handleMapResult(keyResult2, valueResult2, payload, key2, input2, inst, ctx);
         }));
       } else {
-        handleMapResult(keyResult, valueResult, payload, key, input2, inst, ctx);
+        handleMapResult(keyResult, valueResult, payload, key2, input2, inst, ctx);
       }
     }
     if (proms.length)
@@ -5777,10 +5777,10 @@ var $ZodMap = /* @__PURE__ */ $constructor("$ZodMap", (inst, def) => {
   };
   capSize(inst, mapSize);
 });
-function handleMapResult(keyResult, valueResult, final, key, input2, inst, ctx) {
+function handleMapResult(keyResult, valueResult, final, key2, input2, inst, ctx) {
   if (keyResult.issues.length) {
-    if (propertyKeyTypes.has(typeof key)) {
-      final.issues.push(...prefixIssues(key, keyResult.issues));
+    if (propertyKeyTypes.has(typeof key2)) {
+      final.issues.push(...prefixIssues(key2, keyResult.issues));
     } else {
       final.issues.push({
         code: "invalid_key",
@@ -5792,15 +5792,15 @@ function handleMapResult(keyResult, valueResult, final, key, input2, inst, ctx) 
     }
   }
   if (valueResult.issues.length) {
-    if (propertyKeyTypes.has(typeof key)) {
-      final.issues.push(...prefixIssues(key, valueResult.issues));
+    if (propertyKeyTypes.has(typeof key2)) {
+      final.issues.push(...prefixIssues(key2, valueResult.issues));
     } else {
       final.issues.push({
         origin: "map",
         code: "invalid_element",
         input: input2,
         inst,
-        key,
+        key: key2,
         issues: valueResult.issues.map((iss) => finalizeIssue(iss, ctx, config()))
       });
     }
@@ -6458,7 +6458,7 @@ var recursive = /* @__PURE__ */ new WeakMap();
 var NONE = 0;
 var ASSUMED = 1;
 var PROVEN = 2;
-function isRecursive(inst, stack, resolve9) {
+function isRecursive(inst, stack, resolve10) {
   const cached2 = recursive.get(inst);
   if (cached2 !== void 0)
     return cached2 ? PROVEN : NONE;
@@ -6468,18 +6468,18 @@ function isRecursive(inst, stack, resolve9) {
   let result = NONE;
   const check2 = (child) => {
     if (result !== PROVEN && child?._zod) {
-      const answer = isRecursive(child, stack, resolve9);
+      const answer = isRecursive(child, stack, resolve10);
       if (answer > result)
         result = answer;
     }
   };
   const shape = (sh, spread) => {
     let answer = NONE;
-    for (const key of Reflect.ownKeys(sh)) {
-      const desc = Object.getOwnPropertyDescriptor(sh, key);
+    for (const key2 of Reflect.ownKeys(sh)) {
+      const desc = Object.getOwnPropertyDescriptor(sh, key2);
       if (spread && !desc.enumerable)
         continue;
-      const child = desc.get ? ASSUMED : desc.value?._zod ? isRecursive(desc.value, stack, resolve9) : NONE;
+      const child = desc.get ? ASSUMED : desc.value?._zod ? isRecursive(desc.value, stack, resolve10) : NONE;
       if (child > answer)
         answer = child;
     }
@@ -6543,7 +6543,7 @@ function isRecursive(inst, stack, resolve9) {
       break;
     // `$ZodLazy` caches its inner on the def, so a resolved edge is followed exactly
     case "lazy": {
-      const inner = def._cachedInner ?? (resolve9 ? inst._zod.innerType : void 0);
+      const inner = def._cachedInner ?? (resolve10 ? inst._zod.innerType : void 0);
       merge2(inner ? isRecursive(inner, stack, false) : ASSUMED);
       break;
     }
@@ -6572,8 +6572,8 @@ function isRecursive(inst, stack, resolve9) {
       break;
     default: {
       kind;
-      for (const key in def) {
-        const desc = Object.getOwnPropertyDescriptor(def, key);
+      for (const key2 in def) {
+        const desc = Object.getOwnPropertyDescriptor(def, key2);
         if (!desc || desc.get)
           continue;
         const value = desc.value;
@@ -14706,11 +14706,11 @@ function generatePropertiesChecks(doc, ctx, def, accessor) {
   }
   doc.write(`if (${accessor} == null) return INVALID;`);
   const shape = def.shape;
-  for (const key of Reflect.ownKeys(shape)) {
-    const keyExpr = typeof key === "symbol" ? addConstant(ctx, key) : esc(key);
+  for (const key2 of Reflect.ownKeys(shape)) {
+    const keyExpr = typeof key2 === "symbol" ? addConstant(ctx, key2) : esc(key2);
     const inputVar = newVar(ctx);
     doc.write(`const ${inputVar} = ${accessor}[${keyExpr}];`);
-    compileChild(doc, ctx, shape[key], inputVar, false);
+    compileChild(doc, ctx, shape[key2], inputVar, false);
   }
 }
 function generatePropertyCheck(doc, ctx, def, accessor) {
@@ -15103,9 +15103,9 @@ function generateObjectCheck(doc, ctx, schema, accessor, buildsValue = true) {
     throw new ZodCompileUnsupportedError('object shape key "__proto__"');
   }
   const propOutputs = /* @__PURE__ */ new Map();
-  for (const key of allKeys) {
-    const propSchema = propShape[key];
-    const kx = keyExpr(key);
+  for (const key2 of allKeys) {
+    const propSchema = propShape[key2];
+    const kx = keyExpr(key2);
     const inputVar = newVar(ctx);
     doc.write(`const ${inputVar} = ${accessor}[${kx}];`);
     if (propSchema._zod.optin !== void 0) {
@@ -15126,14 +15126,14 @@ function generateObjectCheck(doc, ctx, schema, accessor, buildsValue = true) {
       } else {
         doc.write(`if (${outputVar2} === INVALID) return INVALID;`);
       }
-      propOutputs.set(key, outputVar2);
+      propOutputs.set(key2, outputVar2);
     } else {
       if (requiresPresenceCheck(propSchema)) {
         doc.write(`if (!(${kx} in ${accessor})) return INVALID;`);
       }
       const outputAccessor = compileChild(doc, ctx, propSchema, inputVar, buildsValue);
       if (outputAccessor !== null)
-        propOutputs.set(key, outputAccessor);
+        propOutputs.set(key2, outputAccessor);
     }
   }
   const catchall = def.catchall;
@@ -15554,9 +15554,9 @@ function generateTupleCheck(doc, ctx, schema, accessor) {
   }
   return outputVar;
 }
-function getTupleOptStart2(items, key) {
+function getTupleOptStart2(items, key2) {
   for (let i = items.length - 1; i >= 0; i--) {
-    const omittable = key === "optin" ? items[i]._zod.optin !== void 0 : items[i]._zod.optout === "optional";
+    const omittable = key2 === "optin" ? items[i]._zod.optin !== void 0 : items[i]._zod.optout === "optional";
     if (!omittable)
       return i + 1;
   }
@@ -15686,16 +15686,16 @@ function generateRecordCheck(doc, ctx, schema, accessor) {
   const keyValues = recordDef.partial ? void 0 : def.keyType._zod.values;
   if (keyValues) {
     const inputKeys = [];
-    for (const key of keyValues) {
-      if (!(typeof key === "string" || typeof key === "number" || typeof key === "symbol")) {
-        throw new ZodCompileUnsupportedError(`record key value ${String(key)}`);
+    for (const key2 of keyValues) {
+      if (!(typeof key2 === "string" || typeof key2 === "number" || typeof key2 === "symbol")) {
+        throw new ZodCompileUnsupportedError(`record key value ${String(key2)}`);
       }
-      const inputKey = typeof key === "number" ? key.toString() : key;
+      const inputKey = typeof key2 === "number" ? key2.toString() : key2;
       if (inputKey === "__proto__") {
         throw new ZodCompileUnsupportedError('record key "__proto__"');
       }
       inputKeys.push(inputKey);
-      const keyConst = addConstant(ctx, key);
+      const keyConst = addConstant(ctx, key2);
       const outKey = generateCheck(doc, ctx, def.keyType, keyConst);
       const valueVar = newVar(ctx);
       doc.write(`const ${valueVar} = ${accessor}[${literalPropertyKey(ctx, inputKey)}];`);
@@ -15773,10 +15773,10 @@ function emitOwnKeys(doc, ctx, accessor, kVar, body, onSymbol) {
   });
   doc.write(`}`);
 }
-function literalPropertyKey(ctx, key) {
-  if (typeof key === "string")
-    return esc(key);
-  return addConstant(ctx, key);
+function literalPropertyKey(ctx, key2) {
+  if (typeof key2 === "string")
+    return esc(key2);
+  return addConstant(ctx, key2);
 }
 function generateMapCheck(doc, ctx, schema, accessor) {
   const def = schema._zod.def;
@@ -17005,9 +17005,9 @@ function _stringFormat(Class2, format, fnOrRegex, _params = {}) {
 // ../../node_modules/.pnpm/zod@4.6.6/node_modules/zod/v4/core/to-json-schema.js
 function assignProps(target, ...sources) {
   for (const source of sources) {
-    for (const key of Reflect.ownKeys(source)) {
-      if (Object.prototype.propertyIsEnumerable.call(source, key)) {
-        assignProp(target, key, source[key]);
+    for (const key2 of Reflect.ownKeys(source)) {
+      if (Object.prototype.propertyIsEnumerable.call(source, key2)) {
+        assignProp(target, key2, source[key2]);
       }
     }
   }
@@ -17153,8 +17153,8 @@ function extractDefs(ctx, schema) {
     if (defId)
       seen.defId = defId;
     const schema2 = seen.schema;
-    for (const key in schema2) {
-      delete schema2[key];
+    for (const key2 in schema2) {
+      delete schema2[key2];
     }
     schema2.$ref = ref;
   };
@@ -17235,8 +17235,8 @@ function foldObjects(members2) {
   for (const member of members2) {
     if (typeof member !== "object" || member.type !== "object")
       return null;
-    for (const key in member) {
-      if (!FOLDABLE_KEYS.has(key))
+    for (const key2 in member) {
+      if (!FOLDABLE_KEYS.has(key2))
         return null;
     }
     objects.push(member);
@@ -17244,22 +17244,22 @@ function foldObjects(members2) {
   const properties = {};
   const required2 = /* @__PURE__ */ new Set();
   for (const object2 of objects) {
-    for (const key in object2.properties) {
-      if (Object.prototype.hasOwnProperty.call(properties, key))
+    for (const key2 in object2.properties) {
+      if (Object.prototype.hasOwnProperty.call(properties, key2))
         continue;
       const parts2 = [];
       for (const other of objects) {
-        const part = other.properties?.[key] ?? undeclaredConstraint(other);
+        const part = other.properties?.[key2] ?? undeclaredConstraint(other);
         if (part === null || part === void 0)
           continue;
         if (!parts2.some((seen) => JSON.stringify(seen) === JSON.stringify(part)))
           parts2.push(part);
       }
       const merged = parts2.length === 1 ? parts2[0] : foldObjects(parts2) ?? { allOf: parts2 };
-      assignProp(properties, key, merged);
+      assignProp(properties, key2, merged);
     }
-    for (const key of object2.required ?? [])
-      required2.add(key);
+    for (const key2 of object2.required ?? [])
+      required2.add(key2);
   }
   const folded = { type: "object", properties };
   if (required2.size)
@@ -17284,8 +17284,8 @@ function foldIntersection(json2) {
   const allOf = json2.allOf;
   if (!Array.isArray(allOf) || allOf.length < 2)
     return;
-  for (const key of FOLDABLE_KEYS)
-    if (key in json2)
+  for (const key2 of FOLDABLE_KEYS)
+    if (key2 in json2)
       return;
   const unions = allOf.filter((m) => UNION_KEYS.some((k) => Array.isArray(m[k])));
   let folded = null;
@@ -17332,20 +17332,20 @@ function finalize(ctx, schema) {
       assignProps(schema2, _cached);
       const isParentRef = zodSchema._zod.parent === ref;
       if (isParentRef) {
-        for (const key in schema2) {
-          if (key === "$ref" || key === "allOf")
+        for (const key2 in schema2) {
+          if (key2 === "$ref" || key2 === "allOf")
             continue;
-          if (!(key in _cached)) {
-            delete schema2[key];
+          if (!(key2 in _cached)) {
+            delete schema2[key2];
           }
         }
       }
       if (refSchema.$ref && refSeen.def) {
-        for (const key in schema2) {
-          if (key === "$ref" || key === "allOf")
+        for (const key2 in schema2) {
+          if (key2 === "$ref" || key2 === "allOf")
             continue;
-          if (key in refSeen.def && JSON.stringify(schema2[key]) === JSON.stringify(refSeen.def[key])) {
-            delete schema2[key];
+          if (key2 in refSeen.def && JSON.stringify(schema2[key2]) === JSON.stringify(refSeen.def[key2])) {
+            delete schema2[key2];
           }
         }
       }
@@ -17357,11 +17357,11 @@ function finalize(ctx, schema) {
       if (parentSeen?.schema.$ref) {
         schema2.$ref = parentSeen.schema.$ref;
         if (parentSeen.def) {
-          for (const key in schema2) {
-            if (key === "$ref" || key === "allOf")
+          for (const key2 in schema2) {
+            if (key2 === "$ref" || key2 === "allOf")
               continue;
-            if (key in parentSeen.def && JSON.stringify(schema2[key]) === JSON.stringify(parentSeen.def[key])) {
-              delete schema2[key];
+            if (key2 in parentSeen.def && JSON.stringify(schema2[key2]) === JSON.stringify(parentSeen.def[key2])) {
+              delete schema2[key2];
             }
           }
         }
@@ -17494,8 +17494,8 @@ function isTransforming(_schema, _ctx) {
     return isTransforming(def.in, ctx) || isTransforming(def.out, ctx);
   }
   if (def.type === "object") {
-    for (const key in def.shape) {
-      if (isTransforming(def.shape[key], ctx))
+    for (const key2 in def.shape) {
+      if (isTransforming(def.shape[key2], ctx))
         return true;
     }
     return false;
@@ -17533,13 +17533,13 @@ var createStandardJSONSchemaMethod = (schema, io, processors = {}) => (params) =
 };
 
 // ../../node_modules/.pnpm/zod@4.6.6/node_modules/zod/v4/core/json-schema-processors.js
-var narrowMin = (agg, key, value) => {
-  if (agg[key] === void 0 || value > agg[key])
-    agg[key] = value;
+var narrowMin = (agg, key2, value) => {
+  if (agg[key2] === void 0 || value > agg[key2])
+    agg[key2] = value;
 };
-var narrowMax = (agg, key, value) => {
-  if (agg[key] === void 0 || value < agg[key])
-    agg[key] = value;
+var narrowMax = (agg, key2, value) => {
+  if (agg[key2] === void 0 || value < agg[key2])
+    agg[key2] = value;
 };
 var narrowBoth = (agg, value) => {
   narrowMin(agg, "minimum", value);
@@ -17877,17 +17877,17 @@ var objectProcessor = (schema, ctx, _json, params) => {
   }
   json2.type = "object";
   json2.properties = {};
-  for (const key in shape) {
-    assignProp(json2.properties, key, processSchema(shape[key], ctx, {
+  for (const key2 in shape) {
+    assignProp(json2.properties, key2, processSchema(shape[key2], ctx, {
       ...params,
-      path: [...params.path, "properties", key]
+      path: [...params.path, "properties", key2]
     }));
   }
   const requiredKeys = [];
-  for (const key of Object.keys(shape)) {
-    const field = def.shape[key];
+  for (const key2 of Object.keys(shape)) {
+    const field = def.shape[key2];
     if (ctx.io === "input" ? inputOptin(field) === void 0 : field._zod.optout === void 0) {
-      requiredKeys.push(key);
+      requiredKeys.push(key2);
     }
   }
   if (requiredKeys.length > 0) {
@@ -18262,9 +18262,9 @@ function toJSONSchema(input2, params) {
     };
     ctx2.external = external;
     for (const entry of registry2._idmap.entries()) {
-      const [key, schema] = entry;
+      const [key2, schema] = entry;
       extractDefs(ctx2, schema);
-      assignProp(schemas, key, finalize(ctx2, schema));
+      assignProp(schemas, key2, finalize(ctx2, schema));
     }
     if (Object.keys(defs).length > 0) {
       const defsSegment = ctx2.target === "draft-2020-12" ? "$defs" : "definitions";
@@ -18579,17 +18579,17 @@ __export(checks_exports2, {
 
 // ../../node_modules/.pnpm/zod@4.6.6/node_modules/zod/v4/classic/errors.js
 var _installedErrorProtos = /* @__PURE__ */ new WeakSet([Object.prototype, Error.prototype]);
-function _lazyMethod(proto, key, make) {
-  Object.defineProperty(proto, key, {
+function _lazyMethod(proto, key2, make) {
+  Object.defineProperty(proto, key2, {
     configurable: true,
     enumerable: false,
     get() {
       const value = make(this);
-      Object.defineProperty(this, key, { value, configurable: true, writable: true });
+      Object.defineProperty(this, key2, { value, configurable: true, writable: true });
       return value;
     },
     set(value) {
-      Object.defineProperty(this, key, { value, configurable: true, writable: true });
+      Object.defineProperty(this, key2, { value, configurable: true, writable: true });
     }
   });
 }
@@ -20259,11 +20259,11 @@ function resolveRef(ref, ctx) {
   }
   const defsKey = ctx.version === "draft-2020-12" ? "$defs" : "definitions";
   if (path[0] === defsKey) {
-    const key = path[1] === void 0 ? void 0 : decodeJSONPointerSegment(path[1]);
-    if (!key || !ctx.defs[key]) {
+    const key2 = path[1] === void 0 ? void 0 : decodeJSONPointerSegment(path[1]);
+    if (!key2 || !ctx.defs[key2]) {
       throw new Error(`Reference not found: ${ref}`);
     }
-    return ctx.defs[key];
+    return ctx.defs[key2];
   }
   throw new Error(`Reference not found: ${ref}`);
 }
@@ -20298,16 +20298,16 @@ function checkObjectGuards(objectSchema, guards) {
       });
     }
     if (guards.keySchema) {
-      for (const key of keys) {
-        const result = guards.keySchema.safeParse(key);
+      for (const key2 of keys) {
+        const result = guards.keySchema.safeParse(key2);
         if (result.success)
           continue;
         payload.issues.push({
           code: "invalid_key",
           origin: "record",
           issues: result.error.issues,
-          input: key,
-          path: [key],
+          input: key2,
+          path: [key2],
           continue: true
         });
       }
@@ -20332,20 +20332,20 @@ function canonicalKey(value, seen) {
     if (Array.isArray(value)) {
       const parts3 = [];
       for (const item of value) {
-        const key = canonicalKey(item, seen);
-        if (key === null)
+        const key2 = canonicalKey(item, seen);
+        if (key2 === null)
           return null;
-        parts3.push(key);
+        parts3.push(key2);
       }
       return `a${parts3.length}:[${parts3.join(",")}]`;
     }
     const keys = Object.keys(value).sort();
     const parts2 = [];
     for (const k of keys) {
-      const key = canonicalKey(value[k], seen);
-      if (key === null)
+      const key2 = canonicalKey(value[k], seen);
+      if (key2 === null)
         return null;
-      parts2.push(`${k.length}:${k}=${key}`);
+      parts2.push(`${k.length}:${k}=${key2}`);
     }
     return `o${parts2.length}:{${parts2.join(",")}}`;
   } finally {
@@ -20385,10 +20385,10 @@ function containsRef(value) {
     return value.some(containsRef);
   if (typeof value.$ref === "string")
     return true;
-  return Object.entries(value).some(([key, sub]) => {
-    if (SCHEMA_KEYWORDS.has(key))
+  return Object.entries(value).some(([key2, sub]) => {
+    if (SCHEMA_KEYWORDS.has(key2))
       return containsRef(sub);
-    if (!SCHEMA_MAP_KEYWORDS.has(key) || typeof sub !== "object" || sub === null)
+    if (!SCHEMA_MAP_KEYWORDS.has(key2) || typeof sub !== "object" || sub === null)
       return false;
     return Object.values(sub).some(containsRef);
   });
@@ -20404,12 +20404,12 @@ function checkArrayGuards(arraySchema, guards) {
     if (guards.uniqueItems === true) {
       const firstSeen = /* @__PURE__ */ new Map();
       for (let i = 0; i < items.length; i++) {
-        const key = canonicalKey(items[i], /* @__PURE__ */ new Set());
-        if (key === null)
+        const key2 = canonicalKey(items[i], /* @__PURE__ */ new Set());
+        if (key2 === null)
           continue;
-        const first = firstSeen.get(key);
+        const first = firstSeen.get(key2);
         if (first === void 0) {
-          firstSeen.set(key, i);
+          firstSeen.set(key2, i);
           continue;
         }
         payload.issues.push({
@@ -20648,9 +20648,9 @@ function convertBaseSchema(schema, ctx) {
       const properties = schema.properties || {};
       const requiredSet = new Set(schema.required || []);
       const additionalSchema = typeof schema.additionalProperties === "object" ? convertSchema(schema.additionalProperties, ctx) : void 0;
-      for (const [key, propSchema] of Object.entries(properties)) {
+      for (const [key2, propSchema] of Object.entries(properties)) {
         const propZodSchema = convertSchema(propSchema, ctx);
-        assignProp(shape, key, requiredSet.has(key) ? propZodSchema : propZodSchema.optional());
+        assignProp(shape, key2, requiredSet.has(key2) ? propZodSchema : propZodSchema.optional());
       }
       if (schema.patternProperties) {
         const patternProps = schema.patternProperties;
@@ -20685,12 +20685,12 @@ function convertBaseSchema(schema, ctx) {
             if (!isPlainObject(payload.value))
               return;
             const unrecognized = [];
-            for (const key of Object.keys(payload.value)) {
-              if (propertyKeys.includes(key))
+            for (const key2 of Object.keys(payload.value)) {
+              if (propertyKeys.includes(key2))
                 continue;
-              if (patterns.some((regex) => regex.test(key)))
+              if (patterns.some((regex) => regex.test(key2)))
                 continue;
-              unrecognized.push(key);
+              unrecognized.push(key2);
             }
             if (unrecognized.length) {
               payload.issues.push({
@@ -20821,38 +20821,38 @@ function convertSchema(schema, ctx) {
   }
   const extraMeta = {};
   const coreMetadataKeys = ["$id", "id", "$comment", "$anchor", "$vocabulary", "$dynamicRef", "$dynamicAnchor"];
-  for (const key of coreMetadataKeys) {
-    if (key in schema) {
-      extraMeta[key] = schema[key];
+  for (const key2 of coreMetadataKeys) {
+    if (key2 in schema) {
+      extraMeta[key2] = schema[key2];
     }
   }
   const contentMetadataKeys = ["contentEncoding", "contentMediaType", "contentSchema"];
-  for (const key of contentMetadataKeys) {
-    if (key in schema) {
-      extraMeta[key] = schema[key];
+  for (const key2 of contentMetadataKeys) {
+    if (key2 in schema) {
+      extraMeta[key2] = schema[key2];
     }
   }
   if (schema.type === "object" && schema.$ref === void 0) {
     if (schema.propertyNames !== void 0 && !containsRef(schema.propertyNames)) {
       extraMeta.propertyNames = schema.propertyNames;
     }
-    for (const key of ["minProperties", "maxProperties"]) {
-      if (schema[key] !== void 0)
-        extraMeta[key] = schema[key];
+    for (const key2 of ["minProperties", "maxProperties"]) {
+      if (schema[key2] !== void 0)
+        extraMeta[key2] = schema[key2];
     }
   }
   if (schema.type === "array" && schema.$ref === void 0) {
     if (schema.contains !== void 0 && !containsRef(schema.contains)) {
       extraMeta.contains = schema.contains;
     }
-    for (const key of ["uniqueItems", "minContains", "maxContains"]) {
-      if (schema[key] !== void 0)
-        extraMeta[key] = schema[key];
+    for (const key2 of ["uniqueItems", "minContains", "maxContains"]) {
+      if (schema[key2] !== void 0)
+        extraMeta[key2] = schema[key2];
     }
   }
-  for (const key of Object.keys(schema)) {
-    if (!RECOGNIZED_KEYS.has(key)) {
-      assignProp(extraMeta, key, schema[key]);
+  for (const key2 of Object.keys(schema)) {
+    if (!RECOGNIZED_KEYS.has(key2)) {
+      assignProp(extraMeta, key2, schema[key2]);
     }
   }
   if (Object.keys(extraMeta).length > 0) {
@@ -21303,7 +21303,9 @@ var PromoteRequest = external_exports.object({
   /** The owner's yes to the version's SQL (D-541): the `hash` of the plan they were shown, so newer SQL is never run on it. */
   approveSql: external_exports.string().optional(),
   /** Destructive SQL (D-541): the database name the person typed at the terminal. */
-  confirmDatabase: external_exports.string().optional()
+  confirmDatabase: external_exports.string().optional(),
+  /** Put live a version built on old code (D-907), only after the owner said so. */
+  anyway: external_exports.boolean().optional()
 });
 var SqlPlanResponse = external_exports.object({
   number: external_exports.number(),
@@ -21561,9 +21563,10 @@ var ARCH_NODES = [
   // Services
   { id: "email-sending", kind: "external", zone: "services", label: "CF Email Sending", summary: "\u05E9\u05DC\u05D9\u05D7\u05EA \u05DE\u05D9\u05D9\u05DC\u05D9\u05DD \u05D3\u05E8\u05DA Cloudflare Email Sending. \u05D1\u05DC\u05D9 \u05D8\u05D5\u05E7\u05DF \u05D4\u05DE\u05D9\u05D9\u05DC \u05DE\u05D5\u05D3\u05E4\u05E1 \u05D1\u05DC\u05D5\u05D2.", summaryEn: "Sends email through Cloudflare Email Sending. Without a token, the email is printed to the log.", code: ["apps/web/src/server/email.ts"], portability: "Emails" },
   { id: "oauth", kind: "external", zone: "services", label: "Google / GitHub OAuth", summary: "\u05D4\u05EA\u05D7\u05D1\u05E8\u05D5\u05EA \u05E2\u05DD Google \u05D0\u05D5 GitHub \u05D3\u05E8\u05DA Better Auth.", summaryEn: "Log in with Google or GitHub through Better Auth.", code: ["apps/web/src/server/auth.ts"], env: ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET"], decisions: ["D-020"] },
+  { id: "github-app", kind: "external", zone: "services", label: "GitHub App", summary: "\u05D0\u05E4\u05E9\u05E8\u05D5\u05EA \u05DC\u05DB\u05DC \u05D0\u05EA\u05E8: \u05E9\u05DE\u05D9\u05E8\u05D4 \u05D1\u05BEGitHub \u05D0\u05D5 GitHub \u05DB\u05DE\u05E7\u05D5\u05E8. \u05D4\u05D0\u05E4\u05DC\u05D9\u05E7\u05E6\u05D9\u05D4 \u05DB\u05D5\u05EA\u05D1\u05EA \u05D1\u05E9\u05DD \u05D4\u05D0\u05D3\u05DD; \u05D4\u05EA\u05E4\u05E7\u05D9\u05D3 \u05D1\u05BEDeployAI \u05DE\u05D7\u05DC\u05D9\u05D8.", summaryEn: "Optional per site: Save to GitHub or GitHub as the source. The App writes for the person; the DeployAI role decides.", code: ["apps/web/src/server/github/"], env: ["GITHUB_APP_ID", "GITHUB_APP_SLUG", "GITHUB_APP_PRIVATE_KEY", "GITHUB_WEBHOOK_SECRET", "GITHUB_APP_CLIENT_ID", "GITHUB_APP_CLIENT_SECRET"], decisions: ["D-908"] },
   { id: "payments", kind: "external", zone: "services", label: "Payment provider (Cardcom)", summary: "\u05E7\u05D0\u05E8\u05D3\u05E7\u05D5\u05DD \u05DB\u05D1\u05E8\u05D9\u05E8\u05EA \u05DE\u05D7\u05D3\u05DC, \u05D5\u05E0\u05D1\u05D7\u05E8 \u05D1\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA \u05D4\u05D0\u05D3\u05DE\u05D9\u05DF (\u05D0\u05D5 \u05DE\u05D3\u05D5\u05DE\u05D4 \u05DC\u05D1\u05D3\u05D9\u05E7\u05D5\u05EA). \u05D4\u05DB\u05E8\u05D8\u05D9\u05E1 \u05DE\u05D5\u05E7\u05DC\u05D3 \u05D1\u05D3\u05E3 \u05D4\u05DE\u05D0\u05D5\u05D1\u05D8\u05D7 \u05E9\u05DC \u05E7\u05D0\u05E8\u05D3\u05E7\u05D5\u05DD \u05D5\u05E0\u05E9\u05DE\u05E8 \u05DB\u05D8\u05D5\u05E7\u05DF \u05DE\u05D5\u05E6\u05E4\u05DF, \u05DB\u05DC \u05D7\u05D9\u05D5\u05D1 \u05E2\u05DD \u05DE\u05E4\u05EA\u05D7 \u05D0\u05D9\u05D3\u05DE\u05E4\u05D5\u05D8\u05E0\u05D8\u05D9\u05D5\u05EA, \u05D5\u05E7\u05D0\u05E8\u05D3\u05E7\u05D5\u05DD \u05DE\u05E4\u05D9\u05E7\u05D4 \u05D7\u05E9\u05D1\u05D5\u05E0\u05D9\u05EA \u05DE\u05E1 \u05DC\u05DB\u05DC \u05D7\u05D9\u05D5\u05D1 \u05D5\u05D7\u05E9\u05D1\u05D5\u05E0\u05D9\u05EA \u05D6\u05D9\u05DB\u05D5\u05D9 \u05DC\u05DB\u05DC \u05D4\u05D7\u05D6\u05E8.", summaryEn: "Cardcom by default, chosen in admin settings (or simulated for tests). The card is typed on the secure Cardcom page and saved as a sealed token, every charge carries an idempotency key, and Cardcom issues a tax invoice per charge and a credit invoice per refund.", code: ["apps/web/src/server/billing/provider.ts", "apps/web/src/server/billing/cardcom.ts", "apps/web/src/server/billing/card-pages.ts", "apps/web/src/app/api/billing/card"], env: ["BILLING_PROVIDER", "BILLING_MOCK_FAIL", "CARDCOM_TERMINAL", "CARDCOM_API_NAME", "CARDCOM_API_PASSWORD", "CARDCOM_INVOICES", "CARDCOM_CSS_URL", "CARDCOM_TOKEN_KEY", "CARDCOM_DEPARTMENT_ID"], portability: "Payments", decisions: ["D-175", "D-292"] },
   { id: "registrar", kind: "external", zone: "services", label: "Domain registrars (Cloudflare, LiveDNS)", summary: "\u05E7\u05E0\u05D9\u05D9\u05EA \u05D3\u05D5\u05DE\u05D9\u05D9\u05E0\u05D9\u05DD \u05DC\u05D0\u05EA\u05E8: \u05DB\u05DC \u05E9\u05DD \u05D4\u05D5\u05DC\u05DA \u05DC\u05E8\u05E9\u05DD \u05D4\u05D6\u05D5\u05DC \u05D1\u05D9\u05D5\u05EA\u05E8 \u05E9\u05E4\u05D5\u05E2\u05DC, \u05DB\u05DC \u05E8\u05E9\u05DD \u05D1\u05E2\u05DC\u05D5\u05EA \u05D5\u05D1\u05E2\u05DE\u05DC\u05D4 \u05DE\u05E9\u05DC\u05D5 (Cloudflare \u05D1\u05D3\u05D5\u05DC\u05E8\u05D9\u05DD \u05DC\u05DB\u05DC \u05E9\u05DD, LiveDNS \u05DE\u05E0\u05E7\u05D5\u05D3\u05D5\u05EA \u05E7\u05E8\u05D3\u05D9\u05D8 \u05DC\u05E4\u05D9 \u05D4\u05DE\u05D7\u05D9\u05E8\u05D5\u05DF \u05E9\u05E0\u05E7\u05E8\u05D0 \u05DB\u05DC \u05D9\u05D5\u05DD, \u05D0\u05D5 \u05D9\u05D3\u05E0\u05D9 \u05DE\u05EA\u05D5\u05E8 \u05D4\u05E6\u05D5\u05D5\u05EA), \u05DE\u05D7\u05D9\u05E8 \u05DB\u05DC \u05E1\u05D9\u05D5\u05DE\u05EA \u05E0\u05D1\u05D3\u05E7 \u05DB\u05DC \u05D9\u05D5\u05DD (\u05D5\u05D0\u05E4\u05E9\u05E8 \u05DC\u05DB\u05D1\u05D5\u05EA \u05E1\u05D9\u05D5\u05DE\u05D5\u05EA), \u05E8\u05D9\u05E9\u05D5\u05DD \u05D0\u05D7\u05D3 \u05DC\u05DB\u05DC \u05D4\u05D6\u05DE\u05E0\u05D4, \u05D9\u05D5\u05DE\u05DF \u05E7\u05E8\u05D9\u05D0\u05D5\u05EA \u05DC\u05DB\u05DC \u05D4\u05D6\u05DE\u05E0\u05D4, \u05D5\u05D7\u05D9\u05D3\u05D5\u05E9 \u05E9\u05E0\u05EA\u05D9 \u05D0\u05E6\u05DC \u05D0\u05D5\u05EA\u05D5 \u05E8\u05E9\u05DD. \u05DC\u05D3\u05D5\u05DE\u05D9\u05D9\u05DF \u05E9\u05E0\u05E7\u05E0\u05D4: \u05D3\u05D5\u05D0\u05E8 \u05D3\u05E8\u05DA Cloudflare Email Routing.", summaryEn: "Buying domains for a site: each name goes to the cheapest registrar that is on, each with its own cost and fee (Cloudflare in dollars per name, LiveDNS from credit points priced by its list, read daily, or by hand from the team queue), the price of every extension checked daily (some can be turned off), one registration per order, a call log per order, yearly renewal at the same registrar. For a bought domain: email through Cloudflare Email Routing.", code: ["apps/web/src/server/registrar.ts", "apps/web/src/server/registrar-livedns.ts", "apps/web/src/server/registrar-log.ts", "apps/web/src/server/domain-sales.ts", "apps/web/src/server/domain-extensions.ts", "apps/web/src/server/domain-email.ts", "apps/web/src/server/billing/services.ts"], env: ["CF_REGISTRAR_TOKEN", "LIVEDNS_USER", "LIVEDNS_PASSWORD"], decisions: ["D-299", "D-300", "D-301", "D-458", "D-486", "D-489", "D-491"] },
-  { id: "mailbox-providers", kind: "external", zone: "services", label: "Mailbox providers (Google Workspace, Zoho Mail)", summary: "\u05EA\u05D9\u05D1\u05D5\u05EA \u05D3\u05D5\u05D0\u05E8 \u05E9\u05E0\u05DE\u05DB\u05D5\u05E8 \u05E2\u05DC \u05D3\u05D5\u05DE\u05D9\u05D9\u05DF \u05E9\u05DC \u05D4\u05DC\u05E7\u05D5\u05D7: Google Workspace \u05D3\u05E8\u05DA \u05EA\u05D5\u05DB\u05E0\u05D9\u05EA \u05D4\u05DE\u05E9\u05D5\u05D5\u05E7\u05D9\u05DD \u05D5\u05BEZoho Mail \u05D3\u05E8\u05DA \u05EA\u05D5\u05DB\u05E0\u05D9\u05EA \u05D4\u05E9\u05D5\u05EA\u05E4\u05D9\u05DD, \u05D1\u05D7\u05D9\u05D5\u05D1 \u05D7\u05D5\u05D3\u05E9\u05D9 \u05DC\u05DB\u05DC \u05EA\u05D9\u05D1\u05D4. \u05D4\u05DE\u05E4\u05EA\u05D7\u05D5\u05EA \u05DE\u05D5\u05DB\u05E0\u05D9\u05DD, \u05D4\u05DE\u05D7\u05D1\u05E8 \u05D9\u05D9\u05D1\u05E0\u05D4 \u05DB\u05E9\u05D9\u05D4\u05D9\u05D5 \u05D7\u05D5\u05D6\u05D4 \u05D5\u05DE\u05E4\u05EA\u05D7\u05D5\u05EA \u05D1\u05D3\u05D9\u05E7\u05D4.", summaryEn: "Mailboxes we sell on the customer domain: Google Workspace through the reseller program and Zoho Mail through the partner program, billed per mailbox per month. The keys are ready; the connector is built once a contract and sandbox keys exist.", code: ["apps/web/src/server/mailbox.ts"], env: ["GOOGLE_RESELLER_KEY", "GOOGLE_RESELLER_ADMIN", "ZOHO_PARTNER_CLIENT_ID", "ZOHO_PARTNER_CLIENT_SECRET", "ZOHO_PARTNER_REFRESH_TOKEN"], decisions: ["D-547"] },
+  { id: "mailbox-providers", kind: "external", zone: "services", label: "Mailbox providers (Google Workspace, Zoho Mail)", summary: "\u05EA\u05D9\u05D1\u05D5\u05EA \u05D3\u05D5\u05D0\u05E8 \u05E9\u05E0\u05DE\u05DB\u05D5\u05E8 \u05E2\u05DC \u05D3\u05D5\u05DE\u05D9\u05D9\u05DF \u05E9\u05DC \u05D4\u05DC\u05E7\u05D5\u05D7: Google Workspace \u05D3\u05E8\u05DA \u05EA\u05D5\u05DB\u05E0\u05D9\u05EA \u05D4\u05DE\u05E9\u05D5\u05D5\u05E7\u05D9\u05DD \u05D5\u05BEZoho Mail \u05D3\u05E8\u05DA \u05EA\u05D5\u05DB\u05E0\u05D9\u05EA \u05D4\u05E9\u05D5\u05EA\u05E4\u05D9\u05DD, \u05D1\u05D7\u05D9\u05D5\u05D1 \u05D7\u05D5\u05D3\u05E9\u05D9 \u05DC\u05DB\u05DC \u05EA\u05D9\u05D1\u05D4. Google \u05DE\u05D7\u05D5\u05D1\u05E8 \u05D3\u05E8\u05DA Cloud Channel: \u05D4\u05E6\u05D5\u05D5\u05EA \u05DE\u05D6\u05DE\u05D9\u05DF \u05DC\u05DC\u05E7\u05D5\u05D7 \u05D1\u05D3\u05D5\u05DE\u05D9\u05D9\u05E0\u05D9\u05DD, \u05EA\u05D9\u05D1\u05D5\u05EA \u05D3\u05D5\u05D0\u05E8, \u05D5\u05D1\u05DE\u05D7\u05E9\u05D1 \u05D4\u05E4\u05D9\u05EA\u05D5\u05D7 \u05E2\u05D5\u05E0\u05D4 Google \u05DE\u05D3\u05D5\u05DE\u05D4. Zoho \u05E2\u05D5\u05D3 \u05DC\u05D0 \u05E0\u05D1\u05E0\u05D4.", summaryEn: "Mailboxes we sell on the customer domain: Google Workspace through the reseller program and Zoho Mail through the partner program, billed per mailbox per month. Google is connected through Cloud Channel: the team orders for a customer on Domains, Mailboxes, and the laptop gets a simulated Google. Zoho is not built.", code: ["apps/web/src/server/mailbox.ts", "apps/web/src/server/google-channel.ts", "apps/web/src/server/mailbox-orders.ts"], env: ["GOOGLE_RESELLER_KEY", "GOOGLE_RESELLER_ADMIN", "GOOGLE_RESELLER_ACCOUNT", "ZOHO_PARTNER_CLIENT_ID", "ZOHO_PARTNER_CLIENT_SECRET", "ZOHO_PARTNER_REFRESH_TOKEN"], decisions: ["D-547", "D-897"] },
   { id: "mcp", kind: "external", zone: "services", label: "MCP for AI tools (/api/mcp)", summary: "ChatGPT \u05D5\u05BEClaude \u05DE\u05EA\u05D7\u05D1\u05E8\u05D9\u05DD \u05D1\u05DC\u05D9 \u05D8\u05E8\u05DE\u05D9\u05E0\u05DC: OAuth \u05E2\u05DD \u05D0\u05D9\u05E9\u05D5\u05E8 \u05D1\u05D3\u05E4\u05D3\u05E4\u05DF, \u05D5\u05D0\u05D6 \u05DB\u05DC\u05D9\u05DD \u05DC\u05E8\u05E9\u05D9\u05DE\u05EA \u05D4\u05D0\u05EA\u05E8\u05D9\u05DD, \u05D1\u05D3\u05D9\u05E7\u05D4, \u05D4\u05E2\u05DC\u05D0\u05EA \u05D2\u05E8\u05E1\u05D4 \u05DC\u05EA\u05E6\u05D5\u05D2\u05D4 \u05DE\u05E7\u05D3\u05D9\u05DE\u05D4, \u05D4\u05E8\u05E6\u05EA \u05EA\u05D5\u05E1\u05E4\u05D9\u05DD \u05E9\u05D4\u05D0\u05EA\u05E8 \u05E7\u05E0\u05D4 (\u05D4\u05E7\u05E0\u05D9\u05D9\u05D4 \u05E8\u05E7 \u05D1\u05D0\u05EA\u05E8), \u05D5\u05D4\u05E2\u05DC\u05D0\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8 \u05E8\u05E7 \u05E2\u05DD \u05D4\u05E8\u05E9\u05D0\u05D4 \u05D5\u05D0\u05D9\u05E9\u05D5\u05E8.", summaryEn: "ChatGPT and Claude connect without a terminal: OAuth with a browser consent, then tools to list sites, check, upload a version to a preview, run add-ons the site owns (buying stays on the site), and go live only with the permission and a yes.", code: ["apps/web/src/app/api/mcp/route.ts", "apps/web/src/server/mcp-tools.ts", "apps/web/src/server/auth.ts"], decisions: ["D-302"] },
   { id: "npm", kind: "external", zone: "services", label: "npm registry", summary: "\u05DE\u05E4\u05D9\u05E5 \u05D0\u05EA \u05D4\u05BECLI, \u05D5\u05DE\u05DE\u05E0\u05D5 \u05D4\u05D1\u05E0\u05D9\u05D9\u05D4 \u05DE\u05EA\u05E7\u05D9\u05E0\u05D4 \u05EA\u05DC\u05D5\u05D9\u05D5\u05EA.", summaryEn: "Distributes the CLI, and the build installs dependencies from it." },
   { id: "pagespeed", kind: "external", zone: "services", label: "Google PageSpeed Insights", summary: "\u05D1\u05D3\u05D9\u05E7\u05D5\u05EA \u05D4\u05DE\u05D4\u05D9\u05E8\u05D5\u05EA, \u05D4\u05E0\u05D2\u05D9\u05E9\u05D5\u05EA \u05D5\u05D4\u05BESEO \u05D4\u05D7\u05D9\u05E0\u05DE\u05D9\u05D5\u05EA: Lighthouse \u05D1\u05DE\u05E2\u05D1\u05D3\u05D4 \u05E9\u05DC \u05D2\u05D5\u05D2\u05DC (\u05DB\u05D5\u05DC\u05DC \u05E1\u05D5\u05DB\u05E0\u05D9 AI) \u05D5\u05E0\u05EA\u05D5\u05E0\u05D9 \u05DE\u05D1\u05E7\u05E8\u05D9\u05DD \u05D0\u05DE\u05D9\u05EA\u05D9\u05D9\u05DD.", summaryEn: "The free speed, accessibility and SEO tests: Lighthouse run at Google (AI agents included) plus real visitor data.", env: ["PAGESPEED_API_KEY"], decisions: ["D-199", "D-222"] },
@@ -21711,14 +21714,14 @@ var ARCH_FLOWS = [
   },
   {
     id: "content-sync",
-    label: "\u05E2\u05D3\u05DB\u05D5\u05DF \u05EA\u05D5\u05DB\u05DF: \u05E4\u05E8\u05D5\u05DE\u05E4\u05D8\u05D9\u05DD, \u05D0\u05D9\u05DE\u05D9\u05D9\u05DC\u05D9\u05DD, \u05EA\u05D5\u05E1\u05E4\u05D9\u05DD \u05D5\u05DE\u05E1\u05DC\u05D5\u05DC\u05D9\u05DD",
+    label: "\u05E2\u05D3\u05DB\u05D5\u05DF \u05EA\u05D5\u05DB\u05DF: \u05E4\u05E8\u05D5\u05DE\u05E4\u05D8\u05D9\u05DD, \u05DE\u05D9\u05D9\u05DC\u05D9\u05DD, \u05EA\u05D5\u05E1\u05E4\u05D9\u05DD \u05D5\u05DE\u05E1\u05DC\u05D5\u05DC\u05D9\u05DD",
     labelEn: "Content sync: prompts, emails, add-ons and plans",
     steps: [
       { edge: "web-postgres", text: "\u05D3\u05E8\u05DA \u05D4\u05E7\u05D5\u05D3: \u05E4\u05E8\u05D9\u05E1\u05D4 \u05D5\u05D4\u05E4\u05E2\u05DC\u05EA \u05D4\u05D0\u05E4\u05DC\u05D9\u05E7\u05E6\u05D9\u05D4 \u05DE\u05D1\u05D9\u05D0\u05D5\u05EA \u05D8\u05E7\u05E1\u05D8\u05D9\u05DD \u05D7\u05D3\u05E9\u05D9\u05DD \u05DC\u05DE\u05E1\u05D3, \u05E9\u05D3\u05D4 \u05D0\u05D7\u05E8 \u05E9\u05D3\u05D4. \u05E9\u05D3\u05D4 \u05E9\u05E0\u05E2\u05E8\u05DA \u05D1\u05D0\u05D3\u05DE\u05D9\u05DF \u05E0\u05E9\u05D0\u05E8.", textEn: "From the code: a deploy and the app start bring new texts into the database, field by field. A field edited in admin stays." },
       { edge: "local-scripts-postgres", text: "\u05E2\u05E8\u05D9\u05DB\u05D5\u05EA \u05DE\u05D4\u05D0\u05D3\u05DE\u05D9\u05DF \u05D1\u05DE\u05D7\u05E9\u05D1: content:push \u05DE\u05D9\u05D9\u05E6\u05D0 \u05E7\u05D5\u05D1\u05E5, \u05DE\u05E2\u05EA\u05D9\u05E7 \u05D0\u05D5\u05EA\u05D5 \u05DC\u05E9\u05E8\u05EA \u05D1\u05BESSH \u05D5\u05DE\u05E8\u05D0\u05D4 \u05DE\u05D4 \u05D9\u05E9\u05EA\u05E0\u05D4. \u05E8\u05E7 --apply \u05DB\u05D5\u05EA\u05D1.", textEn: "Edits from the admin on the computer: content:push exports a file, copies it to the server over SSH and lists what would change. Only --apply writes." },
       { edge: "browser-tunnel", text: "\u05D1\u05D0\u05D5\u05EA\u05D4 \u05D3\u05E8\u05DA \u05D1\u05D9\u05D3: Export \u05D5\u05BEImport \u05D1\u05E2\u05DE\u05D5\u05D3 /admin/server/content.", textEn: "The same by hand: Export and Import on /admin/server/content." },
       { edge: "tunnel-web", text: "Import \u05DE\u05E6\u05D9\u05D2 \u05E7\u05D5\u05D3\u05DD \u05EA\u05E6\u05D5\u05D2\u05D4 \u05DE\u05E7\u05D3\u05D9\u05DE\u05D4 \u05E9\u05DC \u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD, \u05D5\u05D0\u05D6 \u05DE\u05D1\u05E7\u05E9 \u05D0\u05D9\u05E9\u05D5\u05E8.", textEn: "Import first shows a preview of the changes, then asks to confirm." },
-      { edge: "web-postgres", text: "\u05D4\u05DB\u05EA\u05D9\u05D1\u05D4 \u05E7\u05D5\u05E8\u05D9\u05EA \u05D1\u05D1\u05EA \u05D0\u05D7\u05EA. \u05D4\u05E9\u05D5\u05E8\u05D5\u05EA \u05D4\u05E7\u05D5\u05D3\u05DE\u05D5\u05EA \u05E0\u05E9\u05DE\u05E8\u05D5\u05EA \u05DC\u05BEUndo, \u05D5\u05E1\u05D5\u05D3\u05D5\u05EA, \u05E0\u05EA\u05D5\u05E0\u05D9 \u05DC\u05E7\u05D5\u05D7\u05D5\u05EA \u05D5\u05DE\u05EA\u05D2 \u05D4\u05D4\u05E4\u05E2\u05DC\u05D4 \u05E9\u05DC \u05D0\u05D9\u05DE\u05D9\u05D9\u05DC \u05DC\u05D0 \u05E2\u05D5\u05D1\u05E8\u05D9\u05DD.", textEn: "The write happens at once. The rows before are kept for Undo, and secrets, customer data and an email's on switch never travel." },
+      { edge: "web-postgres", text: "\u05D4\u05DB\u05EA\u05D9\u05D1\u05D4 \u05E7\u05D5\u05E8\u05D9\u05EA \u05D1\u05D1\u05EA \u05D0\u05D7\u05EA. \u05D4\u05E9\u05D5\u05E8\u05D5\u05EA \u05D4\u05E7\u05D5\u05D3\u05DE\u05D5\u05EA \u05E0\u05E9\u05DE\u05E8\u05D5\u05EA \u05DC\u05BEUndo, \u05D5\u05E1\u05D5\u05D3\u05D5\u05EA, \u05E0\u05EA\u05D5\u05E0\u05D9 \u05DC\u05E7\u05D5\u05D7\u05D5\u05EA \u05D5\u05DE\u05EA\u05D2 \u05D4\u05D4\u05E4\u05E2\u05DC\u05D4 \u05E9\u05DC \u05DE\u05D9\u05D9\u05DC \u05DC\u05D0 \u05E2\u05D5\u05D1\u05E8\u05D9\u05DD.", textEn: "The write happens at once. The rows before are kept for Undo, and secrets, customer data and an email's on switch never travel." },
       { edge: "local-scripts-web", text: "\u05E4\u05E8\u05D5\u05DE\u05E4\u05D8 \u05D3\u05D7\u05D5\u05E3 \u05D1\u05D9\u05DF \u05E4\u05E8\u05D9\u05E1\u05D5\u05EA: prompts:push \u05E9\u05D5\u05DC\u05D7 \u05E7\u05D5\u05D1\u05E5 \u05D0\u05D7\u05D3 \u05DB\u05D8\u05E7\u05E1\u05D8 \u05D4\u05D7\u05D9 \u05E2\u05DD LOCAL_SCRIPTS_TOKEN, \u05D5\u05E0\u05D3\u05D7\u05D4 \u05D0\u05DD \u05D4\u05D8\u05E7\u05E1\u05D8 \u05D4\u05D7\u05D9 \u05D4\u05E9\u05EA\u05E0\u05D4 \u05DE\u05D0\u05D6 \u05D4\u05BEpull.", textEn: "An urgent prompt between deploys: prompts:push sends one file as the live text with LOCAL_SCRIPTS_TOKEN, and is refused if the live text changed since the pull." }
     ]
   }
@@ -21778,10 +21781,10 @@ function titleOfPage(html) {
   const t = m ? decode3(m[1].replace(/<[^>]*>/g, "")) : "";
   return t || null;
 }
-function metaContent(html, key) {
+function metaContent(html, key2) {
   for (const t of tags(html, "meta")) {
     const k = (t.attrs.name ?? t.attrs.property ?? "").toLowerCase();
-    if (k === key && t.attrs.content?.trim()) return decode3(t.attrs.content);
+    if (k === key2 && t.attrs.content?.trim()) return decode3(t.attrs.content);
   }
   return null;
 }
@@ -22026,6 +22029,343 @@ var KNOWN_BOT_RULES = [
   { description: "known-bot no", expression: "not cf.client.bot", value: "0" }
 ].map((r) => ({ description: r.description, expression: r.expression, action: "rewrite", action_parameters: { headers: { "x-deployai-known-bot": { operation: "set", value: r.value } } }, enabled: true }));
 
+// ../shared/src/share-meta.ts
+function linkHref(html, rel) {
+  for (const t of tags(html, "link")) {
+    const rels = (t.attrs.rel ?? "").toLowerCase().split(/\s+/);
+    if (rels.includes(rel) && t.attrs.href?.trim()) return decode3(t.attrs.href);
+  }
+  return null;
+}
+function num(v) {
+  const n2 = v ? Number.parseInt(v, 10) : NaN;
+  return Number.isFinite(n2) && n2 > 0 ? n2 : null;
+}
+function parseShareMeta(html) {
+  const root = htmlTag(html);
+  return {
+    title: titleOfPage(html),
+    description: metaContent(html, "description"),
+    canonical: linkHref(html, "canonical"),
+    lang: root?.attrs.lang?.trim() || null,
+    dir: root?.attrs.dir?.trim() || null,
+    favicon: linkHref(html, "icon") ?? linkHref(html, "shortcut") ?? linkHref(html, "apple-touch-icon"),
+    og: {
+      title: metaContent(html, "og:title"),
+      description: metaContent(html, "og:description"),
+      image: metaContent(html, "og:image") ?? metaContent(html, "og:image:url") ?? metaContent(html, "og:image:secure_url"),
+      imageAlt: metaContent(html, "og:image:alt"),
+      imageWidth: num(metaContent(html, "og:image:width")),
+      imageHeight: num(metaContent(html, "og:image:height")),
+      type: metaContent(html, "og:type"),
+      url: metaContent(html, "og:url"),
+      siteName: metaContent(html, "og:site_name"),
+      locale: metaContent(html, "og:locale")
+    },
+    twitter: {
+      card: metaContent(html, "twitter:card"),
+      title: metaContent(html, "twitter:title"),
+      description: metaContent(html, "twitter:description"),
+      image: metaContent(html, "twitter:image") ?? metaContent(html, "twitter:image:src"),
+      site: metaContent(html, "twitter:site")
+    },
+    spaShell: isSpaShell(html)
+  };
+}
+
+// ../shared/src/brand.ts
+var ICO_SIZES = [32, 48];
+var ICO_TARGETS = ICO_SIZES.map((s) => ({ file: `ico-${s}.png`, width: s, height: s, icoOnly: true }));
+var FAVICON_TARGETS = [
+  ...ICO_TARGETS,
+  { file: "apple-touch-icon.png", width: 180, height: 180, opaque: true, pad: 0.1 }
+];
+var BRAND_TARGETS = [
+  ...FAVICON_TARGETS,
+  { file: "favicon-96x96.png", width: 96, height: 96 },
+  { file: "icon-192.png", width: 192, height: 192 },
+  { file: "icon-512.png", width: 512, height: 512 },
+  { file: "icon-maskable-512.png", width: 512, height: 512, opaque: true, pad: 0.2 },
+  { file: "og-image.png", width: 1200, height: 630, opaque: true, og: true }
+];
+var BRAND_FILES = ["favicon.ico", "favicon.svg", "site.webmanifest", ...BRAND_TARGETS.filter((t) => !t.icoOnly).map((t) => t.file)];
+function canDraw(target, source) {
+  if (source.vector || target.og) return true;
+  return Math.max(target.width, target.height) <= Math.max(source.width, source.height) * 2;
+}
+var xml = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+function letterTileSvg(name, color) {
+  const letter = [...name.trim()][0]?.toLocaleUpperCase() ?? "S";
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="${xml(color)}"/><text x="32" y="33" font-family="system-ui,Arial,sans-serif" font-size="38" font-weight="700" fill="${contrastInk(color)}" text-anchor="middle" dominant-baseline="central">${xml(letter)}</text></svg>
+`;
+}
+function contrastInk(color) {
+  const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(color);
+  if (!m) return "#FFFFFF";
+  const [r, g, b] = [m[1], m[2], m[3]].map((h) => parseInt(h, 16));
+  return 0.299 * r + 0.587 * g + 0.114 * b > 150 ? "#0A0A0A" : "#FFFFFF";
+}
+var BRAND_DEFAULT_COLOR = "#111827";
+function webManifest(name, color, files) {
+  return `${JSON.stringify({
+    name,
+    short_name: name.slice(0, 12),
+    icons: [
+      { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { src: "/icon-512.png", sizes: "512x512", type: "image/png" },
+      { src: "/icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" }
+    ].filter((i) => !files || files.includes(i.src.slice(1))),
+    theme_color: color,
+    background_color: color,
+    display: "browser"
+  }, null, 2)}
+`;
+}
+function brandHeadTags(files) {
+  const has = (f) => files.includes(f);
+  return [
+    has("favicon.ico") ? '<link rel="icon" href="/favicon.ico" sizes="48x48">' : "",
+    has("favicon.svg") ? '<link rel="icon" href="/favicon.svg" type="image/svg+xml">' : "",
+    has("favicon-96x96.png") ? '<link rel="icon" href="/favicon-96x96.png" type="image/png" sizes="96x96">' : "",
+    has("apple-touch-icon.png") ? '<link rel="apple-touch-icon" href="/apple-touch-icon.png">' : "",
+    has("site.webmanifest") ? '<link rel="manifest" href="/site.webmanifest">' : "",
+    has("og-image.png") ? '<meta property="og:image" content="<the site address>/og-image.png">' : "",
+    has("og-image.png") ? '<meta property="og:image:width" content="1200">' : "",
+    has("og-image.png") ? '<meta property="og:image:height" content="630">' : ""
+  ].filter(Boolean);
+}
+function buildIco(images) {
+  const headerSize = 6 + images.length * 16;
+  const out2 = new Uint8Array(headerSize + images.reduce((n2, i) => n2 + i.png.length, 0));
+  const view = new DataView(out2.buffer);
+  view.setUint16(2, 1, true);
+  view.setUint16(4, images.length, true);
+  let offset = headerSize;
+  images.forEach((img, i) => {
+    const at = 6 + i * 16;
+    out2[at] = img.size >= 256 ? 0 : img.size;
+    out2[at + 1] = img.size >= 256 ? 0 : img.size;
+    view.setUint16(at + 4, 1, true);
+    view.setUint16(at + 6, 32, true);
+    view.setUint32(at + 8, img.png.length, true);
+    view.setUint32(at + 12, offset, true);
+    out2.set(img.png, offset);
+    offset += img.png.length;
+  });
+  return out2;
+}
+function imageSize(b) {
+  const v = new DataView(b.buffer, b.byteOffset, b.byteLength);
+  const ascii = (at, n2) => String.fromCharCode(...b.subarray(at, at + n2));
+  if (b.length >= 24 && b[0] === 137 && ascii(1, 3) === "PNG") return { width: v.getUint32(16), height: v.getUint32(20), format: "png" };
+  if (b.length >= 10 && ascii(0, 3) === "GIF") return { width: v.getUint16(6, true), height: v.getUint16(8, true), format: "gif" };
+  if (b.length >= 22 && v.getUint16(0, true) === 0 && v.getUint16(2, true) === 1 && v.getUint16(4, true) > 0) {
+    let best = 0;
+    const count = v.getUint16(4, true);
+    for (let i = 0; i < count && 6 + i * 16 < b.length; i++) best = Math.max(best, b[6 + i * 16] || 256);
+    return { width: best, height: best, format: "ico" };
+  }
+  if (b.length >= 30 && ascii(0, 4) === "RIFF" && ascii(8, 4) === "WEBP") {
+    const kind = ascii(12, 4);
+    if (kind === "VP8X") return { width: 1 + (b[24] | b[25] << 8 | b[26] << 16), height: 1 + (b[27] | b[28] << 8 | b[29] << 16), format: "webp" };
+    if (kind === "VP8 ") return { width: v.getUint16(26, true) & 16383, height: v.getUint16(28, true) & 16383, format: "webp" };
+    if (kind === "VP8L") {
+      const bits = v.getUint32(21, true);
+      return { width: (bits & 16383) + 1, height: (bits >> 14 & 16383) + 1, format: "webp" };
+    }
+    return null;
+  }
+  if (b.length >= 4 && b[0] === 255 && b[1] === 216) {
+    let at = 2;
+    while (at + 9 < b.length) {
+      if (b[at] !== 255) {
+        at++;
+        continue;
+      }
+      const marker = b[at + 1];
+      if (marker === 255) {
+        at++;
+        continue;
+      }
+      if (marker >= 192 && marker <= 207 && marker !== 196 && marker !== 200 && marker !== 204) return { width: v.getUint16(at + 7), height: v.getUint16(at + 5), format: "jpeg" };
+      at += 2 + v.getUint16(at + 2);
+    }
+  }
+  return null;
+}
+var IMAGE_MIN_DENSITY = 1.5;
+var IMAGE_SMALL_WIDTH = 400;
+var JPEG_MIN_BYTES_PER_PIXEL = 0.04;
+var IMAGE_IGNORE_UNDER = 96;
+function judgeImage(img) {
+  if (img.shownWidth !== void 0) {
+    if (img.shownWidth < IMAGE_IGNORE_UNDER) return "ok";
+    if (img.width < img.shownWidth * IMAGE_MIN_DENSITY) return "soft";
+  } else if (img.width >= IMAGE_IGNORE_UNDER && img.width < IMAGE_SMALL_WIDTH) {
+    return "small";
+  }
+  if (img.format === "jpeg" && img.bytes !== void 0 && img.width >= IMAGE_SMALL_WIDTH && img.bytes / (img.width * img.height) < JPEG_MIN_BYTES_PER_PIXEL) return "compressed";
+  return "ok";
+}
+function looksLikeLogo(path) {
+  return /(^|[/_.-])logo([/_.-]|\d|$)/i.test(path) && /\.(svg|png|webp|jpe?g)(\?|$)/i.test(path);
+}
+var decode4 = (s) => s.replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#0?39;|&apos;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/\s+/g, " ").trim();
+function metaContent2(html, attr2, key2) {
+  for (const m of html.matchAll(/<meta\b[^>]*>/gi)) {
+    if (!new RegExp(`\\s${attr2}=["']${key2}["']`, "i").test(m[0])) continue;
+    const v = m[0].match(/\scontent=["']([^"']*)/i)?.[1];
+    if (v) return decode4(v);
+  }
+  return null;
+}
+function readSiteIdentity(html) {
+  const title = decode4(html.match(/<title[^>]*>([^<]*)/i)?.[1] ?? "");
+  const fromTitle = title.split(/\s[|\-\u2013\u2014\u00b7:]\s/).map((s) => s.trim()).filter((s) => s && !/^(home|home ?page|welcome|main|בית|דף הבית|ראשי|עמוד הבית|ברוכים הבאים)$/i.test(s)).sort((a, b) => a.length - b.length)[0] ?? null;
+  const description = metaContent2(html, "name", "description") ?? metaContent2(html, "property", "og:description");
+  return { name: metaContent2(html, "property", "og:site_name") ?? fromTitle, line: description ? shareLine(description) : null, themeColor: metaContent2(html, "name", "theme-color") };
+}
+function shareLine(text2, max = 70) {
+  const first = decode4(text2).split(/(?<=[.!?\u05c3])\s/)[0] ?? "";
+  if (first.length <= max) return first.replace(/[.\s]+$/, "");
+  const cut = first.slice(0, max);
+  const pause = Math.max(cut.lastIndexOf(":"), cut.lastIndexOf(","), cut.lastIndexOf(";"));
+  return pause >= 20 ? cut.slice(0, pause) : cut.replace(/\s+\S*$/, "");
+}
+var hex22 = (n2) => Math.max(0, Math.min(255, Math.round(n2))).toString(16).padStart(2, "0");
+function toHexColor(value) {
+  const v = value.trim().toLowerCase();
+  let m = /^#([0-9a-f]{3})$/.exec(v);
+  if (m) return `#${[...m[1]].map((c) => c + c).join("")}`;
+  m = /^#([0-9a-f]{6})(ff)?$/.exec(v);
+  if (m) return `#${m[1]}`;
+  m = /^rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)\s*(?:[,/]\s*(1|1\.0+|100%)\s*)?\)$/.exec(v);
+  if (m) return `#${hex22(+m[1])}${hex22(+m[2])}${hex22(+m[3])}`;
+  m = /^hsla?\(\s*([\d.]+)(?:deg)?[\s,]+([\d.]+)%[\s,]+([\d.]+)%\s*\)$/.exec(v);
+  if (m) {
+    const [h, s, l] = [+m[1] / 360, +m[2] / 100, +m[3] / 100];
+    const f = (n2) => {
+      const k = (n2 + h * 12) % 12;
+      return l - s * Math.min(l, 1 - l) * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+    };
+    return `#${hex22(f(0) * 255)}${hex22(f(8) * 255)}${hex22(f(4) * 255)}`;
+  }
+  return null;
+}
+function isBrandColor(color) {
+  const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(color);
+  if (!m) return false;
+  const [r, g, b] = [m[1], m[2], m[3]].map((h) => parseInt(h, 16) / 255);
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2;
+  const s = max === min ? 0 : (max - min) / (1 - Math.abs(2 * l - 1));
+  return s >= 0.25 && l >= 0.12 && l <= 0.8;
+}
+var COLOR_RE = /#[0-9a-f]{3,8}\b|rgba?\([^)]*\)|hsla?\([^)]*\)/gi;
+var NAMED_RE = /(?:--|\b)(?:[\w-]*?)(primary|brand|accent|main)[\w-]*["']?\s*:\s*["']?(#[0-9a-f]{3,8}\b|rgba?\([^)]*\)|hsla?\([^)]*\))/gi;
+var NAMED_WEIGHT = 25;
+var THEME_WEIGHT = 100;
+var MIN_USES = 2;
+function isPageWhite(color) {
+  const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(color);
+  return !!m && [m[1], m[2], m[3]].every((h) => parseInt(h, 16) >= 240);
+}
+function pickBrandColor(sources) {
+  const score = /* @__PURE__ */ new Map();
+  const add = (raw, by, onPurpose) => {
+    const hex3 = toHexColor(raw);
+    if (hex3 && (onPurpose ? !isPageWhite(hex3) : isBrandColor(hex3))) score.set(hex3, (score.get(hex3) ?? 0) + by);
+  };
+  for (const s of sources) {
+    if (s.themeColor) add(s.themeColor, THEME_WEIGHT, true);
+    for (const m of s.text.matchAll(COLOR_RE)) add(m[0], 1, false);
+    for (const m of s.text.matchAll(NAMED_RE)) add(m[2], NAMED_WEIGHT, true);
+  }
+  return [...score.entries()].filter(([, n2]) => n2 >= MIN_USES).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] ?? null;
+}
+function svgLogoColor(svg) {
+  const count = /* @__PURE__ */ new Map();
+  for (const m of svg.matchAll(/(?:fill|stroke|stop-color)\s*[=:]\s*["']?(#[0-9a-f]{3,8}\b|rgba?\([^)]*\)|hsla?\([^)]*\))/gi)) {
+    const hex3 = toHexColor(m[1]);
+    if (hex3 && !isPageWhite(hex3)) count.set(hex3, (count.get(hex3) ?? 0) + 1);
+  }
+  return [...count.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] ?? null;
+}
+var isSvgText = (text2) => /<svg[\s>]/i.test(text2);
+function iconLinks(html) {
+  const found = [];
+  for (const m of html.matchAll(/<link\b[^>]*>/gi)) {
+    const rel = m[0].match(/\srel=["']([^"']+)/i)?.[1]?.toLowerCase() ?? "";
+    const href = m[0].match(/\shref=["']([^"']+)/i)?.[1];
+    if (!href || !/(^|\s)(icon|apple-touch-icon(-precomposed)?|mask-icon)(\s|$)/.test(rel) || href.startsWith("data:")) continue;
+    const size = Number(m[0].match(/\ssizes=["'](\d+)x/i)?.[1] ?? 0);
+    const score = /\.svg(\?|$)/i.test(href) ? 1e4 : rel.includes("apple-touch") ? 1e3 + size : size || 16;
+    found.push({ href, score });
+  }
+  return found.sort((a, b) => b.score - a.score).map((f) => f.href);
+}
+function logoInPage(html) {
+  for (const m of html.matchAll(/<img\b[^>]*>/gi)) {
+    const src = m[0].match(/\ssrc=["']([^"']+)/i)?.[1];
+    if (src && !src.startsWith("data:") && /logo/i.test(m[0])) return src;
+  }
+  return null;
+}
+var NOT_WORD_BEFORE = "(?<![\\p{L}\\p{N}])";
+var NOT_WORD_AFTER = "(?![\\p{L}\\p{N}])";
+var BUILDER_NAMES = "wix(?:\\.com)?|squarespace|wordpress(?:\\.(?:com|org))?|webflow|shopify|woocommerce|weebly|godaddy|jimdo|elementor|wpbakery|divi|lovable|bolt(?:\\.new)?|v0|replit|base44|manus|framer|astro|next\\.?js|nuxt|gatsby|hostinger|vercel|netlify|cloudflare|github\\s+pages|durable|site123|mobirise|duda|webnode|ucraft|tilda|carrd|bluehost|hostgator|cursor|claude|chatgpt|gemini|\u05D5\u05D5\u05D9\u05E7\u05E1|\u05D5\u05D9\u05E7\u05E1|\u05D5\u05D5\u05E8\u05D3\u05E4\u05E8\u05E1|\u05D5\u05E8\u05D3\u05E4\u05E8\u05E1|\u05E9\u05D5\u05E4\u05D9\u05E4\u05D9\u05D9";
+var BUILDER_CREDITS = [
+  new RegExp(`${NOT_WORD_BEFORE}(?:proudly\\s+)?(?:built|made|created|designed|developed|powered|hosted|published|generated|running|runs|edit|site|website)(?:\\s+\\p{L}+)?\\s+(?:with|by|on|using|in|at)\\s+(?:the\\s+)?(?:${BUILDER_NAMES})${NOT_WORD_AFTER}`, "giu"),
+  new RegExp(`${NOT_WORD_BEFORE}just\\s+another\\s+wordpress\\s+site${NOT_WORD_AFTER}`, "giu"),
+  new RegExp(`${NOT_WORD_BEFORE}(?:\u05E0\u05D1\u05E0\u05D4|\u05E0\u05D1\u05E0\u05EA\u05D4|\u05E0\u05D5\u05E6\u05E8|\u05E0\u05D5\u05E6\u05E8\u05D4|\u05D1\u05E0\u05D5\u05D9|\u05D1\u05E0\u05D5\u05D9\u05D4|\u05DE\u05D5\u05E4\u05E2\u05DC|\u05DE\u05D5\u05E4\u05E2\u05DC\u05EA|\u05DE\u05D1\u05D5\u05E1\u05E1|\u05DE\u05D1\u05D5\u05E1\u05E1\u05EA|\u05DE\u05D0\u05D5\u05D7\u05E1\u05DF|\u05DE\u05D0\u05D5\u05D7\u05E1\u05E0\u05EA|\u05DE\u05EA\u05D0\u05E8\u05D7|\u05DE\u05EA\u05D0\u05E8\u05D7\u05EA)\\s+(?:\u05D1-?|\u05E2\u05DC\\s+\u05D9\u05D3\u05D9\\s+|\u05D1\u05D0\u05DE\u05E6\u05E2\u05D5\u05EA\\s+|\u05E2\u05DD\\s+|\u05E2\u05DC\\s+)\\s*(?:${BUILDER_NAMES})${NOT_WORD_AFTER}`, "giu")
+];
+var BUILDER_TRACES = [
+  /<meta\b[^>]*\bname=["']?generator\b[^>]*>/gi,
+  /lovable-badge|edit-with-lovable|cdn\.gpteng\.co|wix-?ads|webflow-badge|framer-badge|bolt-badge|replit-badge/gi,
+  new RegExp(`<title\\b[^>]*>[^<]*[|\\-\u2013\u2014:\xB7]\\s*(?:${BUILDER_NAMES})\\s*</title>`, "giu")
+];
+var FOOTER_TAIL = 1500;
+var pageText = (html) => html.replace(/<!--[\s\S]*?-->/g, " ").replace(/<(script|style)\b[\s\S]*?<\/\1\s*>/gi, " ").replace(/<[^>]*>/g, " ").replace(/&nbsp;|&#160;/gi, " ").replace(/\s+/g, " ");
+function vendorFiles(html) {
+  const found = /* @__PURE__ */ new Set();
+  for (const tag of html.matchAll(/<(?:script|link)\b[^>]*>/gi)) {
+    const m = tag[0].match(/\/wp-content\/(plugins|themes)\/([^/"'?#\s]+)\/[^"'?#\s]*\.(?:js|css)(?:[?#"'\s]|$)/i);
+    if (m) found.add(`${m[1].toLowerCase()}/${m[2]}`);
+  }
+  return [...found];
+}
+function builderCredits(html) {
+  const found = /* @__PURE__ */ new Set();
+  const say = (text2) => {
+    const t = text2.replace(/\s+/g, " ").trim();
+    found.add(t.length > 80 ? `${t.slice(0, 77)}...` : t);
+  };
+  const footers = [...html.matchAll(/<footer\b[\s\S]*?<\/footer\s*>/gi)].map((m) => pageText(m[0])).join(" ");
+  const end = footers || pageText(html).slice(-FOOTER_TAIL);
+  for (const re of BUILDER_CREDITS) for (const m of end.matchAll(re)) say(m[0]);
+  for (const re of BUILDER_TRACES) for (const m of html.matchAll(re)) say(m[0]);
+  return [...found];
+}
+
+// ../shared/src/old-host-assets.ts
+var bare = (host) => host.toLowerCase().replace(/^www\./, "");
+function oldHostAssets(html, pageUrl, oldHosts) {
+  const old = new Set(oldHosts.map(bare));
+  const meta3 = parseShareMeta(html);
+  const found = [];
+  const add = (kind, href) => {
+    if (!href) return;
+    try {
+      const url2 = new URL(href, pageUrl);
+      if (old.has(bare(url2.hostname)) && !found.some((f) => f.url === url2.toString())) found.push({ kind, url: url2.toString() });
+    } catch {
+    }
+  };
+  add("share", meta3.og.image);
+  add("x", meta3.twitter.image);
+  for (const href of iconLinks(html)) add("icon", href);
+  return found;
+}
+
 // ../shared/src/psi.ts
 var LAB_IDS = ["largest-contentful-paint", "cumulative-layout-shift", "total-blocking-time", "first-contentful-paint", "speed-index"];
 var FIELD_KEYS = {
@@ -22073,8 +22413,8 @@ function toAudit(id, a) {
 function fieldOf(exp) {
   const metrics = exp?.metrics ?? {};
   const out2 = [];
-  for (const [key, id] of Object.entries(FIELD_KEYS)) {
-    const m = metrics[key];
+  for (const [key2, id] of Object.entries(FIELD_KEYS)) {
+    const m = metrics[key2];
     if (!m || typeof m.percentile !== "number" || !RATING[m.category]) continue;
     out2.push({ id, p75: id === "cls" ? m.percentile / 100 : m.percentile, rating: RATING[m.category] });
   }
@@ -22170,9 +22510,9 @@ function parseRobots(text2) {
     const line = raw.replace(/#.*$/, "").trim();
     const m = /^([A-Za-z-]+)\s*:\s*(.*)$/.exec(line);
     if (!m) continue;
-    const key = m[1].toLowerCase();
+    const key2 = m[1].toLowerCase();
     const value = m[2].trim();
-    if (key === "user-agent") {
+    if (key2 === "user-agent") {
       if (!current || !lastWasAgent) {
         current = { agents: [], rules: [] };
         groups.push(current);
@@ -22182,8 +22522,8 @@ function parseRobots(text2) {
       continue;
     }
     lastWasAgent = false;
-    if (key === "sitemap") sitemaps.push(value);
-    else if ((key === "allow" || key === "disallow") && current) current.rules.push({ allow: key === "allow", path: value });
+    if (key2 === "sitemap") sitemaps.push(value);
+    else if ((key2 === "allow" || key2 === "disallow") && current) current.rules.push({ allow: key2 === "allow", path: value });
   }
   return { groups, sitemaps };
 }
@@ -22233,6 +22573,29 @@ var KEYS = new Set(PLAN_FEATURES.map((f) => f.key));
 // ../shared/src/app-lifecycle.ts
 var APP_HOLD_MS = 30 * 6e4;
 var APP_RENEW_GRACE_MS = 8 * 864e5;
+
+// ../shared/src/let-through.ts
+var LET_THROUGH_BOTS = {
+  grok: { name: "Grok", tokens: ["GrokBot", "xAI-Grok", "Grok-DeepSearch", "xAI-SearchBot"] }
+};
+var LET_THROUGH_BOT_KEYS = Object.keys(LET_THROUGH_BOTS);
+var NAMED_BOTS = [
+  { name: "Grok", tokens: LET_THROUGH_BOTS.grok.tokens },
+  { name: "GPTBot", tokens: ["GPTBot"] },
+  { name: "ChatGPT-User", tokens: ["ChatGPT-User"] },
+  { name: "OAI-SearchBot", tokens: ["OAI-SearchBot"] },
+  { name: "ClaudeBot", tokens: ["ClaudeBot"] },
+  { name: "Claude-User", tokens: ["Claude-User"] },
+  { name: "Claude-SearchBot", tokens: ["Claude-SearchBot"] },
+  { name: "PerplexityBot", tokens: ["PerplexityBot"] },
+  { name: "Perplexity-User", tokens: ["Perplexity-User"] },
+  { name: "Googlebot", tokens: ["Googlebot"] },
+  { name: "bingbot", tokens: ["bingbot"] },
+  { name: "Applebot", tokens: ["Applebot"] },
+  { name: "DuckDuckBot", tokens: ["DuckDuckBot"] }
+];
+var UNVERIFIED_BOT_TOKENS = LET_THROUGH_BOTS.grok.tokens.map((t) => t.toLowerCase());
+var V6_PRIVATE = [[[...Array(16).fill(0)], 127], [[252, ...Array(15).fill(0)], 7], [[254, 128, ...Array(14).fill(0)], 10], [[255, ...Array(15).fill(0)], 8]];
 
 // ../shared/src/probe.ts
 var TEAM_PASS_MAX_AGE_S = 8 * 3600;
@@ -22464,13 +22827,14 @@ var CLI_MAP_NODES = [
   n("cmd-check", "cli", "check", "\u05D4\u05D0\u05DD \u05D4\u05E4\u05E8\u05D5\u05D9\u05E7\u05D8 \u05D9\u05DB\u05D5\u05DC \u05DC\u05E8\u05D5\u05E5 \u05D0\u05E6\u05DC\u05E0\u05D5: \u05D7\u05D5\u05E1\u05DE\u05D9\u05DD \u05D5\u05D0\u05D6\u05D4\u05E8\u05D5\u05EA, \u05E2\u05DD \u05E4\u05E8\u05D5\u05DE\u05E4\u05D8 \u05EA\u05D9\u05E7\u05D5\u05DF.", "Can the project run on our hosting: blockers and warnings, with a fix prompt."),
   n("cmd-init", "cli", "init", "\u05D9\u05D5\u05E6\u05E8 DEPLOYAI.md \u05E2\u05DD \u05D4\u05DB\u05DC\u05DC\u05D9\u05DD \u05DC\u05E1\u05D5\u05DB\u05DF, \u05E9\u05D5\u05E8\u05D4 \u05D0\u05DC\u05D9\u05D5 \u05D1 AGENTS.md \u05D5 CLAUDE.md, \u05D5 .deployai/project.json. \u05E8\u05D0\u05E9\u05D5\u05DF \u05D1\u05E4\u05E8\u05D5\u05D9\u05E7\u05D8 \u05D7\u05D3\u05E9.", "Creates DEPLOYAI.md with the agent rules, a line to it in AGENTS.md and CLAUDE.md, and .deployai/project.json. First in a new project."),
   n("cmd-inspect", "cli", "inspect", "\u05DE\u05D4 \u05D6\u05D5\u05D4\u05D4 \u05D1\u05E4\u05E8\u05D5\u05D9\u05E7\u05D8: \u05DE\u05E1\u05D2\u05E8\u05EA, \u05E9\u05E4\u05D4, \u05DE\u05E1\u05D3 \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD.", "What the project is: framework, language, database."),
-  n("cmd-login", "cli", "login", "\u05DB\u05E0\u05D9\u05E1\u05D4 \u05D1\u05D3\u05E4\u05D3\u05E4\u05DF, \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05DE\u05D0\u05E9\u05E8.", "Login in the browser, the owner approves."),
-  n("cmd-logout", "cli", "logout", "\u05DE\u05D1\u05D8\u05DC \u05D0\u05EA \u05D4\u05D8\u05D5\u05E7\u05DF \u05D5\u05D9\u05D5\u05E6\u05D0 \u05DE\u05D4\u05D7\u05E9\u05D1\u05D5\u05DF \u05D1\u05DE\u05D7\u05E9\u05D1 \u05D4\u05D6\u05D4.", "Cancels the token and logs out on this computer."),
-  n("cmd-whoami", "cli", "whoami", "\u05E2\u05DD \u05D0\u05D9\u05D6\u05D4 \u05D7\u05E9\u05D1\u05D5\u05DF \u05DE\u05D7\u05D5\u05D1\u05E8\u05D9\u05DD.", "Which account is logged in."),
+  n("cmd-login", "cli", "login", "\u05DB\u05E0\u05D9\u05E1\u05D4 \u05D1\u05D3\u05E4\u05D3\u05E4\u05DF, \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05DE\u05D0\u05E9\u05E8. \u05E2\u05DD --force \u05E0\u05DB\u05E0\u05E1\u05D9\u05DD \u05E2\u05DD \u05D7\u05E9\u05D1\u05D5\u05DF \u05E0\u05D5\u05E1\u05E3, \u05D5\u05D4\u05D7\u05E9\u05D1\u05D5\u05E0\u05D5\u05EA \u05E9\u05DB\u05D1\u05E8 \u05DB\u05D0\u05DF \u05E0\u05E9\u05D0\u05E8\u05D9\u05DD (D-905).", "Login in the browser, the owner approves. With --force, another account joins and the ones here stay (D-905)."),
+  n("cmd-logout", "cli", "logout [email]", "\u05DE\u05D1\u05D8\u05DC \u05D0\u05EA \u05D4\u05D8\u05D5\u05E7\u05DF \u05E9\u05DC \u05D7\u05E9\u05D1\u05D5\u05DF \u05D0\u05D7\u05D3 \u05D5\u05D9\u05D5\u05E6\u05D0 \u05DE\u05DE\u05E0\u05D5 \u05D1\u05DE\u05D7\u05E9\u05D1 \u05D4\u05D6\u05D4, \u05D0\u05D5 \u05DE\u05DB\u05D5\u05DC\u05DD \u05E2\u05DD --all.", "Cancels the token of one account and logs it out on this computer, or every account with --all."),
+  n("cmd-whoami", "cli", "whoami", "\u05E2\u05DD \u05D0\u05D9\u05D6\u05D4 \u05D7\u05E9\u05D1\u05D5\u05DF \u05DE\u05D7\u05D5\u05D1\u05E8\u05D9\u05DD, \u05D5\u05D0\u05D9\u05DC\u05D5 \u05D7\u05E9\u05D1\u05D5\u05E0\u05D5\u05EA \u05E0\u05D5\u05E1\u05E4\u05D9\u05DD \u05D1\u05DE\u05D7\u05E9\u05D1.", "Which account is logged in, and the other accounts on this computer."),
   n("cmd-link", "cli", "link [site]", "\u05DE\u05D7\u05D1\u05E8 \u05D0\u05EA \u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05DC\u05D0\u05EA\u05E8, \u05D0\u05D5 \u05D9\u05D5\u05E6\u05E8 \u05D0\u05EA\u05E8 \u05E2\u05DD --create.", "Links the folder to a site, or makes one with --create."),
   n("cmd-deploy", "cli", "deploy -m", "\u05D1\u05D5\u05D3\u05E7, \u05D0\u05D5\u05E8\u05D6 \u05D5\u05DE\u05E2\u05DC\u05D4 \u05D2\u05E8\u05E1\u05D4, \u05DE\u05D7\u05DB\u05D4 \u05DC\u05D1\u05E0\u05D9\u05D9\u05D4 \u05D5\u05DE\u05E2\u05DC\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8 \u05E2\u05DD --live \u05D0\u05D5 \u05E0\u05D5\u05EA\u05DF \u05EA\u05E6\u05D5\u05D2\u05D4 \u05DE\u05E7\u05D3\u05D9\u05DE\u05D4.", "Checks, packs and uploads a version, waits for the build, then puts it live with --live or gives the preview."),
   n("cmd-guest", "cli", "deploy --guest", "\u05D0\u05EA\u05E8 \u05D6\u05DE\u05E0\u05D9 \u05D1\u05DC\u05D9 \u05D7\u05E9\u05D1\u05D5\u05DF, \u05E2\u05DD \u05E7\u05D9\u05E9\u05D5\u05E8 \u05DC\u05E9\u05DE\u05D9\u05E8\u05D4.", "A temporary site with no account, with a claim link."),
   n("cmd-pull", "cli", "pull", "\u05DE\u05D5\u05E8\u05D9\u05D3 \u05D0\u05EA \u05D4\u05E7\u05D5\u05D3 \u05E9\u05DC \u05D4\u05D2\u05E8\u05E1\u05D4 \u05E9\u05D1\u05D0\u05D5\u05D5\u05D9\u05E8 \u05DC\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05E8\u05D9\u05E7\u05D4.", "Downloads the code of the live version into an empty folder."),
+  n("cmd-sync", "cli", "sync", "\u05DE\u05DB\u05E0\u05D9\u05E1 \u05DC\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D0\u05EA \u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05E9\u05DE\u05D9\u05E9\u05D4\u05D5 \u05D0\u05D7\u05E8 \u05D4\u05E2\u05DC\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8, \u05D5\u05DE\u05E1\u05DE\u05DF \u05DE\u05D4 \u05E9\u05E9\u05E0\u05D9 \u05D4\u05E6\u05D3\u05D3\u05D9\u05DD \u05E9\u05D9\u05E0\u05D5 (D-907).", "Brings in the changes someone else put live, and marks what both sides changed (D-907)."),
   n("cmd-claim", "cli", "claim --email", "\u05E7\u05D9\u05E9\u05D5\u05E8 \u05D4\u05E9\u05DE\u05D9\u05E8\u05D4 \u05E9\u05D5\u05D1, \u05D0\u05D5 \u05D1\u05DE\u05D9\u05D9\u05DC \u05E2\u05DD \u05EA\u05D6\u05DB\u05D5\u05E8\u05EA \u05DC\u05E4\u05E0\u05D9 \u05D4\u05DE\u05D7\u05D9\u05E7\u05D4.", "The claim link again, or by email with a reminder before the delete."),
   n("cmd-status", "cli", "status", "\u05DE\u05E6\u05D1 \u05D4\u05D2\u05E8\u05E1\u05D4 \u05D4\u05D0\u05D7\u05E8\u05D5\u05E0\u05D4 \u05D5\u05DB\u05EA\u05D5\u05D1\u05EA \u05D4\u05EA\u05E6\u05D5\u05D2\u05D4 \u05D4\u05DE\u05E7\u05D3\u05D9\u05DE\u05D4.", "The latest version's state and preview address."),
   n("cmd-promote", "cli", "promote v<N>", "\u05DE\u05E2\u05DC\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8 \u05D2\u05E8\u05E1\u05D4 \u05E9\u05D0\u05D5\u05E9\u05E8\u05D4, \u05D5\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D7\u05D3\u05E9\u05D9\u05DD \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05E8\u05E6\u05D9\u05DD \u05E7\u05D5\u05D3\u05DD \u05D0\u05D7\u05E8\u05D9 \u05D0\u05D9\u05E9\u05D5\u05E8.", "Puts an approved version live; new database changes run first, after a yes."),
@@ -22556,6 +22920,7 @@ var CLI_MAP_EDGES = [
   e("cmd-guest", "api-guest"),
   e("cmd-claim", "api-guest-email"),
   e("cmd-pull", "api-source"),
+  e("cmd-sync", "api-source"),
   e("cmd-check", "api-check"),
   e("cmd-telemetry", "api-check"),
   e("cmd-feedback", "api-check"),
@@ -22585,7 +22950,7 @@ var CLI_MAP_EDGES = [
 
 // ../shared/src/site-tags.ts
 var GOOGLE_CHECK = "https://tagassistant.google.com/";
-var e2 = (key, name, kind, match, domains, sample, extra = {}) => ({ key, name, kind, match, domains, sample, ...extra });
+var e2 = (key2, name, kind, match, domains, sample, extra = {}) => ({ key: key2, name, kind, match, domains, sample, ...extra });
 var TAG_CATALOG = [
   // Google
   e2("gtm", "Google Tag Manager", "tagmanager", [/googletagmanager\.com\/(gtm\.js|ns\.html)/i, /['"(=]GTM-[A-Z0-9]{4,10}\b/], ["www.googletagmanager.com"], `<script>(function(w,d,s,l,i){j.src='https://www.googletagmanager.com/gtm.js?id='+i})(window,document,'script','dataLayer','GTM-ABC123');</script>`, { id: /\b(GTM-[A-Z0-9]{4,10})\b/, checkUrl: GOOGLE_CHECK }),
@@ -22722,10 +23087,10 @@ function outsideRows(hosts) {
   const rows2 = /* @__PURE__ */ new Map();
   for (const host of new Set(hosts)) {
     const s = outsideService(host);
-    const key = s?.key ?? `host:${host}`;
-    const row2 = rows2.get(key);
+    const key2 = s?.key ?? `host:${host}`;
+    const row2 = rows2.get(key2);
     if (row2) row2.hosts.push(host);
-    else rows2.set(key, { key, name: s?.name ?? null, kind: s?.kind ?? "unknown", hosts: [host] });
+    else rows2.set(key2, { key: key2, name: s?.name ?? null, kind: s?.kind ?? "unknown", hosts: [host] });
   }
   return [...rows2.values()].sort((a, b) => OUTSIDE_KINDS.indexOf(a.kind) - OUTSIDE_KINDS.indexOf(b.kind));
 }
@@ -22859,8 +23224,8 @@ function addPageTags(site, page3, path) {
   for (const text2 of page3.events) if (!site.events.some((x) => x.text === text2)) site.events.push({ text: text2, page: path });
   for (const v of page3.verification) if (!site.verification.some((x) => x.service === v.service && x.value === v.value)) site.verification.push({ ...v, page: path });
   for (const f of page3.forms) {
-    const same = site.forms.some((x) => x.id === f.id && x.action === f.action && x.classes === f.classes);
-    if (!same && site.forms.length < FORMS_KEPT) site.forms.push({ ...f, page: path });
+    const same2 = site.forms.some((x) => x.id === f.id && x.action === f.action && x.classes === f.classes);
+    if (!same2 && site.forms.length < FORMS_KEPT) site.forms.push({ ...f, page: path });
   }
 }
 function addBrowserRequests(site, urls, siteUrl) {
@@ -23106,8 +23471,9 @@ var ENV_KEYS = {
   CF_REGISTRAR_TOKEN: { scope: "server", section: "cloudflare", about: "Buys real domains (D-300): a Cloudflare token with Registrar edit only. Server only." },
   LIVEDNS_USER: { scope: "server", section: "cloudflare", about: "Buys real Israeli domains at LiveDNS (D-458): the API user of our LiveDNS partner account. Server only: LiveDNS refuses some networks, and it spends prepaid credit." },
   LIVEDNS_PASSWORD: { scope: "server", section: "cloudflare", about: "Its password, sent in every LiveDNS call; never logged. Server only." },
-  GOOGLE_RESELLER_KEY: { scope: "own", section: "email", about: "Sells Google Workspace mailboxes (D-547; not connected until the reseller contract is signed): the service account JSON of our reseller project, delegated to GOOGLE_RESELLER_ADMIN. The laptop uses the reseller sandbox, the server the real account." },
+  GOOGLE_RESELLER_KEY: { scope: "own", section: "email", about: "Sells Google Workspace mailboxes (D-547, D-896, D-897; with it set, an order on Domains, Mailboxes is a real purchase at Google; off production without it a simulated Google answers): the service account JSON, only its type, project, client email, client id, private key and token address, of our reseller project, delegated to GOOGLE_RESELLER_ADMIN. The laptop uses the reseller sandbox, the server the real account." },
   GOOGLE_RESELLER_ADMIN: { scope: "own", section: "email", about: "The reseller admin user the service account acts as (D-547)." },
+  GOOGLE_RESELLER_ACCOUNT: { scope: "own", section: "email", about: "Our reseller account id in Google Cloud Channel (C0...), the account every customer and subscription is made under (D-896)." },
   ZOHO_PARTNER_CLIENT_ID: { scope: "own", section: "email", about: "Sells Zoho Mail mailboxes (D-547; not connected until the partner account exists): the API client of our Zoho partner account." },
   ZOHO_PARTNER_CLIENT_SECRET: { scope: "own", section: "email", about: "Its secret (D-547)." },
   ZOHO_PARTNER_REFRESH_TOKEN: { scope: "own", section: "email", about: "The long lived token the partner API calls are signed with (D-547)." },
@@ -23120,6 +23486,12 @@ var ENV_KEYS = {
   GOOGLE_CLIENT_SECRET: { scope: "same", section: "login", about: "The secret of that Google client." },
   GITHUB_CLIENT_ID: { scope: "same", section: "login", about: "GitHub, Settings, Developer settings, OAuth Apps, with both redirect addresses on it." },
   GITHUB_CLIENT_SECRET: { scope: "same", section: "login", about: "The secret of that GitHub app." },
+  GITHUB_APP_ID: { scope: "own", section: "github", about: "Our GitHub App that saves a site to GitHub and builds versions from pushes (D-908): its App ID, from GitHub, Settings, Developer settings, GitHub Apps. Each machine its own App, since the webhook address differs. Unset, or any GITHUB_APP_ key missing: the GitHub tab is hidden for owners." },
+  GITHUB_APP_SLUG: { scope: "own", section: "github", about: "The App name in its address, github.com/apps/<slug>: the install link uses it." },
+  GITHUB_APP_PRIVATE_KEY: { scope: "own", section: "github", about: "The App private key (Generate a private key, a .pem file), on one line with \\n for each line break. Signs the App to GitHub; never logged." },
+  GITHUB_WEBHOOK_SECRET: { scope: "own", section: "github", about: "The App webhook secret: GitHub signs every push and pull request with it, and /api/github/webhook refuses anything else. openssl rand -hex 32" },
+  GITHUB_APP_CLIENT_ID: { scope: "own", section: "github", about: "The App Client ID: signing in to the App shows which GitHub accounts and repos a person may connect." },
+  GITHUB_APP_CLIENT_SECRET: { scope: "own", section: "github", about: "A client secret of the App (Generate a new client secret)." },
   BILLING_PROVIDER: { scope: "local", section: "payments", about: "mock overrides the admin setting with the simulated provider (the tests set it). Ignored in production (D-335)." },
   BILLING_MOCK_FAIL: { scope: "local", section: "payments", about: "1 makes the simulated provider decline every charge, to try the failed payment flow (D-175)." },
   CARDCOM_TERMINAL: { scope: "same", section: "payments", sample: { local: "1000", server: "1000" }, about: "Cardcom terminal: 1000 or 1001 is test mode, any other live (D-324). The live terminal is set only here, never in the admin (D-371). Test terminal on both during closed testing; the real one before launch." },
@@ -23238,6 +23610,9 @@ var SPACES = {
   ...Object.fromEntries(Object.keys(CLOUDFLARE_SPACES).filter((n2) => SPACE_ADDRESSES[n2]).map((n2) => [n2, build(n2, CLOUDFLARE_SPACES[n2], SPACE_ADDRESSES[n2])])),
   test: build("test", { ...CLOUDFLARE_SPACES.prod, kvNamespaceId: "", sitesZoneId: null, backupBucket: null, toolsWorkerUrl: "", requestsWorkerUrl: "" }, { ...SPACE_ADDRESSES.prod, appUrl: "http://localhost:3000", siteUrl: "http://localhost:3000", trustedOrigins: [], storage: "local" })
 };
+
+// ../shared/src/protection-rule.ts
+var SKIP_COUNTRY = ['http.request.uri.query contains "deployai_preview"', 'http.cookie contains "deployai_preview"', 'http.request.uri.query contains "deployai_team"', 'http.cookie contains "__deployai_team"', ...UNVERIFIED_BOT_TOKENS.map((t) => `lower(http.user_agent) contains "${t}"`)];
 
 // ../shared/src/agent-rules.ts
 var IPHONE_RULE = "iPhone: Safari is its own browser engine, so working in Chrome or on Android proves nothing. Full height sections use svh or dvh, never 100vh. Typing fields are at least 16px, or the page zooms. A video that plays by itself has muted and playsinline. Bars fixed to the bottom pad with env(safe-area-inset-bottom). Nothing needs a hover. Newer CSS and browser features need a working fallback.";
@@ -23776,7 +24151,7 @@ function movedLegalFromScan(scan) {
   const sells = named("payments").length > 0 || pages.some((p) => p.type === "product");
   const privacy = oldPage(pages, OLD_PAGES.privacy);
   const duties = [];
-  const add = (key, state, items = [], old = null) => duties.push({ key, state, items: items.slice(0, SHOWN), old });
+  const add = (key2, state, items = [], old = null) => duties.push({ key: key2, state, items: items.slice(0, SHOWN), old });
   if (forms.length) add("notice", "open", forms);
   if (forms.length || services.length) add("privacy", privacy ? "confirm" : "details", [], privacy);
   if (forms.length) add("requests", "open");
@@ -23846,279 +24221,6 @@ var enc3 = new TextEncoder();
 // ../shared/src/dangerous-hosts.ts
 var DANGEROUS_MAX_BYTES = 64 * 1024 * 1024;
 
-// ../shared/src/brand.ts
-var ICO_SIZES = [32, 48];
-var ICO_TARGETS = ICO_SIZES.map((s) => ({ file: `ico-${s}.png`, width: s, height: s, icoOnly: true }));
-var FAVICON_TARGETS = [
-  ...ICO_TARGETS,
-  { file: "apple-touch-icon.png", width: 180, height: 180, opaque: true, pad: 0.1 }
-];
-var BRAND_TARGETS = [
-  ...FAVICON_TARGETS,
-  { file: "favicon-96x96.png", width: 96, height: 96 },
-  { file: "icon-192.png", width: 192, height: 192 },
-  { file: "icon-512.png", width: 512, height: 512 },
-  { file: "icon-maskable-512.png", width: 512, height: 512, opaque: true, pad: 0.2 },
-  { file: "og-image.png", width: 1200, height: 630, opaque: true, og: true }
-];
-var BRAND_FILES = ["favicon.ico", "favicon.svg", "site.webmanifest", ...BRAND_TARGETS.filter((t) => !t.icoOnly).map((t) => t.file)];
-function canDraw(target, source) {
-  if (source.vector || target.og) return true;
-  return Math.max(target.width, target.height) <= Math.max(source.width, source.height) * 2;
-}
-var xml = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-function letterTileSvg(name, color) {
-  const letter = [...name.trim()][0]?.toLocaleUpperCase() ?? "S";
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="${xml(color)}"/><text x="32" y="33" font-family="system-ui,Arial,sans-serif" font-size="38" font-weight="700" fill="${contrastInk(color)}" text-anchor="middle" dominant-baseline="central">${xml(letter)}</text></svg>
-`;
-}
-function contrastInk(color) {
-  const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(color);
-  if (!m) return "#FFFFFF";
-  const [r, g, b] = [m[1], m[2], m[3]].map((h) => parseInt(h, 16));
-  return 0.299 * r + 0.587 * g + 0.114 * b > 150 ? "#0A0A0A" : "#FFFFFF";
-}
-var BRAND_DEFAULT_COLOR = "#111827";
-function webManifest(name, color, files) {
-  return `${JSON.stringify({
-    name,
-    short_name: name.slice(0, 12),
-    icons: [
-      { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
-      { src: "/icon-512.png", sizes: "512x512", type: "image/png" },
-      { src: "/icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" }
-    ].filter((i) => !files || files.includes(i.src.slice(1))),
-    theme_color: color,
-    background_color: color,
-    display: "browser"
-  }, null, 2)}
-`;
-}
-function brandHeadTags(files) {
-  const has = (f) => files.includes(f);
-  return [
-    has("favicon.ico") ? '<link rel="icon" href="/favicon.ico" sizes="48x48">' : "",
-    has("favicon.svg") ? '<link rel="icon" href="/favicon.svg" type="image/svg+xml">' : "",
-    has("favicon-96x96.png") ? '<link rel="icon" href="/favicon-96x96.png" type="image/png" sizes="96x96">' : "",
-    has("apple-touch-icon.png") ? '<link rel="apple-touch-icon" href="/apple-touch-icon.png">' : "",
-    has("site.webmanifest") ? '<link rel="manifest" href="/site.webmanifest">' : "",
-    has("og-image.png") ? '<meta property="og:image" content="<the site address>/og-image.png">' : "",
-    has("og-image.png") ? '<meta property="og:image:width" content="1200">' : "",
-    has("og-image.png") ? '<meta property="og:image:height" content="630">' : ""
-  ].filter(Boolean);
-}
-function buildIco(images) {
-  const headerSize = 6 + images.length * 16;
-  const out2 = new Uint8Array(headerSize + images.reduce((n2, i) => n2 + i.png.length, 0));
-  const view = new DataView(out2.buffer);
-  view.setUint16(2, 1, true);
-  view.setUint16(4, images.length, true);
-  let offset = headerSize;
-  images.forEach((img, i) => {
-    const at = 6 + i * 16;
-    out2[at] = img.size >= 256 ? 0 : img.size;
-    out2[at + 1] = img.size >= 256 ? 0 : img.size;
-    view.setUint16(at + 4, 1, true);
-    view.setUint16(at + 6, 32, true);
-    view.setUint32(at + 8, img.png.length, true);
-    view.setUint32(at + 12, offset, true);
-    out2.set(img.png, offset);
-    offset += img.png.length;
-  });
-  return out2;
-}
-function imageSize(b) {
-  const v = new DataView(b.buffer, b.byteOffset, b.byteLength);
-  const ascii = (at, n2) => String.fromCharCode(...b.subarray(at, at + n2));
-  if (b.length >= 24 && b[0] === 137 && ascii(1, 3) === "PNG") return { width: v.getUint32(16), height: v.getUint32(20), format: "png" };
-  if (b.length >= 10 && ascii(0, 3) === "GIF") return { width: v.getUint16(6, true), height: v.getUint16(8, true), format: "gif" };
-  if (b.length >= 22 && v.getUint16(0, true) === 0 && v.getUint16(2, true) === 1 && v.getUint16(4, true) > 0) {
-    let best = 0;
-    const count = v.getUint16(4, true);
-    for (let i = 0; i < count && 6 + i * 16 < b.length; i++) best = Math.max(best, b[6 + i * 16] || 256);
-    return { width: best, height: best, format: "ico" };
-  }
-  if (b.length >= 30 && ascii(0, 4) === "RIFF" && ascii(8, 4) === "WEBP") {
-    const kind = ascii(12, 4);
-    if (kind === "VP8X") return { width: 1 + (b[24] | b[25] << 8 | b[26] << 16), height: 1 + (b[27] | b[28] << 8 | b[29] << 16), format: "webp" };
-    if (kind === "VP8 ") return { width: v.getUint16(26, true) & 16383, height: v.getUint16(28, true) & 16383, format: "webp" };
-    if (kind === "VP8L") {
-      const bits = v.getUint32(21, true);
-      return { width: (bits & 16383) + 1, height: (bits >> 14 & 16383) + 1, format: "webp" };
-    }
-    return null;
-  }
-  if (b.length >= 4 && b[0] === 255 && b[1] === 216) {
-    let at = 2;
-    while (at + 9 < b.length) {
-      if (b[at] !== 255) {
-        at++;
-        continue;
-      }
-      const marker = b[at + 1];
-      if (marker === 255) {
-        at++;
-        continue;
-      }
-      if (marker >= 192 && marker <= 207 && marker !== 196 && marker !== 200 && marker !== 204) return { width: v.getUint16(at + 7), height: v.getUint16(at + 5), format: "jpeg" };
-      at += 2 + v.getUint16(at + 2);
-    }
-  }
-  return null;
-}
-var IMAGE_MIN_DENSITY = 1.5;
-var IMAGE_SMALL_WIDTH = 400;
-var JPEG_MIN_BYTES_PER_PIXEL = 0.04;
-var IMAGE_IGNORE_UNDER = 96;
-function judgeImage(img) {
-  if (img.shownWidth !== void 0) {
-    if (img.shownWidth < IMAGE_IGNORE_UNDER) return "ok";
-    if (img.width < img.shownWidth * IMAGE_MIN_DENSITY) return "soft";
-  } else if (img.width >= IMAGE_IGNORE_UNDER && img.width < IMAGE_SMALL_WIDTH) {
-    return "small";
-  }
-  if (img.format === "jpeg" && img.bytes !== void 0 && img.width >= IMAGE_SMALL_WIDTH && img.bytes / (img.width * img.height) < JPEG_MIN_BYTES_PER_PIXEL) return "compressed";
-  return "ok";
-}
-function looksLikeLogo(path) {
-  return /(^|[/_.-])logo([/_.-]|\d|$)/i.test(path) && /\.(svg|png|webp|jpe?g)(\?|$)/i.test(path);
-}
-var decode4 = (s) => s.replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#0?39;|&apos;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/\s+/g, " ").trim();
-function metaContent2(html, attr2, key) {
-  for (const m of html.matchAll(/<meta\b[^>]*>/gi)) {
-    if (!new RegExp(`\\s${attr2}=["']${key}["']`, "i").test(m[0])) continue;
-    const v = m[0].match(/\scontent=["']([^"']*)/i)?.[1];
-    if (v) return decode4(v);
-  }
-  return null;
-}
-function readSiteIdentity(html) {
-  const title = decode4(html.match(/<title[^>]*>([^<]*)/i)?.[1] ?? "");
-  const fromTitle = title.split(/\s[|\-\u2013\u2014\u00b7:]\s/).map((s) => s.trim()).filter((s) => s && !/^(home|home ?page|welcome|main|בית|דף הבית|ראשי|עמוד הבית|ברוכים הבאים)$/i.test(s)).sort((a, b) => a.length - b.length)[0] ?? null;
-  const description = metaContent2(html, "name", "description") ?? metaContent2(html, "property", "og:description");
-  return { name: metaContent2(html, "property", "og:site_name") ?? fromTitle, line: description ? shareLine(description) : null, themeColor: metaContent2(html, "name", "theme-color") };
-}
-function shareLine(text2, max = 70) {
-  const first = decode4(text2).split(/(?<=[.!?\u05c3])\s/)[0] ?? "";
-  if (first.length <= max) return first.replace(/[.\s]+$/, "");
-  const cut = first.slice(0, max);
-  const pause = Math.max(cut.lastIndexOf(":"), cut.lastIndexOf(","), cut.lastIndexOf(";"));
-  return pause >= 20 ? cut.slice(0, pause) : cut.replace(/\s+\S*$/, "");
-}
-var hex22 = (n2) => Math.max(0, Math.min(255, Math.round(n2))).toString(16).padStart(2, "0");
-function toHexColor(value) {
-  const v = value.trim().toLowerCase();
-  let m = /^#([0-9a-f]{3})$/.exec(v);
-  if (m) return `#${[...m[1]].map((c) => c + c).join("")}`;
-  m = /^#([0-9a-f]{6})(ff)?$/.exec(v);
-  if (m) return `#${m[1]}`;
-  m = /^rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)\s*(?:[,/]\s*(1|1\.0+|100%)\s*)?\)$/.exec(v);
-  if (m) return `#${hex22(+m[1])}${hex22(+m[2])}${hex22(+m[3])}`;
-  m = /^hsla?\(\s*([\d.]+)(?:deg)?[\s,]+([\d.]+)%[\s,]+([\d.]+)%\s*\)$/.exec(v);
-  if (m) {
-    const [h, s, l] = [+m[1] / 360, +m[2] / 100, +m[3] / 100];
-    const f = (n2) => {
-      const k = (n2 + h * 12) % 12;
-      return l - s * Math.min(l, 1 - l) * Math.max(-1, Math.min(k - 3, 9 - k, 1));
-    };
-    return `#${hex22(f(0) * 255)}${hex22(f(8) * 255)}${hex22(f(4) * 255)}`;
-  }
-  return null;
-}
-function isBrandColor(color) {
-  const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(color);
-  if (!m) return false;
-  const [r, g, b] = [m[1], m[2], m[3]].map((h) => parseInt(h, 16) / 255);
-  const max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2;
-  const s = max === min ? 0 : (max - min) / (1 - Math.abs(2 * l - 1));
-  return s >= 0.25 && l >= 0.12 && l <= 0.8;
-}
-var COLOR_RE = /#[0-9a-f]{3,8}\b|rgba?\([^)]*\)|hsla?\([^)]*\)/gi;
-var NAMED_RE = /(?:--|\b)(?:[\w-]*?)(primary|brand|accent|main)[\w-]*["']?\s*:\s*["']?(#[0-9a-f]{3,8}\b|rgba?\([^)]*\)|hsla?\([^)]*\))/gi;
-var NAMED_WEIGHT = 25;
-var THEME_WEIGHT = 100;
-var MIN_USES = 2;
-function isPageWhite(color) {
-  const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(color);
-  return !!m && [m[1], m[2], m[3]].every((h) => parseInt(h, 16) >= 240);
-}
-function pickBrandColor(sources) {
-  const score = /* @__PURE__ */ new Map();
-  const add = (raw, by, onPurpose) => {
-    const hex3 = toHexColor(raw);
-    if (hex3 && (onPurpose ? !isPageWhite(hex3) : isBrandColor(hex3))) score.set(hex3, (score.get(hex3) ?? 0) + by);
-  };
-  for (const s of sources) {
-    if (s.themeColor) add(s.themeColor, THEME_WEIGHT, true);
-    for (const m of s.text.matchAll(COLOR_RE)) add(m[0], 1, false);
-    for (const m of s.text.matchAll(NAMED_RE)) add(m[2], NAMED_WEIGHT, true);
-  }
-  return [...score.entries()].filter(([, n2]) => n2 >= MIN_USES).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] ?? null;
-}
-function svgLogoColor(svg) {
-  const count = /* @__PURE__ */ new Map();
-  for (const m of svg.matchAll(/(?:fill|stroke|stop-color)\s*[=:]\s*["']?(#[0-9a-f]{3,8}\b|rgba?\([^)]*\)|hsla?\([^)]*\))/gi)) {
-    const hex3 = toHexColor(m[1]);
-    if (hex3 && !isPageWhite(hex3)) count.set(hex3, (count.get(hex3) ?? 0) + 1);
-  }
-  return [...count.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] ?? null;
-}
-var isSvgText = (text2) => /<svg[\s>]/i.test(text2);
-function iconLinks(html) {
-  const found = [];
-  for (const m of html.matchAll(/<link\b[^>]*>/gi)) {
-    const rel = m[0].match(/\srel=["']([^"']+)/i)?.[1]?.toLowerCase() ?? "";
-    const href = m[0].match(/\shref=["']([^"']+)/i)?.[1];
-    if (!href || !/(^|\s)(icon|apple-touch-icon(-precomposed)?|mask-icon)(\s|$)/.test(rel) || href.startsWith("data:")) continue;
-    const size = Number(m[0].match(/\ssizes=["'](\d+)x/i)?.[1] ?? 0);
-    const score = /\.svg(\?|$)/i.test(href) ? 1e4 : rel.includes("apple-touch") ? 1e3 + size : size || 16;
-    found.push({ href, score });
-  }
-  return found.sort((a, b) => b.score - a.score).map((f) => f.href);
-}
-function logoInPage(html) {
-  for (const m of html.matchAll(/<img\b[^>]*>/gi)) {
-    const src = m[0].match(/\ssrc=["']([^"']+)/i)?.[1];
-    if (src && !src.startsWith("data:") && /logo/i.test(m[0])) return src;
-  }
-  return null;
-}
-var NOT_WORD_BEFORE = "(?<![\\p{L}\\p{N}])";
-var NOT_WORD_AFTER = "(?![\\p{L}\\p{N}])";
-var BUILDER_NAMES = "wix(?:\\.com)?|squarespace|wordpress(?:\\.(?:com|org))?|webflow|shopify|woocommerce|weebly|godaddy|jimdo|elementor|wpbakery|divi|lovable|bolt(?:\\.new)?|v0|replit|base44|manus|framer|astro|next\\.?js|nuxt|gatsby|hostinger|vercel|netlify|cloudflare|github\\s+pages|durable|site123|mobirise|duda|webnode|ucraft|tilda|carrd|bluehost|hostgator|cursor|claude|chatgpt|gemini|\u05D5\u05D5\u05D9\u05E7\u05E1|\u05D5\u05D9\u05E7\u05E1|\u05D5\u05D5\u05E8\u05D3\u05E4\u05E8\u05E1|\u05D5\u05E8\u05D3\u05E4\u05E8\u05E1|\u05E9\u05D5\u05E4\u05D9\u05E4\u05D9\u05D9";
-var BUILDER_CREDITS = [
-  new RegExp(`${NOT_WORD_BEFORE}(?:proudly\\s+)?(?:built|made|created|designed|developed|powered|hosted|published|generated|running|runs|edit|site|website)(?:\\s+\\p{L}+)?\\s+(?:with|by|on|using|in|at)\\s+(?:the\\s+)?(?:${BUILDER_NAMES})${NOT_WORD_AFTER}`, "giu"),
-  new RegExp(`${NOT_WORD_BEFORE}just\\s+another\\s+wordpress\\s+site${NOT_WORD_AFTER}`, "giu"),
-  new RegExp(`${NOT_WORD_BEFORE}(?:\u05E0\u05D1\u05E0\u05D4|\u05E0\u05D1\u05E0\u05EA\u05D4|\u05E0\u05D5\u05E6\u05E8|\u05E0\u05D5\u05E6\u05E8\u05D4|\u05D1\u05E0\u05D5\u05D9|\u05D1\u05E0\u05D5\u05D9\u05D4|\u05DE\u05D5\u05E4\u05E2\u05DC|\u05DE\u05D5\u05E4\u05E2\u05DC\u05EA|\u05DE\u05D1\u05D5\u05E1\u05E1|\u05DE\u05D1\u05D5\u05E1\u05E1\u05EA|\u05DE\u05D0\u05D5\u05D7\u05E1\u05DF|\u05DE\u05D0\u05D5\u05D7\u05E1\u05E0\u05EA|\u05DE\u05EA\u05D0\u05E8\u05D7|\u05DE\u05EA\u05D0\u05E8\u05D7\u05EA)\\s+(?:\u05D1-?|\u05E2\u05DC\\s+\u05D9\u05D3\u05D9\\s+|\u05D1\u05D0\u05DE\u05E6\u05E2\u05D5\u05EA\\s+|\u05E2\u05DD\\s+|\u05E2\u05DC\\s+)\\s*(?:${BUILDER_NAMES})${NOT_WORD_AFTER}`, "giu")
-];
-var BUILDER_TRACES = [
-  /<meta\b[^>]*\bname=["']?generator\b[^>]*>/gi,
-  /lovable-badge|edit-with-lovable|cdn\.gpteng\.co|wix-?ads|webflow-badge|framer-badge|bolt-badge|replit-badge/gi,
-  new RegExp(`<title\\b[^>]*>[^<]*[|\\-\u2013\u2014:\xB7]\\s*(?:${BUILDER_NAMES})\\s*</title>`, "giu")
-];
-var FOOTER_TAIL = 1500;
-var pageText = (html) => html.replace(/<!--[\s\S]*?-->/g, " ").replace(/<(script|style)\b[\s\S]*?<\/\1\s*>/gi, " ").replace(/<[^>]*>/g, " ").replace(/&nbsp;|&#160;/gi, " ").replace(/\s+/g, " ");
-function vendorFiles(html) {
-  const found = /* @__PURE__ */ new Set();
-  for (const tag of html.matchAll(/<(?:script|link)\b[^>]*>/gi)) {
-    const m = tag[0].match(/\/wp-content\/(plugins|themes)\/([^/"'?#\s]+)\/[^"'?#\s]*\.(?:js|css)(?:[?#"'\s]|$)/i);
-    if (m) found.add(`${m[1].toLowerCase()}/${m[2]}`);
-  }
-  return [...found];
-}
-function builderCredits(html) {
-  const found = /* @__PURE__ */ new Set();
-  const say = (text2) => {
-    const t = text2.replace(/\s+/g, " ").trim();
-    found.add(t.length > 80 ? `${t.slice(0, 77)}...` : t);
-  };
-  const footers = [...html.matchAll(/<footer\b[\s\S]*?<\/footer\s*>/gi)].map((m) => pageText(m[0])).join(" ");
-  const end = footers || pageText(html).slice(-FOOTER_TAIL);
-  for (const re of BUILDER_CREDITS) for (const m of end.matchAll(re)) say(m[0]);
-  for (const re of BUILDER_TRACES) for (const m of html.matchAll(re)) say(m[0]);
-  return [...found];
-}
-
 // ../shared/src/deploy-models.ts
 var MODEL_ID_MAX = 48;
 var KNOWN_MODEL = /^(claude|opus|sonnet|haiku|fable|gpt|o[1-9]|chatgpt|codex|gemini|gemma|grok|composer|deepseek|qwen|kimi|glm|llama|mistral|codestral|devstral|minimax|nova|phi)/;
@@ -24168,13 +24270,13 @@ function addonOrderBrief(items, mode) {
     ...flags.map((f) => `  npx deployai@latest addons run --order ${keys.join(",")} ${f}`)
   ];
 }
-function addonTrace(key, exists, stamps) {
-  return { files: (ADDON_SIGNS[key] ?? []).filter(exists), doneAt: stamps[key]?.doneAt ?? null };
+function addonTrace(key2, exists, stamps) {
+  return { files: (ADDON_SIGNS[key2] ?? []).filter(exists), doneAt: stamps[key2]?.doneAt ?? null };
 }
-function addonTraceLine(key, runId, trace) {
+function addonTraceLine(key2, runId, trace) {
   if (!trace.files.length && !trace.doneAt) return "";
   const found = [...trace.files.length ? [`${trace.files.join(", ")}`] : [], ...trace.doneAt ? [`it ran here on ${trace.doneAt.slice(0, 10)}`] : []].join("; ");
-  const update = key === "dashboard" ? " To bring it up to date run npx deployai@latest blocks dashboard --update, never a second install." : "";
+  const update = key2 === "dashboard" ? " To bring it up to date run npx deployai@latest blocks dashboard --update, never a second install." : "";
   return `This site already has this: ${found}. Do not add it again. Check that it still works and fix only what is broken.${update} If nothing is needed, run npx deployai@latest addon done ${runId} --status skipped.`;
 }
 
@@ -24229,6 +24331,14 @@ function loadConfig() {
     const tokens = Object.fromEntries(Object.entries(raw.guestTokens).filter(([, v]) => typeof v === "string"));
     if (Object.keys(tokens).length) cfg.guestTokens = tokens;
   }
+  if (raw.accounts && typeof raw.accounts === "object") {
+    const list = Object.fromEntries(Object.entries(raw.accounts).filter(([, v]) => v && typeof v === "object" && typeof v.token === "string" && typeof v.tokenApiUrl === "string"));
+    if (list && Object.keys(list).length) cfg.accounts = list;
+  }
+  if (raw.siteAccounts && typeof raw.siteAccounts === "object") {
+    const sites = Object.fromEntries(Object.entries(raw.siteAccounts).filter(([, v]) => typeof v === "string"));
+    if (Object.keys(sites).length) cfg.siteAccounts = sites;
+  }
   if (raw.installId !== cfg.installId) {
     try {
       saveConfig(cfg);
@@ -24239,8 +24349,8 @@ function loadConfig() {
 }
 function updateConfig(patch) {
   const cfg = { ...loadConfig(), ...patch };
-  for (const key of Object.keys(cfg)) {
-    if (cfg[key] === void 0) delete cfg[key];
+  for (const key2 of Object.keys(cfg)) {
+    if (cfg[key2] === void 0) delete cfg[key2];
   }
   saveConfig(cfg);
   return cfg;
@@ -24260,18 +24370,39 @@ function resolveApiUrl(flag, cfg) {
   const url2 = flag || process.env.DEPLOYAI_API_URL || cfg?.apiUrl || API_BASE_DEFAULT;
   return url2.replace(/\/+$/, "");
 }
-
-// src/errors.ts
-var CliError = class extends Error {
-  constructor(message, exitCode = 1, category = "error") {
-    super(message);
-    this.exitCode = exitCode;
-    this.category = category;
-    this.name = "CliError";
-  }
-  exitCode;
-  category;
-};
+var key = (email3) => email3.trim().toLowerCase();
+function saveLogin(token, email3, apiUrl) {
+  const cfg = loadConfig();
+  const accounts = { ...cfg.accounts ?? {} };
+  if (email3) accounts[key(email3)] = { token, tokenApiUrl: apiUrl };
+  return updateConfig({ token, email: email3, apiUrl, tokenApiUrl: apiUrl, accounts: Object.keys(accounts).length ? accounts : void 0 });
+}
+function rememberSite(projectId, email3) {
+  if (!email3) return;
+  const cfg = loadConfig();
+  if (cfg.siteAccounts?.[projectId] === key(email3)) return;
+  updateConfig({ siteAccounts: { ...cfg.siteAccounts ?? {}, [projectId]: key(email3) } });
+}
+function configForSite(cfg, projectId) {
+  const email3 = projectId ? cfg.siteAccounts?.[projectId] : void 0;
+  const account = email3 ? cfg.accounts?.[email3] : void 0;
+  if (!email3 || !account || cfg.email && key(cfg.email) === email3) return cfg;
+  return { ...cfg, token: account.token, tokenApiUrl: account.tokenApiUrl, email: email3 };
+}
+function otherAccounts(cfg, email3) {
+  return Object.keys(cfg.accounts ?? {}).filter((e3) => !email3 || e3 !== key(email3));
+}
+function forgetAccount(email3) {
+  const cfg = loadConfig();
+  const gone = key(email3);
+  const accounts = Object.fromEntries(Object.entries(cfg.accounts ?? {}).filter(([e3]) => e3 !== gone));
+  const siteAccounts = Object.fromEntries(Object.entries(cfg.siteAccounts ?? {}).filter(([, e3]) => e3 !== gone));
+  const wasActive = !cfg.email || key(cfg.email) === gone;
+  const next = wasActive ? Object.entries(accounts)[0] : void 0;
+  const active = wasActive ? next ? { token: next[1].token, tokenApiUrl: next[1].tokenApiUrl, email: next[0] } : { token: void 0, tokenApiUrl: void 0, email: void 0 } : {};
+  updateConfig({ ...active, accounts: Object.keys(accounts).length ? accounts : void 0, siteAccounts: Object.keys(siteAccounts).length ? siteAccounts : void 0 });
+  return wasActive ? next?.[0] : cfg.email;
+}
 
 // src/project.ts
 import { existsSync as existsSync2, mkdirSync as mkdirSync2, readFileSync as readFileSync3, writeFileSync as writeFileSync2 } from "fs";
@@ -24307,7 +24438,7 @@ function ensureDeployaiDir(root) {
   if (!existsSync2(dir)) mkdirSync2(dir, { recursive: true });
   const ignore = join2(dir, ".gitignore");
   const have = existsSync2(ignore) ? readFileSync3(ignore, "utf8") : "";
-  const missing = ["last-check.json", "brief.md", "start.md", "blocks/*.md"].filter((f) => !have.split(/\r?\n/).includes(f));
+  const missing = ["last-check.json", "brief.md", "start.md", "blocks/*.md", "sync.json", "sync/"].filter((f) => !have.split(/\r?\n/).includes(f));
   if (missing.length) writeFileSync2(ignore, have + (have && !have.endsWith("\n") ? "\n" : "") + missing.join("\n") + "\n");
 }
 function readProject(root) {
@@ -24327,6 +24458,18 @@ function updateProject(root, patch) {
   writeProject(root, cfg);
   return cfg;
 }
+
+// src/errors.ts
+var CliError = class extends Error {
+  constructor(message, exitCode = 1, category = "error") {
+    super(message);
+    this.exitCode = exitCode;
+    this.category = category;
+    this.name = "CliError";
+  }
+  exitCode;
+  category;
+};
 
 // src/i18n.ts
 var isLang = (v) => v === "he" || v === "en";
@@ -24487,7 +24630,33 @@ var M = {
     siteDeleted: "This site was deleted in the DeployAI dashboard. The owner can restore it from the dashboard (My sites, deleted sites) within 7 days. To deploy somewhere else, run: npx deployai@latest link",
     notEntitled: "This site does not have this add-on. The site owner can buy it for this site here: {url}",
     forbidden: "This account cannot change this site. Check that you logged in with the account that owns it.",
-    notOnSite: "This site belongs to another account. Ask its owner to add you as an editor. If it is your site, log in with the account that owns it: npx deployai@latest logout, then npx deployai@latest login",
+    versionStale: "Version {n} was made before {by} put version {live} live. Putting it live now would take those changes off the site. Bring them in first: npx deployai@latest sync, then deploy again. Only if the owner says to put it live anyway: npx deployai@latest promote {n} --anyway",
+    versionRolledBack: "The site was put back to version {live} after the code of version {n} was taken, and it still holds what was taken off (versions {dropped}). Ask the owner: keep the site as it is now (npx deployai@latest sync, then deploy again), or bring those changes back (npx deployai@latest promote {n} --anyway).",
+    someone: "someone",
+    syncNoGit: "sync needs git on this computer to join the changes. Install git (https://git-scm.com/downloads), then run: npx deployai@latest sync",
+    syncNoBase: "This folder does not know which version its code came from, so it cannot join the live changes safely. Get the live code into a new empty folder (npx deployai@latest pull), copy your changed files into it, and deploy from there.",
+    syncUpToDate: "This folder already has the live version (v{v}). Nothing to bring in.",
+    syncDone: "Brought in live version v{v}: {taken} files taken from the live site, {merged} joined with your changes.",
+    syncConflicts: "Both sides changed these, and the owner decides:",
+    syncWhy_both: "changed in the same place; both versions are in the file between <<<<<<< and >>>>>>> lines",
+    syncWhy_binary: "a picture or other file changed on both sides; yours stays, the live one is at {live}",
+    syncWhy_deleted_here: "deleted here but changed on the live site; the live one is back",
+    syncWhy_deleted_live: "deleted on the live site but changed here; yours stays",
+    syncClash: "Two database changes have the same number: {mine} (this folder) and {theirs} (live). Give {mine} the next free number.",
+    syncNext: "Next: npx deployai@latest check, then deploy again.",
+    syncNextConflicts: "Show the owner each one in plain words, ask which to keep, then edit the file so it holds only that (no <<<<<<<, ======= or >>>>>>> lines). Then: npx deployai@latest check, and deploy again. Everything before the sync is in git, so it can be undone.",
+    syncLeftovers: "Not uploaded: the last sync left these for the owner to decide: {files}. Settle each one, then deploy again.",
+    workOthers: "Also working on this site now: {names}. Tell the owner, so you do not change the same thing at once.",
+    workYouElsewhere: "you, from another folder or computer",
+    workMinutesAgo: "{n} min ago",
+    notOnSite: "This site belongs to another account. If it is your site, log in with the account that owns it: npx deployai@latest login --force (the accounts already here stay). If it is someone else's site, ask its owner to add you as an editor.",
+    startOtherAccount: "Logged in here as {email}, and this site belongs to another account{maker}. Approve in the browser with the account that owns the site. The account already here stays logged in for its own sites.",
+    startOtherAccountMaker: " (the line was made by {maker})",
+    startStillOtherAccount: "The account you approved ({email}) cannot open this site either. Log in with the account that made the line{maker}, or ask the site's owner to add you as an editor, then run the same line again: npx deployai@latest start {id}",
+    otherAccountsHere: "Other accounts on this computer: {list}. A site opened with one of them keeps using it.",
+    loggedOutSwitched: "Logged out of {gone}. Now using {email}.",
+    loggedOutAll: "Logged out of every account on this computer.",
+    logoutNoAccount: "{email} is not logged in on this computer. Logged in here: {list}",
     viewOnly: "This account can only view this site. Ask its owner to make you an editor.",
     startLoginFirst: "This line opens only for the site's owner or an editor, so first log in.",
     startLoginExpired: "The login code expired. Run the same line again: npx deployai@latest start {id}",
@@ -24734,7 +24903,33 @@ var M = {
     siteDeleted: "\u05D4\u05D0\u05EA\u05E8 \u05E0\u05DE\u05D7\u05E7 \u05D1\u05DC\u05D5\u05D7 \u05D4\u05D1\u05E7\u05E8\u05D4 \u05E9\u05DC DeployAI. \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D9\u05DB\u05D5\u05DC \u05DC\u05E9\u05D7\u05D6\u05E8 \u05D0\u05D5\u05EA\u05D5 \u05DE\u05DC\u05D5\u05D7 \u05D4\u05D1\u05E7\u05E8\u05D4 (\u05D4\u05D0\u05EA\u05E8\u05D9\u05DD \u05E9\u05DC\u05D9, \u05D0\u05EA\u05E8\u05D9\u05DD \u05E9\u05E0\u05DE\u05D7\u05E7\u05D5) \u05EA\u05D5\u05DA 7 \u05D9\u05DE\u05D9\u05DD. \u05DB\u05D3\u05D9 \u05DC\u05D4\u05E2\u05DC\u05D5\u05EA \u05DC\u05D0\u05EA\u05E8 \u05D0\u05D7\u05E8, \u05D4\u05E8\u05D9\u05E6\u05D5: npx deployai@latest link",
     notEntitled: "\u05DC\u05D0\u05EA\u05E8 \u05D4\u05D6\u05D4 \u05D0\u05D9\u05DF \u05D0\u05EA \u05D4\u05EA\u05D5\u05E1\u05E3 \u05D4\u05D6\u05D4. \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D9\u05DB\u05D5\u05DC \u05DC\u05E7\u05E0\u05D5\u05EA \u05D0\u05D5\u05EA\u05D5 \u05DC\u05D0\u05EA\u05E8 \u05DB\u05D0\u05DF: {url}",
     forbidden: "\u05D4\u05D7\u05E9\u05D1\u05D5\u05DF \u05D4\u05D6\u05D4 \u05DC\u05D0 \u05D9\u05DB\u05D5\u05DC \u05DC\u05E9\u05E0\u05D5\u05EA \u05D0\u05EA \u05D4\u05D0\u05EA\u05E8 \u05D4\u05D6\u05D4. \u05D1\u05D3\u05E7\u05D5 \u05E9\u05E0\u05DB\u05E0\u05E1\u05EA\u05DD \u05E2\u05DD \u05D4\u05D7\u05E9\u05D1\u05D5\u05DF \u05E9\u05D4\u05D0\u05EA\u05E8 \u05E9\u05D9\u05D9\u05DA \u05DC\u05D5.",
-    notOnSite: "\u05D4\u05D0\u05EA\u05E8 \u05D4\u05D6\u05D4 \u05E9\u05D9\u05D9\u05DA \u05DC\u05D7\u05E9\u05D1\u05D5\u05DF \u05D0\u05D7\u05E8. \u05D1\u05E7\u05E9\u05D5 \u05DE\u05D4\u05D1\u05E2\u05DC\u05D9\u05DD \u05E9\u05DC\u05D5 \u05DC\u05D4\u05D5\u05E1\u05D9\u05E3 \u05D0\u05EA\u05DB\u05DD \u05E2\u05DD \u05D4\u05E8\u05E9\u05D0\u05EA \u05E2\u05E8\u05D9\u05DB\u05D4. \u05D0\u05DD \u05D4\u05D0\u05EA\u05E8 \u05E9\u05DC\u05DB\u05DD, \u05D4\u05EA\u05D7\u05D1\u05E8\u05D5 \u05E2\u05DD \u05D4\u05D7\u05E9\u05D1\u05D5\u05DF \u05E9\u05D4\u05D5\u05D0 \u05E9\u05D9\u05D9\u05DA \u05DC\u05D5: npx deployai@latest logout \u05D5\u05D0\u05D6 npx deployai@latest login",
+    versionStale: "\u05D2\u05E8\u05E1\u05D4 {n} \u05E0\u05D1\u05E0\u05EA\u05D4 \u05DC\u05E4\u05E0\u05D9 \u05E9\u05D2\u05E8\u05E1\u05D4 {live} \u05E2\u05DC\u05EA\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8 ({by}). \u05D4\u05E2\u05DC\u05D0\u05D4 \u05E2\u05DB\u05E9\u05D9\u05D5 \u05EA\u05D5\u05E8\u05D9\u05D3 \u05D0\u05EA \u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D4\u05D0\u05DC\u05D4 \u05DE\u05D4\u05D0\u05EA\u05E8. \u05E7\u05D5\u05D3\u05DD \u05DE\u05DB\u05E0\u05D9\u05E1\u05D9\u05DD \u05D0\u05D5\u05EA\u05DD: npx deployai@latest sync, \u05D5\u05D0\u05D6 \u05DE\u05E2\u05DC\u05D9\u05DD \u05E9\u05D5\u05D1. \u05E8\u05E7 \u05D0\u05DD \u05D4\u05D1\u05E2\u05DC\u05D9\u05DD \u05D0\u05D5\u05DE\u05E8\u05D9\u05DD \u05DC\u05D4\u05E2\u05DC\u05D5\u05EA \u05D1\u05DB\u05DC \u05D6\u05D0\u05EA: npx deployai@latest promote {n} --anyway",
+    versionRolledBack: "\u05D4\u05D0\u05EA\u05E8 \u05D4\u05D5\u05D7\u05D6\u05E8 \u05DC\u05D2\u05E8\u05E1\u05D4 {live} \u05D0\u05D7\u05E8\u05D9 \u05E9\u05D4\u05E7\u05D5\u05D3 \u05E9\u05DC \u05D2\u05E8\u05E1\u05D4 {n} \u05E0\u05DC\u05E7\u05D7, \u05D5\u05D9\u05E9 \u05D1\u05D4 \u05E2\u05D3\u05D9\u05D9\u05DF \u05D0\u05EA \u05DE\u05D4 \u05E9\u05D4\u05D5\u05E8\u05D3 (\u05D2\u05E8\u05E1\u05D0\u05D5\u05EA {dropped}). \u05E9\u05D0\u05DC\u05D5 \u05D0\u05EA \u05D4\u05D1\u05E2\u05DC\u05D9\u05DD: \u05DC\u05D4\u05E9\u05D0\u05D9\u05E8 \u05D0\u05EA \u05D4\u05D0\u05EA\u05E8 \u05DB\u05DE\u05D5 \u05E9\u05D4\u05D5\u05D0 \u05E2\u05DB\u05E9\u05D9\u05D5 (npx deployai@latest sync \u05D5\u05D0\u05D6 \u05DE\u05E2\u05DC\u05D9\u05DD \u05E9\u05D5\u05D1), \u05D0\u05D5 \u05DC\u05D4\u05D7\u05D6\u05D9\u05E8 \u05D0\u05EA \u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD (npx deployai@latest promote {n} --anyway).",
+    someone: "\u05DE\u05D9\u05E9\u05D4\u05D5",
+    syncNoGit: "\u05DB\u05D3\u05D9 \u05DC\u05D7\u05D1\u05E8 \u05D0\u05EA \u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05E6\u05E8\u05D9\u05DA git \u05D1\u05DE\u05D7\u05E9\u05D1 \u05D4\u05D6\u05D4. \u05D4\u05EA\u05E7\u05D9\u05E0\u05D5 \u05D0\u05EA git (https://git-scm.com/downloads), \u05D5\u05D0\u05D6 \u05D4\u05E8\u05D9\u05E6\u05D5: npx deployai@latest sync",
+    syncNoBase: "\u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5 \u05DC\u05D0 \u05D9\u05D5\u05D3\u05E2\u05EA \u05DE\u05D0\u05D9\u05D6\u05D5 \u05D2\u05E8\u05E1\u05D4 \u05D4\u05E7\u05D5\u05D3 \u05E9\u05DC\u05D4 \u05D1\u05D0, \u05D5\u05DC\u05DB\u05DF \u05D0\u05D9 \u05D0\u05E4\u05E9\u05E8 \u05DC\u05D7\u05D1\u05E8 \u05D0\u05EA \u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05DE\u05D4\u05D0\u05EA\u05E8 \u05D1\u05D1\u05D8\u05D7\u05D4. \u05D4\u05D5\u05E8\u05D9\u05D3\u05D5 \u05D0\u05EA \u05D4\u05E7\u05D5\u05D3 \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8 \u05DC\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05E8\u05D9\u05E7\u05D4 \u05D7\u05D3\u05E9\u05D4 (npx deployai@latest pull), \u05D4\u05E2\u05EA\u05D9\u05E7\u05D5 \u05D0\u05DC\u05D9\u05D4 \u05D0\u05EA \u05D4\u05E7\u05D1\u05E6\u05D9\u05DD \u05E9\u05E9\u05D9\u05E0\u05D9\u05EA\u05DD, \u05D5\u05D4\u05E2\u05DC\u05D5 \u05DE\u05E9\u05DD.",
+    syncUpToDate: "\u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5 \u05DB\u05D1\u05E8 \u05D9\u05E9 \u05D0\u05EA \u05D4\u05D2\u05E8\u05E1\u05D4 \u05E9\u05D1\u05D0\u05D5\u05D5\u05D9\u05E8 (v{v}). \u05D0\u05D9\u05DF \u05DE\u05D4 \u05DC\u05D4\u05DB\u05E0\u05D9\u05E1.",
+    syncDone: "\u05D4\u05D5\u05DB\u05E0\u05E1\u05D4 \u05D4\u05D2\u05E8\u05E1\u05D4 \u05E9\u05D1\u05D0\u05D5\u05D5\u05D9\u05E8 v{v}: {taken} \u05E7\u05D1\u05E6\u05D9\u05DD \u05E0\u05DC\u05E7\u05D7\u05D5 \u05DE\u05D4\u05D0\u05EA\u05E8, {merged} \u05D7\u05D5\u05D1\u05E8\u05D5 \u05E2\u05DD \u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05E9\u05DC\u05DB\u05DD.",
+    syncConflicts: "\u05D0\u05EA \u05D0\u05DC\u05D4 \u05E9\u05D9\u05E0\u05D5 \u05D1\u05E9\u05E0\u05D9 \u05D4\u05E6\u05D3\u05D3\u05D9\u05DD, \u05D5\u05D4\u05D1\u05E2\u05DC\u05D9\u05DD \u05DE\u05D7\u05DC\u05D9\u05D8\u05D9\u05DD:",
+    syncWhy_both: "\u05E9\u05D5\u05E0\u05D4 \u05D1\u05D0\u05D5\u05EA\u05D5 \u05DE\u05E7\u05D5\u05DD; \u05E9\u05EA\u05D9 \u05D4\u05D2\u05E8\u05E1\u05D0\u05D5\u05EA \u05D1\u05E7\u05D5\u05D1\u05E5 \u05D1\u05D9\u05DF \u05D4\u05E9\u05D5\u05E8\u05D5\u05EA <<<<<<< \u05D5\u05BE>>>>>>>",
+    syncWhy_binary: "\u05EA\u05DE\u05D5\u05E0\u05D4 \u05D0\u05D5 \u05E7\u05D5\u05D1\u05E5 \u05D0\u05D7\u05E8 \u05E9\u05D4\u05E9\u05EA\u05E0\u05D4 \u05D1\u05E9\u05E0\u05D9 \u05D4\u05E6\u05D3\u05D3\u05D9\u05DD; \u05E9\u05DC\u05DB\u05DD \u05E0\u05E9\u05D0\u05E8, \u05D6\u05D4 \u05E9\u05D1\u05D0\u05D5\u05D5\u05D9\u05E8 \u05E0\u05DE\u05E6\u05D0 \u05D1\u05BE{live}",
+    syncWhy_deleted_here: "\u05E0\u05DE\u05D7\u05E7 \u05DB\u05D0\u05DF \u05D0\u05D1\u05DC \u05E9\u05D5\u05E0\u05D4 \u05D1\u05D0\u05EA\u05E8; \u05D6\u05D4 \u05E9\u05D1\u05D0\u05D5\u05D5\u05D9\u05E8 \u05D7\u05D6\u05E8",
+    syncWhy_deleted_live: "\u05E0\u05DE\u05D7\u05E7 \u05D1\u05D0\u05EA\u05E8 \u05D0\u05D1\u05DC \u05E9\u05D5\u05E0\u05D4 \u05DB\u05D0\u05DF; \u05E9\u05DC\u05DB\u05DD \u05E0\u05E9\u05D0\u05E8",
+    syncClash: "\u05DC\u05E9\u05E0\u05D9 \u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05D9\u05E9 \u05D0\u05D5\u05EA\u05D5 \u05DE\u05E1\u05E4\u05E8: {mine} (\u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5) \u05D5\u05BE{theirs} (\u05D1\u05D0\u05D5\u05D5\u05D9\u05E8). \u05EA\u05E0\u05D5 \u05DC\u05BE{mine} \u05D0\u05EA \u05D4\u05DE\u05E1\u05E4\u05E8 \u05D4\u05E4\u05E0\u05D5\u05D9 \u05D4\u05D1\u05D0.",
+    syncNext: "\u05D4\u05D1\u05D0: npx deployai@latest check, \u05D5\u05D0\u05D6 \u05DE\u05E2\u05DC\u05D9\u05DD \u05E9\u05D5\u05D1.",
+    syncNextConflicts: "\u05D4\u05E8\u05D0\u05D5 \u05DC\u05D1\u05E2\u05DC\u05D9\u05DD \u05DB\u05DC \u05D0\u05D7\u05D3 \u05D1\u05DE\u05D9\u05DC\u05D9\u05DD \u05E4\u05E9\u05D5\u05D8\u05D5\u05EA, \u05E9\u05D0\u05DC\u05D5 \u05DE\u05D4 \u05DC\u05D4\u05E9\u05D0\u05D9\u05E8, \u05D5\u05E2\u05E8\u05DB\u05D5 \u05D0\u05EA \u05D4\u05E7\u05D5\u05D1\u05E5 \u05DB\u05DA \u05E9\u05D9\u05D9\u05E9\u05D0\u05E8 \u05E8\u05E7 \u05D6\u05D4 (\u05D1\u05DC\u05D9 \u05E9\u05D5\u05E8\u05D5\u05EA <<<<<<<, ======= \u05D0\u05D5 >>>>>>>). \u05D5\u05D0\u05D6: npx deployai@latest check, \u05D5\u05DE\u05E2\u05DC\u05D9\u05DD \u05E9\u05D5\u05D1. \u05DB\u05DC \u05DE\u05D4 \u05E9\u05D4\u05D9\u05D4 \u05DC\u05E4\u05E0\u05D9 \u05D4\u05BEsync \u05E9\u05DE\u05D5\u05E8 \u05D1\u05BEgit, \u05D5\u05D0\u05E4\u05E9\u05E8 \u05DC\u05D1\u05D8\u05DC.",
+    syncLeftovers: "\u05DC\u05D0 \u05D4\u05D5\u05E2\u05DC\u05D4: \u05D4\u05BEsync \u05D4\u05D0\u05D7\u05E8\u05D5\u05DF \u05D4\u05E9\u05D0\u05D9\u05E8 \u05D0\u05EA \u05D0\u05DC\u05D4 \u05DC\u05D4\u05D7\u05DC\u05D8\u05EA \u05D4\u05D1\u05E2\u05DC\u05D9\u05DD: {files}. \u05E1\u05D2\u05E8\u05D5 \u05DB\u05DC \u05D0\u05D7\u05D3, \u05D5\u05D0\u05D6 \u05DE\u05E2\u05DC\u05D9\u05DD \u05E9\u05D5\u05D1.",
+    workOthers: "\u05E2\u05D5\u05D1\u05D3\u05D9\u05DD \u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05E2\u05DB\u05E9\u05D9\u05D5 \u05D2\u05DD: {names}. \u05E1\u05E4\u05E8\u05D5 \u05DC\u05D1\u05E2\u05DC\u05D9\u05DD, \u05DB\u05D3\u05D9 \u05E9\u05DC\u05D0 \u05EA\u05E9\u05E0\u05D5 \u05D0\u05EA \u05D0\u05D5\u05EA\u05D5 \u05D3\u05D1\u05E8 \u05D1\u05D0\u05D5\u05EA\u05D5 \u05D6\u05DE\u05DF.",
+    workYouElsewhere: "\u05D0\u05EA\u05DD, \u05DE\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D0\u05D5 \u05DE\u05DE\u05D7\u05E9\u05D1 \u05D0\u05D7\u05E8\u05D9\u05DD",
+    workMinutesAgo: "\u05DC\u05E4\u05E0\u05D9 {n} \u05D3\u05E7\u05F3",
+    notOnSite: "\u05D4\u05D0\u05EA\u05E8 \u05D4\u05D6\u05D4 \u05E9\u05D9\u05D9\u05DA \u05DC\u05D7\u05E9\u05D1\u05D5\u05DF \u05D0\u05D7\u05E8. \u05D0\u05DD \u05D4\u05D0\u05EA\u05E8 \u05E9\u05DC\u05DB\u05DD, \u05D4\u05EA\u05D7\u05D1\u05E8\u05D5 \u05E2\u05DD \u05D4\u05D7\u05E9\u05D1\u05D5\u05DF \u05E9\u05D4\u05D5\u05D0 \u05E9\u05D9\u05D9\u05DA \u05DC\u05D5: npx deployai@latest login --force (\u05D4\u05D7\u05E9\u05D1\u05D5\u05E0\u05D5\u05EA \u05E9\u05DB\u05D1\u05E8 \u05DB\u05D0\u05DF \u05E0\u05E9\u05D0\u05E8\u05D9\u05DD). \u05D0\u05DD \u05D4\u05D0\u05EA\u05E8 \u05E9\u05DC \u05DE\u05D9\u05E9\u05D4\u05D5 \u05D0\u05D7\u05E8, \u05D1\u05E7\u05E9\u05D5 \u05DE\u05D4\u05D1\u05E2\u05DC\u05D9\u05DD \u05E9\u05DC\u05D5 \u05DC\u05D4\u05D5\u05E1\u05D9\u05E3 \u05D0\u05EA\u05DB\u05DD \u05E2\u05DD \u05D4\u05E8\u05E9\u05D0\u05EA \u05E2\u05E8\u05D9\u05DB\u05D4.",
+    startOtherAccount: "\u05DB\u05D0\u05DF \u05DE\u05D7\u05D5\u05D1\u05E8\u05D9\u05DD \u05D1\u05EA\u05D5\u05E8 {email}, \u05D5\u05D4\u05D0\u05EA\u05E8 \u05D4\u05D6\u05D4 \u05E9\u05D9\u05D9\u05DA \u05DC\u05D7\u05E9\u05D1\u05D5\u05DF \u05D0\u05D7\u05E8{maker}. \u05D0\u05E9\u05E8\u05D5 \u05D1\u05D3\u05E4\u05D3\u05E4\u05DF \u05E2\u05DD \u05D4\u05D7\u05E9\u05D1\u05D5\u05DF \u05E9\u05D4\u05D0\u05EA\u05E8 \u05E9\u05D9\u05D9\u05DA \u05DC\u05D5. \u05D4\u05D7\u05E9\u05D1\u05D5\u05DF \u05E9\u05DB\u05D1\u05E8 \u05DB\u05D0\u05DF \u05E0\u05E9\u05D0\u05E8 \u05DE\u05D7\u05D5\u05D1\u05E8 \u05DC\u05D0\u05EA\u05E8\u05D9\u05DD \u05E9\u05DC\u05D5.",
+    startOtherAccountMaker: " (\u05D0\u05EA \u05D4\u05E9\u05D5\u05E8\u05D4 \u05D9\u05E6\u05E8 {maker})",
+    startStillOtherAccount: "\u05D2\u05DD \u05D4\u05D7\u05E9\u05D1\u05D5\u05DF \u05E9\u05D0\u05D9\u05E9\u05E8\u05EA\u05DD ({email}) \u05DC\u05D0 \u05D9\u05DB\u05D5\u05DC \u05DC\u05E4\u05EA\u05D5\u05D7 \u05D0\u05EA \u05D4\u05D0\u05EA\u05E8 \u05D4\u05D6\u05D4. \u05D4\u05EA\u05D7\u05D1\u05E8\u05D5 \u05E2\u05DD \u05D4\u05D7\u05E9\u05D1\u05D5\u05DF \u05E9\u05D9\u05E6\u05E8 \u05D0\u05EA \u05D4\u05E9\u05D5\u05E8\u05D4{maker}, \u05D0\u05D5 \u05D1\u05E7\u05E9\u05D5 \u05DE\u05D1\u05E2\u05DC\u05D9 \u05D4\u05D0\u05EA\u05E8 \u05DC\u05D4\u05D5\u05E1\u05D9\u05E3 \u05D0\u05EA\u05DB\u05DD \u05E2\u05DD \u05D4\u05E8\u05E9\u05D0\u05EA \u05E2\u05E8\u05D9\u05DB\u05D4, \u05D5\u05D0\u05D6 \u05D4\u05E8\u05D9\u05E6\u05D5 \u05E9\u05D5\u05D1 \u05D0\u05EA \u05D0\u05D5\u05EA\u05D4 \u05E9\u05D5\u05E8\u05D4: npx deployai@latest start {id}",
+    otherAccountsHere: "\u05D7\u05E9\u05D1\u05D5\u05E0\u05D5\u05EA \u05E0\u05D5\u05E1\u05E4\u05D9\u05DD \u05D1\u05DE\u05D7\u05E9\u05D1 \u05D4\u05D6\u05D4: {list}. \u05D0\u05EA\u05E8 \u05E9\u05E0\u05E4\u05EA\u05D7 \u05E2\u05DD \u05D0\u05D7\u05D3 \u05DE\u05D4\u05DD \u05DE\u05DE\u05E9\u05D9\u05DA \u05DC\u05E2\u05D1\u05D5\u05D3 \u05D0\u05D9\u05EA\u05D5.",
+    loggedOutSwitched: "\u05D4\u05EA\u05E0\u05EA\u05E7\u05EA\u05DD \u05DE\u05BE{gone}. \u05E2\u05DB\u05E9\u05D9\u05D5 \u05E2\u05D5\u05D1\u05D3\u05D9\u05DD \u05E2\u05DD {email}.",
+    loggedOutAll: "\u05D4\u05EA\u05E0\u05EA\u05E7\u05EA\u05DD \u05DE\u05DB\u05DC \u05D4\u05D7\u05E9\u05D1\u05D5\u05E0\u05D5\u05EA \u05D1\u05DE\u05D7\u05E9\u05D1 \u05D4\u05D6\u05D4.",
+    logoutNoAccount: "{email} \u05DC\u05D0 \u05DE\u05D7\u05D5\u05D1\u05E8 \u05D1\u05DE\u05D7\u05E9\u05D1 \u05D4\u05D6\u05D4. \u05DE\u05D7\u05D5\u05D1\u05E8\u05D9\u05DD \u05DB\u05D0\u05DF: {list}",
     viewOnly: "\u05DC\u05D7\u05E9\u05D1\u05D5\u05DF \u05D4\u05D6\u05D4 \u05D9\u05E9 \u05D4\u05E8\u05E9\u05D0\u05EA \u05E6\u05E4\u05D9\u05D9\u05D4 \u05D1\u05DC\u05D1\u05D3 \u05D1\u05D0\u05EA\u05E8 \u05D4\u05D6\u05D4. \u05D1\u05E7\u05E9\u05D5 \u05DE\u05D4\u05D1\u05E2\u05DC\u05D9\u05DD \u05DC\u05EA\u05EA \u05DC\u05DB\u05DD \u05D4\u05E8\u05E9\u05D0\u05EA \u05E2\u05E8\u05D9\u05DB\u05D4.",
     startLoginFirst: "\u05D4\u05E9\u05D5\u05E8\u05D4 \u05D4\u05D6\u05D5 \u05E0\u05E4\u05EA\u05D7\u05EA \u05E8\u05E7 \u05DC\u05D1\u05E2\u05DC\u05D9\u05DD \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D0\u05D5 \u05DC\u05DE\u05D9 \u05E9\u05D9\u05E9 \u05DC\u05D5 \u05D4\u05E8\u05E9\u05D0\u05EA \u05E2\u05E8\u05D9\u05DB\u05D4, \u05D0\u05D6 \u05E7\u05D5\u05D3\u05DD \u05DE\u05EA\u05D7\u05D1\u05E8\u05D9\u05DD.",
     startLoginExpired: "\u05E7\u05D5\u05D3 \u05D4\u05DB\u05E0\u05D9\u05E1\u05D4 \u05E4\u05D2. \u05D4\u05E8\u05D9\u05E6\u05D5 \u05E9\u05D5\u05D1 \u05D0\u05EA \u05D0\u05D5\u05EA\u05D4 \u05D4\u05E9\u05D5\u05E8\u05D4: npx deployai@latest start {id}",
@@ -24842,15 +25037,16 @@ function stateName(state, root) {
 }
 function messages(root) {
   const lang = cliLang(root);
-  return (key, vars = {}) => M[lang][key].replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? `{${k}}`));
+  return (key2, vars = {}) => M[lang][key2].replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? `{${k}}`));
 }
 
 // src/version.ts
-var CLI_VERSION = "0.1.0-beta.35";
+var CLI_VERSION = "0.1.0-beta.36";
 
 // src/api.ts
-function apiContext(apiFlag) {
-  const config2 = loadConfig();
+function apiContext(apiFlag, root) {
+  const saved = loadConfig();
+  const config2 = root ? configForSite(saved, readProject(root)?.projectId) : saved;
   return { apiUrl: resolveApiUrl(apiFlag, config2), config: config2 };
 }
 function userAgent(cfg) {
@@ -24936,6 +25132,11 @@ function knownError(code, max, t, extra) {
       return typeof max === "number" ? t("siteLimit", { max, url: extra?.billingUrl ?? "" }) : t("siteLimitNoMax", { url: extra?.billingUrl ?? "" });
     case "version_not_found":
       return t("versionNotFound");
+    // Built on old code (D-907): who put what live, and the way on.
+    case "version_stale":
+      return t("versionStale", { n: String(extra?.number ?? "?"), live: String(extra?.live ?? "?"), by: extra?.by && extra.by !== "none" ? String(extra.by) : t("someone") });
+    case "version_rolled_back":
+      return t("versionRolledBack", { n: String(extra?.number ?? "?"), live: String(extra?.live ?? "?"), dropped: String(extra?.dropped ?? "") });
     case "version_not_ready":
       return t("versionNotReady");
     case "invite_only":
@@ -25260,12 +25461,12 @@ function loadIgnore(root) {
   }
 }
 function loadUploadIgnore(root) {
-  let git2 = [];
+  let git3 = [];
   try {
-    git2 = parseIgnore(readFileSync4(join3(root, ".gitignore"), "utf8"));
+    git3 = parseIgnore(readFileSync4(join3(root, ".gitignore"), "utf8"));
   } catch {
   }
-  return [...git2, ...loadIgnore(root)];
+  return [...git3, ...loadIgnore(root)];
 }
 function walkFiles(root, opts = {}) {
   const result = [];
@@ -25840,7 +26041,7 @@ async function serverRules(apiUrl, fetcher = fetch, now = Date.now()) {
     return cached2 ? cleanRules(cached2.data) : EMPTY;
   }
 }
-var rule = (r, key, bundled) => r.rules[key] ?? bundled;
+var rule = (r, key2, bundled) => r.rules[key2] ?? bundled;
 function initTexts(r) {
   return { md: rule(r, "deployaiMd", DEPLOYAI_MD), later: parseLaterRules(r.rules.laterRules) };
 }
@@ -26278,7 +26479,9 @@ async function loginCommand(ctx, opts = {}) {
     });
     if (poll2.status === "approved") {
       if (!poll2.token) throw new CliError(messages()("loginNoToken"), 1, "protocol");
-      updateConfig({ token: poll2.token, email: poll2.email, apiUrl: ctx.apiUrl, tokenApiUrl: ctx.apiUrl });
+      saveLogin(poll2.token, poll2.email, ctx.apiUrl);
+      const site = opts.root && readProject(opts.root)?.projectId || null;
+      if (site && !opts.quiet) rememberSite(site, poll2.email);
       out();
       out(poll2.email ? t("loggedInAs", { email: poll2.email }) : t("loggedIn"));
       if (opts.quiet) {
@@ -26293,18 +26496,43 @@ async function loginCommand(ctx, opts = {}) {
   }
   throw new CliError(t("loginExpired"), 1, "auth_expired");
 }
-async function logoutCommand(ctx) {
-  let revoked = true;
-  if (ctx.config.token) {
-    const apiUrl = (ctx.config.tokenApiUrl ?? ctx.apiUrl).replace(/\/+$/, "");
-    try {
-      await apiRequest({ apiUrl, config: ctx.config }, "/api/cli/logout", null, { method: "POST", body: {}, timeoutMs: 1e4 });
-    } catch (e3) {
-      revoked = e3 instanceof CliError && e3.category === "auth";
-    }
+async function revoke(ctx, token, tokenApiUrl) {
+  try {
+    await apiRequest({ apiUrl: tokenApiUrl.replace(/\/+$/, ""), config: { ...ctx.config, token, tokenApiUrl } }, "/api/cli/logout", null, { method: "POST", body: {}, timeoutMs: 1e4 });
+    return true;
+  } catch (e3) {
+    return e3 instanceof CliError && e3.category === "auth";
   }
+}
+async function logoutCommand(ctx, opts = {}) {
+  const t = messages();
+  const saved = ctx.config.accounts ?? {};
+  if (opts.all) {
+    let revoked2 = true;
+    const tokens = new Map(Object.values(saved).map((a) => [a.token, a.tokenApiUrl]));
+    if (ctx.config.token) tokens.set(ctx.config.token, ctx.config.tokenApiUrl ?? ctx.apiUrl);
+    for (const [token, url2] of tokens) revoked2 = await revoke(ctx, token, url2) && revoked2;
+    for (const email4 of Object.keys(saved)) forgetAccount(email4);
+    if (ctx.config.email) forgetAccount(ctx.config.email);
+    updateConfigClear();
+    out(t(revoked2 ? "loggedOutAll" : "loggedOutLocalOnly"));
+    return;
+  }
+  const email3 = (opts.email ?? ctx.config.email ?? "").trim().toLowerCase();
+  if (opts.email && !saved[email3] && email3 !== ctx.config.email?.toLowerCase()) {
+    throw new CliError(t("logoutNoAccount", { email: opts.email, list: Object.keys(saved).join(", ") || "-" }), 1, "usage");
+  }
+  const account = saved[email3] ?? (ctx.config.token ? { token: ctx.config.token, tokenApiUrl: ctx.config.tokenApiUrl ?? ctx.apiUrl } : null);
+  const revoked = account ? await revoke(ctx, account.token, account.tokenApiUrl) : true;
+  const next = email3 ? forgetAccount(email3) : (updateConfigClear(), void 0);
+  if (next && next !== email3) {
+    out(t("loggedOutSwitched", { gone: email3, email: next }));
+    return;
+  }
+  out(t(revoked ? "loggedOut" : "loggedOutLocalOnly"));
+}
+function updateConfigClear() {
   updateConfig({ token: void 0, tokenApiUrl: void 0, email: void 0 });
-  out(messages()(revoked ? "loggedOut" : "loggedOutLocalOnly"));
 }
 async function whoamiCommand(ctx) {
   const me = await apiRequest(ctx, "/api/cli/me", MeResponse);
@@ -26314,6 +26542,11 @@ async function whoamiCommand(ctx) {
     ["User id", me.id],
     ["API", ctx.apiUrl]
   ]));
+  const others = otherAccounts(ctx.config, me.email);
+  if (others.length) {
+    out();
+    out(messages()("otherAccountsHere", { list: others.join(", ") }));
+  }
 }
 
 // src/commands/telemetry.ts
@@ -26370,12 +26603,12 @@ function writeObject(file2, value) {
   writeFileSync7(file2, `${JSON.stringify(value, null, 2)}
 `);
 }
-function addTo(obj, key, list, value) {
-  const inner = obj[key] && typeof obj[key] === "object" && !Array.isArray(obj[key]) ? obj[key] : {};
+function addTo(obj, key2, list, value) {
+  const inner = obj[key2] && typeof obj[key2] === "object" && !Array.isArray(obj[key2]) ? obj[key2] : {};
   const items = Array.isArray(inner[list]) ? inner[list] : [];
   if (items.includes(value)) return false;
   inner[list] = [...items, value];
-  obj[key] = inner;
+  obj[key2] = inner;
   return true;
 }
 function ignoreInGit(root, path) {
@@ -27154,9 +27387,9 @@ async function migrateScanCommand(root, raw, opts = {}) {
   site.triggers = [...inUse];
   for (const file2 of ROOT_FILES) if (await hasRootFile(origin, file2)) site.rootFiles.push(file2);
   writeJson(tagsFile(dir), site);
-  const bare = registrableDomain(host);
+  const bare2 = registrableDomain(host);
   try {
-    const { records, unread } = await collectSnapshot(bare, { extraNames: [...site.ownNames, ...site.serverContainers], deadlineMs: 3e4 });
+    const { records, unread } = await collectSnapshot(bare2, { extraNames: [...site.ownNames, ...site.serverContainers], deadlineMs: 3e4 });
     writeJson(join13(dir, "dns.json"), { records: records.slice(0, 600), unread: unread.slice(0, 300), services: dnsServices(records).slice(0, 40) });
   } catch {
   }
@@ -27433,6 +27666,7 @@ async function migrateVerifyCommand(root, previewRaw, ctx, retryMs = PREVIEW_RET
   const vendors = /* @__PURE__ */ new Map();
   let checked = 0;
   const tagFindings = [];
+  const leftOnOld = [];
   const perHost = [];
   for (const host of hosts) {
     const inv = readJson3(join13(hostDir(root, host), "inventory.json"));
@@ -27474,6 +27708,13 @@ async function migrateVerifyCommand(root, previewRaw, ctx, retryMs = PREVIEW_RET
     if (oldSite) {
       const home = await page3("/");
       const csp = home?.headers.get("content-security-policy") ?? null;
+      const homeHtml = home?.ok ? await home.clone().text().catch(() => "") : "";
+      for (const a of oldHostAssets(homeHtml, preview.origin + "/", hosts)) {
+        if (leftOnOld.some((x) => x.url === a.url)) continue;
+        const u = new URL(a.url);
+        const here = await page3(u.pathname + u.search);
+        if (!here?.ok || !/^image\//i.test(here.headers.get("content-type") ?? "")) leftOnOld.push(a);
+      }
       const fileOnPreview = {};
       for (const file2 of oldSite.rootFiles) fileOnPreview[file2] = await hasRootFile(preview.origin, file2, cookie ? "" : preview.search, cookie);
       const pageOnPreview = {};
@@ -27485,7 +27726,7 @@ async function migrateVerifyCommand(root, previewRaw, ctx, retryMs = PREVIEW_RET
   }
   const words = { missing: "not found on the preview", moved: "moved to", error: "answers", title_lost: "lost its title", description_lost: "lost its description" };
   const report2 = join13(root, MIGRATION_DIR, "verify.json");
-  writeJson(report2, { checkedAt: (/* @__PURE__ */ new Date()).toISOString(), preview: preview.origin, checked, findings, credits: [...credits.keys()], vendors: [...vendors.keys()], tags: tagFindings });
+  writeJson(report2, { checkedAt: (/* @__PURE__ */ new Date()).toISOString(), preview: preview.origin, checked, findings, credits: [...credits.keys()], vendors: [...vendors.keys()], tags: tagFindings, leftOnOld });
   if (credits.size) {
     out(`A builder's credit is still on the preview:`);
     for (const [text2, path] of credits) out(`  ${path}  ${text2}`);
@@ -27498,6 +27739,13 @@ async function migrateVerifyCommand(root, previewRaw, ctx, retryMs = PREVIEW_RET
     out("Remove them. Write what the page needs into the site's own stylesheet and scripts, or use a UI source, so it looks and works the same, then deploy again and run verify again.");
     process.exitCode = 1;
   }
+  if (leftOnOld.length) {
+    const what = { share: "share image (og:image)", x: "X image (twitter:image)", icon: "icon" };
+    out("Still loading from the old site and missing from this one, so it breaks when the old site closes:");
+    for (const a of leftOnOld) out(`  ${what[a.kind]}  ${a.url}`);
+    out("Put each file in the site's own public folder (migrate media saved the images in .deployai/migration), point the tag at the site's own address, deploy again and run verify again.");
+    process.exitCode = 1;
+  }
   if (tagFindings.length) {
     out(`${tagFindings.length} tags and connections need a fix:`);
     for (const f of tagFindings.slice(0, 60)) out(`  ${f.what}  ${TAG_WORDS[f.problem]}${f.detail ? ` (${f.detail})` : ""}${f.page ? ` on ${f.page}` : ""}`);
@@ -27505,7 +27753,7 @@ async function migrateVerifyCommand(root, previewRaw, ctx, retryMs = PREVIEW_RET
     out('Put each one back, deploy again and run verify again. If the owner asked to drop one: npx deployai@latest migrate tags --removed "<its number or name>".');
     process.exitCode = 1;
   }
-  const clean3 = !findings.length && !tagFindings.length && !credits.size && !vendors.size;
+  const clean3 = !findings.length && !tagFindings.length && !credits.size && !vendors.size && !leftOnOld.length;
   for (const h of perHost) {
     const dir = hostDir(root, h.host);
     const verify = { checkedAt: (/* @__PURE__ */ new Date()).toISOString(), pagesChecked: h.checked, pageProblems: h.problems, findings: h.found.map((f) => ({ problem: f.problem, what: f.what.slice(0, 240), ...f.detail ? { detail: f.detail.slice(0, 300) } : {}, ...f.page ? { page: f.page.slice(0, 300) } : {} })).slice(0, 300), seen: h.seen.slice(0, 300), removed: h.removed, vendors: [...vendors.keys()].map((v) => v.slice(0, 80)).slice(0, 40) };
@@ -27526,6 +27774,7 @@ async function migrateVerifyCommand(root, previewRaw, ctx, retryMs = PREVIEW_RET
 // src/commands/link.ts
 async function save(root, p, ctx) {
   updateProject(root, { projectId: p.id, name: p.name, slug: p.slug });
+  rememberSite(p.id, ctx.config.email);
   const t = messages(root);
   out(t("linkedTo", { name: p.name, slug: p.slug }));
   out(t("savedIn"));
@@ -27661,6 +27910,13 @@ function changedUnderSameName(root, files) {
   return changed;
 }
 
+// src/commands/sync.ts
+import { spawnSync as spawnSync3 } from "child_process";
+import { existsSync as existsSync15, mkdirSync as mkdirSync9, mkdtempSync, readFileSync as readFileSync13, rmSync as rmSync3, unlinkSync, writeFileSync as writeFileSync13 } from "fs";
+import { tmpdir } from "os";
+import { dirname as dirname5, join as join17 } from "path";
+import { gunzipSync as gunzipSync2 } from "zlib";
+
 // src/tar.ts
 import { readFileSync as readFileSync12 } from "fs";
 import { gzipSync } from "zlib";
@@ -27713,8 +27969,8 @@ function splitUstar(path) {
   }
   return null;
 }
-function paxRecord(key, value) {
-  const body = ` ${key}=${value}
+function paxRecord(key2, value) {
+  const body = ` ${key2}=${value}
 `;
   let len = Buffer.byteLength(body) + 1;
   while (String(len).length + Buffer.byteLength(body) !== len) len = String(len).length + Buffer.byteLength(body);
@@ -27782,6 +28038,385 @@ function readTar(tar) {
   return entries;
 }
 
+// src/work.ts
+import { createHash as createHash3 } from "crypto";
+import { resolve as resolve2 } from "path";
+function placeOf(ctx, root) {
+  return createHash3("sha256").update(`${ctx.config.installId}:${resolve2(root)}`).digest("hex").slice(0, 16);
+}
+async function touchWork(ctx, root, projectId) {
+  const token = tokenIfOwnApi(ctx);
+  if (!token) return [];
+  try {
+    const res = await fetch(`${ctx.apiUrl}/api/cli/working`, {
+      method: "POST",
+      headers: { "User-Agent": userAgent(ctx.config), "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ projectId, place: placeOf(ctx, root) }),
+      signal: AbortSignal.timeout(5e3)
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data.others) ? data.others : [];
+  } catch {
+    return [];
+  }
+}
+function othersLine(root, others) {
+  if (!others.length) return null;
+  const t = messages(root);
+  const names = others.map((o) => (o.you ? t("workYouElsewhere") : o.name) + ` (${t("workMinutesAgo", { n: o.minutesAgo })})`).join(", ");
+  return t("workOthers", { names });
+}
+
+// src/commands/pull.ts
+import { spawnSync as spawnSync2 } from "child_process";
+import { existsSync as existsSync14, readdirSync as readdirSync5, rmSync as rmSync2 } from "fs";
+import { join as join16 } from "path";
+
+// src/commands/samples.ts
+import { createInterface as createInterface3 } from "readline/promises";
+import { existsSync as existsSync13, mkdirSync as mkdirSync8, readdirSync as readdirSync4, writeFileSync as writeFileSync12 } from "fs";
+import { dirname as dirname4, join as join15, relative as relative2, resolve as resolve3, sep as sep2 } from "path";
+import { gunzipSync } from "zlib";
+var SAMPLES = [
+  { key: "landing", title: "Landing page: a full one-page site with WhatsApp sign-up", stack: "static HTML and CSS" },
+  { key: "business", title: "Business site: services, hours, contact form and owner inbox", stack: "Astro on Workers, D1" },
+  { key: "form", title: "Forms: sign-ups, surveys and RSVPs, with a summary and charts", stack: "Astro on Workers, D1" },
+  { key: "crud", title: "App with data: studio client and membership manager", stack: "Astro on Workers, D1" },
+  { key: "shop", title: "Online shop: catalog, product pages, cart and orders", stack: "Astro on Workers, D1" },
+  { key: "admin", title: "Back office with login: dashboard, orders, stock, customers", stack: "Astro on Workers, D1" }
+];
+var MAX_BYTES = 20 * 1024 * 1024;
+var IGNORED = /* @__PURE__ */ new Set([".git", ".DS_Store", "Thumbs.db", ".deployai", "DEPLOYAI.md", "AGENTS.md", "CLAUDE.md"]);
+function listSamples(apiUrl) {
+  out("DeployAI samples");
+  out("");
+  out(rows(SAMPLES.map((s) => [s.key, `${s.title} (${s.stack})`])));
+  out("");
+  out("Get one:                    npx deployai@latest samples <name>");
+  out(`See them live:              ${apiUrl}/samples`);
+}
+function filesIn(dir) {
+  return existsSync13(dir) ? readdirSync4(dir).filter((f) => !IGNORED.has(f)) : [];
+}
+function freeFolder(cwd, key2) {
+  for (let n2 = 1; ; n2++) {
+    const dir = resolve3(cwd, n2 === 1 ? key2 : `${key2}-${n2}`);
+    if (!filesIn(dir).length) return dir;
+  }
+}
+async function askWhere(cwd, key2, count) {
+  const fresh = freeFolder(cwd, key2);
+  const rl = createInterface3({ input: process.stdin, output: process.stdout });
+  try {
+    out(`This folder already has ${count} ${count === 1 ? "file" : "files"}. Where should the ${key2} sample go?`);
+    out(`  1) A new folder: ${relative2(cwd, fresh)}`);
+    out("  2) This folder (files with the same name are replaced)");
+    out("  3) Cancel");
+    const choice = (await rl.question("Choose 1, 2 or 3 [1]: ")).trim() || "1";
+    if (choice === "2") return cwd;
+    if (choice !== "1") return null;
+    const name = (await rl.question(`Folder name [${relative2(cwd, fresh)}]: `)).trim();
+    if (!name) return fresh;
+    const dir = resolve3(cwd, name);
+    if (filesIn(dir).length) throw new CliError(`The folder ${name} is not empty. Run it again and pick another name.`, 1, "not_empty");
+    return dir;
+  } finally {
+    rl.close();
+  }
+}
+async function downloadSample(ctx, key2, root) {
+  mkdirSync8(root, { recursive: true });
+  let res;
+  try {
+    res = await fetch(`${ctx.apiUrl}/samples-src/${key2}.tar.gz`, {
+      headers: { "User-Agent": userAgent(ctx.config) },
+      signal: AbortSignal.timeout(6e4)
+    });
+  } catch {
+    throw new CliError(messages()("unreachable", { url: ctx.apiUrl }), 1, "network");
+  }
+  if (!res.ok) throw new CliError(messages()("sampleDownloadFailed", { key: key2, status: res.status }), 1, "api");
+  const gz = Buffer.from(await res.arrayBuffer());
+  if (gz.length > MAX_BYTES) throw new CliError(messages()("sampleTooLarge"), 1, "api");
+  return extractInto(gz, root, "The sample download is damaged. Try again.");
+}
+function extractInto(gz, root, damaged) {
+  let entries;
+  try {
+    entries = readTar(gunzipSync(gz, { maxOutputLength: MAX_BYTES * 4 }));
+  } catch {
+    throw new CliError(damaged, 1, "api");
+  }
+  mkdirSync8(root, { recursive: true });
+  const base = resolve3(root);
+  let written = 0;
+  for (const e3 of entries) {
+    if (e3.type !== "0" && e3.type !== "\0") continue;
+    if (privateProjectFile(e3.name.replace(/\\/g, "/"))) continue;
+    const target = resolve3(base, e3.name);
+    if (target !== base && !target.startsWith(base + sep2)) continue;
+    mkdirSync8(dirname4(target), { recursive: true });
+    writeFileSync12(target, e3.data);
+    written++;
+  }
+  return written;
+}
+async function samplesCommand(cwd, ctx, key2, opts = {}) {
+  if (!key2) return listSamples(ctx.apiUrl);
+  const sample = SAMPLES.find((s) => s.key === key2.toLowerCase());
+  if (!sample) throw new CliError(messages()("noSampleNamed", { key: key2 }), 1, "not_found");
+  let root;
+  if (opts.folder) {
+    root = resolve3(cwd, opts.folder);
+    if (filesIn(root).length && !opts.force) throw new CliError(`The folder ${opts.folder} is not empty. Run: npx deployai@latest samples ${sample.key}, and it picks a free folder`, 1, "not_empty");
+  } else {
+    const here = filesIn(cwd);
+    if (!here.length || opts.force) root = cwd;
+    else if (process.stdin.isTTY && process.stdout.isTTY) {
+      const picked = await askWhere(cwd, sample.key, here.length);
+      if (!picked) return out("Cancelled. Nothing was downloaded.");
+      root = picked;
+    } else root = freeFolder(cwd, sample.key);
+  }
+  const written = await downloadSample(ctx, sample.key, root);
+  const base = resolve3(root);
+  const hasPackage = existsSync13(join15(base, "package.json"));
+  out(base === resolve3(cwd) ? `Downloaded the ${sample.key} sample: ${written} files.` : `Downloaded the ${sample.key} sample into the new folder ${relative2(cwd, base)}: ${written} files. Work in that folder from now on.`);
+  out("");
+  const t = messages(base);
+  out(t("nextSteps"));
+  if (base !== resolve3(cwd)) out(`  cd ${JSON.stringify(relative2(cwd, base))}`);
+  if (hasPackage) out("  npm install");
+  out("  npx deployai@latest check");
+  if (ctx.config.token) {
+    out('  npx deployai@latest link --create "<name>"');
+    out('  npx deployai@latest deploy -m "first version"');
+  } else out("  npx deployai@latest deploy --guest");
+  out("");
+  out(t("readme"));
+}
+
+// src/commands/pull.ts
+var MAX_BYTES2 = 50 * 1024 * 1024;
+async function pullCommand(root, ctx, opts = {}) {
+  const t = messages(root);
+  const projectId = readProject(root)?.projectId;
+  if (!projectId) throw new CliError(t("pullNotLinked"), 1, "not_linked");
+  if (filesIn(root).length) throw new CliError(t("pullNotEmpty"), 1, "not_empty");
+  requireToken(ctx);
+  if (opts.history) return pullHistory(root, ctx, projectId);
+  const n2 = extractInto(await fetchSource(root, ctx, projectId), root, t("pullDamaged"));
+  if (lastVersion && Number(lastVersion) > 0) updateProject(root, { builtOn: Number(lastVersion) });
+  await touchWork(ctx, root, projectId);
+  out(t("pulled", { n: n2, v: lastVersion ?? "?" }));
+}
+var lastVersion = null;
+var fetchedVersion = () => lastVersion && Number(lastVersion) > 0 ? Number(lastVersion) : null;
+async function fetchSource(root, ctx, projectId, version2) {
+  const t = messages(root);
+  const token = requireToken(ctx);
+  let res;
+  try {
+    res = await fetch(`${ctx.apiUrl}/api/cli/source?projectId=${encodeURIComponent(projectId)}${version2 ? `&version=${version2}` : ""}`, { headers: { "User-Agent": userAgent(ctx.config), Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(12e4) });
+  } catch {
+    throw new CliError(messages()("unreachable", { url: ctx.apiUrl }), 1, "network");
+  }
+  if (res.status === 401) throw new CliError(t("sessionExpired"), 1, "auth");
+  if (res.status === 404) {
+    const code = (await res.clone().json().catch(() => null))?.error;
+    throw new CliError(code === "no_source" ? t("pullNoSource") : code === "not_on_site" ? t("notOnSite") : t("notFound"), 1, "not_found");
+  }
+  if (res.status === 403) {
+    const code = (await res.clone().json().catch(() => null))?.error;
+    throw new CliError(code === "view_only" ? t("viewOnly") : t("forbidden"), 1, "forbidden");
+  }
+  if (!res.ok) throw new CliError(t("apiError", { code: `HTTP ${res.status}` }), 1, "api");
+  const gz = Buffer.from(await res.arrayBuffer());
+  if (gz.length > MAX_BYTES2) throw new CliError(t("pullTooLarge"), 1, "too_large");
+  lastVersion = res.headers.get("X-DeployAI-Version");
+  return gz;
+}
+var git = (root, args, env = {}) => spawnSync2("git", args, { cwd: root, encoding: "utf8", env: { ...process.env, ...env } });
+function clearTree(root) {
+  for (const name of readdirSync5(root)) {
+    if (name === ".git" || name === ".deployai") continue;
+    rmSync2(join16(root, name), { recursive: true, force: true });
+  }
+}
+async function pullHistory(root, ctx, projectId) {
+  const t = messages(root);
+  if (git(root, ["--version"]).status !== 0) throw new CliError(t("pullNoGit"), 1, "usage");
+  const { versions } = await apiRequest(ctx, `/api/cli/versions?projectId=${encodeURIComponent(projectId)}`, VersionsResponse);
+  const live = versions.find((v) => v.isLive)?.number ?? Math.max(0, ...versions.filter((v) => v.status === "ready").map((v) => v.number));
+  const chosen = versions.filter((v) => v.number <= live && v.status !== "failed" && v.status !== "queued").sort((a, b) => a.number - b.number);
+  if (!chosen.length) throw new CliError(t("pullNoSource"), 1, "not_found");
+  if (!existsSync14(join16(root, ".git")) && git(root, ["init", "-q"]).status !== 0) throw new CliError(t("pullNoGit"), 1, "usage");
+  for (const v of chosen) {
+    const gz = await fetchSource(root, ctx, projectId, v.number).catch(() => null);
+    if (!gz) continue;
+    clearTree(root);
+    extractInto(gz, root, t("pullDamaged"));
+    git(root, ["add", "-A"]);
+    const when = { GIT_AUTHOR_DATE: v.createdAt, GIT_COMMITTER_DATE: v.createdAt };
+    const r = git(root, ["-c", "user.name=DeployAI", "-c", "user.email=versions@deployai.co.il", "commit", "-q", "--allow-empty", "-m", `v${v.number}: ${v.message}`], when);
+    if (r.status !== 0) throw new CliError(`git commit failed for v${v.number}: ${r.stderr.trim()}`, 1, "git");
+    out(`  v${v.number}  ${v.message}`);
+  }
+  updateProject(root, { builtOn: live });
+  out(t("pulledHistory", { n: chosen.length, v: live }));
+}
+
+// src/commands/sync.ts
+var SYNC_FILE = `${DEPLOYAI_DIR}/sync.json`;
+var MARKER = /^(<{7}|>{7}) /m;
+var git2 = (cwd, args) => spawnSync3("git", args, { cwd, encoding: "utf8" });
+function filesOf(gz) {
+  const map2 = /* @__PURE__ */ new Map();
+  for (const e3 of readTar(gunzipSync2(gz, { maxOutputLength: 200 * 1024 * 1024 }))) {
+    const name = e3.name.replace(/^\.\//, "");
+    if (e3.type === "0" || e3.type === "" || e3.type === "\0") map2.set(name, e3.data);
+  }
+  return map2;
+}
+var same = (a, b) => a === void 0 && b === void 0 || a !== void 0 && b !== void 0 && a.equals(b);
+var isBinary = (b) => !!b && b.subarray(0, 8e3).includes(0);
+function migrationNumber(path) {
+  const m = /(^|\/)migrations\/(\d+)[_-][^/]*\.sql$/i.exec(path);
+  return m ? m[2] : null;
+}
+function migrationClashes(base, live, ours2) {
+  const added = (side) => [...side.keys()].filter((p) => !base.has(p) && migrationNumber(p));
+  const liveAdded = added(live);
+  const out2 = [];
+  for (const mine of added(ours2).filter((p) => !live.has(p))) {
+    const n2 = migrationNumber(mine);
+    for (const theirs of liveAdded.filter((p) => !ours2.has(p) && migrationNumber(p) === n2)) out2.push([mine, theirs]);
+  }
+  return out2;
+}
+function mergeText(ours2, base, live, liveLabel) {
+  const dir = mkdtempSync(join17(tmpdir(), "deployai-sync-"));
+  try {
+    const [o, b, l] = ["ours", "base", "live"].map((n2) => join17(dir, n2));
+    writeFileSync13(o, ours2);
+    writeFileSync13(b, base);
+    writeFileSync13(l, live);
+    const r = spawnSync3("git", ["merge-file", "-p", "-L", "this folder", "-L", "common start", "-L", liveLabel, o, b, l], { encoding: "buffer", maxBuffer: 64 * 1024 * 1024 });
+    if (r.error || r.status === null || r.status < 0) return null;
+    return { text: r.stdout, conflicts: r.status > 0 };
+  } finally {
+    rmSync3(dir, { recursive: true, force: true });
+  }
+}
+async function syncCommand(root, ctx) {
+  const t = messages(root);
+  const project = readProject(root);
+  if (!project?.projectId) throw new CliError(t("pullNotLinked"), 1, "not_linked");
+  requireToken(ctx);
+  if (git2(root, ["--version"]).status !== 0) throw new CliError(t("syncNoGit"), 1, "usage");
+  if (!project.builtOn) throw new CliError(t("syncNoBase"), 1, "usage");
+  const projectId = project.projectId;
+  const others = othersLine(root, await touchWork(ctx, root, projectId));
+  const liveGz = await fetchSource(root, ctx, projectId);
+  const live = fetchedVersion();
+  if (!live) throw new CliError(t("pullNoSource"), 1, "not_found");
+  if (live === project.builtOn) {
+    out(t("syncUpToDate", { v: live }));
+    if (others) out(others);
+    return;
+  }
+  const baseFiles = filesOf(await fetchSource(root, ctx, projectId, project.builtOn));
+  const liveFiles = filesOf(liveGz);
+  const plan = planUpload(root);
+  const ourFiles = new Map(plan.files.map((f) => [f.rel, readFileSync13(f.abs)]));
+  if (!existsSync15(join17(root, ".git")) && git2(root, ["init", "-q"]).status !== 0) throw new CliError(t("syncNoGit"), 1, "usage");
+  git2(root, ["add", "-A"]);
+  git2(root, ["-c", "user.name=DeployAI", "-c", "user.email=versions@deployai.co.il", "commit", "-q", "--allow-empty", "-m", `Before sync with live v${live}`]);
+  const state = { live, base: project.builtOn, conflicts: [], clashes: migrationClashes(baseFiles, liveFiles, ourFiles) };
+  let taken = 0;
+  let merged = 0;
+  const write = (path, data) => {
+    const abs = join17(root, path);
+    if (data === void 0) {
+      if (existsSync15(abs)) unlinkSync(abs);
+      return;
+    }
+    mkdirSync9(dirname5(abs), { recursive: true });
+    writeFileSync13(abs, data);
+  };
+  const keepLiveCopy = (path, data) => {
+    const abs = join17(root, DEPLOYAI_DIR, "sync", `${path}.live`);
+    mkdirSync9(dirname5(abs), { recursive: true });
+    writeFileSync13(abs, data);
+  };
+  for (const path of /* @__PURE__ */ new Set([...baseFiles.keys(), ...liveFiles.keys(), ...ourFiles.keys()])) {
+    const b = baseFiles.get(path);
+    const l = liveFiles.get(path);
+    const o = ourFiles.get(path);
+    if (same(o, l) || same(l, b)) continue;
+    if (same(o, b)) {
+      write(path, l);
+      taken++;
+      continue;
+    }
+    if (o === void 0) {
+      write(path, l);
+      state.conflicts.push({ path, why: "deleted_here" });
+      continue;
+    }
+    if (l === void 0) {
+      state.conflicts.push({ path, why: "deleted_live" });
+      continue;
+    }
+    if (isBinary(o) || isBinary(l) || isBinary(b)) {
+      keepLiveCopy(path, l);
+      state.conflicts.push({ path, why: "binary" });
+      continue;
+    }
+    const m = mergeText(o, b ?? Buffer.alloc(0), l, `live v${live}`);
+    if (!m) throw new CliError(t("syncNoGit"), 1, "usage");
+    write(path, m.text);
+    if (m.conflicts) state.conflicts.push({ path, why: "both" });
+    else merged++;
+  }
+  ensureDeployaiDir(root);
+  writeFileSync13(join17(root, SYNC_FILE), JSON.stringify(state, null, 2) + "\n");
+  updateProject(root, { builtOn: live });
+  out(t("syncDone", { v: live, taken, merged }));
+  if (state.conflicts.length) {
+    out();
+    out(t("syncConflicts"));
+    for (const c of state.conflicts) out(`  - ${c.path}: ${t(`syncWhy_${c.why}`, { live: `${DEPLOYAI_DIR}/sync/${c.path}.live` })}`);
+  }
+  for (const [mine, theirs] of state.clashes) out(t("syncClash", { mine, theirs }));
+  if (others) {
+    out();
+    out(others);
+  }
+  out();
+  out(state.conflicts.length || state.clashes.length ? t("syncNextConflicts") : t("syncNext"));
+  if (state.conflicts.length || state.clashes.length) process.exitCode = 1;
+}
+function syncLeftovers(root) {
+  let state;
+  try {
+    state = JSON.parse(readFileSync13(join17(root, SYNC_FILE), "utf8"));
+  } catch {
+    return [];
+  }
+  const left = [];
+  for (const c of state.conflicts ?? []) {
+    if (c.why !== "both") continue;
+    const abs = join17(root, c.path);
+    if (existsSync15(abs) && MARKER.test(readFileSync13(abs, "utf8"))) left.push(c.path);
+  }
+  for (const [a, b] of state.clashes ?? []) {
+    if (a && b && existsSync15(join17(root, a)) && existsSync15(join17(root, b)) && migrationNumber(a) === migrationNumber(b)) left.push(`${a} + ${b}`);
+  }
+  return left;
+}
+
 // src/commands/versions.ts
 function linkedProjectId(root) {
   const id = readProject(root)?.projectId;
@@ -27831,23 +28466,24 @@ async function changeLiveCommand(root, ctx, version2, kind, opts = {}) {
   const projectId = linkedProjectId(root);
   const number4 = parseVersion(version2);
   const t = messages(root);
-  const approval = await promoteWithSql(root, ctx, projectId, number4, kind, opts.approveSql);
+  const approval = await promoteWithSql(root, ctx, projectId, number4, kind, opts.approveSql, opts.anyway);
   if (approval === null) return;
   out(t(kind === "rollback" ? "rollbackQueued" : "promoteQueued", { n: number4 }));
   if (approval) out(t("sqlFirst", { n: number4 }));
   out(t("nextStep"));
   out(t("runStatus"));
 }
-async function promoteWithSql(root, ctx, projectId, number4, kind, approve) {
+async function promoteWithSql(root, ctx, projectId, number4, kind, approve, anyway) {
+  const extra = kind === "promote" && anyway ? { anyway: true } : {};
   try {
-    await apiRequest(ctx, `/api/cli/${kind}`, null, { method: "POST", body: { projectId, number: number4 } });
+    await apiRequest(ctx, `/api/cli/${kind}`, null, { method: "POST", body: { projectId, number: number4, ...extra } });
     return false;
   } catch (e3) {
     if (kind !== "promote" || !(e3 instanceof CliError) || e3.category !== "sql_waiting") throw e3;
   }
   const approval = await approveSqlStep(root, ctx, projectId, number4, approve);
   if (!approval) return null;
-  await apiRequest(ctx, "/api/cli/promote", null, { method: "POST", body: { projectId, number: number4, ...approval } });
+  await apiRequest(ctx, "/api/cli/promote", null, { method: "POST", body: { projectId, number: number4, ...approval, ...extra } });
   return approval;
 }
 function fetchStatus(ctx, projectId) {
@@ -28077,6 +28713,8 @@ async function prepare(root, ctx, maxBytes) {
     throw new CliError(messages(root)("deployBlocked"), 1, "blocked");
   }
   const t = messages(root);
+  const left = syncLeftovers(root);
+  if (left.length) throw new CliError(t("syncLeftovers", { files: left.join(", ") }), 1, "sync_conflicts");
   const plan = planUpload(root);
   if (!plan.files.length) throw new CliError(t("nothingToUpload"), 1, "empty");
   if (plan.totalBytes > MAX_TOTAL_BYTES) throw new CliError(t("uploadTooLarge", { size: formatBytes(plan.totalBytes), max: formatBytes(MAX_TOTAL_BYTES) }), 1, "too_large");
@@ -28121,12 +28759,17 @@ async function deployVersion(root, ctx, opts, guest) {
   const form = new FormData();
   form.append("projectId", project.projectId);
   form.append("message", message);
+  if (project.builtOn) form.append("builtOn", String(project.builtOn));
   const fixed = (opts.fixed ?? "").replace(/\s+/g, " ").trim().slice(0, 300);
   if (fixed && telemetryEnabled(ctx.config)) form.append("fixNote", fixed);
   addTool(form, ctx, opts.model);
   if (wait && soundWanted(ctx.config)) form.append("soundHere", live ? "live" : "preview");
   form.append("archive", new Blob([new Uint8Array(archive)], { type: "application/gzip" }), "source.tar.gz");
   const res = await apiRequest(ctx, "/api/cli/deploy", DeployResponse, { method: "POST", form, timeoutMs: 5 * 6e4 });
+  if (!guest) {
+    updateProject(root, { builtOn: res.number });
+    await touchWork(ctx, root, project.projectId);
+  }
   out();
   if (guest) {
     out(rows([[t("version"), `v${res.number}`], [t("queue"), queueText(res.queuePosition, root)], [t("address"), res.previewUrl]]));
@@ -28342,201 +28985,6 @@ async function claimCommand(root, ctx, opts) {
   out(t("claimLink", { url: url2 }));
 }
 
-// src/commands/pull.ts
-import { spawnSync as spawnSync2 } from "child_process";
-import { existsSync as existsSync14, readdirSync as readdirSync5, rmSync as rmSync2 } from "fs";
-import { join as join16 } from "path";
-
-// src/commands/samples.ts
-import { createInterface as createInterface3 } from "readline/promises";
-import { existsSync as existsSync13, mkdirSync as mkdirSync8, readdirSync as readdirSync4, writeFileSync as writeFileSync12 } from "fs";
-import { dirname as dirname4, join as join15, relative as relative2, resolve as resolve2, sep as sep2 } from "path";
-import { gunzipSync } from "zlib";
-var SAMPLES = [
-  { key: "landing", title: "Landing page: a full one-page site with WhatsApp sign-up", stack: "static HTML and CSS" },
-  { key: "business", title: "Business site: services, hours, contact form and owner inbox", stack: "Astro on Workers, D1" },
-  { key: "form", title: "Forms: sign-ups, surveys and RSVPs, with a summary and charts", stack: "Astro on Workers, D1" },
-  { key: "crud", title: "App with data: studio client and membership manager", stack: "Astro on Workers, D1" },
-  { key: "shop", title: "Online shop: catalog, product pages, cart and orders", stack: "Astro on Workers, D1" },
-  { key: "admin", title: "Back office with login: dashboard, orders, stock, customers", stack: "Astro on Workers, D1" }
-];
-var MAX_BYTES = 20 * 1024 * 1024;
-var IGNORED = /* @__PURE__ */ new Set([".git", ".DS_Store", "Thumbs.db", ".deployai", "DEPLOYAI.md", "AGENTS.md", "CLAUDE.md"]);
-function listSamples(apiUrl) {
-  out("DeployAI samples");
-  out("");
-  out(rows(SAMPLES.map((s) => [s.key, `${s.title} (${s.stack})`])));
-  out("");
-  out("Get one:                    npx deployai@latest samples <name>");
-  out(`See them live:              ${apiUrl}/samples`);
-}
-function filesIn(dir) {
-  return existsSync13(dir) ? readdirSync4(dir).filter((f) => !IGNORED.has(f)) : [];
-}
-function freeFolder(cwd, key) {
-  for (let n2 = 1; ; n2++) {
-    const dir = resolve2(cwd, n2 === 1 ? key : `${key}-${n2}`);
-    if (!filesIn(dir).length) return dir;
-  }
-}
-async function askWhere(cwd, key, count) {
-  const fresh = freeFolder(cwd, key);
-  const rl = createInterface3({ input: process.stdin, output: process.stdout });
-  try {
-    out(`This folder already has ${count} ${count === 1 ? "file" : "files"}. Where should the ${key} sample go?`);
-    out(`  1) A new folder: ${relative2(cwd, fresh)}`);
-    out("  2) This folder (files with the same name are replaced)");
-    out("  3) Cancel");
-    const choice = (await rl.question("Choose 1, 2 or 3 [1]: ")).trim() || "1";
-    if (choice === "2") return cwd;
-    if (choice !== "1") return null;
-    const name = (await rl.question(`Folder name [${relative2(cwd, fresh)}]: `)).trim();
-    if (!name) return fresh;
-    const dir = resolve2(cwd, name);
-    if (filesIn(dir).length) throw new CliError(`The folder ${name} is not empty. Run it again and pick another name.`, 1, "not_empty");
-    return dir;
-  } finally {
-    rl.close();
-  }
-}
-async function downloadSample(ctx, key, root) {
-  mkdirSync8(root, { recursive: true });
-  let res;
-  try {
-    res = await fetch(`${ctx.apiUrl}/samples-src/${key}.tar.gz`, {
-      headers: { "User-Agent": userAgent(ctx.config) },
-      signal: AbortSignal.timeout(6e4)
-    });
-  } catch {
-    throw new CliError(messages()("unreachable", { url: ctx.apiUrl }), 1, "network");
-  }
-  if (!res.ok) throw new CliError(messages()("sampleDownloadFailed", { key, status: res.status }), 1, "api");
-  const gz = Buffer.from(await res.arrayBuffer());
-  if (gz.length > MAX_BYTES) throw new CliError(messages()("sampleTooLarge"), 1, "api");
-  return extractInto(gz, root, "The sample download is damaged. Try again.");
-}
-function extractInto(gz, root, damaged) {
-  let entries;
-  try {
-    entries = readTar(gunzipSync(gz, { maxOutputLength: MAX_BYTES * 4 }));
-  } catch {
-    throw new CliError(damaged, 1, "api");
-  }
-  mkdirSync8(root, { recursive: true });
-  const base = resolve2(root);
-  let written = 0;
-  for (const e3 of entries) {
-    if (e3.type !== "0" && e3.type !== "\0") continue;
-    if (privateProjectFile(e3.name.replace(/\\/g, "/"))) continue;
-    const target = resolve2(base, e3.name);
-    if (target !== base && !target.startsWith(base + sep2)) continue;
-    mkdirSync8(dirname4(target), { recursive: true });
-    writeFileSync12(target, e3.data);
-    written++;
-  }
-  return written;
-}
-async function samplesCommand(cwd, ctx, key, opts = {}) {
-  if (!key) return listSamples(ctx.apiUrl);
-  const sample = SAMPLES.find((s) => s.key === key.toLowerCase());
-  if (!sample) throw new CliError(messages()("noSampleNamed", { key }), 1, "not_found");
-  let root;
-  if (opts.folder) {
-    root = resolve2(cwd, opts.folder);
-    if (filesIn(root).length && !opts.force) throw new CliError(`The folder ${opts.folder} is not empty. Run: npx deployai@latest samples ${sample.key}, and it picks a free folder`, 1, "not_empty");
-  } else {
-    const here = filesIn(cwd);
-    if (!here.length || opts.force) root = cwd;
-    else if (process.stdin.isTTY && process.stdout.isTTY) {
-      const picked = await askWhere(cwd, sample.key, here.length);
-      if (!picked) return out("Cancelled. Nothing was downloaded.");
-      root = picked;
-    } else root = freeFolder(cwd, sample.key);
-  }
-  const written = await downloadSample(ctx, sample.key, root);
-  const base = resolve2(root);
-  const hasPackage = existsSync13(join15(base, "package.json"));
-  out(base === resolve2(cwd) ? `Downloaded the ${sample.key} sample: ${written} files.` : `Downloaded the ${sample.key} sample into the new folder ${relative2(cwd, base)}: ${written} files. Work in that folder from now on.`);
-  out("");
-  const t = messages(base);
-  out(t("nextSteps"));
-  if (base !== resolve2(cwd)) out(`  cd ${JSON.stringify(relative2(cwd, base))}`);
-  if (hasPackage) out("  npm install");
-  out("  npx deployai@latest check");
-  if (ctx.config.token) {
-    out('  npx deployai@latest link --create "<name>"');
-    out('  npx deployai@latest deploy -m "first version"');
-  } else out("  npx deployai@latest deploy --guest");
-  out("");
-  out(t("readme"));
-}
-
-// src/commands/pull.ts
-var MAX_BYTES2 = 50 * 1024 * 1024;
-async function pullCommand(root, ctx, opts = {}) {
-  const t = messages(root);
-  const projectId = readProject(root)?.projectId;
-  if (!projectId) throw new CliError(t("pullNotLinked"), 1, "not_linked");
-  if (filesIn(root).length) throw new CliError(t("pullNotEmpty"), 1, "not_empty");
-  requireToken(ctx);
-  if (opts.history) return pullHistory(root, ctx, projectId);
-  const n2 = extractInto(await fetchSource(root, ctx, projectId), root, t("pullDamaged"));
-  out(t("pulled", { n: n2, v: lastVersion ?? "?" }));
-}
-var lastVersion = null;
-async function fetchSource(root, ctx, projectId, version2) {
-  const t = messages(root);
-  const token = requireToken(ctx);
-  let res;
-  try {
-    res = await fetch(`${ctx.apiUrl}/api/cli/source?projectId=${encodeURIComponent(projectId)}${version2 ? `&version=${version2}` : ""}`, { headers: { "User-Agent": userAgent(ctx.config), Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(12e4) });
-  } catch {
-    throw new CliError(messages()("unreachable", { url: ctx.apiUrl }), 1, "network");
-  }
-  if (res.status === 401) throw new CliError(t("sessionExpired"), 1, "auth");
-  if (res.status === 404) {
-    const code = (await res.clone().json().catch(() => null))?.error;
-    throw new CliError(code === "no_source" ? t("pullNoSource") : code === "not_on_site" ? t("notOnSite") : t("notFound"), 1, "not_found");
-  }
-  if (res.status === 403) {
-    const code = (await res.clone().json().catch(() => null))?.error;
-    throw new CliError(code === "view_only" ? t("viewOnly") : t("forbidden"), 1, "forbidden");
-  }
-  if (!res.ok) throw new CliError(t("apiError", { code: `HTTP ${res.status}` }), 1, "api");
-  const gz = Buffer.from(await res.arrayBuffer());
-  if (gz.length > MAX_BYTES2) throw new CliError(t("pullTooLarge"), 1, "too_large");
-  lastVersion = res.headers.get("X-DeployAI-Version");
-  return gz;
-}
-var git = (root, args, env = {}) => spawnSync2("git", args, { cwd: root, encoding: "utf8", env: { ...process.env, ...env } });
-function clearTree(root) {
-  for (const name of readdirSync5(root)) {
-    if (name === ".git" || name === ".deployai") continue;
-    rmSync2(join16(root, name), { recursive: true, force: true });
-  }
-}
-async function pullHistory(root, ctx, projectId) {
-  const t = messages(root);
-  if (git(root, ["--version"]).status !== 0) throw new CliError(t("pullNoGit"), 1, "usage");
-  const { versions } = await apiRequest(ctx, `/api/cli/versions?projectId=${encodeURIComponent(projectId)}`, VersionsResponse);
-  const live = versions.find((v) => v.isLive)?.number ?? Math.max(0, ...versions.filter((v) => v.status === "ready").map((v) => v.number));
-  const chosen = versions.filter((v) => v.number <= live && v.status !== "failed" && v.status !== "queued").sort((a, b) => a.number - b.number);
-  if (!chosen.length) throw new CliError(t("pullNoSource"), 1, "not_found");
-  if (!existsSync14(join16(root, ".git")) && git(root, ["init", "-q"]).status !== 0) throw new CliError(t("pullNoGit"), 1, "usage");
-  for (const v of chosen) {
-    const gz = await fetchSource(root, ctx, projectId, v.number).catch(() => null);
-    if (!gz) continue;
-    clearTree(root);
-    extractInto(gz, root, t("pullDamaged"));
-    git(root, ["add", "-A"]);
-    const when = { GIT_AUTHOR_DATE: v.createdAt, GIT_COMMITTER_DATE: v.createdAt };
-    const r = git(root, ["-c", "user.name=DeployAI", "-c", "user.email=versions@deployai.co.il", "commit", "-q", "--allow-empty", "-m", `v${v.number}: ${v.message}`], when);
-    if (r.status !== 0) throw new CliError(`git commit failed for v${v.number}: ${r.stderr.trim()}`, 1, "git");
-    out(`  v${v.number}  ${v.message}`);
-  }
-  out(t("pulledHistory", { n: chosen.length, v: live }));
-}
-
 // src/commands/requests.ts
 var OUTCOME = {
   site: "reached the site",
@@ -28572,13 +29020,13 @@ async function requestsOpenCommand(root, ctx, path, open2) {
 }
 
 // src/commands/start.ts
-import { spawnSync as spawnSync3 } from "child_process";
-import { existsSync as existsSync15, writeFileSync as writeFileSync14 } from "fs";
-import { join as join18, relative as relative3, resolve as resolve3 } from "path";
+import { spawnSync as spawnSync4 } from "child_process";
+import { existsSync as existsSync16, writeFileSync as writeFileSync15 } from "fs";
+import { join as join19, relative as relative3, resolve as resolve4 } from "path";
 
 // src/commands/starter.ts
-import { writeFileSync as writeFileSync13 } from "fs";
-import { join as join17 } from "path";
+import { writeFileSync as writeFileSync14 } from "fs";
+import { join as join18 } from "path";
 var esc2 = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 var TEXT = {
   he: { title: "\u05D4\u05D0\u05EA\u05E8 \u05E9\u05DC\u05D9", soon: "\u05D4\u05D0\u05EA\u05E8 \u05D1\u05D1\u05E0\u05D9\u05D9\u05D4, \u05D1\u05E7\u05E8\u05D5\u05D1 \u05DB\u05D0\u05DF." },
@@ -28626,8 +29074,8 @@ DeployAI wrote this page so the folder starts as a working site. Build the owner
 - Delete this README or replace it with notes about the site.
 `;
 function writeStarter(root, name, lang, stack) {
-  writeFileSync13(join17(root, "index.html"), page2(name ?? "", lang, stack));
-  writeFileSync13(join17(root, "README.md"), README);
+  writeFileSync14(join18(root, "index.html"), page2(name ?? "", lang, stack));
+  writeFileSync14(join18(root, "README.md"), README);
 }
 
 // src/commands/start.ts
@@ -28643,7 +29091,7 @@ async function fetchStart(ctx, id) {
   }
   const data = await res.json().catch(() => null);
   if (data?.error === "login_required") return "login_required";
-  if (data?.error === "not_on_site") throw new CliError(messages(process.cwd())("notOnSite"), 1, "not_found");
+  if (data?.error === "not_on_site") return { notOnSite: true, madeBy: typeof data.madeBy === "string" ? data.madeBy : null };
   if (data?.error === "view_only") throw new CliError(messages(process.cwd())("viewOnly"), 1, "forbidden");
   if (!res.ok || !data?.kind || !data.choices || typeof data.agent !== "string") {
     const code = typeof data?.error === "string" ? data.error : "";
@@ -28652,34 +29100,52 @@ async function fetchStart(ctx, id) {
   return data;
 }
 function install(root) {
-  const r = spawnSync3("npm", ["install"], { cwd: root, stdio: "inherit", shell: process.platform === "win32" });
+  const r = spawnSync4("npm", ["install"], { cwd: root, stdio: "inherit", shell: process.platform === "win32" });
   return r.status === 0;
 }
 async function startCommand(cwd, ctx, id, opts = {}) {
-  const key = id.trim().toLowerCase();
-  if (!START_ID_RE.test(key)) throw new CliError(reason("start_not_found"), 1, "not_found");
+  const key2 = id.trim().toLowerCase();
+  if (!START_ID_RE.test(key2)) throw new CliError(reason("start_not_found"), 1, "not_found");
   let ctxNow = ctx;
-  let start2 = await fetchStart(ctxNow, key);
+  let start2 = await fetchStart(ctxNow, key2);
   if (start2 === "login_required") {
     out(messages(process.cwd())("startLoginFirst"));
     out(START_LOGIN_WAIT_LINE);
     out();
     await sendTelemetryEvent(ctxNow, buildTelemetryEvent(ctxNow.config.installId, "start", "blocked"));
     await loginCommand(ctxNow, { pollMs: opts.pollMs, quiet: true }).catch((e3) => {
-      if (e3 instanceof CliError && e3.category === "auth_expired") throw new CliError(messages(process.cwd())("startLoginExpired", { id: key }), 1, "auth_expired");
+      if (e3 instanceof CliError && e3.category === "auth_expired") throw new CliError(messages(process.cwd())("startLoginExpired", { id: key2 }), 1, "auth_expired");
       throw e3;
     });
     ctxNow = { ...ctxNow, config: loadConfig() };
-    start2 = await fetchStart(ctxNow, key);
+    start2 = await fetchStart(ctxNow, key2);
     if (start2 === "login_required") throw new CliError(messages(process.cwd())("sessionExpired"), 1, "auth");
   }
+  if (typeof start2 === "object" && "notOnSite" in start2) {
+    const t0 = messages(process.cwd());
+    const maker = start2.madeBy ? t0("startOtherAccountMaker", { maker: start2.madeBy }) : "";
+    out(t0("startOtherAccount", { email: ctxNow.config.email ?? "?", maker }));
+    out(START_LOGIN_WAIT_LINE);
+    out();
+    await sendTelemetryEvent(ctxNow, buildTelemetryEvent(ctxNow.config.installId, "start", "blocked", "other_account"));
+    await loginCommand(ctxNow, { pollMs: opts.pollMs, quiet: true, force: true }).catch((e3) => {
+      if (e3 instanceof CliError && e3.category === "auth_expired") throw new CliError(t0("startLoginExpired", { id: key2 }), 1, "auth_expired");
+      throw e3;
+    });
+    ctxNow = { ...ctxNow, config: loadConfig() };
+    start2 = await fetchStart(ctxNow, key2);
+    if (start2 === "login_required") throw new CliError(t0("sessionExpired"), 1, "auth");
+    if ("notOnSite" in start2) throw new CliError(t0("startStillOtherAccount", { email: ctxNow.config.email ?? "?", maker, id: key2 }), 1, "not_found");
+  }
+  if (typeof start2 !== "object" || "notOnSite" in start2) throw new CliError(messages(process.cwd())("notOnSite"), 1, "not_found");
   const { kind, choices, agent } = start2;
+  if (choices.projectId && tokenIfOwnApi(ctxNow)) rememberSite(choices.projectId, ctxNow.config.email);
   const sample = choices.sampleKey ? SAMPLES.find((s) => s.key === choices.sampleKey) : void 0;
   if (choices.sampleKey && !sample) throw new CliError(messages()("unknownSample", { key: choices.sampleKey }), 1, "not_found");
   out(START_WAIT_LINE);
   out();
   const fresh = kind === "new" || kind === "migrate" || kind === "guest" && sample;
-  const here = resolve3(cwd);
+  const here = resolve4(cwd);
   const sameSite = Boolean(choices.projectId && readProject(here)?.projectId === choices.projectId);
   const update = kind === "update" && Boolean(choices.projectId);
   const root = (fresh || update) && filesIn(here).length && !opts.here && !sameSite ? freeFolder(here, choices.slug ?? sample?.key ?? "site") : here;
@@ -28701,13 +29167,13 @@ async function startCommand(cwd, ctx, id, opts = {}) {
   if (sample && !sameSite) {
     const written = await downloadSample(ctxNow, sample.key, root);
     done.push(t("startDownloaded", { key: sample.key, n: written }));
-    if (existsSync15(join18(root, "package.json"))) {
+    if (existsSync16(join19(root, "package.json"))) {
       if (opts.install !== false && install(root)) done.push(t("startInstalled"));
       else steps.unshift({ cmd: "npm install", say: "Installs the sample's packages." });
     }
   }
   if (kind === "migrate" && choices.migration) {
-    writeChoices(root, { ...choices.migration, startId: key });
+    writeChoices(root, { ...choices.migration, startId: key2 });
     if (root !== here) done.push(t("startBesideCode", { dir: here }));
     for (const url2 of choices.migration.sourceUrls) {
       try {
@@ -28726,7 +29192,7 @@ async function startCommand(cwd, ctx, id, opts = {}) {
   const stackText = choices.stack ? stackBlock(choices.stack) : "";
   if (choices.brief || stackText) {
     ensureDeployaiDir(root);
-    writeFileSync14(join18(root, BRIEF_FILE), [choices.brief ? `# The owner's details
+    writeFileSync15(join19(root, BRIEF_FILE), [choices.brief ? `# The owner's details
 
 ${choices.brief}
 ` : "", stackText].filter(Boolean).join("\n"));
@@ -28749,6 +29215,10 @@ ${choices.brief}
   out();
   if (root !== here) out(t(update ? "startUpdateFolder" : "startNewFolder", { dir: relative3(here, root) }));
   for (const line of done) out(`- ${line}`);
+  if (choices.projectId && signedIn) {
+    const others = othersLine(root, await touchWork(ctxNow, root, choices.projectId));
+    if (others) out(`- ${others}`);
+  }
   out();
   const lines = [];
   const say = (line = "") => {
@@ -28784,14 +29254,14 @@ ${choices.brief}
   for (const line of server.extra) say(line);
   say(rule(server, "startFail", START_FAIL_LINE));
   ensureDeployaiDir(root);
-  writeFileSync14(join18(root, START_FILE), `${lines.join("\n")}
+  writeFileSync15(join19(root, START_FILE), `${lines.join("\n")}
 `);
 }
 
 // src/commands/addon.ts
-import { dirname as dirname5, join as join19, resolve as resolve4 } from "path";
-import { mkdirSync as mkdirSync9 } from "fs";
-import { existsSync as existsSync16, writeFileSync as writeFileSync15 } from "fs";
+import { dirname as dirname6, join as join20, resolve as resolve5 } from "path";
+import { mkdirSync as mkdirSync10 } from "fs";
+import { existsSync as existsSync17, writeFileSync as writeFileSync16 } from "fs";
 function linkedProjectId2(root) {
   const id = readProject(root)?.projectId;
   if (!id) throw new CliError("This folder is not linked to a DeployAI site. Run: npx deployai@latest login, then npx deployai@latest link", 1, "not_linked");
@@ -28848,7 +29318,7 @@ async function addonsRunCommand(root, ctx, opts = {}) {
   const all = opts.all === true || !opts.oneByOne && readProject(root)?.addonsAll === true;
   if (!order && r.picked && !r.agreed && todo.length > 1 && (opts.all || !all)) {
     const stamps = readStamps(root);
-    const items = todo.map((a) => ({ ...a, trace: addonTrace(a.key, (path) => existsSync16(join19(root, path)), stamps) }));
+    const items = todo.map((a) => ({ ...a, trace: addonTrace(a.key, (path) => existsSync17(join20(root, path)), stamps) }));
     addonOrderBrief(items, opts.all ? "all" : opts.oneByOne ? "one-by-one" : null).forEach((line) => out(line));
     return;
   }
@@ -28875,10 +29345,10 @@ async function addonsRunCommand(root, ctx, opts = {}) {
   }
   await addonNextCommand(root, ctx);
 }
-async function addonBuyCommand(root, ctx, key) {
+async function addonBuyCommand(root, ctx, key2) {
   requireToken(ctx);
   const projectId = linkedProjectId2(root);
-  const name = key.trim().toLowerCase();
+  const name = key2.trim().toLowerCase();
   const r = await apiRequest(ctx, `/api/cli/addons?projectId=${encodeURIComponent(projectId)}`, AddonsResponse);
   if (!r.open) {
     out("The DeployAI marketplace is not open yet. Add-ons open soon.");
@@ -28896,19 +29366,19 @@ async function addonBuyCommand(root, ctx, key) {
 }
 function readStamps(root) {
   try {
-    return readJson(join19(root, ADDON_STAMP_FILE));
+    return readJson(join20(root, ADDON_STAMP_FILE));
   } catch {
     return {};
   }
 }
 function writeStamps(root, stamps) {
-  const file2 = join19(root, ADDON_STAMP_FILE);
-  mkdirSync9(dirname5(file2), { recursive: true });
-  writeFileSync15(file2, JSON.stringify(stamps, null, 2));
+  const file2 = join20(root, ADDON_STAMP_FILE);
+  mkdirSync10(dirname6(file2), { recursive: true });
+  writeFileSync16(file2, JSON.stringify(stamps, null, 2));
 }
 function printAddon(root, a) {
   const stamps = readStamps(root);
-  const trace = addonTrace(a.key, (path) => existsSync16(join19(root, path)), stamps);
+  const trace = addonTrace(a.key, (path) => existsSync17(join20(root, path)), stamps);
   writeStamps(root, { ...stamps, [a.key]: { ...stamps[a.key], runId: a.runId } });
   out(`DeployAI add-on ${a.position} of ${a.total}: ${a.name} (${a.key}, run ${a.runId}).`);
   const line = addonTraceLine(a.key, a.runId, trace);
@@ -28930,17 +29400,17 @@ async function addonNextCommand(root, ctx) {
     throw e3;
   }
 }
-async function addonRunCommand(root, ctx, key) {
+async function addonRunCommand(root, ctx, key2) {
   requireToken(ctx);
   const projectId = linkedProjectId2(root);
-  printAddon(root, await apiRequest(ctx, `/api/cli/addons/${encodeURIComponent(key.trim().toLowerCase())}?projectId=${encodeURIComponent(projectId)}`, AddonServe));
+  printAddon(root, await apiRequest(ctx, `/api/cli/addons/${encodeURIComponent(key2.trim().toLowerCase())}?projectId=${encodeURIComponent(projectId)}`, AddonServe));
 }
 async function addonDoneCommand(root, ctx, runId, opts) {
   requireToken(ctx);
   let report2;
   if (opts.report) {
     try {
-      report2 = readJson(resolve4(root, opts.report));
+      report2 = readJson(resolve5(root, opts.report));
     } catch {
       throw new CliError(`Cannot read the report file ${opts.report} as JSON.`, 1, "usage");
     }
@@ -28952,8 +29422,8 @@ async function addonDoneCommand(root, ctx, runId, opts) {
   out(`Saved: add-on ${body.data.status}.`);
   if (body.data.status === "done") {
     const stamps = readStamps(root);
-    const key = Object.keys(stamps).find((k) => stamps[k]?.runId === runId.trim());
-    if (key) writeStamps(root, { ...stamps, [key]: { ...stamps[key], doneAt: (/* @__PURE__ */ new Date()).toISOString() } });
+    const key2 = Object.keys(stamps).find((k) => stamps[k]?.runId === runId.trim());
+    if (key2) writeStamps(root, { ...stamps, [key2]: { ...stamps[key2], doneAt: (/* @__PURE__ */ new Date()).toISOString() } });
   }
   const all = readProject(root)?.addonsAll === true;
   if (r.next && all) out(`Next: ${r.next}. Do not deploy yet: everything goes up in one deploy after the last add-on. Run npx deployai@latest check, then at once: npx deployai@latest addon next`);
@@ -28967,9 +29437,9 @@ async function addonDoneCommand(root, ctx, runId, opts) {
 
 // src/commands/speed.ts
 import { spawn as spawn3 } from "child_process";
-import { mkdtempSync, readFileSync as readFileSync13, rmSync as rmSync3 } from "fs";
-import { tmpdir } from "os";
-import { join as join20 } from "path";
+import { mkdtempSync as mkdtempSync2, readFileSync as readFileSync14, rmSync as rmSync4 } from "fs";
+import { tmpdir as tmpdir2 } from "os";
+import { join as join21 } from "path";
 var ms = (v) => v >= 1e3 ? `${(v / 1e3).toFixed(1)} s` : `${Math.round(v)} ms`;
 var LOCAL_WAIT_MS = 18e4;
 function runLighthouse(url2, strategy, browser, file2) {
@@ -28993,16 +29463,16 @@ function runLighthouse(url2, strategy, browser, file2) {
 }
 async function localSpeed(url2, strategy, run = runLighthouse, browser = findBrowser()) {
   if (!browser) return null;
-  const dir = mkdtempSync(join20(tmpdir(), "deployai-speed-"));
+  const dir = mkdtempSync2(join21(tmpdir2(), "deployai-speed-"));
   try {
-    const file2 = join20(dir, "report.json");
+    const file2 = join21(dir, "report.json");
     await run(url2, strategy, browser, file2);
-    const lighthouseResult = JSON.parse(readFileSync13(file2, "utf8"));
+    const lighthouseResult = JSON.parse(readFileSync14(file2, "utf8"));
     return lighthouseResult.categories ? mapPsi({ lighthouseResult }, strategy) : null;
   } catch {
     return null;
   } finally {
-    rmSync3(dir, { recursive: true, force: true, maxRetries: 3 });
+    rmSync4(dir, { recursive: true, force: true, maxRetries: 3 });
   }
 }
 function printReport(r, strategy, local) {
@@ -29061,8 +29531,8 @@ async function speedCommand(ctx, url2, opts, deps = {}) {
 
 // src/commands/shot.ts
 import { spawn as spawn4 } from "child_process";
-import { existsSync as existsSync17, mkdirSync as mkdirSync10 } from "fs";
-import { join as join21, resolve as resolve5 } from "path";
+import { existsSync as existsSync18, mkdirSync as mkdirSync11 } from "fs";
+import { join as join22, resolve as resolve6 } from "path";
 var SHOT_SIZES = [{ name: "phone", size: "390,844" }, { name: "desktop", size: "1440,900" }];
 var PLAYWRIGHT = "playwright@1.56";
 var WAIT_MS3 = 18e4;
@@ -29098,14 +29568,14 @@ async function shotCommand(root, address, opts = {}, run = runNpx) {
   const browser = opts.webkit ? null : findBrowser();
   if (!opts.webkit && !browser) throw new CliError("No Chrome or Edge was found on this computer. Install Chrome, set CHROME_PATH to its path, or run shot again with --webkit (it downloads Safari's engine first).", 1, "no_browser");
   if (opts.webkit && await run(["--yes", PLAYWRIGHT, "install", "webkit"]) !== 0) throw new CliError("Safari's engine could not be installed. Run shot without --webkit to use Chrome or Edge.", 1, "shot_failed");
-  const dir = resolve5(root, opts.out ?? join21(".deployai", "shots"));
-  mkdirSync10(dir, { recursive: true });
+  const dir = resolve6(root, opts.out ?? join22(".deployai", "shots"));
+  mkdirSync11(dir, { recursive: true });
   const saved = [];
   for (const s of SHOT_SIZES) {
-    const file2 = join21(dir, shotName(url2.toString(), s.name));
+    const file2 = join22(dir, shotName(url2.toString(), s.name));
     const engine = opts.webkit ? ["--browser=webkit"] : [`--channel=${channelFor(browser)}`];
     const code = await run(["--yes", PLAYWRIGHT, "screenshot", ...engine, `--viewport-size=${s.size}`, "--full-page", "--wait-for-timeout=1500", url2.toString(), file2]);
-    if (code !== 0 || !existsSync17(file2)) throw new CliError(`The ${s.name} picture of ${url2} could not be taken. Check that the page opens, then run shot again.`, 1, "shot_failed");
+    if (code !== 0 || !existsSync18(file2)) throw new CliError(`The ${s.name} picture of ${url2} could not be taken. Check that the page opens, then run shot again.`, 1, "shot_failed");
     saved.push(file2);
     out(`${s.name.padEnd(8)} ${file2}`);
   }
@@ -29114,11 +29584,11 @@ async function shotCommand(root, address, opts = {}, run = runNpx) {
 }
 
 // src/commands/images.ts
-import { spawnSync as spawnSync4 } from "child_process";
-import { existsSync as existsSync18, mkdirSync as mkdirSync11, readdirSync as readdirSync6, statSync as statSync3, writeFileSync as writeFileSync16 } from "fs";
+import { spawnSync as spawnSync5 } from "child_process";
+import { existsSync as existsSync19, mkdirSync as mkdirSync12, readdirSync as readdirSync6, statSync as statSync3, writeFileSync as writeFileSync17 } from "fs";
 import { createRequire } from "module";
 import { homedir as homedir3 } from "os";
-import { extname, join as join22, relative as relative4, resolve as resolve6 } from "path";
+import { extname, join as join23, relative as relative4, resolve as resolve7 } from "path";
 var PHONE_WIDTH = 640;
 var SHARP = "sharp@0.34";
 var SKIP_DIRS2 = /* @__PURE__ */ new Set(["node_modules", ".git", ".deployai", "dist", ".astro", ".next"]);
@@ -29126,14 +29596,14 @@ function imagesIn(dir) {
   const found = [];
   const walk2 = (d) => {
     for (const name of readdirSync6(d)) {
-      const p = join22(d, name);
+      const p = join23(d, name);
       const st = statSync3(p);
       if (st.isDirectory()) {
         if (!SKIP_DIRS2.has(name)) walk2(p);
       } else if (/\.(jpe?g|png)$/i.test(name)) found.push(p);
     }
   };
-  if (existsSync18(dir)) walk2(dir);
+  if (existsSync19(dir)) walk2(dir);
   return found.sort();
 }
 function outputsFor(file2, width) {
@@ -29143,18 +29613,18 @@ function outputsFor(file2, width) {
   return list;
 }
 function loadSharp() {
-  const dir = join22(homedir3(), ".deployai", "tools", "sharp");
-  if (!existsSync18(join22(dir, "node_modules", "sharp"))) {
-    mkdirSync11(dir, { recursive: true });
-    if (!existsSync18(join22(dir, "package.json"))) writeFileSync16(join22(dir, "package.json"), '{"private":true}');
+  const dir = join23(homedir3(), ".deployai", "tools", "sharp");
+  if (!existsSync19(join23(dir, "node_modules", "sharp"))) {
+    mkdirSync12(dir, { recursive: true });
+    if (!existsSync19(join23(dir, "package.json"))) writeFileSync17(join23(dir, "package.json"), '{"private":true}');
     out("Getting the image tool once (it stays outside the site)...");
-    const r = spawnSync4(process.platform === "win32" ? "npm.cmd" : "npm", ["install", SHARP, "--no-audit", "--no-fund", "--silent"], { cwd: dir, stdio: "ignore", shell: process.platform === "win32" });
+    const r = spawnSync5(process.platform === "win32" ? "npm.cmd" : "npm", ["install", SHARP, "--no-audit", "--no-fund", "--silent"], { cwd: dir, stdio: "ignore", shell: process.platform === "win32" });
     if (r.status !== 0) throw new CliError("The image tool could not be installed. Check the internet connection and run optimize again.", 1, "images_failed");
   }
-  return createRequire(join22(dir, "package.json"))("sharp");
+  return createRequire(join23(dir, "package.json"))("sharp");
 }
 async function imagesCommand(root, folder, sharp = loadSharp) {
-  const dir = resolve6(root, folder ?? "public");
+  const dir = resolve7(root, folder ?? "public");
   const files = imagesIn(dir);
   if (!files.length) {
     out(`No JPG or PNG images under ${relative4(root, dir) || "."}.`);
@@ -29168,7 +29638,7 @@ async function imagesCommand(root, folder, sharp = loadSharp) {
     const size = statSync3(file2).size;
     const meta3 = await make(file2).metadata();
     const outputs = outputsFor(file2, meta3.width);
-    if (outputs.every((o) => existsSync18(o.file) && statSync3(o.file).mtimeMs >= statSync3(file2).mtimeMs)) {
+    if (outputs.every((o) => existsSync19(o.file) && statSync3(o.file).mtimeMs >= statSync3(file2).mtimeMs)) {
       skipped++;
       continue;
     }
@@ -29187,10 +29657,10 @@ async function imagesCommand(root, folder, sharp = loadSharp) {
 }
 
 // src/commands/blocks.ts
-import { createHash as createHash3 } from "crypto";
-import { existsSync as existsSync19, mkdirSync as mkdirSync12, readFileSync as readFileSync14, writeFileSync as writeFileSync17 } from "fs";
-import { dirname as dirname6, resolve as resolve7, sep as sep3 } from "path";
-import { gunzipSync as gunzipSync2 } from "zlib";
+import { createHash as createHash4 } from "crypto";
+import { existsSync as existsSync20, mkdirSync as mkdirSync13, readFileSync as readFileSync15, writeFileSync as writeFileSync18 } from "fs";
+import { dirname as dirname7, resolve as resolve8, sep as sep3 } from "path";
+import { gunzipSync as gunzipSync3 } from "zlib";
 var BLOCKS = [
   { key: "dashboard", title: "The site's own dashboard: messages, pages, blog, shop, images, accessibility, documents. Add --update to get a newer version" },
   { key: "inbox", title: "Contact form with the site's own messages page for the owner, and an email on each message (D1)" },
@@ -29198,11 +29668,11 @@ var BLOCKS = [
   { key: "late-tags", title: "Tracking tags (Tag Manager, Google, Meta, Clarity) that load a moment after the page shows, at once on conversion pages and ad clicks" }
 ];
 var MAX_BYTES3 = 5 * 1024 * 1024;
-var sha = (data) => createHash3("sha256").update(data).digest("hex");
-var lockPath = (base, key) => resolve7(base, ".deployai", "blocks", `${key}.lock.json`);
-function readLock(base, key) {
+var sha = (data) => createHash4("sha256").update(data).digest("hex");
+var lockPath = (base, key2) => resolve8(base, ".deployai", "blocks", `${key2}.lock.json`);
+function readLock(base, key2) {
   try {
-    return readJson(lockPath(base, key));
+    return readJson(lockPath(base, key2));
   } catch {
     return {};
   }
@@ -29229,25 +29699,25 @@ async function blocksCommand(root, ctx, name, opts = {}) {
   if (gz.length > MAX_BYTES3) throw new CliError("The block download is too large.", 1, "api");
   let entries;
   try {
-    entries = readTar(gunzipSync2(gz, { maxOutputLength: MAX_BYTES3 * 4 }));
+    entries = readTar(gunzipSync3(gz, { maxOutputLength: MAX_BYTES3 * 4 }));
   } catch {
     throw new CliError("The block download is damaged. Try again.", 1, "api");
   }
-  const base = resolve7(root);
+  const base = resolve8(root);
   const written = [];
   const kept = [];
   const updated = [];
   const lock = readLock(base, block.key);
   for (const e3 of entries) {
     if (e3.type !== "0" && e3.type !== "\0") continue;
-    const target = resolve7(base, e3.name);
+    const target = resolve8(base, e3.name);
     if (target === base || !target.startsWith(base + sep3)) continue;
-    if (existsSync19(target)) {
-      const now = sha(readFileSync14(target));
+    if (existsSync20(target)) {
+      const now = sha(readFileSync15(target));
       if (now === sha(e3.data)) {
         lock[e3.name] = now;
       } else if (opts.update && lock[e3.name] === now) {
-        writeFileSync17(target, e3.data);
+        writeFileSync18(target, e3.data);
         lock[e3.name] = sha(e3.data);
         updated.push(e3.name);
       } else {
@@ -29255,13 +29725,13 @@ async function blocksCommand(root, ctx, name, opts = {}) {
       }
       continue;
     }
-    mkdirSync12(dirname6(target), { recursive: true });
-    writeFileSync17(target, e3.data);
+    mkdirSync13(dirname7(target), { recursive: true });
+    writeFileSync18(target, e3.data);
     lock[e3.name] = sha(e3.data);
     written.push(e3.name);
   }
-  mkdirSync12(dirname6(lockPath(base, block.key)), { recursive: true });
-  writeFileSync17(lockPath(base, block.key), `${JSON.stringify(lock, null, 2)}
+  mkdirSync13(dirname7(lockPath(base, block.key)), { recursive: true });
+  writeFileSync18(lockPath(base, block.key), `${JSON.stringify(lock, null, 2)}
 `);
   out(`Added the ${block.key} block: ${written.length} files.`);
   written.forEach((f) => out(`  + ${f}`));
@@ -29322,10 +29792,10 @@ async function integrationsCommand(ctx, name, opts = {}) {
 
 // src/commands/brand.ts
 import { spawn as spawn5 } from "child_process";
-import { copyFileSync, existsSync as existsSync20, mkdirSync as mkdirSync13, mkdtempSync as mkdtempSync2, readdirSync as readdirSync7, readFileSync as readFileSync15, rmSync as rmSync4, statSync as statSync4, writeFileSync as writeFileSync18 } from "fs";
+import { copyFileSync, existsSync as existsSync21, mkdirSync as mkdirSync14, mkdtempSync as mkdtempSync3, readdirSync as readdirSync7, readFileSync as readFileSync16, rmSync as rmSync5, statSync as statSync4, writeFileSync as writeFileSync19 } from "fs";
 import { createServer } from "http";
-import { tmpdir as tmpdir2 } from "os";
-import { basename as basename2, dirname as dirname7, extname as extname2, join as join23, relative as relative5, sep as sep4 } from "path";
+import { tmpdir as tmpdir3 } from "os";
+import { basename as basename2, dirname as dirname8, extname as extname2, join as join24, relative as relative5, sep as sep4 } from "path";
 import { randomBytes } from "crypto";
 
 // src/commands/brand-page.ts
@@ -29417,7 +29887,7 @@ var WALK_CAP = 4e3;
 var SKIP_DIRS3 = /* @__PURE__ */ new Set(["node_modules", ".git", ".next", "dist", "build", "out", ".astro", ".output", ".svelte-kit", ".wrangler", ".deployai"]);
 var TYPES = { ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".gif": "image/gif", ".ico": "image/x-icon", ".avif": "image/avif" };
 function webRoot(root) {
-  for (const d of ["public", "static"]) if (existsSync20(join23(root, d))) return join23(root, d);
+  for (const d of ["public", "static"]) if (existsSync21(join24(root, d))) return join24(root, d);
   return root;
 }
 function walk(dir, found = []) {
@@ -29429,7 +29899,7 @@ function walk(dir, found = []) {
   }
   for (const n2 of names) {
     if (found.length >= WALK_CAP) break;
-    const p = join23(dir, n2);
+    const p = join24(dir, n2);
     let isDir = false;
     try {
       isDir = statSync4(p).isDirectory();
@@ -29444,31 +29914,31 @@ function walk(dir, found = []) {
 }
 function existingFavicon(root) {
   const web = webRoot(root);
-  for (const f of ["favicon.ico", "favicon.svg", "favicon.png", "icon.svg", "icon.png"]) if (existsSync20(join23(web, f))) return relative5(root, join23(web, f)).split(sep4).join("/");
-  for (const d of ["app", "src/app"]) for (const f of ["favicon.ico", "icon.svg", "icon.png", "icon.tsx", "icon.jpg"]) if (existsSync20(join23(root, d, f))) return `${d}/${f}`;
+  for (const f of ["favicon.ico", "favicon.svg", "favicon.png", "icon.svg", "icon.png"]) if (existsSync21(join24(web, f))) return relative5(root, join24(web, f)).split(sep4).join("/");
+  for (const d of ["app", "src/app"]) for (const f of ["favicon.ico", "icon.svg", "icon.png", "icon.tsx", "icon.jpg"]) if (existsSync21(join24(root, d, f))) return `${d}/${f}`;
   for (const f of walk(root).filter((p) => /\.(html|astro|tsx|jsx|vue|svelte)$/.test(p)).slice(0, 400)) {
     try {
-      const m = readFileSync15(f, "utf8").match(/<link\b[^>]*\brel=["'](?:shortcut )?icon["'][^>]*>/i);
+      const m = readFileSync16(f, "utf8").match(/<link\b[^>]*\brel=["'](?:shortcut )?icon["'][^>]*>/i);
       if (!m) continue;
       const href = m[0].match(/\shref=["']([^"']+)/i)?.[1] ?? "";
-      if (href.startsWith("data:") || /^https?:/.test(href) || existsSync20(join23(web, href.split("?")[0]))) return relative5(root, f).split(sep4).join("/");
+      if (href.startsWith("data:") || /^https?:/.test(href) || existsSync21(join24(web, href.split("?")[0]))) return relative5(root, f).split(sep4).join("/");
     } catch {
     }
   }
   return null;
 }
 function scannedIcons(root) {
-  const base = join23(root, MIGRATION_DIR);
-  if (!existsSync20(base)) return [];
+  const base = join24(root, MIGRATION_DIR);
+  if (!existsSync21(base)) return [];
   const found = [];
   for (const host of readdirSync7(base)) {
-    const dir = join23(base, host, "icons");
+    const dir = join24(base, host, "icons");
     try {
-      const list = readJson(join23(dir, "icons.json"));
+      const list = readJson(join24(dir, "icons.json"));
       for (const i of list) {
-        const path = join23(dir, i.file);
-        if (!existsSync20(path)) continue;
-        const size = imageSize(readFileSync15(path));
+        const path = join24(dir, i.file);
+        if (!existsSync21(path)) continue;
+        const size = imageSize(readFileSync16(path));
         found.push({ path, kind: i.kind, big: !size || size.width >= 64 });
       }
     } catch {
@@ -29480,7 +29950,7 @@ function findSource(root) {
   const icons = scannedIcons(root);
   const sharp = icons.find((i) => i.kind === "icon" && i.big);
   if (sharp) return { path: sharp.path, from: "old-icon" };
-  const dirs = ["public", "static", "src/assets", "assets", "images", "img"].map((d) => join23(root, d));
+  const dirs = ["public", "static", "src/assets", "assets", "images", "img"].map((d) => join24(root, d));
   const logos = dirs.flatMap((d) => walk(d)).filter((p) => looksLikeLogo(relative5(root, p).split(sep4).join("/")));
   const logo = logos.find((p) => /\.svg$/i.test(p)) ?? logos[0];
   if (logo) return { path: logo, from: "logo" };
@@ -29494,23 +29964,23 @@ var CODE_EXT2 = /\.(css|scss|sass|less|html|astro|vue|svelte)$/i;
 var READ_CAP = 300;
 function readText2(path) {
   try {
-    return readFileSync15(path, "utf8");
+    return readFileSync16(path, "utf8");
   } catch {
     return "";
   }
 }
 function scanDirs(root) {
-  const base = join23(root, MIGRATION_DIR);
+  const base = join24(root, MIGRATION_DIR);
   try {
-    return readdirSync7(base).map((h) => join23(base, h)).filter((d) => existsSync20(join23(d, "home.html")));
+    return readdirSync7(base).map((h) => join24(base, h)).filter((d) => existsSync21(join24(d, "home.html")));
   } catch {
     return [];
   }
 }
 function homePage(root) {
-  for (const d of scanDirs(root)) return readText2(join23(d, "home.html"));
+  for (const d of scanDirs(root)) return readText2(join24(d, "home.html"));
   for (const f of ["index.html", "public/index.html", "src/index.html", "src/pages/index.astro", "src/pages/index.html", "app/layout.tsx", "src/app/layout.tsx", "src/layouts/Layout.astro"]) {
-    const text2 = readText2(join23(root, f));
+    const text2 = readText2(join24(root, f));
     if (text2) return text2;
   }
   return "";
@@ -29521,30 +29991,30 @@ function siteFacts(root, given = {}) {
   const id = readSiteIdentity(home);
   let pkg;
   try {
-    pkg = readJson(join23(root, "package.json")).name;
+    pkg = readJson(join24(root, "package.json")).name;
   } catch {
   }
   const name = given.name?.trim() || readProject(root)?.name || id.name || (pkg && !pkg.startsWith("@") ? pkg : "") || basename2(root);
   if (given.color) return { name, line: given.line ?? id.line ?? "", color: given.color, colorFrom: "given" };
-  const old = scanDirs(root).flatMap((d) => walkAll(join23(d, "styles")).map((f) => ({ text: readText2(f) })));
+  const old = scanDirs(root).flatMap((d) => walkAll(join24(d, "styles")).map((f) => ({ text: readText2(f) })));
   const fromOld = scanDirs(root).length ? pickBrandColor([{ text: home, themeColor: id.themeColor }, ...old]) : null;
   const sources = [{ text: home, themeColor: id.themeColor }];
-  for (const f of ["tailwind.config.js", "tailwind.config.ts", "tailwind.config.mjs", "tailwind.config.cjs"]) sources.push({ text: readText2(join23(root, f)) });
-  const code = ["src", "app", "styles", "css", "public", "static"].flatMap((d) => walk(join23(root, d))).filter((p) => CODE_EXT2.test(p));
-  const plain2 = readdirSync7(root).filter((f) => CODE_EXT2.test(f)).map((f) => join23(root, f));
+  for (const f of ["tailwind.config.js", "tailwind.config.ts", "tailwind.config.mjs", "tailwind.config.cjs"]) sources.push({ text: readText2(join24(root, f)) });
+  const code = ["src", "app", "styles", "css", "public", "static"].flatMap((d) => walk(join24(root, d))).filter((p) => CODE_EXT2.test(p));
+  const plain2 = readdirSync7(root).filter((f) => CODE_EXT2.test(f)).map((f) => join24(root, f));
   for (const f of [...plain2, ...code].slice(0, READ_CAP)) sources.push({ text: readText2(f) });
   const color = fromOld ?? pickBrandColor(sources);
   return { name, line: given.line ?? id.line ?? "", color: color ?? BRAND_DEFAULT_COLOR, colorFrom: color ? "site" : "default" };
 }
 function writeSiteFile(root, file2, data) {
-  const target = join23(webRoot(root), file2);
-  if (existsSync20(target)) {
-    const keep = join23(root, BRAND_DIR, "originals");
-    mkdirSync13(keep, { recursive: true });
-    copyFileSync(target, join23(keep, file2));
+  const target = join24(webRoot(root), file2);
+  if (existsSync21(target)) {
+    const keep = join24(root, BRAND_DIR, "originals");
+    mkdirSync14(keep, { recursive: true });
+    copyFileSync(target, join24(keep, file2));
   }
-  mkdirSync13(dirname7(target), { recursive: true });
-  writeFileSync18(target, data);
+  mkdirSync14(dirname8(target), { recursive: true });
+  writeFileSync19(target, data);
 }
 var send = (res, status, body = "", type = "text/plain; charset=utf-8") => {
   res.writeHead(status, { "content-type": type, "cache-control": "no-store", "x-content-type-options": "nosniff" });
@@ -29579,7 +30049,7 @@ function allowed(req, url2, port, token) {
   return req.headers.host === `127.0.0.1:${port}` && url2.searchParams.get("t") === token;
 }
 async function headless(browser, url2, width, until, timeoutMs) {
-  const profile = mkdtempSync2(join23(tmpdir2(), "deployai-brand-"));
+  const profile = mkdtempSync3(join24(tmpdir3(), "deployai-brand-"));
   const child = spawn5(browser, ["--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check", "--disable-extensions", `--user-data-dir=${profile}`, `--window-size=${width},900`, url2], { stdio: "ignore", windowsHide: true });
   child.on("error", () => {
   });
@@ -29599,7 +30069,7 @@ async function headless(browser, url2, width, until, timeoutMs) {
       setTimeout(done, 3e3);
     });
     try {
-      rmSync4(profile, { recursive: true, force: true, maxRetries: 3, retryDelay: 200 });
+      rmSync5(profile, { recursive: true, force: true, maxRetries: 3, retryDelay: 200 });
     } catch {
     }
   }
@@ -29679,7 +30149,7 @@ async function drawInBrowser(o, browser) {
   }
 }
 function sourceBytes(path) {
-  return { bytes: readFileSync15(path), type: TYPES[extname2(path).toLowerCase()] ?? "application/octet-stream" };
+  return { bytes: readFileSync16(path), type: TYPES[extname2(path).toLowerCase()] ?? "application/octet-stream" };
 }
 function report(root, r) {
   const where = relative5(root, webRoot(root)).split(sep4).join("/") || "the site root";
@@ -29697,7 +30167,7 @@ function plainIcon(root, source, name, color) {
     const ext = extname2(source.path).toLowerCase();
     if (ext === ".ico" || ext === ".svg" || ext === ".png") {
       const file2 = `favicon${ext}`;
-      writeSiteFile(root, file2, readFileSync15(source.path));
+      writeSiteFile(root, file2, readFileSync16(source.path));
       return [file2];
     }
   }
@@ -29715,7 +30185,7 @@ function printStatus2(root, files) {
   const web = webRoot(root);
   const icon = existingFavicon(root);
   out(icon ? `Icon: ${icon}` : "Icon: missing. Run: npx deployai@latest brand favicon");
-  const missing = files.filter((f) => f !== "favicon.svg" && !existsSync20(join23(web, f)));
+  const missing = files.filter((f) => f !== "favicon.svg" && !existsSync21(join24(web, f)));
   if (files.length) out(missing.length ? `Missing from the full set: ${missing.join(", ")}` : "The full set is there.");
 }
 function printFacts(f, picture2) {
@@ -29734,7 +30204,7 @@ function withLogoColor(facts, source) {
 }
 function pickSource(root, from) {
   const source = from ? { path: from, from: "file" } : findSource(root);
-  if (source.path && !existsSync20(source.path)) throw new CliError(`No such file: ${source.path}`, 1, "usage");
+  if (source.path && !existsSync21(source.path)) throw new CliError(`No such file: ${source.path}`, 1, "usage");
   return source;
 }
 async function brandFaviconCommand(root, opts) {
@@ -29762,7 +30232,7 @@ async function brandFaviconCommand(root, opts) {
 }
 function iconsToDraw(root, force) {
   const icon = force ? null : existingFavicon(root);
-  const keepOg = !force && existsSync20(join23(webRoot(root), "og-image.png"));
+  const keepOg = !force && existsSync21(join24(webRoot(root), "og-image.png"));
   return {
     targets: BRAND_TARGETS.filter((t) => !(keepOg && t.file === "og-image.png") && !(icon && t.icoOnly)),
     keepIcon: Boolean(icon),
@@ -29818,7 +30288,7 @@ async function measurePage(browser, address, width, scripts) {
   }
 }
 function imageFiles(root) {
-  const dirs = [webRoot(root) === root ? null : webRoot(root), join23(root, "src"), join23(root, MIGRATION_DIR)].filter((d) => !!d);
+  const dirs = [webRoot(root) === root ? null : webRoot(root), join24(root, "src"), join24(root, MIGRATION_DIR)].filter((d) => !!d);
   const files = dirs.flatMap((d) => walkAll(d));
   if (webRoot(root) === root) files.push(...walk(root));
   return [...new Set(files)].filter((p) => IMAGE_EXT.test(p) && !p.split(sep4).includes("icons") && !BRAND_FILES.includes(basename2(p)));
@@ -29834,7 +30304,7 @@ function walkAll(dir) {
     }
     for (const n2 of names) {
       if (found.length >= WALK_CAP) return;
-      const p = join23(d, n2);
+      const p = join24(d, n2);
       try {
         if (statSync4(p).isDirectory()) {
           if (!SKIP_DIRS3.has(n2) || n2 === ".deployai") go(p);
@@ -29853,7 +30323,7 @@ function judgeFiles(root) {
   for (const f of files) {
     let bytes;
     try {
-      bytes = readFileSync15(f);
+      bytes = readFileSync16(f);
     } catch {
       continue;
     }
@@ -29903,10 +30373,10 @@ async function brandImagesCommand(root, urls, opts) {
     if (verdict !== "ok") onPages.push({ where: m.src, width: m.width, height: m.height, shownWidth: m.shownWidth, verdict, alt: m.alt });
   }
   const weak = [...onPages, ...findings];
-  mkdirSync13(join23(root, BRAND_DIR), { recursive: true });
+  mkdirSync14(join24(root, BRAND_DIR), { recursive: true });
   const file2 = `${BRAND_DIR}/images.json`;
   const data = { measuredAt: (/* @__PURE__ */ new Date()).toISOString(), pages: urls, unmeasured, filesChecked: total, imagesMeasured: shown.size, weak };
-  writeFileSync18(join23(root, file2), `${JSON.stringify(data, null, 2)}
+  writeFileSync19(join24(root, file2), `${JSON.stringify(data, null, 2)}
 `);
   if (opts.json) {
     out(JSON.stringify(data));
@@ -29944,20 +30414,20 @@ async function envListCommand(root, ctx) {
   const width = Math.max(...vars.map((v) => v.key.length)) + 2;
   for (const v of vars) out(`  ${v.key.padEnd(width)}${(v.isSecret ? t("envSecret") : t("envPlain")).padEnd(10)}${v.hint}`);
 }
-async function envSetCommand(root, ctx, key, value, opts) {
+async function envSetCommand(root, ctx, key2, value, opts) {
   requireToken(ctx);
   const projectId = linkedProjectId(root);
   const t = messages(root);
   const v = value ?? (process.stdin.isTTY ? void 0 : await readStdin());
   if (v === void 0) throw new CliError(t("envNeedValue"), 1, "usage");
-  const r = await apiRequest(ctx, "/api/cli/env", EnvSetResponse, { method: "POST", body: { projectId, key, value: v, secret: !opts.plain } });
+  const r = await apiRequest(ctx, "/api/cli/env", EnvSetResponse, { method: "POST", body: { projectId, key: key2, value: v, secret: !opts.plain } });
   out(t(r.secret ? "envSavedSecret" : "envSavedPlain", { key: r.key }));
 }
-async function envRemoveCommand(root, ctx, key) {
+async function envRemoveCommand(root, ctx, key2) {
   requireToken(ctx);
   const projectId = linkedProjectId(root);
-  await apiRequest(ctx, "/api/cli/env", null, { method: "DELETE", body: { projectId, key } });
-  out(messages(root)("envRemoved", { key }));
+  await apiRequest(ctx, "/api/cli/env", null, { method: "DELETE", body: { projectId, key: key2 } });
+  out(messages(root)("envRemoved", { key: key2 }));
 }
 
 // src/cli.ts
@@ -29969,10 +30439,10 @@ function buildProgram() {
     if (lang === "he" || lang === "en") process.env.DEPLOYAI_LANG = lang;
   }).showHelpAfterError();
   const g = (cmd) => cmd.optsWithGlobals();
-  const root = (cmd) => resolve8(g(cmd).dir ?? process.cwd());
-  const ctx = (cmd) => apiContext(g(cmd).api);
+  const root = (cmd) => resolve9(g(cmd).dir ?? process.cwd());
+  const ctx = (cmd) => apiContext(g(cmd).api, root(cmd));
   program.hook("preAction", async (_p, action) => {
-    if (["init", "start", "rules"].includes(action.name()) || !existsSync21(join24(root(action), "DEPLOYAI.md"))) return;
+    if (["init", "start", "rules"].includes(action.name()) || !existsSync22(join25(root(action), "DEPLOYAI.md"))) return;
     await refreshRules(root(action), ctx(action).apiUrl);
   });
   program.command("init").description("create DEPLOYAI.md and .deployai/ guard files").option("--force", "overwrite DEPLOYAI.md").option("--no-agent-files", "do not add the DEPLOYAI.md line to AGENTS.md and CLAUDE.md").action((opts, cmd) => initCommand(root(cmd), opts, ctx(cmd).apiUrl));
@@ -29984,9 +30454,9 @@ function buildProgram() {
   });
   program.command("start").description("start from the line copied on the DeployAI site: prepares this folder with every choice made there, then prints the steps").argument("<id>", "the code from the copied line").option("--here", "put a new site in this folder even when it has files").option("--no-install", "do not run npm install for the sample").action((id, opts, cmd) => startCommand(root(cmd), ctx(cmd), id, opts));
   program.command("samples").description("list the official sample sites, or download one (into this folder when empty, else a new one)").argument("[name]", "landing, business, form, crud, shop or admin").argument("[folder]", "put the sample in this folder (default: this one when empty, else asks or makes a new one)").option("--force", "write into this folder even when it has files").action((name, folder, opts, cmd) => samplesCommand(root(cmd), ctx(cmd), name, { ...opts, folder }));
-  program.command("login").description("log in through the browser").option("--force", "log in again, also when this computer is already logged in").action((opts, cmd) => loginCommand(ctx(cmd), { root: root(cmd), force: opts.force }));
-  program.command("logout").description("cancel the login token and remove it from this computer").action((_opts, cmd) => logoutCommand(ctx(cmd)));
-  program.command("whoami").description("show the logged in user").action((_opts, cmd) => whoamiCommand(ctx(cmd)));
+  program.command("login").description("log in through the browser").option("--force", "log in again or with another account; the accounts already here stay (D-905)").action((opts, cmd) => loginCommand(ctx(cmd), { root: root(cmd), force: opts.force }));
+  program.command("logout").description("cancel an account's login token and remove it from this computer; other accounts stay").argument("[email]", "the account to log out (default: the one this folder uses)").option("--all", "log out of every account on this computer").action((email3, opts, cmd) => logoutCommand(ctx(cmd), { email: email3, all: opts.all }));
+  program.command("whoami").description("show the logged in user, and the other accounts on this computer").action((_opts, cmd) => whoamiCommand(ctx(cmd)));
   program.command("telemetry").description("show what is sent, or turn telemetry on or off").argument("[action]", "status, on or off", "status").action((action) => telemetryCommand(action));
   program.command("feedback").description("for your agent: tell DeployAI what got in its way and what would have helped (no code, names or addresses)").option("--kind <kind>", FEEDBACK_KINDS.join(", ")).option("--stage <stage>", `with --kind ask, when the owner asked: ${FEEDBACK_STAGES.join(", ")}`).option("--command <name>", "the DeployAI command it is about, for example deploy").option("--what <sentence>", "what happened: what you expected and what you got").option("--tried <sentence>", "what you tried, and what worked in the end").option("--suggest <sentence>", "the smallest change on our side that would have saved the step").addHelpText("after", `
 ${AGENT_FEEDBACK_RULES.join("\n\n")}
@@ -29998,6 +30468,7 @@ ${AGENT_FEEDBACK_RULES.join("\n\n")}
   );
   program.command("deploy").description("check, pack and upload the source, wait for the build, then put it live or print the preview address").option("-m, --message <message>", "version message", "update").option("--fixed <what>", "after a failed version: one sentence on what you changed to fix it, no code (helps us catch it for others)").option("--guest", "without login: deploy as a temporary site, deleted after the days we set unless claimed").option("--live", "put it live when the build is done; only after the owner said yes").option("--no-wait", "upload and return, without waiting for the build").option("--model <id>", "the AI model running this deploy, for example claude-opus-5-5 (sent only with telemetry on)").action((opts, cmd) => deployCommand(root(cmd), ctx(cmd), opts));
   program.command("pull").description("download the code of the linked site's live version into this empty folder (needs login)").option("--history", "every version up to the live one as git commits, oldest first").action((opts, cmd) => pullCommand(root(cmd), ctx(cmd), opts));
+  program.command("sync").description("bring the live site's changes into this folder before deploying, when someone else put a version live (D-907)").action((_opts, cmd) => syncCommand(root(cmd), ctx(cmd)));
   program.command("claim").description("print this folder's temporary site keep link again; --email mails it, with a reminder before the delete").option("--email <address>", "the owner's email for the link and the reminder").action((opts, cmd) => claimCommand(root(cmd), ctx(cmd), opts));
   program.command("requests").argument("[action]").argument("[address]").description('incoming requests: did a webhook arrive, and what happened. "requests open <address>" opens an address to every country, "requests close <address>" closes it').option("--limit <n>", "how many, 30 by default").action((action, address, opts, cmd) => {
     if (action !== "open" && action !== "close") return requestsCommand(root(cmd), ctx(cmd), opts);
@@ -30006,7 +30477,7 @@ ${AGENT_FEEDBACK_RULES.join("\n\n")}
   });
   program.command("versions").description("list versions").action((_opts, cmd) => versionsCommand(root(cmd), ctx(cmd)));
   program.command("rollback").description("put an earlier version back live, with no rebuild").argument("<version>", "for example v5").action((version2, _opts, cmd) => changeLiveCommand(root(cmd), ctx(cmd), version2, "rollback"));
-  program.command("promote").description("put a version live; new database changes (SQL) are shown and run first, after a yes").argument("<version>", "for example v5").option("--approve-sql <code>", "for an agent, after the owner said yes to the SQL that sql printed: the code it printed; never for SQL that removes data").action((version2, opts, cmd) => changeLiveCommand(root(cmd), ctx(cmd), version2, "promote", opts));
+  program.command("promote").description("put a version live; new database changes (SQL) are shown and run first, after a yes").argument("<version>", "for example v5").option("--approve-sql <code>", "for an agent, after the owner said yes to the SQL that sql printed: the code it printed; never for SQL that removes data").option("--anyway", "put live a version made before a newer one went live, only after the owner said so (D-907)").action((version2, opts, cmd) => changeLiveCommand(root(cmd), ctx(cmd), version2, "promote", opts));
   program.command("sql").description("the database changes (SQL) a version runs before it goes live").argument("<version>", "for example v5").action((version2, _opts, cmd) => sqlCommand(root(cmd), ctx(cmd), version2));
   program.command("status").description("site state, live version and queue").option("--wait", "wait until the build or go live ends, up to 5 minutes, instead of asking again").action((opts, cmd) => statusCommand(root(cmd), ctx(cmd), opts));
   const migrate = program.command("migrate").description("move an existing site: scan it, download its files, check the new one keeps its addresses");
@@ -30047,8 +30518,8 @@ ${AGENT_FEEDBACK_RULES.join("\n\n")}
   });
   const env = program.command("env").description("the site's environment variables: secrets by default, never shown again");
   env.command("list").description("list the keys, with a hint of each value").action((_opts, cmd) => envListCommand(root(cmd), ctx(cmd)));
-  env.command("set").argument("<key>", "the name, like API_KEY").argument("[value]", "the value; leave it out to pipe it in, so it stays out of the shell history").option("--plain", "a plain value the dashboard may show, not a secret").description("set a variable on the live site").action((key, value, opts, cmd) => envSetCommand(root(cmd), ctx(cmd), key, value, opts));
-  env.command("remove").argument("<key>", "the name to remove").description("remove a variable from the live site").action((key, _opts, cmd) => envRemoveCommand(root(cmd), ctx(cmd), key));
+  env.command("set").argument("<key>", "the name, like API_KEY").argument("[value]", "the value; leave it out to pipe it in, so it stays out of the shell history").option("--plain", "a plain value the dashboard may show, not a secret").description("set a variable on the live site").action((key2, value, opts, cmd) => envSetCommand(root(cmd), ctx(cmd), key2, value, opts));
+  env.command("remove").argument("<key>", "the name to remove").description("remove a variable from the live site").action((key2, _opts, cmd) => envRemoveCommand(root(cmd), ctx(cmd), key2));
   return program;
 }
 function commandPath(cmd) {
@@ -30127,9 +30598,9 @@ async function main(argv = process.argv) {
 }
 
 // src/update.ts
-import { spawnSync as spawnSync5 } from "child_process";
-import { existsSync as existsSync22, mkdirSync as mkdirSync14, readdirSync as readdirSync8, readFileSync as readFileSync16, rmSync as rmSync5, writeFileSync as writeFileSync19 } from "fs";
-import { join as join25 } from "path";
+import { spawnSync as spawnSync6 } from "child_process";
+import { existsSync as existsSync23, mkdirSync as mkdirSync15, readdirSync as readdirSync8, readFileSync as readFileSync17, rmSync as rmSync6, writeFileSync as writeFileSync20 } from "fs";
+import { join as join26 } from "path";
 var CHECK_EVERY_MS = 60 * 60 * 1e3;
 var ASK_NPM_MS = 1500;
 var GET_VERSION_MS = 12e4;
@@ -30167,11 +30638,11 @@ function updateAllowed(env, args) {
   return resolveApiUrl(void 0, loadConfig()) === API_BASE_DEFAULT.replace(/\/+$/, "");
 }
 function statePath() {
-  return join25(configDir(), "update-check.json");
+  return join26(configDir(), "update-check.json");
 }
 function readState() {
   try {
-    const data = JSON.parse(readFileSync16(statePath(), "utf8"));
+    const data = JSON.parse(readFileSync17(statePath(), "utf8"));
     return data && typeof data === "object" ? data : {};
   } catch {
     return {};
@@ -30179,8 +30650,8 @@ function readState() {
 }
 function writeState(state) {
   try {
-    mkdirSync14(configDir(), { recursive: true });
-    writeFileSync19(statePath(), JSON.stringify(state) + "\n");
+    mkdirSync15(configDir(), { recursive: true });
+    writeFileSync20(statePath(), JSON.stringify(state) + "\n");
   } catch {
   }
 }
@@ -30196,24 +30667,24 @@ async function askNpmLatest(env) {
   }
 }
 function versionEntry(version2) {
-  return join25(configDir(), "cli", version2, "node_modules", "deployai", "dist", "index.js");
+  return join26(configDir(), "cli", version2, "node_modules", "deployai", "dist", "index.js");
 }
 function getVersion(version2, env) {
   process.stderr.write(`Getting the newest DeployAI CLI, version ${version2}.
 `);
-  const root = join25(configDir(), "cli");
-  const dir = join25(root, version2);
-  mkdirSync14(dir, { recursive: true });
-  writeFileSync19(join25(dir, "package.json"), '{"private":true}\n');
-  const installed = spawnSync5(`npm install deployai@${version2} --ignore-scripts --no-audit --no-fund --silent`, { cwd: dir, env, shell: true, stdio: "ignore", windowsHide: true, timeout: GET_VERSION_MS });
+  const root = join26(configDir(), "cli");
+  const dir = join26(root, version2);
+  mkdirSync15(dir, { recursive: true });
+  writeFileSync20(join26(dir, "package.json"), '{"private":true}\n');
+  const installed = spawnSync6(`npm install deployai@${version2} --ignore-scripts --no-audit --no-fund --silent`, { cwd: dir, env, shell: true, stdio: "ignore", windowsHide: true, timeout: GET_VERSION_MS });
   if (installed.status !== 0) return false;
-  const ran = spawnSync5(process.execPath, [versionEntry(version2), "--version"], { env: { ...env, DEPLOYAI_NO_UPDATE: "1" }, encoding: "utf8", timeout: GET_VERSION_MS });
+  const ran = spawnSync6(process.execPath, [versionEntry(version2), "--version"], { env: { ...env, DEPLOYAI_NO_UPDATE: "1" }, encoding: "utf8", timeout: GET_VERSION_MS });
   if (ran.status !== 0 || ran.stdout.trim() !== version2) return false;
-  for (const old of readdirSync8(root)) if (old !== version2) rmSync5(join25(root, old), { recursive: true, force: true });
+  for (const old of readdirSync8(root)) if (old !== version2) rmSync6(join26(root, old), { recursive: true, force: true });
   return true;
 }
 function runVersion(version2, args, env = process.env) {
-  const r = spawnSync5(process.execPath, [versionEntry(version2), ...args], { stdio: "inherit", env: { ...env, DEPLOYAI_NO_UPDATE: "1" } });
+  const r = spawnSync6(process.execPath, [versionEntry(version2), ...args], { stdio: "inherit", env: { ...env, DEPLOYAI_NO_UPDATE: "1" } });
   if (r.error) return null;
   return r.status ?? 1;
 }
@@ -30228,7 +30699,7 @@ async function versionToRun(current, args, env = process.env, deps = {}) {
   }
   const latest = state.latest;
   if (!latest || !PLAIN_VERSION.test(latest) || compareVersions(latest, current) <= 0) return null;
-  if (state.ready === latest && existsSync22(versionEntry(latest))) return latest;
+  if (state.ready === latest && existsSync23(versionEntry(latest))) return latest;
   if (now - (state.triedAt ?? 0) < CHECK_EVERY_MS) return null;
   state.triedAt = now;
   if (get2(latest, env)) state.ready = latest;
