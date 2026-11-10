@@ -22809,7 +22809,7 @@ var OWNER_TEXT_RULE = "Write to the owner in short plain text, with no file path
 var START_LOGIN_WAIT_LINE = "For the agent: this command prints your instructions after the owner approves the login in the browser. Ask the owner to approve it now. If your tool stops this command, run the same command again. Do not build, scan or download anything before your instructions print.";
 var START_FILE = ".deployai/start.md";
 var START_WAIT_LINE = `For the agent: this can take several minutes, and your instructions print at the very end. Wait for it to end. If your tool moves it to the background, wait for it to finish, then read its whole output, or read ${START_FILE}. Do not start any work, ask the owner anything or act on the scan lines before you have read the instructions.`;
-var START_FAIL_LINE = "If anything fails, tell the owner in one or two short sentences what happened and what happens now, with no technical words. Give the cause only when it helps them, in simple words. Do not suggest another coding tool.";
+var START_FAIL_LINE = "If anything fails, tell the owner in one or two short sentences what happened and what happens now, with no technical words. Give the cause only when it helps them, in simple words. When a command says the connection dropped or DeployAI cannot be reached, wait 15 seconds and run the same command once more before you tell the owner. If the owner says no to a step, tell them in one sentence why it is needed and ask once more; after a second no, leave that step out or stop. Do not suggest another coding tool.";
 
 // ../shared/src/cli-map.ts
 var n = (id, lane, label, summaryHe, summaryEn) => ({ id, lane, label, summaryHe, summaryEn });
@@ -23614,7 +23614,9 @@ var SPACE_ADDRESSES = {
     appUrl: "http://localhost:3000",
     // Plain pnpm dev links to the tunnel too, so share images, canonical and sitemap never point at localhost (D-089).
     siteUrl: `https://${DEV_HOST}`,
-    trustedOrigins: [],
+    // Another app on the laptop can hold 3000, so next dev moves to 3001 and up: sign in and Log in as this user work
+    // there too (D-933). Dev space only, never prod.
+    trustedOrigins: Array.from({ length: 10 }, (_, i) => `http://localhost:${3e3 + i}`),
     devSitesDomain: "deployai.click",
     devPublicHost: DEV_HOST,
     mailFrom: "DeployAI <noreply@deployai.co.il>",
@@ -24301,6 +24303,7 @@ function addonTraceLine(key2, runId, trace) {
 
 // src/api.ts
 import { arch, platform } from "os";
+import { lookup } from "dns/promises";
 
 // src/config.ts
 import { randomUUID } from "crypto";
@@ -24690,6 +24693,8 @@ var M = {
     addonsClosed: "Add-ons are not open yet, so this cannot run now.",
     timeout: "DeployAI did not answer in time at {url}. Check the connection and run the same command again.",
     unreachable: "Cannot reach DeployAI at {url}. Check the connection and run the same command again.",
+    offline: "This computer seems to have no internet connection. Check it, then run the same command again.",
+    retrying: "The connection dropped, trying again ({n} of {max}).",
     noProjectNamed: "No site named {name}. Run: npx deployai@latest link",
     noNameGiven: "No name given.",
     noProjectPicked: "No site picked.",
@@ -24967,6 +24972,8 @@ var M = {
     addonsClosed: "\u05D4\u05EA\u05D5\u05E1\u05E4\u05D9\u05DD \u05E2\u05D5\u05D3 \u05DC\u05D0 \u05E4\u05EA\u05D5\u05D7\u05D9\u05DD, \u05D5\u05DC\u05DB\u05DF \u05D0\u05D9 \u05D0\u05E4\u05E9\u05E8 \u05DC\u05D4\u05E8\u05D9\u05E5 \u05D0\u05EA \u05D6\u05D4 \u05E2\u05DB\u05E9\u05D9\u05D5.",
     timeout: "DeployAI \u05DC\u05D0 \u05E2\u05E0\u05D4 \u05D1\u05D6\u05DE\u05DF \u05D1\u05BE{url}. \u05D1\u05D3\u05E7\u05D5 \u05D0\u05EA \u05D4\u05D7\u05D9\u05D1\u05D5\u05E8 \u05D5\u05D4\u05E8\u05D9\u05E6\u05D5 \u05E9\u05D5\u05D1 \u05D0\u05EA \u05D0\u05D5\u05EA\u05D4 \u05E4\u05E7\u05D5\u05D3\u05D4.",
     unreachable: "\u05D0\u05D9\u05DF \u05D7\u05D9\u05D1\u05D5\u05E8 \u05DC\u05BEDeployAI \u05D1\u05BE{url}. \u05D1\u05D3\u05E7\u05D5 \u05D0\u05EA \u05D4\u05D7\u05D9\u05D1\u05D5\u05E8 \u05D5\u05D4\u05E8\u05D9\u05E6\u05D5 \u05E9\u05D5\u05D1 \u05D0\u05EA \u05D0\u05D5\u05EA\u05D4 \u05E4\u05E7\u05D5\u05D3\u05D4.",
+    offline: "\u05E0\u05E8\u05D0\u05D4 \u05E9\u05D0\u05D9\u05DF \u05DC\u05DE\u05D7\u05E9\u05D1 \u05D7\u05D9\u05D1\u05D5\u05E8 \u05DC\u05D0\u05D9\u05E0\u05D8\u05E8\u05E0\u05D8. \u05D1\u05D3\u05E7\u05D5 \u05D0\u05D5\u05EA\u05D5 \u05D5\u05D4\u05E8\u05D9\u05E6\u05D5 \u05E9\u05D5\u05D1 \u05D0\u05EA \u05D0\u05D5\u05EA\u05D4 \u05E4\u05E7\u05D5\u05D3\u05D4.",
+    retrying: "\u05D4\u05D7\u05D9\u05D1\u05D5\u05E8 \u05E0\u05E4\u05DC, \u05DE\u05E0\u05E1\u05D9\u05DD \u05E9\u05D5\u05D1 ({n} \u05DE\u05EA\u05D5\u05DA {max}).",
     noProjectNamed: "\u05D0\u05D9\u05DF \u05D0\u05EA\u05E8 \u05D1\u05E9\u05DD {name}. \u05D4\u05E8\u05D9\u05E6\u05D5: npx deployai@latest link",
     noNameGiven: "\u05DC\u05D0 \u05E0\u05D1\u05D7\u05E8 \u05E9\u05DD.",
     noProjectPicked: "\u05DC\u05D0 \u05E0\u05D1\u05D7\u05E8 \u05D0\u05EA\u05E8.",
@@ -25067,8 +25074,32 @@ function messages(root) {
   return (key2, vars = {}) => M[lang][key2].replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? `{${k}}`));
 }
 
+// src/output.ts
+var LABEL_WIDTH = 17;
+function out(line = "") {
+  process.stdout.write(line + "\n");
+}
+function err(line = "") {
+  process.stderr.write(line + "\n");
+}
+function pad(text2, width) {
+  return text2.length >= width ? text2 + " " : text2 + " ".repeat(width - text2.length);
+}
+function row(label, value, width = LABEL_WIDTH) {
+  return pad(label, width) + value;
+}
+function rows(items) {
+  const width = Math.max(LABEL_WIDTH, ...items.map(([l]) => l.length + 2));
+  return items.map(([l, v]) => row(l, v, width)).join("\n");
+}
+function formatBytes(n2) {
+  if (n2 < 1024) return `${n2} B`;
+  if (n2 < 1024 * 1024) return `${(n2 / 1024).toFixed(1)} KB`;
+  return `${(n2 / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 // src/version.ts
-var CLI_VERSION = "0.1.0-beta.38";
+var CLI_VERSION = "0.1.0-beta.39";
 
 // src/api.ts
 function apiContext(apiFlag, root) {
@@ -25089,6 +25120,37 @@ function tokenIfOwnApi(ctx) {
   const saved = ctx.config.tokenApiUrl?.replace(/\/+$/, "");
   return ctx.config.token && saved && saved === ctx.apiUrl.replace(/\/+$/, "") ? ctx.config.token : null;
 }
+var RETRY_WAITS_MS = [2e3, 5e3, 1e4];
+function retryWaits() {
+  const raw = process.env.DEPLOYAI_RETRY_MS;
+  const ms2 = raw ? Number(raw) : NaN;
+  return Number.isFinite(ms2) && ms2 >= 0 ? RETRY_WAITS_MS.map(() => ms2) : RETRY_WAITS_MS;
+}
+var NEVER_SENT = /* @__PURE__ */ new Set(["ENOTFOUND", "EAI_AGAIN", "ECONNREFUSED", "ENETUNREACH", "EHOSTUNREACH", "UND_ERR_CONNECT_TIMEOUT"]);
+var DROPPED = /* @__PURE__ */ new Set(["ECONNRESET", "EPIPE", "ETIMEDOUT", "UND_ERR_SOCKET"]);
+function errorCode(e3) {
+  const cause = e3?.cause;
+  return cause?.code ?? e3?.code;
+}
+function shouldRetry(method, failure2) {
+  const get2 = method === "GET";
+  if (typeof failure2 === "number") return get2 && (failure2 === 502 || failure2 === 503 || failure2 === 504);
+  const code = errorCode(failure2);
+  if (code && NEVER_SENT.has(code)) return true;
+  if (!get2) return false;
+  return failure2?.name === "TimeoutError" || code !== void 0 && DROPPED.has(code);
+}
+async function networkError(e3, url2) {
+  const t = messages(process.cwd());
+  const name = e3?.name;
+  if (name === "TimeoutError" || name === "AbortError") return new CliError(t("timeout", { url: url2 }), 1, "network");
+  const code = errorCode(e3);
+  if (code === "ENOTFOUND" || code === "EAI_AGAIN" || code === "ENETUNREACH") {
+    const online = await Promise.race([lookup("cloudflare.com").then(() => true, () => false), new Promise((r) => setTimeout(() => r(true), 3e3))]);
+    if (!online) return new CliError(t("offline"), 1, "network");
+  }
+  return new CliError(t("unreachable", { url: url2 }), 1, "network");
+}
 async function apiRequest(ctx, path, schema, opts = {}) {
   const headers = { "User-Agent": userAgent(ctx.config), Accept: "application/json" };
   if (opts.auth !== false) headers.Authorization = `Bearer ${requireToken(ctx)}`;
@@ -25099,20 +25161,24 @@ async function apiRequest(ctx, path, schema, opts = {}) {
     headers["Content-Type"] = "application/json";
     body = JSON.stringify(opts.body);
   }
+  const method = opts.method ?? (body ? "POST" : "GET");
+  const waits = retryWaits();
   let res;
-  try {
-    res = await fetch(ctx.apiUrl + path, {
-      method: opts.method ?? (body ? "POST" : "GET"),
-      headers,
-      body,
-      signal: AbortSignal.timeout(opts.timeoutMs ?? 3e4)
-    });
-  } catch (e3) {
-    const name = e3?.name;
-    if (name === "TimeoutError" || name === "AbortError") {
-      throw new CliError(messages(process.cwd())("timeout", { url: ctx.apiUrl }), 1, "network");
+  for (let attempt = 0; ; attempt++) {
+    let failure2;
+    res = void 0;
+    try {
+      res = await fetch(ctx.apiUrl + path, { method, headers, body, signal: AbortSignal.timeout(opts.timeoutMs ?? 3e4) });
+    } catch (e3) {
+      failure2 = e3;
     }
-    throw new CliError(messages(process.cwd())("unreachable", { url: ctx.apiUrl }), 1, "network");
+    const again = attempt < waits.length && shouldRetry(method, res ? res.status : failure2);
+    if (!again) {
+      if (!res) throw await networkError(failure2, ctx.apiUrl);
+      break;
+    }
+    err(messages(process.cwd())("retrying", { n: attempt + 2, max: waits.length + 1 }));
+    await new Promise((r) => setTimeout(r, waits[attempt]));
   }
   const text2 = await res.text().catch(() => "");
   let data = null;
@@ -25213,30 +25279,6 @@ function knownError(code, max, t, extra) {
     default:
       return null;
   }
-}
-
-// src/output.ts
-var LABEL_WIDTH = 17;
-function out(line = "") {
-  process.stdout.write(line + "\n");
-}
-function err(line = "") {
-  process.stderr.write(line + "\n");
-}
-function pad(text2, width) {
-  return text2.length >= width ? text2 + " " : text2 + " ".repeat(width - text2.length);
-}
-function row(label, value, width = LABEL_WIDTH) {
-  return pad(label, width) + value;
-}
-function rows(items) {
-  const width = Math.max(LABEL_WIDTH, ...items.map(([l]) => l.length + 2));
-  return items.map(([l, v]) => row(l, v, width)).join("\n");
-}
-function formatBytes(n2) {
-  if (n2 < 1024) return `${n2} B`;
-  if (n2 < 1024 * 1024) return `${(n2 / 1024).toFixed(1)} KB`;
-  return `${(n2 / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 // src/telemetry.ts
