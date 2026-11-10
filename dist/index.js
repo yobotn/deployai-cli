@@ -22601,6 +22601,9 @@ var V6_PRIVATE = [[[...Array(16).fill(0)], 127], [[252, ...Array(15).fill(0)], 7
 
 // ../shared/src/probe.ts
 var TEAM_PASS_MAX_AGE_S = 8 * 3600;
+var HUMAN_CHECK_PATH = "/__deployai/check";
+var HUMAN_COOKIE = "__deployai_human";
+var HUMAN_MAX_AGE_S = 7 * 86400;
 
 // ../shared/src/deploy-tools.ts
 var DEPLOY_TOOL_NAMES = {
@@ -22675,7 +22678,7 @@ var ADDONS_RUN = { cmd: "npx deployai@latest addons run", say: "With more than o
 var TAGS_SEEN = { cmd: "npx deployai@latest migrate tags --requests <file>", say: "While you look at the old site, save the outside addresses your browser asks for to a file, one a line, and run this: Tag Manager loads tags that are not in the page. Never send a form on the old site. If the old site shows a security check (Cloudflare, a captcha) or blocks a command but opens in a browser (D-916): open it in your browser tool, tell the owner in one line that a check may show in that window and to pass it there, wait up to three minutes, and read the pages in that browser. Offer this first, as the recommended answer, when you ask the owner; turning the check off for the move or sending an export are the other answers." };
 var PLAN_SHOW = "Then show the owner the plan as one chat message, never as the file, a table or one long paragraph, since a long table breaks in a terminal: Moves as it is, with a count and at most three names. Changes, one short line for each Replaced with row. Needs you, one short line for each Needs me or Not possible row. End with the link it printed, for the full list. Do not use a plan mode: it changes the owner's setting.";
 var REPORT_SAY = "Once .deployai/migration/plan.md is written, with its features as one table (| Feature | Status | Note |) and a row for each tag and connection in tags.json: this adds it to the owner's move report and prints the link.";
-var MOVE_REPORT = { cmd: "npx deployai@latest migrate report", say: `${REPORT_SAY} ${PLAN_SHOW} Then ask: "Go ahead with this plan?" The answers: Go ahead and put it live when it is ready (recommended), Go ahead and show me first, or Change something. Say that the old site and its domain do not change either way.` };
+var MOVE_REPORT = { cmd: "npx deployai@latest migrate report", say: `${REPORT_SAY} ${PLAN_SHOW} Then ask: "Go ahead with this plan?" The answers: Go ahead and put it live when it is ready (recommended), Go ahead and show me first, or Change something. Say that the old site and its domain do not change either way. If .deployai/owner-mode says on-my-own, do not ask (D-928): show the plan, say in one line that you go on and the owner sees the preview before anything goes live, and go on as if they chose to see it first.` };
 var TAGS_FIRED = { cmd: "npx deployai@latest migrate tags --requests <file> --fired", say: "Open the preview, save the outside addresses your browser asks for to a file and run this: it shows which tags really fired there. Tags on the preview are real: a test form send shows up as a real lead in the owner's Google and Meta accounts, so send at most one, and tell the owner first." };
 var SEND_PREVIEW = { say: 'Send the owner the preview address and, in short lines with no table, what changed from the plan and what still needs them. Ask: "Put it live now, or change something first?" Make all their changes first and put them in one deploy, never one deploy for each change.' };
 var AFTER_LIVE = { say: "Only after it is live: tell the owner, in one short message, that the site is live, that their old site and email did not change, that Google keeps showing the old site until the domain is connected, and that they can connect their domain whenever they are ready, as a separate step, from Site addresses on the site's page. Do not explain DNS, do not change DNS and do not start that step in this chat. Then go on with the next step." };
@@ -22687,7 +22690,7 @@ var DASHBOARD = { cmd: "npx deployai@latest blocks dashboard", say: "Every move 
 var MOVE_POSTS = { cmd: "npx deployai@latest migrate posts", say: "Only if the old site has posts, news or articles: they go into the dashboard's Blog, each at its old address, so the owner can edit them from day one." };
 var MOVE_PAGES = { cmd: "npx deployai@latest migrate pages", say: "Lists every page the move keeps in the dashboard's Pages, at its old address, with only the old menu's pages in the menu. Run it before you build the rest of the pages, and build each one at exactly its path in src/kit/moved-pages.json, keeping its look and words: these stay pages of the site's code, never rebuilt from the dashboard's sections. A page the plan drops, remove from that file too. Every form goes to the dashboard's messages, as the step before says." };
 var MOVE_LEGAL = { cmd: "npx deployai@latest migrate legal", say: "Starts the dashboard's Documents and Accessibility pages from what the scan found. Ask the owner nothing here, and write no legal text of your own. An old page at exactly /privacy, /terms or /cancellation goes into `docs` in src/kit/moved-legal.json, as .deployai/blocks/dashboard.md says, so it stays live at its address and the owner can edit it. Every other old legal or accessibility page stays exactly as it is. This finishes nothing: never say the legal side is handled or taken care of. In what still needs the owner, say one line: the dashboard's Documents page lists what is left, it is help and not legal advice, and an expert should check it." };
-var SELF_SEND = { say: 'If the owner chose to put it live when it is ready: when verify lists nothing, run promote on that version with no more questions, and give them the live address and, in short lines with no table, what changed from the plan and what still needs them. If they chose to see it first, send the preview address with the same lines and ask: "Put it live now, or change something first?" Make all their changes first and put them in one deploy, never one deploy for each change.' };
+var SELF_SEND = { say: 'On my own (.deployai/owner-mode, D-928): this is the one question at the end. Send the preview address, the list of what you left out or need from the owner, and ask once: "Put it live now, or change something first?" Never put it live without that yes. If the owner chose to put it live when it is ready: when verify lists nothing, run promote on that version with no more questions, and give them the live address and, in short lines with no table, what changed from the plan and what still needs them. If they chose to see it first, send the preview address with the same lines and ask: "Put it live now, or change something first?" Make all their changes first and put them in one deploy, never one deploy for each change.' };
 var MIGRATE_STEPS = [
   TAGS_SEEN,
   MOVE_REPORT,
@@ -23063,7 +23066,7 @@ var TAG_CATALOG = [
   e2("sentry", "Sentry", "widget", [/browser\.sentry-cdn\.com/i, /js\.sentry-cdn\.com/i], ["browser.sentry-cdn.com"], `<script src="https://browser.sentry-cdn.com/7.0.0/bundle.min.js"></script>`),
   e2("impact", "Impact (affiliates)", "ads", [/\bimpactcdn\.com/i, /\bire\(\s*['"]identify['"]/], [], `<script>s.src='https://utt.impactcdn.com/abc.js';</script>`)
 ];
-var OUTSIDE_KINDS = ["oldHost", "fonts", "design", "icons", "code", "analytics", "profile", "images", "unknown"];
+var OUTSIDE_KINDS = ["oldHost", "fonts", "design", "icons", "code", "analytics", "profile", "images", "media", "widget", "unknown"];
 var OUTSIDE_SERVICES = [
   { key: "wix", name: "Wix", kind: "oldHost", host: /(^|\.)(wixstatic|parastorage)\.com$/ },
   { key: "squarespace", name: "Squarespace", kind: "oldHost", host: /(^|\.)squarespace(-cdn)?\.com$/ },
@@ -23082,7 +23085,10 @@ var OUTSIDE_SERVICES = [
   { key: "cfinsights", name: "Cloudflare Web Analytics", kind: "analytics", host: /(^|\.)cloudflareinsights\.com$/ },
   { key: "gravatar", name: "Gravatar", kind: "profile", host: /(^|\.)gravatar\.com$/ },
   { key: "cloudinary", name: "Cloudinary", kind: "images", host: /(^|\.)cloudinary\.com$/ },
-  { key: "unsplash", name: "Unsplash", kind: "images", host: /(^|\.)unsplash\.com$/ }
+  { key: "unsplash", name: "Unsplash", kind: "images", host: /(^|\.)unsplash\.com$/ },
+  { key: "youtube", name: "YouTube", kind: "media", host: /(^|\.)(youtube(-nocookie)?\.com|ytimg\.com|youtu\.be)$/ },
+  { key: "vimeo", name: "Vimeo", kind: "media", host: /(^|\.)(vimeo\.com|vimeocdn\.com)$/ },
+  { key: "userway", name: "UserWay", kind: "widget", host: /(^|\.)userway\.org$/ }
 ];
 var outsideService = (host) => OUTSIDE_SERVICES.find((s) => s.host.test(host.toLowerCase())) ?? null;
 function outsideRows(hosts) {
@@ -23262,6 +23268,14 @@ function cspAllows(csp, directive, host) {
     return h.startsWith("*.") ? host === h.slice(2) || host.endsWith(h.slice(1)) : host === h;
   });
 }
+var PHONE_TAGS = /* @__PURE__ */ new Set(["whatsapp"]);
+var phoneCore = (s) => s.replace(/\D/g, "").replace(/^00/, "").replace(/^0/, "");
+function sameTagId(key2, a, b) {
+  if (a === b) return true;
+  if (!a || !b || !PHONE_TAGS.has(key2)) return false;
+  const [short, long] = [phoneCore(a), phoneCore(b)].sort((x, y) => x.length - y.length);
+  return short.length >= 7 && long.endsWith(short) && long.length - short.length <= 3;
+}
 var isRemoved = (removed, what) => what.some((w) => w && removed.some((r) => r.toLowerCase() === w.toLowerCase()));
 function compareTags(old, next, opts = {}) {
   const removed = opts.removed ?? [];
@@ -23269,7 +23283,7 @@ function compareTags(old, next, opts = {}) {
   for (const t of old.tags) {
     if (isRemoved(removed, [t.id ?? "", t.key, t.name, t.id ? `${t.name} ${t.id}` : ""])) continue;
     if (t.source !== "page") continue;
-    const here = next.tags.some((n2) => n2.key === t.key && n2.id === t.id);
+    const here = next.tags.some((n2) => n2.key === t.key && sameTagId(t.key, t.id, n2.id));
     if (!here) findings.push({ problem: "tag_lost", what: `${t.name}${t.id ? ` ${t.id}` : ""}`, page: t.pages[0] });
     else if (opts.csp) {
       const entry = TAG_CATALOG.find((c) => c.key === t.key);
@@ -23395,6 +23409,8 @@ var moveReportSchema = external_exports.object({
     checkedAt: text(40),
     pagesChecked: external_exports.number().int().min(0),
     pageProblems: external_exports.number().int().min(0),
+    /** Which pages failed the page check (D-928), so a page reads lost only from its own check. Older reports have only the count. */
+    pageFindings: external_exports.array(external_exports.object({ path: page, problem: text(30) })).max(150).optional(),
     findings: external_exports.array(external_exports.object({ problem: text(30), what: text(240), detail: text(300).optional(), page: page.optional() })).max(300),
     seen: external_exports.array(external_exports.object({ key: external_exports.enum(tagKeys), id: text(80).nullable() })).max(300),
     /** Asked for by a browser on the preview, so really fired there, not only present in the code. */
@@ -23614,7 +23630,8 @@ var SPACES = {
 };
 
 // ../shared/src/protection-rule.ts
-var SKIP_COUNTRY = ['http.request.uri.query contains "deployai_preview"', 'http.cookie contains "deployai_preview"', 'http.request.uri.query contains "deployai_team"', 'http.cookie contains "__deployai_team"', ...UNVERIFIED_BOT_TOKENS.map((t) => `lower(http.user_agent) contains "${t}"`)];
+var SKIP_COUNTRY = [`http.cookie contains "${HUMAN_COOKIE}"`, 'http.request.uri.query contains "deployai_preview"', 'http.cookie contains "deployai_preview"', 'http.request.uri.query contains "deployai_team"', 'http.cookie contains "__deployai_team"', ...UNVERIFIED_BOT_TOKENS.map((t) => `lower(http.user_agent) contains "${t}"`)];
+var HUMAN_CHECK_CLAUSE = `http.request.uri.path eq "${HUMAN_CHECK_PATH}"`;
 
 // ../shared/src/agent-rules.ts
 var IPHONE_RULE = "iPhone: Safari is its own browser engine, so working in Chrome or on Android proves nothing. Full height sections use svh or dvh, never 100vh. Typing fields are at least 16px, or the page zooms. A video that plays by itself has muted and playsinline. Bars fixed to the bottom pad with env(safe-area-inset-bottom). Nothing needs a hover. Newer CSS and browser features need a working fallback.";
@@ -24621,6 +24638,7 @@ var M = {
     buildLogTail: "End of the build log:",
     buildFixHint: 'Fix the error above, then run: npx deployai@latest check, then npx deployai@latest deploy -m "<message>" --fixed "<one sentence: what you changed, no code>"',
     buildFixHintNoNote: 'Fix the error above, then run: npx deployai@latest check, then npx deployai@latest deploy -m "<message>"',
+    buildFailedAfter: 'The build itself finished: its log ends without an error, so the failure came in a step after it, on our side. Change nothing and deploy again with the same command. If it fails the same way, tell us: npx deployai@latest feedback --kind blocker --command deploy --what "<what you ran and what it printed>"',
     linkedTo: "Linked to {name} ({slug}).",
     loginTitle: "DeployAI login",
     browserOpened: "Opened the browser. Approve the code there.",
@@ -24737,6 +24755,7 @@ var M = {
     sqlConfirmServer: "These changes remove or overwrite data, so they are approved only at the owner's terminal or in the dashboard: {url}",
     sqlAgentAsk: '  Show the owner the changes above and ask: "Version {n} changes the database {db}. Run the changes and put it live?"',
     sqlAgentThen: "  After a yes: npx deployai@latest promote v{n} --approve-sql {hash}",
+    sqlLater: "  Version {n} changes the database. Nothing runs now and nothing goes live: ask nothing about it yet. When the owner says yes to putting it live, run npx deployai@latest promote v{n}, which shows the changes to approve.",
     sqlNone: "v{n} has no new database changes.",
     sqlFirst: "The database changes run first. If they fail, the live version stays.",
     sqlFailed: "The database changes of v{n} failed. The live version stayed.",
@@ -24896,6 +24915,7 @@ var M = {
     buildLogTail: "\u05E1\u05D5\u05E3 \u05D9\u05D5\u05DE\u05DF \u05D4\u05D1\u05E0\u05D9\u05D9\u05D4:",
     buildFixHint: '\u05EA\u05E7\u05E0\u05D5 \u05D0\u05EA \u05D4\u05E9\u05D2\u05D9\u05D0\u05D4 \u05E9\u05DC\u05DE\u05E2\u05DC\u05D4, \u05D5\u05D0\u05D6 \u05D4\u05E8\u05D9\u05E6\u05D5: npx deployai@latest check, \u05D5\u05D0\u05D7\u05E8\u05D9\u05D5 npx deployai@latest deploy -m "<message>" --fixed "<one sentence: what you changed, no code>"',
     buildFixHintNoNote: '\u05EA\u05E7\u05E0\u05D5 \u05D0\u05EA \u05D4\u05E9\u05D2\u05D9\u05D0\u05D4 \u05E9\u05DC\u05DE\u05E2\u05DC\u05D4, \u05D5\u05D0\u05D6 \u05D4\u05E8\u05D9\u05E6\u05D5: npx deployai@latest check, \u05D5\u05D0\u05D7\u05E8\u05D9\u05D5 npx deployai@latest deploy -m "<message>"',
+    buildFailedAfter: '\u05D4\u05D1\u05E0\u05D9\u05D9\u05D4 \u05E2\u05E6\u05DE\u05D4 \u05D4\u05E1\u05EA\u05D9\u05D9\u05DE\u05D4: \u05D4\u05D9\u05D5\u05DE\u05DF \u05E9\u05DC\u05D4 \u05E0\u05D2\u05DE\u05E8 \u05D1\u05DC\u05D9 \u05E9\u05D2\u05D9\u05D0\u05D4, \u05DB\u05DA \u05E9\u05D4\u05DB\u05D9\u05E9\u05DC\u05D5\u05DF \u05E7\u05E8\u05D4 \u05D1\u05E9\u05DC\u05D1 \u05E9\u05D0\u05D7\u05E8\u05D9\u05D4, \u05D0\u05E6\u05DC\u05E0\u05D5. \u05D0\u05DC \u05EA\u05E9\u05E0\u05D5 \u05DB\u05DC\u05D5\u05DD \u05D5\u05E4\u05E8\u05E1\u05D5 \u05E9\u05D5\u05D1 \u05D1\u05D0\u05D5\u05EA\u05D4 \u05E4\u05E7\u05D5\u05D3\u05D4. \u05D0\u05DD \u05D6\u05D4 \u05E0\u05DB\u05E9\u05DC \u05E9\u05D5\u05D1 \u05D1\u05D0\u05D5\u05EA\u05D4 \u05E6\u05D5\u05E8\u05D4, \u05E1\u05E4\u05E8\u05D5 \u05DC\u05E0\u05D5: npx deployai@latest feedback --kind blocker --command deploy --what "<what you ran and what it printed>"',
     linkedTo: "\u05DE\u05D7\u05D5\u05D1\u05E8 \u05DC {name} ({slug}).",
     loginTitle: "DeployAI login",
     browserOpened: "\u05D4\u05D3\u05E4\u05D3\u05E4\u05DF \u05E0\u05E4\u05EA\u05D7. \u05D0\u05E9\u05E8\u05D5 \u05E9\u05DD \u05D0\u05EA \u05D4\u05E7\u05D5\u05D3.",
@@ -25012,6 +25032,7 @@ var M = {
     sqlConfirmServer: "\u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D4\u05D0\u05DC\u05D4 \u05DE\u05D5\u05D7\u05E7\u05D9\u05DD \u05D0\u05D5 \u05D3\u05D5\u05E8\u05E1\u05D9\u05DD \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD, \u05D5\u05DC\u05DB\u05DF \u05DE\u05D0\u05E9\u05E8\u05D9\u05DD \u05D0\u05D5\u05EA\u05DD \u05E8\u05E7 \u05D1\u05DE\u05E1\u05D5\u05E3 \u05E9\u05DC \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D0\u05D5 \u05D1\u05DC\u05D5\u05D7 \u05D4\u05D1\u05E7\u05E8\u05D4: {url}",
     sqlAgentAsk: '  \u05D4\u05E8\u05D0\u05D5 \u05DC\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D0\u05EA \u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05DC\u05DE\u05E2\u05DC\u05D4 \u05D5\u05E9\u05D0\u05DC\u05D5: "\u05D2\u05E8\u05E1\u05D4 {n} \u05DE\u05E9\u05E0\u05D4 \u05D0\u05EA \u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD {db}. \u05DC\u05D4\u05E8\u05D9\u05E5 \u05D0\u05EA \u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D5\u05DC\u05D4\u05E2\u05DC\u05D5\u05EA \u05D0\u05D5\u05EA\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8?"',
     sqlAgentThen: "  \u05D0\u05D7\u05E8\u05D9 \u05EA\u05E9\u05D5\u05D1\u05D4 \u05D7\u05D9\u05D5\u05D1\u05D9\u05EA: npx deployai@latest promote v{n} --approve-sql {hash}",
+    sqlLater: "  \u05D2\u05E8\u05E1\u05D4 {n} \u05DE\u05E9\u05E0\u05D4 \u05D0\u05EA \u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD. \u05E9\u05D5\u05DD \u05D3\u05D1\u05E8 \u05DC\u05D0 \u05E8\u05E5 \u05E2\u05DB\u05E9\u05D9\u05D5 \u05D5\u05E9\u05D5\u05DD \u05D3\u05D1\u05E8 \u05DC\u05D0 \u05E2\u05D5\u05DC\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8: \u05D0\u05DC \u05EA\u05E9\u05D0\u05DC\u05D5 \u05E2\u05DC \u05D6\u05D4 \u05E2\u05D3\u05D9\u05D9\u05DF. \u05DB\u05E9\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05DE\u05D0\u05E9\u05E8 \u05DC\u05D4\u05E2\u05DC\u05D5\u05EA \u05D0\u05D5\u05EA\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8, \u05D4\u05E8\u05D9\u05E6\u05D5 npx deployai@latest promote v{n}, \u05D5\u05D4\u05D5\u05D0 \u05D9\u05E8\u05D0\u05D4 \u05D0\u05EA \u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05DC\u05D0\u05D9\u05E9\u05D5\u05E8.",
     sqlNone: "\u05D1\u05BEv{n} \u05D0\u05D9\u05DF \u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D7\u05D3\u05E9\u05D9\u05DD \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD.",
     sqlFirst: "\u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05E8\u05E6\u05D9\u05DD \u05E7\u05D5\u05D3\u05DD. \u05D0\u05DD \u05D4\u05DD \u05E0\u05DB\u05E9\u05DC\u05D9\u05DD, \u05D4\u05D2\u05E8\u05E1\u05D4 \u05E9\u05D1\u05D0\u05D5\u05D5\u05D9\u05E8 \u05E0\u05E9\u05D0\u05E8\u05EA.",
     sqlFailed: "\u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05E9\u05DC v{n} \u05E0\u05DB\u05E9\u05DC\u05D5. \u05D4\u05D2\u05E8\u05E1\u05D4 \u05E9\u05D1\u05D0\u05D5\u05D5\u05D9\u05E8 \u05E0\u05E9\u05D0\u05E8\u05D4.",
@@ -25047,7 +25068,7 @@ function messages(root) {
 }
 
 // src/version.ts
-var CLI_VERSION = "0.1.0-beta.37";
+var CLI_VERSION = "0.1.0-beta.38";
 
 // src/api.ts
 function apiContext(apiFlag, root) {
@@ -27624,7 +27645,7 @@ async function migrateTagsCommand(root, ctx, opts) {
       const names = removableNames(site);
       const known = opts.removed.filter((r) => names.some((n2) => n2.toLowerCase() === r.toLowerCase()));
       const unknown2 = opts.removed.filter((r) => !known.includes(r));
-      if (known.length) out(`Marked as removed by the owner: ${known.join(", ")}. Verify will not ask for these.`);
+      if (known.length) out(`Marked as left out on purpose: ${known.join(", ")}. Verify will not ask for these. The report shows what took its place from the plan row "Replaced with ...".`);
       if (unknown2.length) out(`Not found in what the old site has: ${unknown2.join(", ")}. Use the name verify prints, exactly as it prints it.`);
     }
     for (const a of answers) {
@@ -27727,7 +27748,7 @@ async function migrateVerifyCommand(root, previewRaw, ctx, retryMs = PREVIEW_RET
       for (const t of oldSite.triggers.filter((x) => x.type === "page")) pageOnPreview[t.value] = Boolean((await page3(t.value))?.ok);
       const found = compareTags(oldSite, nextSite, { removed: state.removed ?? [], csp, fileOnPreview, triggerFound, pageOnPreview, formIdFound });
       tagFindings.push(...found);
-      perHost.push({ host, checked: checked - checkedBefore, problems: findings.length - findingsBefore, seen: nextSite.tags.map((t) => ({ key: t.key, id: t.id })), found, removed: state.removed ?? [] });
+      perHost.push({ host, checked: checked - checkedBefore, problems: findings.length - findingsBefore, pages: findings.slice(findingsBefore), seen: nextSite.tags.map((t) => ({ key: t.key, id: t.id })), found, removed: state.removed ?? [] });
     }
   }
   const words = { missing: "not found on the preview", moved: "moved to", error: "answers", title_lost: "lost its title", description_lost: "lost its description" };
@@ -27756,13 +27777,13 @@ async function migrateVerifyCommand(root, previewRaw, ctx, retryMs = PREVIEW_RET
     out(`${tagFindings.length} tags and connections need a fix:`);
     for (const f of tagFindings.slice(0, 60)) out(`  ${f.what}  ${TAG_WORDS[f.problem]}${f.detail ? ` (${f.detail})` : ""}${f.page ? ` on ${f.page}` : ""}`);
     if (tagFindings.length > 60) out(`  and ${tagFindings.length - 60} more in verify.json`);
-    out('Put each one back, deploy again and run verify again. If the owner asked to drop one: npx deployai@latest migrate tags --removed "<its number or name>".');
+    out('Put each one back, deploy again and run verify again. If one was left out on purpose (the owner asked, or the plan replaced it with ours): npx deployai@latest migrate tags --removed "<its number or name>", and give its plan row the status "Replaced with <what took its place>" so the report says so.');
     process.exitCode = 1;
   }
   const clean3 = !findings.length && !tagFindings.length && !credits.size && !vendors.size && !leftOnOld.length;
   for (const h of perHost) {
     const dir = hostDir(root, h.host);
-    const verify = { checkedAt: (/* @__PURE__ */ new Date()).toISOString(), pagesChecked: h.checked, pageProblems: h.problems, findings: h.found.map((f) => ({ problem: f.problem, what: f.what.slice(0, 240), ...f.detail ? { detail: f.detail.slice(0, 300) } : {}, ...f.page ? { page: f.page.slice(0, 300) } : {} })).slice(0, 300), seen: h.seen.slice(0, 300), removed: h.removed, vendors: [...vendors.keys()].map((v) => v.slice(0, 80)).slice(0, 40) };
+    const verify = { checkedAt: (/* @__PURE__ */ new Date()).toISOString(), pagesChecked: h.checked, pageProblems: h.problems, pageFindings: h.pages.map((f) => ({ path: f.path.slice(0, 300), problem: f.problem })).slice(0, 150), findings: h.found.map((f) => ({ problem: f.problem, what: f.what.slice(0, 240), ...f.detail ? { detail: f.detail.slice(0, 300) } : {}, ...f.page ? { page: f.page.slice(0, 300) } : {} })).slice(0, 300), seen: h.seen.slice(0, 300), removed: h.removed, vendors: [...vendors.keys()].map((v) => v.slice(0, 80)).slice(0, 40) };
     writeJson(join13(dir, "verify-report.json"), { report: verify });
     await sendReport(root, ctx, h.host, clean3 ? "verify" : null, verify);
   }
@@ -28590,8 +28611,14 @@ function printStatus(root, ctx, projectId, s) {
     for (const line of s.latest.logTail.split("\n")) out(`  ${line}`);
   }
   out();
+  const lastLines = (s.latest.logTail ?? "").trim().split("\n").slice(-4).join("\n");
+  if (!s.latest.error && BUILD_FINISHED.test(lastLines)) {
+    out(t("buildFailedAfter"));
+    return;
+  }
   out(t(telemetryEnabled(ctx.config) ? "buildFixHint" : "buildFixHintNoNote"));
 }
+var BUILD_FINISHED = /(\bComplete!|\bbuilt in \d|Compiled successfully|\bDone in \d|\bbuild complete)/i;
 
 // src/commands/sql.ts
 function fetchSqlPlan(ctx, projectId, n2) {
@@ -28849,6 +28876,11 @@ async function afterBuild(root, ctx, projectId, n2, o) {
   const sqlWaits = ready && built.latest?.migrationStatus === "waiting";
   let approval = null;
   let live = o.live;
+  if (sqlWaits && !o.live && !isInteractive()) {
+    out(t("sqlLater", { n: n2 }));
+    printStatus(root, ctx, projectId, built);
+    return;
+  }
   if (sqlWaits) {
     if (built.latest?.preview) out(t("showPreview", { url: built.latest.preview }));
     approval = await approveSqlStep(root, ctx, projectId, n2);
@@ -29542,11 +29574,36 @@ async function speedCommand(ctx, url2, opts, deps = {}) {
 
 // src/commands/shot.ts
 import { spawn as spawn4 } from "child_process";
-import { existsSync as existsSync18, mkdirSync as mkdirSync11 } from "fs";
+import { existsSync as existsSync18, mkdirSync as mkdirSync11, readFileSync as readFileSync15, rmSync as rmSync5, writeFileSync as writeFileSync17 } from "fs";
+import { tmpdir as tmpdir3 } from "os";
 import { join as join22, resolve as resolve6 } from "path";
 var SHOT_SIZES = [{ name: "phone", size: "390,844" }, { name: "desktop", size: "1440,900" }];
 var PLAYWRIGHT = "playwright@1.56";
 var WAIT_MS3 = 18e4;
+var TIMED_OUT = 124;
+var TAKER = String.raw`const fs = require('fs'), path = require('path');
+const a = process.argv.slice(2), opt = (k) => (a.find((x) => x.startsWith('--' + k + '=')) || '').split('=')[1];
+const [url, file] = a.filter((x) => !x.startsWith('--'));
+const step = (s) => fs.writeFileSync(file + '.step', s);
+const bin = (process.env.PATH || '').split(path.delimiter).find((d) => fs.existsSync(path.join(d, '..', 'playwright', 'package.json')));
+const pw = require(path.join(bin, '..', 'playwright'));
+(async () => {
+  step('start the browser');
+  const [w, h] = opt('viewport-size').split(',').map(Number);
+  const browser = opt('browser') === 'webkit' ? await pw.webkit.launch() : await pw.chromium.launch({ channel: opt('channel') });
+  const page = await browser.newPage({ viewport: { width: w, height: h } });
+  step('open the page');
+  await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await page.waitForLoadState('load', { timeout: 15000 }).catch(() => {});
+  step('scroll to the bottom');
+  await page.evaluate(async () => { for (let y = 0; y < Math.min(document.body.scrollHeight, 40000); y += innerHeight) { scrollTo(0, y); await new Promise((r) => setTimeout(r, 150)); } scrollTo(0, 0); });
+  await page.waitForTimeout(1500);
+  step('take the picture');
+  await page.screenshot({ path: file, fullPage: true, animations: 'disabled', timeout: 60000 });
+  await browser.close();
+  fs.rmSync(file + '.step', { force: true });
+})().catch((e) => { try { fs.appendFileSync(file + '.step', ': ' + String(e && e.message || e).split(String.fromCharCode(10))[0]); } catch {} process.exit(1); });
+`;
 var channelFor = (browser) => /msedge|edge/i.test(browser) ? "msedge" : "chrome";
 function shotName(address, width) {
   const u = new URL(address);
@@ -29557,14 +29614,18 @@ function runNpx(args) {
   const win = process.platform === "win32";
   return new Promise((done) => {
     const child = win ? spawn4(["npx", ...args.map((a) => `"${a}"`)].join(" "), { stdio: "ignore", windowsHide: true, shell: true }) : spawn4("npx", args, { stdio: "ignore" });
-    const timer = setTimeout(() => child.kill(), WAIT_MS3);
+    let killed = false;
+    const timer = setTimeout(() => {
+      killed = true;
+      child.kill();
+    }, WAIT_MS3);
     child.once("error", () => {
       clearTimeout(timer);
       done(1);
     });
     child.once("exit", (code) => {
       clearTimeout(timer);
-      done(code ?? 1);
+      done(killed ? TIMED_OUT : code ?? 1);
     });
   });
 }
@@ -29581,12 +29642,19 @@ async function shotCommand(root, address, opts = {}, run = runNpx) {
   if (opts.webkit && await run(["--yes", PLAYWRIGHT, "install", "webkit"]) !== 0) throw new CliError("Safari's engine could not be installed. Run shot without --webkit to use Chrome or Edge.", 1, "shot_failed");
   const dir = resolve6(root, opts.out ?? join22(".deployai", "shots"));
   mkdirSync11(dir, { recursive: true });
+  const taker = join22(tmpdir3(), "deployai-shot.cjs");
+  writeFileSync17(taker, TAKER);
   const saved = [];
   for (const s of SHOT_SIZES) {
     const file2 = join22(dir, shotName(url2.toString(), s.name));
     const engine = opts.webkit ? ["--browser=webkit"] : [`--channel=${channelFor(browser)}`];
-    const code = await run(["--yes", PLAYWRIGHT, "screenshot", ...engine, `--viewport-size=${s.size}`, "--full-page", "--wait-for-timeout=1500", url2.toString(), file2]);
-    if (code !== 0 || !existsSync18(file2)) throw new CliError(`The ${s.name} picture of ${url2} could not be taken. Check that the page opens, then run shot again.`, 1, "shot_failed");
+    rmSync5(file2, { force: true });
+    const code = await run(["--yes", "-p", PLAYWRIGHT, "node", taker, ...engine, `--viewport-size=${s.size}`, url2.toString(), file2]);
+    if (code !== 0 || !existsSync18(file2)) {
+      const step = existsSync18(`${file2}.step`) ? readFileSync15(`${file2}.step`, "utf8").trim() : "";
+      rmSync5(`${file2}.step`, { force: true });
+      throw new CliError(`The ${s.name} picture of ${url2} could not be taken${step ? `, stopped at: ${step}` : code === TIMED_OUT ? ", it took over 3 minutes" : ""}. Check that the page opens, then run shot again; if it stops again, look with your own browser tool or at home.html.`, 1, "shot_failed");
+    }
     saved.push(file2);
     out(`${s.name.padEnd(8)} ${file2}`);
   }
@@ -29596,7 +29664,7 @@ async function shotCommand(root, address, opts = {}, run = runNpx) {
 
 // src/commands/images.ts
 import { spawnSync as spawnSync5 } from "child_process";
-import { existsSync as existsSync19, mkdirSync as mkdirSync12, readdirSync as readdirSync6, statSync as statSync3, writeFileSync as writeFileSync17 } from "fs";
+import { existsSync as existsSync19, mkdirSync as mkdirSync12, readdirSync as readdirSync6, statSync as statSync3, writeFileSync as writeFileSync18 } from "fs";
 import { createRequire } from "module";
 import { homedir as homedir3 } from "os";
 import { extname, join as join23, relative as relative4, resolve as resolve7 } from "path";
@@ -29627,7 +29695,7 @@ function loadSharp() {
   const dir = join23(homedir3(), ".deployai", "tools", "sharp");
   if (!existsSync19(join23(dir, "node_modules", "sharp"))) {
     mkdirSync12(dir, { recursive: true });
-    if (!existsSync19(join23(dir, "package.json"))) writeFileSync17(join23(dir, "package.json"), '{"private":true}');
+    if (!existsSync19(join23(dir, "package.json"))) writeFileSync18(join23(dir, "package.json"), '{"private":true}');
     out("Getting the image tool once (it stays outside the site)...");
     const r = spawnSync5(process.platform === "win32" ? "npm.cmd" : "npm", ["install", SHARP, "--no-audit", "--no-fund", "--silent"], { cwd: dir, stdio: "ignore", shell: process.platform === "win32" });
     if (r.status !== 0) throw new CliError("The image tool could not be installed. Check the internet connection and run optimize again.", 1, "images_failed");
@@ -29669,7 +29737,7 @@ async function imagesCommand(root, folder, sharp = loadSharp) {
 
 // src/commands/blocks.ts
 import { createHash as createHash4 } from "crypto";
-import { existsSync as existsSync20, mkdirSync as mkdirSync13, readFileSync as readFileSync15, writeFileSync as writeFileSync18 } from "fs";
+import { existsSync as existsSync20, mkdirSync as mkdirSync13, readFileSync as readFileSync16, writeFileSync as writeFileSync19 } from "fs";
 import { dirname as dirname7, resolve as resolve8, sep as sep3 } from "path";
 import { gunzipSync as gunzipSync3 } from "zlib";
 var BLOCKS = [
@@ -29724,25 +29792,30 @@ async function blocksCommand(root, ctx, name, opts = {}) {
     const target = resolve8(base, e3.name);
     if (target === base || !target.startsWith(base + sep3)) continue;
     if (existsSync20(target)) {
-      const now = sha(readFileSync15(target));
+      const now = sha(readFileSync16(target));
       if (now === sha(e3.data)) {
         lock[e3.name] = now;
       } else if (opts.update && lock[e3.name] === now) {
-        writeFileSync18(target, e3.data);
+        writeFileSync19(target, e3.data);
         lock[e3.name] = sha(e3.data);
         updated.push(e3.name);
       } else {
+        const upstream = resolve8(base, ".deployai", "blocks", `${block.key}-upstream`, e3.name);
+        if (upstream.startsWith(base + sep3)) {
+          mkdirSync13(dirname7(upstream), { recursive: true });
+          writeFileSync19(upstream, e3.data);
+        }
         kept.push(e3.name);
       }
       continue;
     }
     mkdirSync13(dirname7(target), { recursive: true });
-    writeFileSync18(target, e3.data);
+    writeFileSync19(target, e3.data);
     lock[e3.name] = sha(e3.data);
     written.push(e3.name);
   }
   mkdirSync13(dirname7(lockPath(base, block.key)), { recursive: true });
-  writeFileSync18(lockPath(base, block.key), `${JSON.stringify(lock, null, 2)}
+  writeFileSync19(lockPath(base, block.key), `${JSON.stringify(lock, null, 2)}
 `);
   out(`Added the ${block.key} block: ${written.length} files.`);
   written.forEach((f) => out(`  + ${f}`));
@@ -29753,6 +29826,7 @@ async function blocksCommand(root, ctx, name, opts = {}) {
   if (kept.length) {
     out(`These ${kept.length} files already exist and were left as they are; merge what the block needs into them:`);
     kept.forEach((f) => out(`  = ${f}`));
+    out(`The block's own version of each is in .deployai/blocks/${block.key}-upstream/ at the same path: compare the two (git diff --no-index <yours> <its>), merge, then delete that folder.`);
   }
   out(`Read .deployai/blocks/${block.key}.md and follow it: it says what to wire and what to set.`);
 }
@@ -29803,9 +29877,9 @@ async function integrationsCommand(ctx, name, opts = {}) {
 
 // src/commands/brand.ts
 import { spawn as spawn5 } from "child_process";
-import { copyFileSync, existsSync as existsSync21, mkdirSync as mkdirSync14, mkdtempSync as mkdtempSync3, readdirSync as readdirSync7, readFileSync as readFileSync16, rmSync as rmSync5, statSync as statSync4, writeFileSync as writeFileSync19 } from "fs";
+import { copyFileSync, existsSync as existsSync21, mkdirSync as mkdirSync14, mkdtempSync as mkdtempSync3, readdirSync as readdirSync7, readFileSync as readFileSync17, rmSync as rmSync6, statSync as statSync4, writeFileSync as writeFileSync20 } from "fs";
 import { createServer } from "http";
-import { tmpdir as tmpdir3 } from "os";
+import { tmpdir as tmpdir4 } from "os";
 import { basename as basename2, dirname as dirname8, extname as extname2, join as join24, relative as relative5, sep as sep4 } from "path";
 import { randomBytes } from "crypto";
 
@@ -29929,7 +30003,7 @@ function existingFavicon(root) {
   for (const d of ["app", "src/app"]) for (const f of ["favicon.ico", "icon.svg", "icon.png", "icon.tsx", "icon.jpg"]) if (existsSync21(join24(root, d, f))) return `${d}/${f}`;
   for (const f of walk(root).filter((p) => /\.(html|astro|tsx|jsx|vue|svelte)$/.test(p)).slice(0, 400)) {
     try {
-      const m = readFileSync16(f, "utf8").match(/<link\b[^>]*\brel=["'](?:shortcut )?icon["'][^>]*>/i);
+      const m = readFileSync17(f, "utf8").match(/<link\b[^>]*\brel=["'](?:shortcut )?icon["'][^>]*>/i);
       if (!m) continue;
       const href = m[0].match(/\shref=["']([^"']+)/i)?.[1] ?? "";
       if (href.startsWith("data:") || /^https?:/.test(href) || existsSync21(join24(web, href.split("?")[0]))) return relative5(root, f).split(sep4).join("/");
@@ -29949,7 +30023,7 @@ function scannedIcons(root) {
       for (const i of list) {
         const path = join24(dir, i.file);
         if (!existsSync21(path)) continue;
-        const size = imageSize(readFileSync16(path));
+        const size = imageSize(readFileSync17(path));
         found.push({ path, kind: i.kind, big: !size || size.width >= 64 });
       }
     } catch {
@@ -29975,7 +30049,7 @@ var CODE_EXT2 = /\.(css|scss|sass|less|html|astro|vue|svelte)$/i;
 var READ_CAP = 300;
 function readText2(path) {
   try {
-    return readFileSync16(path, "utf8");
+    return readFileSync17(path, "utf8");
   } catch {
     return "";
   }
@@ -30025,7 +30099,7 @@ function writeSiteFile(root, file2, data) {
     copyFileSync(target, join24(keep, file2));
   }
   mkdirSync14(dirname8(target), { recursive: true });
-  writeFileSync19(target, data);
+  writeFileSync20(target, data);
 }
 var send = (res, status, body = "", type = "text/plain; charset=utf-8") => {
   res.writeHead(status, { "content-type": type, "cache-control": "no-store", "x-content-type-options": "nosniff" });
@@ -30060,7 +30134,7 @@ function allowed(req, url2, port, token) {
   return req.headers.host === `127.0.0.1:${port}` && url2.searchParams.get("t") === token;
 }
 async function headless(browser, url2, width, until, timeoutMs) {
-  const profile = mkdtempSync3(join24(tmpdir3(), "deployai-brand-"));
+  const profile = mkdtempSync3(join24(tmpdir4(), "deployai-brand-"));
   const child = spawn5(browser, ["--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check", "--disable-extensions", `--user-data-dir=${profile}`, `--window-size=${width},900`, url2], { stdio: "ignore", windowsHide: true });
   child.on("error", () => {
   });
@@ -30080,7 +30154,7 @@ async function headless(browser, url2, width, until, timeoutMs) {
       setTimeout(done, 3e3);
     });
     try {
-      rmSync5(profile, { recursive: true, force: true, maxRetries: 3, retryDelay: 200 });
+      rmSync6(profile, { recursive: true, force: true, maxRetries: 3, retryDelay: 200 });
     } catch {
     }
   }
@@ -30160,7 +30234,7 @@ async function drawInBrowser(o, browser) {
   }
 }
 function sourceBytes(path) {
-  return { bytes: readFileSync16(path), type: TYPES[extname2(path).toLowerCase()] ?? "application/octet-stream" };
+  return { bytes: readFileSync17(path), type: TYPES[extname2(path).toLowerCase()] ?? "application/octet-stream" };
 }
 function report(root, r) {
   const where = relative5(root, webRoot(root)).split(sep4).join("/") || "the site root";
@@ -30178,7 +30252,7 @@ function plainIcon(root, source, name, color) {
     const ext = extname2(source.path).toLowerCase();
     if (ext === ".ico" || ext === ".svg" || ext === ".png") {
       const file2 = `favicon${ext}`;
-      writeSiteFile(root, file2, readFileSync16(source.path));
+      writeSiteFile(root, file2, readFileSync17(source.path));
       return [file2];
     }
   }
@@ -30334,7 +30408,7 @@ function judgeFiles(root) {
   for (const f of files) {
     let bytes;
     try {
-      bytes = readFileSync16(f);
+      bytes = readFileSync17(f);
     } catch {
       continue;
     }
@@ -30387,7 +30461,7 @@ async function brandImagesCommand(root, urls, opts) {
   mkdirSync14(join24(root, BRAND_DIR), { recursive: true });
   const file2 = `${BRAND_DIR}/images.json`;
   const data = { measuredAt: (/* @__PURE__ */ new Date()).toISOString(), pages: urls, unmeasured, filesChecked: total, imagesMeasured: shown.size, weak };
-  writeFileSync19(join24(root, file2), `${JSON.stringify(data, null, 2)}
+  writeFileSync20(join24(root, file2), `${JSON.stringify(data, null, 2)}
 `);
   if (opts.json) {
     out(JSON.stringify(data));
@@ -30610,7 +30684,7 @@ async function main(argv = process.argv) {
 
 // src/update.ts
 import { spawnSync as spawnSync6 } from "child_process";
-import { existsSync as existsSync23, mkdirSync as mkdirSync15, readdirSync as readdirSync8, readFileSync as readFileSync17, rmSync as rmSync6, writeFileSync as writeFileSync20 } from "fs";
+import { existsSync as existsSync23, mkdirSync as mkdirSync15, readdirSync as readdirSync8, readFileSync as readFileSync18, rmSync as rmSync7, writeFileSync as writeFileSync21 } from "fs";
 import { join as join26 } from "path";
 var CHECK_EVERY_MS = 60 * 60 * 1e3;
 var ASK_NPM_MS = 1500;
@@ -30653,7 +30727,7 @@ function statePath() {
 }
 function readState() {
   try {
-    const data = JSON.parse(readFileSync17(statePath(), "utf8"));
+    const data = JSON.parse(readFileSync18(statePath(), "utf8"));
     return data && typeof data === "object" ? data : {};
   } catch {
     return {};
@@ -30662,7 +30736,7 @@ function readState() {
 function writeState(state) {
   try {
     mkdirSync15(configDir(), { recursive: true });
-    writeFileSync20(statePath(), JSON.stringify(state) + "\n");
+    writeFileSync21(statePath(), JSON.stringify(state) + "\n");
   } catch {
   }
 }
@@ -30686,12 +30760,12 @@ function getVersion(version2, env) {
   const root = join26(configDir(), "cli");
   const dir = join26(root, version2);
   mkdirSync15(dir, { recursive: true });
-  writeFileSync20(join26(dir, "package.json"), '{"private":true}\n');
+  writeFileSync21(join26(dir, "package.json"), '{"private":true}\n');
   const installed = spawnSync6(`npm install deployai@${version2} --ignore-scripts --no-audit --no-fund --silent`, { cwd: dir, env, shell: true, stdio: "ignore", windowsHide: true, timeout: GET_VERSION_MS });
   if (installed.status !== 0) return false;
   const ran = spawnSync6(process.execPath, [versionEntry(version2), "--version"], { env: { ...env, DEPLOYAI_NO_UPDATE: "1" }, encoding: "utf8", timeout: GET_VERSION_MS });
   if (ran.status !== 0 || ran.stdout.trim() !== version2) return false;
-  for (const old of readdirSync8(root)) if (old !== version2) rmSync6(join26(root, old), { recursive: true, force: true });
+  for (const old of readdirSync8(root)) if (old !== version2) rmSync7(join26(root, old), { recursive: true, force: true });
   return true;
 }
 function runVersion(version2, args, env = process.env) {
