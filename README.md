@@ -32,7 +32,7 @@ pnpm dlx deployai check
 npm i -g deployai
 ```
 
-Node 20 or newer. No other setup: the CLI talks to https://deployai.co.il.
+Node.js 22.12 or newer. No other setup: the CLI talks to https://deployai.co.il.
 
 It stays up to date by itself. `npx deployai@latest` always runs the newest version. An installed copy checks npm at most once an hour, installs a newer version once into `~/.deployai/cli`, and runs every command on it. Set `DEPLOYAI_NO_UPDATE=1` to stay on the installed version; `CI` does the same.
 

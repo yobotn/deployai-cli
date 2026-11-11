@@ -1,6 +1,6 @@
 {
   "name": "deployai",
-  "version": "0.1.0-beta.39",
+  "version": "0.1.0-beta.40",
   "description": "Check a site built with an AI editor, see what has to change, and publish it to DeployAI. Hebrew first.",
   "keywords": [
     "deployai",
@@ -35,7 +35,7 @@
     "dist"
   ],
   "engines": {
-    "node": ">=20"
+    "node": ">=22.12.0"
   },
   "dependencies": {
     "commander": "15.0.0"

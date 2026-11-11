@@ -22679,7 +22679,7 @@ var TAGS_SEEN = { cmd: "npx deployai@latest migrate tags --requests <file>", say
 var PLAN_SHOW = "Then show the owner the plan as one chat message, never as the file, a table or one long paragraph, since a long table breaks in a terminal: Moves as it is, with a count and at most three names. Changes, one short line for each Replaced with row. Needs you, one short line for each Needs me or Not possible row. End with the link it printed, for the full list. Do not use a plan mode: it changes the owner's setting.";
 var REPORT_SAY = "Once .deployai/migration/plan.md is written, with its features as one table (| Feature | Status | Note |) and a row for each tag and connection in tags.json: this adds it to the owner's move report and prints the link.";
 var MOVE_REPORT = { cmd: "npx deployai@latest migrate report", say: `${REPORT_SAY} ${PLAN_SHOW} Then ask: "Go ahead with this plan?" The answers: Go ahead and put it live when it is ready (recommended), Go ahead and show me first, or Change something. Say that the old site and its domain do not change either way. If .deployai/owner-mode says on-my-own, do not ask (D-928): show the plan, say in one line that you go on and the owner sees the preview before anything goes live, and go on as if they chose to see it first.` };
-var TAGS_FIRED = { cmd: "npx deployai@latest migrate tags --requests <file> --fired", say: "Open the preview, save the outside addresses your browser asks for to a file and run this: it shows which tags really fired there. Tags on the preview are real: a test form send shows up as a real lead in the owner's Google and Meta accounts, so send at most one, and tell the owner first." };
+var TAGS_FIRED = { cmd: "npx deployai@latest migrate tags --requests <file> --fired", say: "Tracking tags are paused on the preview and stay in its code (D-944), so verify still finds them: skip this step unless the owner turned on Tracking tags on this address on the Domains page of the site. Then open the preview, save the outside addresses your browser asks for to a file and run this: it shows which tags really fired there. Tags that run on the preview are real: a test form send shows up as a real lead in the owner's Google and Meta accounts, so send at most one, and tell the owner first." };
 var SEND_PREVIEW = { say: 'Send the owner the preview address and, in short lines with no table, what changed from the plan and what still needs them. Ask: "Put it live now, or change something first?" Make all their changes first and put them in one deploy, never one deploy for each change.' };
 var AFTER_LIVE = { say: "Only after it is live: tell the owner, in one short message, that the site is live, that their old site and email did not change, that Google keeps showing the old site until the domain is connected, and that they can connect their domain whenever they are ready, as a separate step, from Site addresses on the site's page. Do not explain DNS, do not change DNS and do not start that step in this chat. Then go on with the next step." };
 var MOVE_SPEED = { cmd: "npx deployai@latest speed <address>", say: "Run it on the old site's home page and on the preview's home page, at phone width, and on one page of each other kind when they are built differently. The new site must score at least what the old one does, and aim for 90 or more. Fix the biggest items it lists: image sizes and formats, fonts, scripts that block the page, layout shifts. In a move that keeps the site exactly as it is, every fix keeps file names, fonts and scripts as they are: images only get lighter at the same path and size (D-866). Never drop or delay a tag, pixel or form to raise the score: loading tags later is the Performance add-on's job. One round only: make all the fixes, deploy once, run it and migrate verify once more, and go on whatever the score is then. Never start a second round. If the preview cannot be measured, measure the live address once right after it goes live instead. Tell the owner in one line the old and the new phone score, and when it is under 90, that the Performance add-on can raise it." };
@@ -23364,6 +23364,10 @@ function dnsServices(records) {
   }
   return [...found];
 }
+
+// ../shared/src/paused-tags.ts
+var PAUSED_TAG_KINDS = ["tagmanager", "analytics", "ads", "recording"];
+var PAUSED = TAG_CATALOG.filter((t) => PAUSED_TAG_KINDS.includes(t.kind));
 
 // ../shared/src/move-report.ts
 var text = (max) => external_exports.string().max(max);
@@ -24510,6 +24514,7 @@ var M = {
     startTitle: "DeployAI start",
     startNewFolder: "This folder already has files, so the new site is in a new folder: {dir}",
     startUpdateFolder: "This folder holds other files, so the site's live code is in a new folder: {dir}. Nothing here changed.",
+    nodeTooOld: "Your Node.js is version {have}, and DeployAI needs {need} or newer. Install the LTS version from nodejs.org, open a new terminal and run the command again. How: {url}",
     startDownloaded: "Downloaded the {key} sample: {n} files.",
     startInstalled: "Installed its packages (npm install).",
     startBrief: "Wrote the owner's details to {file} (kept out of git and never uploaded).",
@@ -24789,6 +24794,7 @@ var M = {
     startTitle: "DeployAI start",
     startNewFolder: "\u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5 \u05DB\u05D1\u05E8 \u05D9\u05E9 \u05E7\u05D1\u05E6\u05D9\u05DD, \u05D0\u05D6 \u05D4\u05D0\u05EA\u05E8 \u05D4\u05D7\u05D3\u05E9 \u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D7\u05D3\u05E9\u05D4: {dir}",
     startUpdateFolder: "\u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5 \u05D9\u05E9 \u05E7\u05D1\u05E6\u05D9\u05DD \u05D0\u05D7\u05E8\u05D9\u05DD, \u05D0\u05D6 \u05D4\u05E7\u05D5\u05D3 \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8 \u05E0\u05DE\u05E6\u05D0 \u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D7\u05D3\u05E9\u05D4: {dir}. \u05DC\u05D0 \u05E9\u05D9\u05E0\u05D9\u05E0\u05D5 \u05DB\u05D0\u05DF \u05DB\u05DC\u05D5\u05DD.",
+    nodeTooOld: "\u05D2\u05E8\u05E1\u05EA \u05D4\u05BENode.js \u05E9\u05DC\u05DB\u05DD \u05D4\u05D9\u05D0 {have}, \u05D5\u05BEDeployAI \u05E6\u05E8\u05D9\u05DA \u05D2\u05E8\u05E1\u05D4 {need} \u05D5\u05DE\u05E2\u05DC\u05D4. \u05DE\u05EA\u05E7\u05D9\u05E0\u05D9\u05DD \u05D0\u05EA \u05D2\u05E8\u05E1\u05EA \u05D4\u05BELTS \u05DE\u05BEnodejs.org, \u05E4\u05D5\u05EA\u05D7\u05D9\u05DD \u05D8\u05E8\u05DE\u05D9\u05E0\u05DC \u05D7\u05D3\u05E9 \u05D5\u05DE\u05E8\u05D9\u05E6\u05D9\u05DD \u05E9\u05D5\u05D1 \u05D0\u05EA \u05D4\u05E4\u05E7\u05D5\u05D3\u05D4. \u05D0\u05D9\u05DA \u05E2\u05D5\u05E9\u05D9\u05DD \u05D0\u05EA \u05D6\u05D4: {url}",
     startDownloaded: "\u05D4\u05D3\u05D5\u05D2\u05DE\u05D4 {key} \u05D4\u05D5\u05E8\u05D3\u05D4: {n} \u05E7\u05D1\u05E6\u05D9\u05DD.",
     startInstalled: "\u05D4\u05D7\u05D1\u05D9\u05DC\u05D5\u05EA \u05E9\u05DC\u05D4 \u05D4\u05D5\u05EA\u05E7\u05E0\u05D5 (npm install).",
     startBrief: "\u05D4\u05E4\u05E8\u05D8\u05D9\u05DD \u05E9\u05DC \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05E0\u05DB\u05EA\u05D1\u05D5 \u05DC {file} (\u05DC\u05D0 \u05E0\u05DB\u05E0\u05E1\u05D9\u05DD \u05DC\u05BEgit \u05D5\u05DC\u05D0 \u05E2\u05D5\u05DC\u05D9\u05DD \u05DC\u05D0\u05EA\u05E8).",
@@ -25099,7 +25105,7 @@ function formatBytes(n2) {
 }
 
 // src/version.ts
-var CLI_VERSION = "0.1.0-beta.39";
+var CLI_VERSION = "0.1.0-beta.40";
 
 // src/api.ts
 function apiContext(apiFlag, root) {
@@ -30724,6 +30730,21 @@ async function main(argv = process.argv) {
   }
 }
 
+// src/node-version.ts
+var MIN_NODE = "22.12";
+function nodeVersion(version2) {
+  const m = /^v?(\d+)\.(\d+)/.exec(version2);
+  return m ? [Number(m[1]), Number(m[2])] : null;
+}
+function nodeTooOld(version2, min = MIN_NODE) {
+  const have = nodeVersion(version2);
+  const need = nodeVersion(min);
+  return have !== null && (have[0] < need[0] || have[0] === need[0] && have[1] < need[1]);
+}
+function nodeGuideUrl(lang, base = API_BASE_DEFAULT) {
+  return `${base}${lang === "he" ? "" : "/en"}/guides/install-nodejs`;
+}
+
 // src/update.ts
 import { spawnSync as spawnSync6 } from "child_process";
 import { existsSync as existsSync23, mkdirSync as mkdirSync15, readdirSync as readdirSync8, readFileSync as readFileSync18, rmSync as rmSync7, writeFileSync as writeFileSync21 } from "fs";
@@ -30842,6 +30863,12 @@ for (const stream of [process.stdout, process.stderr]) {
   });
 }
 async function start() {
+  if (nodeTooOld(process.version)) {
+    const lang = cliLang(process.cwd());
+    process.stderr.write(`${messages(process.cwd())("nodeTooOld", { have: process.version, need: MIN_NODE, url: nodeGuideUrl(lang) })}
+`);
+    process.exit(1);
+  }
   const args = process.argv.slice(2);
   const newest = await versionToRun(CLI_VERSION, args).catch(() => null);
   const code = newest ? runVersion(newest, args) : null;
