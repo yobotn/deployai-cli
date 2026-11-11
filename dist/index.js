@@ -23232,8 +23232,8 @@ function addPageTags(site, page3, path) {
   for (const text2 of page3.events) if (!site.events.some((x) => x.text === text2)) site.events.push({ text: text2, page: path });
   for (const v of page3.verification) if (!site.verification.some((x) => x.service === v.service && x.value === v.value)) site.verification.push({ ...v, page: path });
   for (const f of page3.forms) {
-    const same2 = site.forms.some((x) => x.id === f.id && x.action === f.action && x.classes === f.classes);
-    if (!same2 && site.forms.length < FORMS_KEPT) site.forms.push({ ...f, page: path });
+    const same3 = site.forms.some((x) => x.id === f.id && x.action === f.action && x.classes === f.classes);
+    if (!same3 && site.forms.length < FORMS_KEPT) site.forms.push({ ...f, page: path });
   }
 }
 function addBrowserRequests(site, urls, siteUrl) {
@@ -23476,7 +23476,80 @@ function moveQuestions(r) {
 function dashboardParts(r) {
   return [...r.forms.length ? ["forms"] : [], ...r.pages.some((p) => p.type === "post") ? ["blog"] : []];
 }
+var SAME_AS_QUESTION = { serverPixel: /conversions api|server.?side|server pixel/i, thankYou: /thank.?you/i, verificationFile: /search console/i };
+var GROUP_ORDER = ["notPossible", "partly", "replaced", "moved"];
+function moveWaiting(r, answers) {
+  const keys = moveQuestions(r);
+  const rows2 = r.features.map((f) => {
+    const [prefix, state] = FEATURE_STATES.find(([s]) => f.status.toLowerCase().startsWith(s)) ?? ["", "partly"];
+    return { name: f.name.replace(/\s*\(tags\.json\)/gi, "").trim(), state, detail: f.status.slice(prefix.length).trim() || null, note: f.note ?? null };
+  });
+  const askedBy = (row2) => keys.find((k) => SAME_AS_QUESTION[k].test(row2.name));
+  const waiting = (row2) => row2.state === "needsYou" || row2.state === "outside";
+  const questions = keys.map((key2) => ({ key: key2, answer: answers[key2] ?? null, note: rows2.find((row2) => waiting(row2) && askedBy(row2) === key2)?.note ?? null }));
+  const todo = rows2.filter((row2) => waiting(row2) && !askedBy(row2));
+  const listed = [...r.outside.map((o) => o.host), ...r.tags.map((t) => TAG_CATALOG.find((c) => c.key === t.key)?.name ?? t.key)].map((s) => s.toLowerCase());
+  const elsewhere = (row2) => row2.state === "moved" && listed.some((s) => row2.name.toLowerCase().includes(s));
+  const groups = GROUP_ORDER.map((state) => ({ state, rows: rows2.filter((row2) => row2.state === state && !elsewhere(row2)) })).filter((g) => g.rows.length);
+  return { questions, todo, count: questions.filter((q) => !q.answer).length + todo.length, groups };
+}
+var same = (a) => (b) => a.key === b.key && sameTagId(a.key, a.id, b.id);
+function planLineFor(features, names) {
+  const want = names.filter((n2) => n2 && n2.length > 2).map((n2) => n2.toLowerCase());
+  for (const f of features ?? []) {
+    const name = f.name.toLowerCase();
+    if (!want.some((w) => name.includes(w))) continue;
+    const [prefix, state] = FEATURE_STATES.find(([st]) => f.status.toLowerCase().startsWith(st)) ?? ["", "partly"];
+    return { state, detail: f.status.slice(prefix.length).trim() || null, note: f.note ?? null };
+  }
+  return null;
+}
 var tagRowKey = (t) => `${t.key}|${t.id ?? ""}`;
+function tagRows(r, opts = {}) {
+  const rows2 = [];
+  for (const t of r.tags) {
+    const entry = TAG_CATALOG.find((c) => c.key === t.key);
+    if (!entry) continue;
+    const removed = r.verify?.removed.some((x) => [t.id ?? "", t.key, entry.name].some((w) => w && x.toLowerCase() === w.toLowerCase()));
+    const plan = planLineFor(r.features, [entry.name, t.key]);
+    const replaced = plan?.state === "replaced" && !r.verify?.seen.some(same(t));
+    const inPages = t.source === "page";
+    const onLive = opts.live?.some(same(t));
+    const status = replaced ? "replaced" : removed ? "removed" : opts.live && !onLive && inPages ? "missing" : opts.confirmed?.[tagRowKey(t)] ? "confirmed" : onLive ? "live" : r.verify?.fired?.some(same(t)) ? "fired" : r.verify?.seen.some(same(t)) ? "preview" : r.verify && inPages ? "missing" : t.source === "container" ? "container" : t.source === "browser" ? "browser" : "found";
+    rows2.push({ key: t.key, name: entry.name, kind: entry.kind, id: t.id, source: t.source, pages: t.pages, pageCount: t.pageCount, domainLocked: Boolean(entry.domainLocked), checkUrl: entry.checkUrl ?? null, status, ...status === "replaced" ? { replacedBy: plan?.detail ?? null } : {} });
+  }
+  const order = ["missing", "found", "container", "browser", "preview", "fired", "live", "confirmed", "replaced", "removed"];
+  return rows2.sort((a, b) => order.indexOf(a.status) - order.indexOf(b.status) || a.name.localeCompare(b.name));
+}
+function pageOpened(v, path) {
+  if (!v) return null;
+  const trim = (p) => p.replace(/\/+$/, "");
+  if (v.pageFindings) return !v.pageFindings.some((f) => trim(f.path) === trim(path));
+  return v.pageProblems === 0 ? true : null;
+}
+function selfChecks(r, opts = {}) {
+  const confirmed = opts.confirmed ?? {};
+  const out2 = [];
+  const add = (c) => {
+    if (!out2.some((x) => x.key === c.key)) out2.push({ ...c, done: confirmed[c.key] ?? null });
+  };
+  if (!r.verify) return out2;
+  const rows2 = tagRows(r, opts);
+  const kept = (t) => ["preview", "fired", "live", "confirmed"].includes(t.status);
+  for (const t of rows2) {
+    if (t.status === "replaced") add({ key: `self|replaced|${tagRowKey(t)}`, kind: "replaced", name: t.name, detail: t.replacedBy ?? null, checkUrl: null });
+    else if (kept(t) && t.checkUrl && t.key !== "ua") add({ key: tagRowKey(t), kind: "arrive", name: t.name, detail: t.id, checkUrl: t.checkUrl });
+    else if (kept(t) && (t.kind === "chat" || t.kind === "calls")) add({ key: `self|tap|${tagRowKey(t)}`, kind: "tap", name: t.name, detail: t.id, checkUrl: null });
+  }
+  if (r.forms.some((f) => f.id !== "commentform") || (r.kit?.forms.length ?? 0) > 0) add({ key: "self|form", kind: "form", name: r.kit?.forms[0]?.label ?? "", detail: null, checkUrl: null });
+  for (const o of r.outside) {
+    if (outsideService(o.host)) continue;
+    const plan = planLineFor(r.features, [o.host]);
+    add({ key: `self|outside|${o.host}`, kind: "outside", name: o.host, detail: plan ? [plan.detail, plan.note].filter(Boolean).join(". ") || null : null, checkUrl: null });
+  }
+  for (const p of r.kit?.pages ?? []) if (pageOpened(r.verify, p.path) === null) add({ key: `self|page|${p.path}`, kind: "page", name: p.path, detail: p.title, checkUrl: null });
+  return out2;
+}
 
 // ../shared/src/env-scopes.ts
 var ENV_KEYS = {
@@ -23670,6 +23743,7 @@ var KEEP_DATA_RULES = [
   "Never delete the old database, files or storage service."
 ];
 var AGENT_POINTER = "Read DEPLOYAI.md before your first answer and before you write code, change the plan or add a dependency: this project is published with DeployAI.";
+var SITE_COPY_RULE = "Words on the site: write each language from what a visitor must know, the way a native writer of that language says it, never word for word from another language. Read each page alone in its own language: if it sounds translated, rewrite it. Keep one term for each thing in every language (when .deployai/glossary.md exists, use its terms and add new ones to it), and dates, prices, phone numbers and addresses in the local form of that language. Never reword text the owner wrote without asking. When you wrote a language you are not sure of, or a legal page, say in one line that a native speaker should read it.";
 var FOLDER_READY_RULE = `This folder is already set up. When the owner has not asked for anything yet, say only, in their language: "The folder is set up and ready. What do you want to change?" Add the site's name when .deployai/project.json has it. If the folder has no site files yet, ask instead: "The folder is set up and ready. What do you want to build?" Never ask them for a start line, a command or an id. While the folder holds a site, never offer a sample or a new start: go on with that site.`;
 
 // ../shared/src/deployai-md.ts
@@ -23723,6 +23797,10 @@ ${ASK_OWNER_RULE}
 
 Never stop building for an account, a plan or a limit. Build what the owner asks; say once, in one plain line, what going live will need, and ask about it only at the deploy step.
 
+## Words on the site
+
+${SITE_COPY_RULE}
+
 ## A site's first version
 
 ${FIRST_SITE_RULE}
@@ -23759,7 +23837,8 @@ var DEPLOYAI_LATER_RULES = [
   { has: "deployai@latest feedback", text: AGENT_FEEDBACK_RULES.join(" ") },
   { has: "never been live", text: FIRST_SITE_RULE },
   { has: "local preview", text: LOCAL_PREVIEW_RULE },
-  { has: "git history", text: GIT_HISTORY_RULE }
+  { has: "git history", text: GIT_HISTORY_RULE },
+  { has: "never word for word", text: SITE_COPY_RULE }
 ];
 function parseLaterRules(json2) {
   try {
@@ -25107,7 +25186,7 @@ function formatBytes(n2) {
 }
 
 // src/version.ts
-var CLI_VERSION = "0.1.0-beta.41";
+var CLI_VERSION = "0.1.0-beta.42";
 
 // src/api.ts
 function apiContext(apiFlag, root) {
@@ -27386,7 +27465,38 @@ async function sendReport(root, ctx, host, open2, verify) {
   const browser = firstTime ? openBrowser(url2) : false;
   out();
   out(`Move report for the owner${browser ? " (opened in the browser)" : ""}: ${url2}`);
-  if (firstTime) out("Give the owner this link in one line. It lists what we found and what will move, and it updates by itself.");
+  if (firstTime) out("Give the owner this link in one line. It only shows what we found and what moved, and it updates by itself: anything that needs the owner, you ask in the chat.");
+  if (open2 === "verify") for (const line of reportAsksLines(report2)) out(line);
+}
+var ASK_WORDS = {
+  serverPixel: "Does the site send conversions to Meta or Google from the server?",
+  thankYou: "Does a page open after sending the form, and what is its address?",
+  verificationFile: "Was the site verified in Google Search Console with a file, and what is its name?"
+};
+function reportAsksLines(report2) {
+  const tries = selfChecks(report2).map((c) => {
+    const id = c.detail ? ` (${c.detail})` : "";
+    switch (c.kind) {
+      case "replaced":
+        return `${c.name}: now ${c.detail ?? "ours"}. Try that it does the same job on the preview.`;
+      case "arrive":
+        return `${c.name}${id}: open the preview, then see the visit arrive in ${c.name}.`;
+      case "form":
+        return "The form: send one test message from the preview and see it arrive by email and in the dashboard, Messages.";
+      case "tap":
+        return `${c.name}${id}: tap it once on a phone and see the chat or call open with the right number.`;
+      case "outside":
+        return `${c.name}: a service our checks do not cover. See that its part of the page works on the preview.`;
+      case "page":
+        return `${c.name}: open this address on the preview.`;
+    }
+  });
+  const waiting = moveWaiting(report2, report2.answers ?? {});
+  const asks = [...waiting.todo.map((f) => `${f.name}${f.note ? `: ${f.note}` : ""}`), ...waiting.questions.filter((q) => !q.answer).map((q) => `${ASK_WORDS[q.key]} npx deployai@latest migrate tags --answer ${q.key}=yes|no|unsure`)];
+  const lines = [];
+  if (tries.length) lines.push("", `The report lists ${tries.length} things for the owner to try on the preview. In the same message as the link, name each in plain words, one short line each, and say they tick them on the site's Move tab:`, ...tries.map((x) => `  ${x}`));
+  if (asks.length) lines.push("", "The report says these wait for the owner. Ask about each in the chat now, so nothing on the report is new to them:", ...asks.map((x) => `  ${x}`));
+  return lines;
 }
 async function migrateScanCommand(root, raw, opts = {}) {
   const source = normalizeSourceUrl(raw);
@@ -28365,7 +28475,7 @@ function filesOf(gz) {
   }
   return map2;
 }
-var same = (a, b) => a === void 0 && b === void 0 || a !== void 0 && b !== void 0 && a.equals(b);
+var same2 = (a, b) => a === void 0 && b === void 0 || a !== void 0 && b !== void 0 && a.equals(b);
 var isBinary = (b) => !!b && b.subarray(0, 8e3).includes(0);
 function migrationNumber(path) {
   const m = /(^|\/)migrations\/(\d+)[_-][^/]*\.sql$/i.exec(path);
@@ -28440,8 +28550,8 @@ async function syncCommand(root, ctx) {
     const b = baseFiles.get(path);
     const l = liveFiles.get(path);
     const o = ourFiles.get(path);
-    if (same(o, l) || same(l, b)) continue;
-    if (same(o, b)) {
+    if (same2(o, l) || same2(l, b)) continue;
+    if (same2(o, b)) {
       write(path, l);
       taken++;
       continue;
