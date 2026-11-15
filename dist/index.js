@@ -86,7 +86,7 @@ var ISSUES = [
     titleEn: "Long-running or background process",
     titleHe: "\u05EA\u05D4\u05DC\u05D9\u05DA \u05E9\u05E8\u05E5 \u05D1\u05E8\u05E7\u05E2 \u05DB\u05DC \u05D4\u05D6\u05DE\u05DF",
     agentLine: "{loc} starts a long-running or background process{detail}.",
-    fixForAgent: "The site runs per request, nothing stays running between requests. Remove timers, job queues and cron libraries. Scheduled work can use a Cloudflare Cron Trigger later, ask the developer first."
+    fixForAgent: `The site runs per request, nothing stays running between requests. Remove timers, job queues and cron libraries. For work on a clock, list its times in the wrangler config under "triggers": { "crons": ["0 3 * * *"] } and export a scheduled handler beside fetch: export default { fetch, async scheduled(event, env, ctx) { ... } }. DeployAI runs it at those times (UTC), at most every 5 minutes, with the site's own bindings.`
   },
   {
     code: "websocket_server",
@@ -218,6 +218,15 @@ var ISSUES = [
     titleHe: "\u05E9\u05D5\u05DC\u05D7 \u05DE\u05D9\u05D9\u05DC \u05D3\u05E8\u05DA SMTP, \u05E9\u05DC\u05D0 \u05E2\u05D5\u05D1\u05D3 \u05D0\u05E6\u05DC\u05E0\u05D5",
     agentLine: "The site sends email with{detail}, which needs SMTP. SMTP does not run on DeployAI, so the email part will fail.",
     fixForAgent: "For email to the site owner (a form answer, a new order), use the built-in email: POST JSON { subject, text, replyTo } to `${DEPLOYAI_API}/api/site/notify` with Authorization: Bearer DEPLOYAI_KEY, with no keys to ask for. For email to customers, use an HTTP email API (Resend, Postmark) with its key set by npx deployai@latest env set. Remove the SMTP library."
+  },
+  {
+    // D-982: a schedule our scheduler will not run (D-979), told before the deploy instead of only on Data and files.
+    code: "schedule_not_run",
+    severity: "warning",
+    titleEn: "A schedule that will not run",
+    titleHe: "\u05DE\u05E9\u05D9\u05DE\u05D4 \u05DE\u05EA\u05D5\u05D6\u05DE\u05E0\u05EA \u05E9\u05DC\u05D0 \u05EA\u05E8\u05D5\u05E5",
+    agentLine: "A schedule in triggers.crons will not run{detail} ({loc}).",
+    fixForAgent: 'DeployAI runs each line of triggers.crons at its times in UTC, at most once every 5 minutes. A line that runs more often, or that is not a five part cron line (minute, hour, day of month, month, day of week), does not run at all. Change it, for example "*/5 * * * *" for every 5 minutes or "0 3 * * *" for 03:00 UTC each day.'
   },
   {
     code: "no_build_script",
@@ -754,9 +763,9 @@ function durableObjectsOf(v) {
     return { name: str2(o.name), className: str2(o.class_name), script: str2(o.script_name) || null };
   });
 }
-function tomlDurableObjects(value) {
+function tomlDurableObjects(value2) {
   const q = (t, k) => new RegExp(`\\b${k}\\s*=\\s*(?:"([^"]+)"|'([^']+)')`).exec(t);
-  return [...value.matchAll(/\{([^}]*)\}/g)].map((m) => {
+  return [...value2.matchAll(/\{([^}]*)\}/g)].map((m) => {
     const t = m[1];
     const pick2 = (k) => {
       const r = q(t, k);
@@ -765,12 +774,25 @@ function tomlDurableObjects(value) {
     return { name: pick2("name"), className: pick2("class_name"), script: pick2("script_name") || null };
   });
 }
+function cronsOf(triggers) {
+  const list = triggers && typeof triggers === "object" ? triggers.crons : null;
+  return Array.isArray(list) ? [...new Set(list.filter((x) => typeof x === "string" && x.trim() !== "").map((x) => x.trim()))] : [];
+}
+function queuesOf(v) {
+  const o = v && typeof v === "object" ? v : {};
+  const str2 = (x) => typeof x === "string" ? x : "";
+  const rows2 = (x) => Array.isArray(x) ? x.map((r) => r && typeof r === "object" ? r : {}) : [];
+  return {
+    producers: rows2(o.producers).map((r) => ({ binding: str2(r.binding), queue: str2(r.queue) })).filter((r) => r.binding || r.queue),
+    consumers: rows2(o.consumers).map((r) => ({ queue: str2(r.queue) })).filter((r) => r.queue)
+  };
+}
 function bindingsOf(list) {
   if (!Array.isArray(list)) return [];
   return list.map((x) => x && typeof x === "object" && typeof x.binding === "string" ? { binding: x.binding } : null).filter((x) => x !== null);
 }
 function parseWranglerConfig(fileName, text2) {
-  const empty = { d1: [], r2: [], vars: [], main: null, assetsDir: null, compatibilityDate: null, compatibilityFlags: [], durableObjects: [] };
+  const empty = { d1: [], r2: [], vars: [], main: null, assetsDir: null, compatibilityDate: null, compatibilityFlags: [], durableObjects: [], crons: [], queues: { producers: [], consumers: [] } };
   if (/\.toml$/.test(fileName)) return parseWranglerToml(text2);
   let j;
   try {
@@ -789,7 +811,9 @@ function parseWranglerConfig(fileName, text2) {
     assetsDir: assets && typeof assets.directory === "string" ? assets.directory : null,
     compatibilityDate: typeof j.compatibility_date === "string" ? j.compatibility_date : null,
     compatibilityFlags: Array.isArray(j.compatibility_flags) ? j.compatibility_flags.filter((x) => typeof x === "string") : [],
-    durableObjects: durableObjectsOf(j.durable_objects)
+    durableObjects: durableObjectsOf(j.durable_objects),
+    crons: cronsOf(j.triggers),
+    queues: queuesOf(j.queues)
   };
 }
 function tomlString(v) {
@@ -797,17 +821,25 @@ function tomlString(v) {
   return m ? m[1] ?? m[2] ?? "" : null;
 }
 function parseWranglerToml(text2) {
-  const decl = { d1: [], r2: [], vars: [], main: null, assetsDir: null, compatibilityDate: null, compatibilityFlags: [], durableObjects: [] };
+  const decl = { d1: [], r2: [], vars: [], main: null, assetsDir: null, compatibilityDate: null, compatibilityFlags: [], durableObjects: [], crons: [], queues: { producers: [], consumers: [] } };
   let section = "";
+  let cronLines = false;
   for (const rawLine of text2.split(/\r?\n/)) {
     const line = rawLine.replace(/\s+#.*$/, "").replace(/^#.*$/, "").trim();
     if (!line) continue;
+    if (cronLines) {
+      for (const m of line.matchAll(/"([^"]*)"|'([^']*)'/g)) decl.crons.push((m[1] ?? m[2]).trim());
+      if (line.includes("]")) cronLines = false;
+      continue;
+    }
     const arr = /^\[\[\s*([\w.]+)\s*\]\]$/.exec(line);
     if (arr) {
       section = `[[${arr[1]}]]`;
       if (arr[1] === "d1_databases") decl.d1.push({ binding: "" });
       if (arr[1] === "r2_buckets") decl.r2.push({ binding: "" });
       if (arr[1] === "durable_objects.bindings") decl.durableObjects.push({ name: "", className: "", script: null });
+      if (arr[1] === "queues.producers") decl.queues.producers.push({ binding: "", queue: "" });
+      if (arr[1] === "queues.consumers") decl.queues.consumers.push({ queue: "" });
       continue;
     }
     const tbl = /^\[\s*([\w.]+)\s*\]$/.exec(line);
@@ -818,41 +850,54 @@ function parseWranglerToml(text2) {
     const kv = /^([\w-]+|"[^"]+")\s*=\s*(.*)$/.exec(line);
     if (!kv) continue;
     const key2 = kv[1].replace(/^"|"$/g, "");
-    const value = kv[2];
+    const value2 = kv[2];
     if (section === "") {
-      if (key2 === "main") decl.main = tomlString(value);
-      if (key2 === "compatibility_date") decl.compatibilityDate = tomlString(value);
-      if (key2 === "compatibility_flags") decl.compatibilityFlags = [...value.matchAll(/"([^"]+)"|'([^']+)'/g)].map((m) => m[1] ?? m[2]);
+      if (key2 === "main") decl.main = tomlString(value2);
+      if (key2 === "compatibility_date") decl.compatibilityDate = tomlString(value2);
+      if (key2 === "compatibility_flags") decl.compatibilityFlags = [...value2.matchAll(/"([^"]+)"|'([^']+)'/g)].map((m) => m[1] ?? m[2]);
       if (key2 === "d1_databases" || key2 === "r2_buckets") {
         const target = key2 === "d1_databases" ? decl.d1 : decl.r2;
-        for (const m of value.matchAll(/binding\s*=\s*(?:"([^"]+)"|'([^']+)')/g)) target.push({ binding: m[1] ?? m[2] });
+        for (const m of value2.matchAll(/binding\s*=\s*(?:"([^"]+)"|'([^']+)')/g)) target.push({ binding: m[1] ?? m[2] });
       }
-      if (key2 === "vars") for (const m of value.matchAll(/([\w-]+)\s*=/g)) decl.vars.push(m[1]);
-      if (key2 === "durable_objects") decl.durableObjects.push(...tomlDurableObjects(value));
+      if (key2 === "vars") for (const m of value2.matchAll(/([\w-]+)\s*=/g)) decl.vars.push(m[1]);
+      if (key2 === "durable_objects") decl.durableObjects.push(...tomlDurableObjects(value2));
     } else if (section === "durable_objects" && key2 === "bindings") {
-      decl.durableObjects.push(...tomlDurableObjects(value));
+      decl.durableObjects.push(...tomlDurableObjects(value2));
     } else if (section === "[[durable_objects.bindings]]" && (key2 === "name" || key2 === "class_name" || key2 === "script_name")) {
-      const v = tomlString(value);
+      const v = tomlString(value2);
       const last = decl.durableObjects[decl.durableObjects.length - 1];
       if (v != null && last) {
         if (key2 === "name") last.name = v;
         else if (key2 === "class_name") last.className = v;
         else last.script = v || null;
       }
+    } else if (section === "triggers" && key2 === "crons") {
+      for (const m of value2.matchAll(/"([^"]*)"|'([^']*)'/g)) decl.crons.push((m[1] ?? m[2]).trim());
+      cronLines = value2.includes("[") && !value2.includes("]");
+    } else if (section === "[[queues.producers]]" && (key2 === "binding" || key2 === "queue")) {
+      const v = tomlString(value2);
+      const last = decl.queues.producers[decl.queues.producers.length - 1];
+      if (v != null && last) last[key2] = v;
+    } else if (section === "[[queues.consumers]]" && key2 === "queue") {
+      const v = tomlString(value2);
+      const last = decl.queues.consumers[decl.queues.consumers.length - 1];
+      if (v != null && last) last.queue = v;
     } else if (section === "vars") {
       decl.vars.push(key2);
     } else if (section === "assets" && key2 === "directory") {
-      decl.assetsDir = tomlString(value);
+      decl.assetsDir = tomlString(value2);
     } else if (section === "[[d1_databases]]" && key2 === "binding") {
-      const v = tomlString(value);
+      const v = tomlString(value2);
       if (v != null) decl.d1[decl.d1.length - 1].binding = v;
     } else if (section === "[[r2_buckets]]" && key2 === "binding") {
-      const v = tomlString(value);
+      const v = tomlString(value2);
       if (v != null) decl.r2[decl.r2.length - 1].binding = v;
     }
   }
   decl.d1 = decl.d1.filter((b) => b.binding);
   decl.r2 = decl.r2.filter((b) => b.binding);
+  decl.crons = [...new Set(decl.crons.filter(Boolean))];
+  decl.queues = { producers: decl.queues.producers.filter((r) => r.binding || r.queue), consumers: decl.queues.consumers.filter((r) => r.queue) };
   return decl;
 }
 
@@ -989,13 +1034,26 @@ var ISSUE_HELP = {
     he: {
       what: "\u05D4\u05D0\u05EA\u05E8 \u05DE\u05E4\u05E2\u05D9\u05DC \u05DE\u05E9\u05D4\u05D5 \u05E9\u05E8\u05E5 \u05D1\u05E8\u05E7\u05E2 \u05DB\u05DC \u05D4\u05D6\u05DE\u05DF, \u05DB\u05DE\u05D5 \u05D8\u05D9\u05D9\u05DE\u05E8, \u05EA\u05D5\u05E8 \u05DE\u05E9\u05D9\u05DE\u05D5\u05EA \u05D0\u05D5 \u05DE\u05E9\u05D9\u05DE\u05D4 \u05DE\u05EA\u05D5\u05D6\u05DE\u05E0\u05EA.",
       why: "\u05D0\u05E6\u05DC\u05E0\u05D5 \u05D4\u05D0\u05EA\u05E8 \u05E8\u05E5 \u05E8\u05E7 \u05DB\u05E9\u05DE\u05D9\u05E9\u05D4\u05D5 \u05E0\u05DB\u05E0\u05E1, \u05D5\u05E9\u05D5\u05DD \u05D3\u05D1\u05E8 \u05DC\u05D0 \u05E0\u05E9\u05D0\u05E8 \u05E4\u05D5\u05E2\u05DC \u05D1\u05D9\u05DF \u05DB\u05E0\u05D9\u05E1\u05D4 \u05DC\u05DB\u05E0\u05D9\u05E1\u05D4. \u05DE\u05D4 \u05E9\u05E8\u05E5 \u05D1\u05E8\u05E7\u05E2 \u05E4\u05E9\u05D5\u05D8 \u05DC\u05D0 \u05D9\u05E4\u05E2\u05DC, \u05D5\u05DC\u05DB\u05DF \u05D4\u05D0\u05EA\u05E8 \u05DC\u05D0 \u05D9\u05E2\u05DC\u05D4.",
-      fix: ["\u05DE\u05D5\u05E6\u05D9\u05D0\u05D9\u05DD \u05DE\u05D4\u05D0\u05EA\u05E8 \u05D8\u05D9\u05D9\u05DE\u05E8\u05D9\u05DD, \u05EA\u05D5\u05E8\u05D9 \u05DE\u05E9\u05D9\u05DE\u05D5\u05EA \u05D5\u05E1\u05E4\u05E8\u05D9\u05D5\u05EA \u05E9\u05DC \u05DE\u05E9\u05D9\u05DE\u05D5\u05EA \u05DE\u05EA\u05D5\u05D6\u05DE\u05E0\u05D5\u05EA.", "\u05D0\u05DD \u05E6\u05E8\u05D9\u05DA \u05DE\u05E9\u05D9\u05DE\u05D4 \u05E9\u05E8\u05E6\u05D4 \u05DC\u05E4\u05D9 \u05E9\u05E2\u05D5\u05DF, \u05D4\u05E1\u05D5\u05DB\u05DF \u05D9\u05E9\u05D0\u05DC \u05D0\u05EA\u05DB\u05DD \u05DC\u05E4\u05E0\u05D9 \u05E9\u05D4\u05D5\u05D0 \u05D1\u05D5\u05E0\u05D4 \u05D0\u05D5\u05EA\u05D4."],
-      prompt: "\u05D4\u05D0\u05EA\u05E8 \u05E8\u05E5 \u05DC\u05DB\u05DC \u05D1\u05E7\u05E9\u05D4 \u05D1\u05E0\u05E4\u05E8\u05D3, \u05D5\u05E9\u05D5\u05DD \u05D3\u05D1\u05E8 \u05DC\u05D0 \u05E0\u05E9\u05D0\u05E8 \u05E4\u05D5\u05E2\u05DC \u05D1\u05D9\u05DF \u05D1\u05E7\u05E9\u05D5\u05EA. \u05D4\u05E1\u05E8 \u05D8\u05D9\u05D9\u05DE\u05E8\u05D9\u05DD, \u05EA\u05D5\u05E8\u05D9 \u05DE\u05E9\u05D9\u05DE\u05D5\u05EA \u05D5\u05E1\u05E4\u05E8\u05D9\u05D5\u05EA cron. \u05E2\u05D1\u05D5\u05D3\u05D4 \u05DE\u05EA\u05D5\u05D6\u05DE\u05E0\u05EA \u05EA\u05D5\u05DB\u05DC \u05DC\u05D4\u05E9\u05EA\u05DE\u05E9 \u05D1\u05BECloudflare Cron Trigger \u05D1\u05D4\u05DE\u05E9\u05DA, \u05E9\u05D0\u05DC \u05D0\u05EA \u05D4\u05DE\u05E4\u05EA\u05D7 \u05E7\u05D5\u05D3\u05DD."
+      fix: ["\u05DE\u05D5\u05E6\u05D9\u05D0\u05D9\u05DD \u05DE\u05D4\u05D0\u05EA\u05E8 \u05D8\u05D9\u05D9\u05DE\u05E8\u05D9\u05DD, \u05EA\u05D5\u05E8\u05D9 \u05DE\u05E9\u05D9\u05DE\u05D5\u05EA \u05D5\u05E1\u05E4\u05E8\u05D9\u05D5\u05EA \u05E9\u05DC \u05DE\u05E9\u05D9\u05DE\u05D5\u05EA \u05DE\u05EA\u05D5\u05D6\u05DE\u05E0\u05D5\u05EA.", "\u05E6\u05E8\u05D9\u05DB\u05D9\u05DD \u05DE\u05E9\u05D9\u05DE\u05D4 \u05E9\u05E8\u05E6\u05D4 \u05DC\u05E4\u05D9 \u05E9\u05E2\u05D5\u05DF, \u05DB\u05DE\u05D5 \u05D2\u05D9\u05D1\u05D5\u05D9 \u05D1\u05DB\u05DC \u05DC\u05D9\u05DC\u05D4? \u05D4\u05E1\u05D5\u05DB\u05DF \u05E7\u05D5\u05D1\u05E2 \u05DC\u05D4 \u05D6\u05DE\u05E0\u05D9\u05DD, \u05D5\u05D0\u05E0\u05D7\u05E0\u05D5 \u05DE\u05E8\u05D9\u05E6\u05D9\u05DD \u05D0\u05D5\u05EA\u05D4 \u05D1\u05D6\u05DE\u05E0\u05D9\u05DD \u05D4\u05D0\u05DC\u05D4, \u05DC\u05DB\u05DC \u05D4\u05D9\u05D5\u05EA\u05E8 \u05E4\u05E2\u05DD \u05D1\u05BE5 \u05D3\u05E7\u05D5\u05EA. \u05DB\u05DE\u05D4 \u05DE\u05E9\u05D9\u05DE\u05D5\u05EA \u05DB\u05D0\u05DC\u05D4 \u05D9\u05E9 \u05DC\u05DB\u05DC \u05D0\u05EA\u05E8, \u05D6\u05D4 \u05DC\u05E4\u05D9 \u05D4\u05D7\u05D1\u05D9\u05DC\u05D4.", "\u05DE\u05E8\u05D9\u05E6\u05D9\u05DD \u05E9\u05D5\u05D1 \u05D0\u05EA \u05D4\u05D1\u05D3\u05D9\u05E7\u05D4."],
+      prompt: '\u05D4\u05D0\u05EA\u05E8 \u05E8\u05E5 \u05DC\u05DB\u05DC \u05D1\u05E7\u05E9\u05D4 \u05D1\u05E0\u05E4\u05E8\u05D3, \u05D5\u05E9\u05D5\u05DD \u05D3\u05D1\u05E8 \u05DC\u05D0 \u05E0\u05E9\u05D0\u05E8 \u05E4\u05D5\u05E2\u05DC \u05D1\u05D9\u05DF \u05D1\u05E7\u05E9\u05D5\u05EA. \u05D4\u05E1\u05E8 \u05D8\u05D9\u05D9\u05DE\u05E8\u05D9\u05DD, \u05EA\u05D5\u05E8\u05D9 \u05DE\u05E9\u05D9\u05DE\u05D5\u05EA \u05D5\u05E1\u05E4\u05E8\u05D9\u05D5\u05EA cron. \u05DC\u05E2\u05D1\u05D5\u05D3\u05D4 \u05DC\u05E4\u05D9 \u05E9\u05E2\u05D5\u05DF, \u05E8\u05E9\u05D5\u05DD \u05D0\u05EA \u05D4\u05D6\u05DE\u05E0\u05D9\u05DD \u05E9\u05DC\u05D4 \u05D1\u05E7\u05D5\u05D1\u05E5 \u05D4\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA \u05E9\u05DC wrangler \u05EA\u05D7\u05EA "triggers": { "crons": ["0 3 * * *"] }, \u05D5\u05D9\u05D9\u05E6\u05D0 \u05E4\u05D5\u05E0\u05E7\u05E6\u05D9\u05D9\u05EA scheduled \u05DC\u05E6\u05D3 fetch: export default { fetch, async scheduled(event, env, ctx) { ... } }. DeployAI \u05DE\u05E8\u05D9\u05E5 \u05D0\u05D5\u05EA\u05D4 \u05D1\u05D6\u05DE\u05E0\u05D9\u05DD \u05D4\u05D0\u05DC\u05D4 (\u05DC\u05E4\u05D9 UTC), \u05DC\u05DB\u05DC \u05D4\u05D9\u05D5\u05EA\u05E8 \u05E4\u05E2\u05DD \u05D1\u05BE5 \u05D3\u05E7\u05D5\u05EA, \u05E2\u05DD \u05D4\u05BEbindings \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8 \u05E2\u05E6\u05DE\u05D5.'
     },
     en: {
       what: "The site starts something that keeps running in the background, such as a timer, a job queue or a scheduled task.",
       why: "On DeployAI the site runs only when someone visits, and nothing stays running between visits. Background work would simply not run, so the site will not go live.",
-      fix: ["Remove timers, job queues and scheduled task libraries from the site.", "If you need a task that runs on a clock, your agent asks you before building it."]
+      fix: ["Remove timers, job queues and scheduled task libraries from the site.", "Need a task on a clock, like a nightly backup? Your agent sets its times, and we run it then, at most every 5 minutes. How many such tasks a site can have depends on your plan.", "Run the check again."]
+    }
+  },
+  schedule_not_run: {
+    he: {
+      what: "\u05D0\u05D7\u05EA \u05D4\u05DE\u05E9\u05D9\u05DE\u05D5\u05EA \u05D4\u05DE\u05EA\u05D5\u05D6\u05DE\u05E0\u05D5\u05EA \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8 \u05DC\u05D0 \u05EA\u05E8\u05D5\u05E5: \u05D4\u05D9\u05D0 \u05E7\u05D1\u05D5\u05E2\u05D4 \u05DC\u05E8\u05D5\u05E5 \u05D9\u05D5\u05EA\u05E8 \u05DE\u05E4\u05E2\u05DD \u05D1\u05BE5 \u05D3\u05E7\u05D5\u05EA, \u05D0\u05D5 \u05E9\u05D0\u05D9 \u05D0\u05E4\u05E9\u05E8 \u05DC\u05E7\u05E8\u05D5\u05D0 \u05D0\u05EA \u05D4\u05D6\u05DE\u05DF \u05E9\u05DC\u05D4.",
+      why: "\u05D0\u05E0\u05D7\u05E0\u05D5 \u05DE\u05E8\u05D9\u05E6\u05D9\u05DD \u05DE\u05E9\u05D9\u05DE\u05D4 \u05DE\u05EA\u05D5\u05D6\u05DE\u05E0\u05EA \u05DC\u05DB\u05DC \u05D4\u05D9\u05D5\u05EA\u05E8 \u05E4\u05E2\u05DD \u05D1\u05BE5 \u05D3\u05E7\u05D5\u05EA. \u05DE\u05E9\u05D9\u05DE\u05D4 \u05E9\u05E7\u05D1\u05D5\u05E2\u05D4 \u05DC\u05E8\u05D5\u05E5 \u05DC\u05E2\u05D9\u05EA\u05D9\u05DD \u05E7\u05E8\u05D5\u05D1\u05D5\u05EA \u05D9\u05D5\u05EA\u05E8, \u05D0\u05D5 \u05E9\u05D4\u05D6\u05DE\u05DF \u05E9\u05DC\u05D4 \u05DB\u05EA\u05D5\u05D1 \u05D1\u05E6\u05D5\u05E8\u05D4 \u05E9\u05D0\u05E0\u05D7\u05E0\u05D5 \u05DC\u05D0 \u05DE\u05D1\u05D9\u05E0\u05D9\u05DD, \u05DC\u05D0 \u05E8\u05E6\u05D4 \u05D1\u05DB\u05DC\u05DC. \u05E9\u05D0\u05E8 \u05D4\u05D0\u05EA\u05E8 \u05E2\u05D5\u05DC\u05D4 \u05DB\u05E8\u05D2\u05D9\u05DC.",
+      fix: ["\u05D4\u05E1\u05D5\u05DB\u05DF \u05DE\u05E9\u05E0\u05D4 \u05D0\u05EA \u05D4\u05D6\u05DE\u05DF \u05E9\u05DC \u05D4\u05DE\u05E9\u05D9\u05DE\u05D4, \u05DC\u05DE\u05E9\u05DC \u05DC\u05E4\u05E2\u05DD \u05D1\u05BE5 \u05D3\u05E7\u05D5\u05EA \u05D0\u05D5 \u05DC\u05E4\u05E2\u05DD \u05D1\u05D9\u05D5\u05DD.", "\u05DE\u05E8\u05D9\u05E6\u05D9\u05DD \u05E9\u05D5\u05D1 \u05D0\u05EA \u05D4\u05D1\u05D3\u05D9\u05E7\u05D4."],
+      prompt: 'DeployAI \u05DE\u05E8\u05D9\u05E5 \u05DB\u05DC \u05E9\u05D5\u05E8\u05D4 \u05D1\u05BEtriggers.crons \u05D1\u05D6\u05DE\u05E0\u05D9\u05DD \u05E9\u05DC\u05D4 \u05DC\u05E4\u05D9 UTC, \u05DC\u05DB\u05DC \u05D4\u05D9\u05D5\u05EA\u05E8 \u05E4\u05E2\u05DD \u05D1\u05BE5 \u05D3\u05E7\u05D5\u05EA. \u05E9\u05D5\u05E8\u05D4 \u05E9\u05E8\u05E6\u05D4 \u05DC\u05E2\u05D9\u05EA\u05D9\u05DD \u05E7\u05E8\u05D5\u05D1\u05D5\u05EA \u05D9\u05D5\u05EA\u05E8, \u05D0\u05D5 \u05E9\u05D0\u05D9\u05E0\u05D4 \u05E9\u05D5\u05E8\u05EA cron \u05D1\u05EA \u05D7\u05DE\u05D9\u05E9\u05D4 \u05D7\u05DC\u05E7\u05D9\u05DD (\u05D3\u05E7\u05D4, \u05E9\u05E2\u05D4, \u05D9\u05D5\u05DD \u05D1\u05D7\u05D5\u05D3\u05E9, \u05D7\u05D5\u05D3\u05E9, \u05D9\u05D5\u05DD \u05D1\u05E9\u05D1\u05D5\u05E2), \u05DC\u05D0 \u05E8\u05E6\u05D4 \u05D1\u05DB\u05DC\u05DC. \u05E9\u05E0\u05D4 \u05D0\u05D5\u05EA\u05D4, \u05DC\u05DE\u05E9\u05DC \u05DC\u05BE"*/5 * * * *" \u05DC\u05DB\u05DC 5 \u05D3\u05E7\u05D5\u05EA \u05D0\u05D5 \u05DC\u05BE"0 3 * * *" \u05DC\u05E9\u05E2\u05D4 03:00 UTC \u05D1\u05DB\u05DC \u05D9\u05D5\u05DD.'
+    },
+    en: {
+      what: "One of the site's scheduled tasks will not run: it is set to run more often than every 5 minutes, or we cannot read its time.",
+      why: "We run a scheduled task at most once every 5 minutes. A task set to run more often, or with a time written in a way we cannot read, does not run at all. The rest of the site goes live as usual.",
+      fix: ["Your agent changes the task's time, for example to every 5 minutes or once a day.", "Run the check again."]
     }
   },
   durable_objects: {
@@ -2075,10 +2133,10 @@ function getEnumValues(entries) {
 function joinValues(array2, separator = "|") {
   return array2.map((val) => stringifyPrimitive(val)).join(separator);
 }
-function jsonStringifyReplacer(_, value) {
-  if (typeof value === "bigint")
-    return value.toString();
-  return value;
+function jsonStringifyReplacer(_, value2) {
+  if (typeof value2 === "bigint")
+    return value2.toString();
+  return value2;
 }
 var Cached = class {
   constructor(getter) {
@@ -2115,17 +2173,17 @@ function floatSafeRemainder(val, step) {
 }
 var EVALUATING = /* @__PURE__ */ Symbol("evaluating");
 function defineLazy(object2, key2, getter) {
-  let value = void 0;
+  let value2 = void 0;
   Object.defineProperty(object2, key2, {
     get() {
-      if (value === EVALUATING) {
+      if (value2 === EVALUATING) {
         return void 0;
       }
-      if (value === void 0) {
-        value = EVALUATING;
-        value = getter();
+      if (value2 === void 0) {
+        value2 = EVALUATING;
+        value2 = getter();
       }
-      return value;
+      return value2;
     },
     set(v) {
       Object.defineProperty(object2, key2, {
@@ -2139,9 +2197,9 @@ function defineLazy(object2, key2, getter) {
 function objectClone(obj) {
   return Object.create(Object.getPrototypeOf(obj), Object.getOwnPropertyDescriptors(obj));
 }
-function assignProp(target, prop, value) {
+function assignProp(target, prop, value2) {
   Object.defineProperty(target, prop, {
-    value,
+    value: value2,
     writable: true,
     enumerable: true,
     configurable: true
@@ -2157,19 +2215,19 @@ function sourceShape(schema) {
 function deferProp(target, key2, getter) {
   Object.defineProperty(target, key2, {
     get() {
-      const value = getter();
-      assignProp(this, key2, value);
-      return value;
+      const value2 = getter();
+      assignProp(this, key2, value2);
+      return value2;
     },
     enumerable: true,
     configurable: true
   });
 }
-function putProp(target, key2, value) {
+function putProp(target, key2, value2) {
   if (key2 in target)
-    assignProp(target, key2, value);
+    assignProp(target, key2, value2);
   else
-    target[key2] = value;
+    target[key2] = value2;
 }
 function mirrorShape(target, source, keys, wrap) {
   const raw = sourceShape(source);
@@ -2179,8 +2237,8 @@ function mirrorShape(target, source, keys, wrap) {
       continue;
     if (desc.get) {
       deferProp(target, key2, () => {
-        const value = source._zod.def.shape[key2];
-        return wrap ? wrap(value, key2) : value;
+        const value2 = source._zod.def.shape[key2];
+        return wrap ? wrap(value2, key2) : value2;
       });
     } else
       putProp(target, key2, wrap ? wrap(desc.value, key2) : desc.value);
@@ -2379,9 +2437,9 @@ function createTransparentProxy(getter) {
       target ?? (target = getter());
       return Reflect.get(target, prop, receiver);
     },
-    set(_, prop, value, receiver) {
+    set(_, prop, value2, receiver) {
       target ?? (target = getter());
-      return Reflect.set(target, prop, value, receiver);
+      return Reflect.set(target, prop, value2, receiver);
     },
     has(_, prop) {
       target ?? (target = getter());
@@ -2405,12 +2463,12 @@ function createTransparentProxy(getter) {
     }
   });
 }
-function stringifyPrimitive(value) {
-  if (typeof value === "bigint")
-    return value.toString() + "n";
-  if (typeof value === "string")
-    return `"${value}"`;
-  return `${value}`;
+function stringifyPrimitive(value2) {
+  if (typeof value2 === "bigint")
+    return value2.toString() + "n";
+  if (typeof value2 === "string")
+    return `"${value2}"`;
+  return `${value2}`;
 }
 function optionalKeys(shape) {
   return Object.keys(shape).filter((k) => {
@@ -2519,15 +2577,15 @@ function partial(Class2, schema, mask, name = "partial") {
   }
   const selected = mask ? new Set(maskedKeys(schema, mask)) : void 0;
   const newShape = {};
-  mirrorShape(newShape, schema, Reflect.ownKeys(sourceShape(schema)), Class2 && ((value, key2) => selected && !selected.has(key2) ? value : new Class2({ type: "optional", innerType: value })));
+  mirrorShape(newShape, schema, Reflect.ownKeys(sourceShape(schema)), Class2 && ((value2, key2) => selected && !selected.has(key2) ? value2 : new Class2({ type: "optional", innerType: value2 })));
   return clone(schema, mergeDefs(schema._zod.def, { shape: newShape, checks: [] }));
 }
 function required(Class2, schema, mask) {
   const selected = mask ? new Set(maskedKeys(schema, mask)) : void 0;
   const newShape = {};
-  mirrorShape(newShape, schema, Reflect.ownKeys(sourceShape(schema)), (value, key2) => (
+  mirrorShape(newShape, schema, Reflect.ownKeys(sourceShape(schema)), (value2, key2) => (
     // overwrite with non-optional
-    selected && !selected.has(key2) ? value : new Class2({ type: "nonoptional", innerType: value })
+    selected && !selected.has(key2) ? value2 : new Class2({ type: "nonoptional", innerType: value2 })
   ));
   return clone(schema, mergeDefs(schema._zod.def, { shape: newShape }));
 }
@@ -2722,12 +2780,12 @@ function members(proto, table) {
       defineBound(proto, key2, desc.value);
   }
 }
-function own(inst, key2, value, enumerable = true) {
-  Object.defineProperty(inst, key2, { configurable: true, writable: true, enumerable, value });
-  return value;
+function own(inst, key2, value2, enumerable = true) {
+  Object.defineProperty(inst, key2, { configurable: true, writable: true, enumerable, value: value2 });
+  return value2;
 }
-function hide(inst, key2, value) {
-  return own(inst, key2, value, false);
+function hide(inst, key2, value2) {
+  return own(inst, key2, value2, false);
 }
 // @__NO_SIDE_EFFECTS__
 function derived(computes, table) {
@@ -2739,8 +2797,8 @@ function derived(computes, table) {
       get() {
         return own(this, key2, compute(this));
       },
-      set(value) {
-        own(this, key2, value);
+      set(value2) {
+        own(this, key2, value2);
       }
     });
   }
@@ -2752,8 +2810,8 @@ function defineBound(proto, key2, fn) {
     get() {
       return this == null ? fn : own(this, key2, fn.bind(this));
     },
-    set(value) {
-      own(this, key2, value);
+    set(value2) {
+      own(this, key2, value2);
     }
   });
 }
@@ -2784,21 +2842,21 @@ function defineLazyInternal(inst, key2, compute) {
       const outer = broke;
       broke = false;
       try {
-        const value = compute(this);
+        const value2 = compute(this);
         if (broke)
           delete this[key2];
         else
-          Object.defineProperty(this, key2, { configurable: true, writable: true, value });
+          Object.defineProperty(this, key2, { configurable: true, writable: true, value: value2 });
         broke = broke || outer;
-        return value;
+        return value2;
       } catch (err2) {
         delete this[key2];
         broke = broke || outer;
         throw err2;
       }
     },
-    set(value) {
-      Object.defineProperty(this, key2, { configurable: true, writable: true, value });
+    set(value2) {
+      Object.defineProperty(this, key2, { configurable: true, writable: true, value: value2 });
     }
   });
 }
@@ -2815,14 +2873,14 @@ function installLazyProp(inst, key2, make, enumerable) {
       Object.defineProperty(this, key2, desc);
       return desc.value;
     },
-    set(value) {
-      Object.defineProperty(this, key2, { configurable: true, writable: true, enumerable, value });
+    set(value2) {
+      Object.defineProperty(this, key2, { configurable: true, writable: true, enumerable, value: value2 });
     }
   });
 }
 var CONSTANT_CATCH = "~constantCatch";
-function constantCatch(value) {
-  const fn = () => value;
+function constantCatch(value2) {
+  const fn = () => value2;
   fn[CONSTANT_CATCH] = true;
   return fn;
 }
@@ -2955,8 +3013,8 @@ function _getMessage() {
   internals.message ?? (internals.message = JSON.stringify(internals.def, jsonStringifyReplacer, 2));
   return internals.message;
 }
-function _setMessage(value) {
-  this._zod.message = value;
+function _setMessage(value2) {
+  this._zod.message = value2;
 }
 var _messageDesc = {
   get: _getMessage,
@@ -2979,12 +3037,12 @@ var initializer = (inst, def) => {
       configurable: true,
       enumerable: false,
       get() {
-        const value = () => this.message;
-        Object.defineProperty(this, "toString", { value, configurable: true, writable: true });
-        return value;
+        const value2 = () => this.message;
+        Object.defineProperty(this, "toString", { value: value2, configurable: true, writable: true });
+        return value2;
       },
-      set(value) {
-        Object.defineProperty(this, "toString", { value, configurable: true, writable: true });
+      set(value2) {
+        Object.defineProperty(this, "toString", { value: value2, configurable: true, writable: true });
       }
     });
   }
@@ -3146,9 +3204,9 @@ function finalizeParams(callee, params) {
   return { callee: params?.callee ?? callee, Err: params?.Err };
 }
 var _parse = (_Err) => {
-  const fn = (schema, value, _ctx, _params) => {
+  const fn = (schema, value2, _ctx, _params) => {
     const ctx = _ctx ? { ..._ctx, async: false } : { async: false };
-    const result = schema._zod.run({ value, issues: [] }, ctx);
+    const result = schema._zod.run({ value: value2, issues: [] }, ctx);
     if (result instanceof Promise) {
       throw new $ZodAsyncError();
     }
@@ -3163,9 +3221,9 @@ var _parse = (_Err) => {
 };
 var parse = /* @__PURE__ */ _parse($ZodRealError);
 var _parseAsync = (_Err) => {
-  const fn = async (schema, value, _ctx, params) => {
+  const fn = async (schema, value2, _ctx, params) => {
     const ctx = _ctx ? { ..._ctx, async: true } : { async: true };
-    let result = schema._zod.run({ value, issues: [] }, ctx);
+    let result = schema._zod.run({ value: value2, issues: [] }, ctx);
     if (result instanceof Promise)
       result = await result;
     if (result.issues.length) {
@@ -3178,9 +3236,9 @@ var _parseAsync = (_Err) => {
   return fn;
 };
 var parseAsync = /* @__PURE__ */ _parseAsync($ZodRealError);
-var _safeParse = (_Err) => (schema, value, _ctx) => {
+var _safeParse = (_Err) => (schema, value2, _ctx) => {
   const ctx = _ctx ? { ..._ctx, async: false } : { async: false };
-  const result = schema._zod.run({ value, issues: [] }, ctx);
+  const result = schema._zod.run({ value: value2, issues: [] }, ctx);
   if (result instanceof Promise) {
     throw new $ZodAsyncError();
   }
@@ -3206,9 +3264,9 @@ function failure(Err, issues, ctx) {
     }
   };
 }
-var _safeParseAsync = (_Err) => async (schema, value, _ctx) => {
+var _safeParseAsync = (_Err) => async (schema, value2, _ctx) => {
   const ctx = _ctx ? { ..._ctx, async: true } : { async: true };
-  let result = schema._zod.run({ value, issues: [] }, ctx);
+  let result = schema._zod.run({ value: value2, issues: [] }, ctx);
   if (result instanceof Promise)
     result = await result;
   return result.issues.length ? failure(_Err, result.issues, ctx) : { success: true, data: result.value };
@@ -3216,88 +3274,88 @@ var _safeParseAsync = (_Err) => async (schema, value, _ctx) => {
 var safeParseAsync = /* @__PURE__ */ _safeParseAsync($ZodRealError);
 var COMPILE_INVALID = /* @__PURE__ */ Symbol.for("zod.compile.invalid");
 var COMPILE_FALLBACK = /* @__PURE__ */ Symbol.for("zod.compile.fallback");
-var validate = ((schema, value, _ctx) => {
+var validate = ((schema, value2, _ctx) => {
   const validator = schema._zod.bag.validator;
   if (validator !== void 0) {
-    if (validator(value) !== COMPILE_INVALID)
+    if (validator(value2) !== COMPILE_INVALID)
       return true;
     if (validator.definite === true && _ctx === void 0)
       return false;
   }
-  return validateFallback(schema, value, _ctx);
+  return validateFallback(schema, value2, _ctx);
 });
-function validateFallback(schema, value, _ctx) {
+function validateFallback(schema, value2, _ctx) {
   const ctx = _ctx ? { ..._ctx, async: false, abortEarly: true } : { async: false, abortEarly: true };
   const fallbackRun = schema._zod.bag.fallbackRun;
   let result;
   if (fallbackRun) {
     ctx[COMPILE_FALLBACK] = true;
-    result = fallbackRun({ value, issues: [] }, ctx);
+    result = fallbackRun({ value: value2, issues: [] }, ctx);
   } else {
-    result = schema._zod.run({ value, issues: [] }, ctx);
+    result = schema._zod.run({ value: value2, issues: [] }, ctx);
   }
   if (result instanceof Promise) {
     throw new $ZodAsyncError();
   }
   return result.issues.length === 0;
 }
-var validateAsync = async (schema, value, _ctx) => {
+var validateAsync = async (schema, value2, _ctx) => {
   const ctx = _ctx ? { ..._ctx, async: true, abortEarly: true } : { async: true, abortEarly: true };
-  let result = schema._zod.run({ value, issues: [] }, ctx);
+  let result = schema._zod.run({ value: value2, issues: [] }, ctx);
   if (result instanceof Promise)
     result = await result;
   return result.issues.length === 0;
 };
 var _encode = (_Err) => {
   const parse3 = _parse(_Err);
-  const fn = (schema, value, _ctx, _params) => {
+  const fn = (schema, value2, _ctx, _params) => {
     const ctx = _ctx ? { ..._ctx, direction: "backward" } : { direction: "backward" };
-    return parse3(schema, value, ctx, finalizeParams(fn, _params));
+    return parse3(schema, value2, ctx, finalizeParams(fn, _params));
   };
   return fn;
 };
 var encode = /* @__PURE__ */ _encode($ZodRealError);
 var _decode = (_Err) => {
   const parse3 = _parse(_Err);
-  const fn = (schema, value, _ctx, _params) => {
-    return parse3(schema, value, _ctx, finalizeParams(fn, _params));
+  const fn = (schema, value2, _ctx, _params) => {
+    return parse3(schema, value2, _ctx, finalizeParams(fn, _params));
   };
   return fn;
 };
 var decode = /* @__PURE__ */ _decode($ZodRealError);
 var _encodeAsync = (_Err) => {
   const parseAsync3 = _parseAsync(_Err);
-  const fn = async (schema, value, _ctx, _params) => {
+  const fn = async (schema, value2, _ctx, _params) => {
     const ctx = _ctx ? { ..._ctx, direction: "backward" } : { direction: "backward" };
-    return await parseAsync3(schema, value, ctx, finalizeParams(fn, _params));
+    return await parseAsync3(schema, value2, ctx, finalizeParams(fn, _params));
   };
   return fn;
 };
 var encodeAsync = /* @__PURE__ */ _encodeAsync($ZodRealError);
 var _decodeAsync = (_Err) => {
   const parseAsync3 = _parseAsync(_Err);
-  const fn = async (schema, value, _ctx, _params) => {
-    return await parseAsync3(schema, value, _ctx, finalizeParams(fn, _params));
+  const fn = async (schema, value2, _ctx, _params) => {
+    return await parseAsync3(schema, value2, _ctx, finalizeParams(fn, _params));
   };
   return fn;
 };
 var decodeAsync = /* @__PURE__ */ _decodeAsync($ZodRealError);
-var _safeEncode = (_Err) => (schema, value, _ctx) => {
+var _safeEncode = (_Err) => (schema, value2, _ctx) => {
   const ctx = _ctx ? { ..._ctx, direction: "backward" } : { direction: "backward" };
-  return _safeParse(_Err)(schema, value, ctx);
+  return _safeParse(_Err)(schema, value2, ctx);
 };
 var safeEncode = /* @__PURE__ */ _safeEncode($ZodRealError);
-var _safeDecode = (_Err) => (schema, value, _ctx) => {
-  return _safeParse(_Err)(schema, value, _ctx);
+var _safeDecode = (_Err) => (schema, value2, _ctx) => {
+  return _safeParse(_Err)(schema, value2, _ctx);
 };
 var safeDecode = /* @__PURE__ */ _safeDecode($ZodRealError);
-var _safeEncodeAsync = (_Err) => async (schema, value, _ctx) => {
+var _safeEncodeAsync = (_Err) => async (schema, value2, _ctx) => {
   const ctx = _ctx ? { ..._ctx, direction: "backward" } : { direction: "backward" };
-  return _safeParseAsync(_Err)(schema, value, ctx);
+  return _safeParseAsync(_Err)(schema, value2, ctx);
 };
 var safeEncodeAsync = /* @__PURE__ */ _safeEncodeAsync($ZodRealError);
-var _safeDecodeAsync = (_Err) => async (schema, value, _ctx) => {
-  return _safeParseAsync(_Err)(schema, value, _ctx);
+var _safeDecodeAsync = (_Err) => async (schema, value2, _ctx) => {
+  return _safeParseAsync(_Err)(schema, value2, _ctx);
 };
 var safeDecodeAsync = /* @__PURE__ */ _safeDecodeAsync($ZodRealError);
 
@@ -4103,26 +4161,26 @@ var $ZodType = /* @__PURE__ */ $constructor("$ZodType", (inst, def) => {
   get "~standard"() {
     return hide(this, "~standard", standardProps(this));
   },
-  set "~standard"(value) {
-    own(this, "~standard", value);
+  set "~standard"(value2) {
+    own(this, "~standard", value2);
   }
 });
 var toStandardResult = (r, ctx) => r.issues.length ? { issues: r.issues.map((iss) => finalizeIssue(iss, ctx, config())) } : { value: r.value };
-async function validateAsync2(inst, value) {
+async function validateAsync2(inst, value2) {
   const ctx = { async: true };
-  return toStandardResult(await inst._zod.run({ value, issues: [] }, ctx), ctx);
+  return toStandardResult(await inst._zod.run({ value: value2, issues: [] }, ctx), ctx);
 }
 function standardProps(inst) {
   return {
-    validate: (value) => {
+    validate: (value2) => {
       const ctx = { async: false };
       try {
-        const r = inst._zod.run({ value, issues: [] }, ctx);
+        const r = inst._zod.run({ value: value2, issues: [] }, ctx);
         if (!(r instanceof Promise))
           return toStandardResult(r, ctx);
       } catch (_) {
       }
-      return validateAsync2(inst, value);
+      return validateAsync2(inst, value2);
     },
     vendor: "zod",
     version: 1
@@ -4214,8 +4272,8 @@ function parseURLObject(trimmed, def) {
   }
 }
 var asciiTabOrNewline = /[\t\n\r]/g;
-function stripTabAndNewline(value) {
-  return value.replace(asciiTabOrNewline, "");
+function stripTabAndNewline(value2) {
+  return value2.replace(asciiTabOrNewline, "");
 }
 function urlHostnameOk(url2, hostname4) {
   hostname4.lastIndex = 0;
@@ -4342,10 +4400,10 @@ var $ZodIPv4 = /* @__PURE__ */ $constructor("$ZodIPv4", (inst, def) => {
   $ZodStringFormat.init(inst, def);
 });
 var ipv6Alphabet = /^[0-9a-fA-F:.]+$/;
-function isValidIPv6(value) {
-  if (!ipv6Alphabet.test(value))
+function isValidIPv6(value2) {
+  if (!ipv6Alphabet.test(value2))
     return false;
-  return canParseURL(`http://[${value}]`);
+  return canParseURL(`http://[${value2}]`);
 }
 var $ZodIPv6 = /* @__PURE__ */ $constructor("$ZodIPv6", (inst, def) => {
   def.pattern ?? (def.pattern = ipv6);
@@ -4370,8 +4428,8 @@ var $ZodCIDRv4 = /* @__PURE__ */ $constructor("$ZodCIDRv4", (inst, def) => {
   def.pattern ?? (def.pattern = cidrv4);
   $ZodStringFormat.init(inst, def);
 });
-function isValidCIDRv6(value) {
-  const parts2 = value.split("/");
+function isValidCIDRv6(value2) {
+  const parts2 = value2.split("/");
   if (parts2.length !== 2)
     return false;
   const [address, prefix] = parts2;
@@ -4462,9 +4520,9 @@ function isLuhnAlgo(digits) {
   let bit = 1;
   let sum = 0;
   while (length) {
-    const value = digits.charCodeAt(--length) - 48;
+    const value2 = digits.charCodeAt(--length) - 48;
     bit ^= 1;
-    sum += bit ? [0, 2, 4, 6, 8, 1, 3, 5, 7, 9][value] : value;
+    sum += bit ? [0, 2, 4, 6, 8, 1, 3, 5, 7, 9][value2] : value2;
   }
   return sum % 10 === 0;
 }
@@ -4940,14 +4998,14 @@ var $ZodObject = /* @__PURE__ */ $constructor("$ZodObject", (inst, def) => {
     const shape = zod.def.shape;
     const propValues = {};
     for (const key2 in shape) {
-      const field = shape[key2]._zod;
-      if (field.values) {
+      const field2 = shape[key2]._zod;
+      if (field2.values) {
         if (!Object.prototype.hasOwnProperty.call(propValues, key2)) {
           assignProp(propValues, key2, /* @__PURE__ */ new Set());
         }
-        for (const v of field.values)
+        for (const v of field2.values)
           propValues[key2].add(v);
-        if (field.optin !== void 0)
+        if (field2.optin !== void 0)
           propValues[key2].add(void 0);
       }
     }
@@ -4955,11 +5013,11 @@ var $ZodObject = /* @__PURE__ */ $constructor("$ZodObject", (inst, def) => {
   });
   const isObject2 = isObject;
   const catchall = def.catchall;
-  let value;
+  let value2;
   const memo2 = globalConfig.memoizer;
   memo2?.attach(inst);
   inst._zod.parse = (payload, ctx) => {
-    value ?? (value = _normalized.value);
+    value2 ?? (value2 = _normalized.value);
     const input2 = payload.value;
     if (!isObject2(input2)) {
       payload.issues.push({
@@ -4972,10 +5030,10 @@ var $ZodObject = /* @__PURE__ */ $constructor("$ZodObject", (inst, def) => {
     }
     payload.value = memo2 ? memo2.alloc(inst, payload, {}, ctx) : {};
     const proms = [];
-    const shape = value.shape;
+    const shape = value2.shape;
     const abortEarly = ctx?.abortEarly;
     let seen = payload.issues.length;
-    for (const key2 of value.allKeys) {
+    for (const key2 of value2.allKeys) {
       if (abortEarly && payload.issues.length !== seen) {
         if (aborted(payload, seen))
           break;
@@ -5102,9 +5160,9 @@ var $ZodObjectJIT = /* @__PURE__ */ $constructor("$ZodObjectJIT", (inst, def) =>
   const allowsEval2 = allowsEval;
   const fastEnabled = jit && allowsEval2.value;
   const catchall = def.catchall;
-  let value;
+  let value2;
   inst._zod.parse = (payload, ctx) => {
-    value ?? (value = _normalized.value);
+    value2 ?? (value2 = _normalized.value);
     const input2 = payload.value;
     if (!isObject2(input2)) {
       payload.issues.push({
@@ -5121,7 +5179,7 @@ var $ZodObjectJIT = /* @__PURE__ */ $constructor("$ZodObjectJIT", (inst, def) =>
       payload = fastpass(payload, ctx);
       if (!catchall)
         return payload;
-      return handleCatchall([], input2, payload, ctx, value, inst, ctx?.abortEarly === true);
+      return handleCatchall([], input2, payload, ctx, value2, inst, ctx?.abortEarly === true);
     }
     return superParse(payload, ctx);
   };
@@ -5249,16 +5307,16 @@ var $ZodXor = /* @__PURE__ */ $constructor("$ZodXor", (inst, def) => {
     });
   };
 });
-function getDiscriminatedOption(union2, value) {
+function getDiscriminatedOption(union2, value2) {
   const internals = union2._zod;
   let map2 = internals.bag.optionsMap;
   if (!map2) {
     map2 = discriminatorMap(internals.def);
     internals.bag.optionsMap = map2;
   }
-  const option = map2.get(value);
+  const option = map2.get(value2);
   if (option === null)
-    throw new Error(`Ambiguous discriminator value "${String(value)}"`);
+    throw new Error(`Ambiguous discriminator value "${String(value2)}"`);
   return option;
 }
 function discriminatorMap(def) {
@@ -5267,13 +5325,13 @@ function discriminatorMap(def) {
     const values = option._zod.propValues?.[def.discriminator];
     if (!values || values.size === 0)
       throw new Error(`Invalid discriminated union option at index "${def.options.indexOf(option)}"`);
-    for (const value of values) {
-      if (map2.has(value)) {
-        if (value !== void 0)
-          throw new Error(`Duplicate discriminator value "${String(value)}"`);
-        map2.set(value, null);
+    for (const value2 of values) {
+      if (map2.has(value2)) {
+        if (value2 !== void 0)
+          throw new Error(`Duplicate discriminator value "${String(value2)}"`);
+        map2.set(value2, null);
       } else {
-        map2.set(value, option);
+        map2.set(value2, option);
       }
     }
   }
@@ -5323,9 +5381,9 @@ var $ZodDiscriminatedUnion = /* @__PURE__ */ $constructor("$ZodDiscriminatedUnio
       });
       return payload;
     }
-    const value = input2?.[def.discriminator];
-    const opt = disc.value.get(value);
-    if (opt && (value !== void 0 || ctx.direction !== "backward")) {
+    const value2 = input2?.[def.discriminator];
+    const opt = disc.value.get(value2);
+    if (opt && (value2 !== void 0 || ctx.direction !== "backward")) {
       return opt._zod.run(payload, ctx);
     }
     if (def.unionFallback || ctx.direction === "backward") {
@@ -5336,7 +5394,7 @@ var $ZodDiscriminatedUnion = /* @__PURE__ */ $constructor("$ZodDiscriminatedUnio
       errors: [],
       note: "No matching discriminator",
       discriminator: def.discriminator,
-      options: Array.from(disc.value.keys()).filter((value2) => disc.value.get(value2) !== null),
+      options: Array.from(disc.value.keys()).filter((value3) => disc.value.get(value3) !== null),
       input: input2,
       path: [def.discriminator],
       inst
@@ -5755,14 +5813,14 @@ var $ZodMap = /* @__PURE__ */ $constructor("$ZodMap", (inst, def) => {
     payload.value = memo2 ? memo2.alloc(inst, payload, /* @__PURE__ */ new Map(), ctx) : /* @__PURE__ */ new Map();
     const abortEarly = ctx?.abortEarly;
     let seen = payload.issues.length;
-    for (const [key2, value] of input2) {
+    for (const [key2, value2] of input2) {
       if (abortEarly && payload.issues.length !== seen) {
         if (aborted(payload, seen))
           break;
         seen = payload.issues.length;
       }
       const keyResult = def.keyType._zod.run({ value: key2, issues: [] }, ctx);
-      const valueResult = def.valueType._zod.run({ value, issues: [] }, ctx);
+      const valueResult = def.valueType._zod.run({ value: value2, issues: [] }, ctx);
       if (keyResult instanceof Promise || valueResult instanceof Promise) {
         proms.push(Promise.all([keyResult, valueResult]).then(([keyResult2, valueResult2]) => {
           handleMapResult(keyResult2, valueResult2, payload, key2, input2, inst, ctx);
@@ -6175,23 +6233,23 @@ function handleCodecAResult(result, def, ctx) {
   if (direction === "forward") {
     const transformed = def.transform(result.value, result);
     if (transformed instanceof Promise) {
-      return transformed.then((value) => handleCodecTxResult(result, value, def.out, ctx));
+      return transformed.then((value2) => handleCodecTxResult(result, value2, def.out, ctx));
     }
     return handleCodecTxResult(result, transformed, def.out, ctx);
   } else {
     const transformed = def.reverseTransform(result.value, result);
     if (transformed instanceof Promise) {
-      return transformed.then((value) => handleCodecTxResult(result, value, def.in, ctx));
+      return transformed.then((value2) => handleCodecTxResult(result, value2, def.in, ctx));
     }
     return handleCodecTxResult(result, transformed, def.in, ctx);
   }
 }
-function handleCodecTxResult(left, value, nextSchema, ctx) {
+function handleCodecTxResult(left, value2, nextSchema, ctx) {
   if (left.issues.length) {
     left.aborted = true;
     return left;
   }
-  return nextSchema._zod.run({ value, issues: left.issues }, ctx);
+  return nextSchema._zod.run({ value: value2, issues: left.issues }, ctx);
 }
 var $ZodPreprocess = /* @__PURE__ */ $constructor("$ZodPreprocess", (inst, def) => {
   $ZodPipe.init(inst, def);
@@ -6448,8 +6506,8 @@ var $ZodCyclicError = class extends Error {
 };
 var STATE = "~memo";
 var NO_ISSUES = [];
-function isRef(value) {
-  return value !== null && typeof value === "object";
+function isRef(value2) {
+  return value2 !== null && typeof value2 === "object";
 }
 function cloneIssues(issues) {
   return issues.map((iss) => iss.path ? { ...iss, path: iss.path.slice() } : { ...iss });
@@ -6576,13 +6634,13 @@ function isRecursive(inst, stack, resolve10) {
         const desc = Object.getOwnPropertyDescriptor(def, key2);
         if (!desc || desc.get)
           continue;
-        const value = desc.value;
-        if (!value || typeof value !== "object")
+        const value2 = desc.value;
+        if (!value2 || typeof value2 !== "object")
           continue;
-        if (value._zod)
-          check2(value);
-        else if (Array.isArray(value))
-          for (const el of value)
+        if (value2._zod)
+          check2(value2);
+        else if (Array.isArray(value2))
+          for (const el of value2)
             check2(el);
       }
     }
@@ -6711,9 +6769,9 @@ var memo = {
 function memoizer() {
   return memo;
 }
-function isBackEdge(ctx, value) {
+function isBackEdge(ctx, value2) {
   const backEdges = ctx[STATE]?.backEdges;
-  return backEdges !== void 0 && isRef(value) && backEdges.has(value);
+  return backEdges !== void 0 && isRef(value2) && backEdges.has(value2);
 }
 
 // ../../node_modules/.pnpm/zod@4.6.6/node_modules/zod/v4/locales/index.js
@@ -14463,13 +14521,13 @@ ${code}
   fn.definite = ctx.definite;
   return fn;
 }
-function addConstant(ctx, value) {
+function addConstant(ctx, value2) {
   for (const [name2, v] of ctx.constants) {
-    if (v === value)
+    if (v === value2)
       return name2;
   }
   const name = `c${ctx.constantCounter++}`;
-  ctx.constants.set(name, value);
+  ctx.constants.set(name, value2);
   return name;
 }
 function addUserConstant(ctx, fn) {
@@ -14479,8 +14537,8 @@ function addUserConstant(ctx, fn) {
 function newVar(ctx) {
   return `v${ctx.varCounter++}`;
 }
-function runtimeRun(schema, value) {
-  const result = schema._zod.run({ value, issues: [] }, {});
+function runtimeRun(schema, value2) {
+  const result = schema._zod.run({ value: value2, issues: [] }, {});
   if (result && typeof result.then === "function")
     return INVALID;
   const r = result;
@@ -14612,27 +14670,27 @@ function codePointLengthVar(doc, ctx, accessor, inDoubt) {
   doc.write(`const ${v} = typeof ${accessor} === "string" && ${inDoubt} ? ${cpLen}(${accessor}) : ${accessor}.length;`);
   return v;
 }
-function numericOperand(value, label) {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
-    throw new ZodCompileUnsupportedError(`${label} bound of type ${typeof value}`);
+function numericOperand(value2, label) {
+  if (typeof value2 !== "number" || !Number.isFinite(value2)) {
+    throw new ZodCompileUnsupportedError(`${label} bound of type ${typeof value2}`);
   }
-  return `${value}`;
+  return `${value2}`;
 }
-function comparisonOperand(ctx, value) {
-  if (typeof value === "bigint")
-    return `${value}n`;
-  if (typeof value === "number") {
-    if (Number.isNaN(value))
+function comparisonOperand(ctx, value2) {
+  if (typeof value2 === "bigint")
+    return `${value2}n`;
+  if (typeof value2 === "number") {
+    if (Number.isNaN(value2))
       throw new ZodCompileUnsupportedError("comparison check with NaN bound");
-    return `${value}`;
+    return `${value2}`;
   }
-  if (value instanceof Date) {
-    if (Number.isNaN(value.getTime())) {
+  if (value2 instanceof Date) {
+    if (Number.isNaN(value2.getTime())) {
       throw new ZodCompileUnsupportedError("comparison check with Invalid Date bound");
     }
-    return addConstant(ctx, value);
+    return addConstant(ctx, value2);
   }
-  throw new ZodCompileUnsupportedError(`comparison check bound of type ${typeof value}`);
+  throw new ZodCompileUnsupportedError(`comparison check bound of type ${typeof value2}`);
 }
 function generateGreaterThanCheck(doc, ctx, def, accessor) {
   const op = def.inclusive ? "<" : "<=";
@@ -14753,8 +14811,8 @@ function generateCustomRefineCheck(doc, ctx, check2, accessor) {
       throw new ZodCompileAsyncError("z.compile: async .superRefine() / check functions are not supported");
     }
     const checkFn = check2._zod.check;
-    const helperFn = (value) => {
-      const fakePayload = { value, issues: [], addIssue: pushIssue };
+    const helperFn = (value2) => {
+      const fakePayload = { value: value2, issues: [], addIssue: pushIssue };
       const result = checkFn(fakePayload);
       if (result instanceof Promise)
         throwAsync();
@@ -15405,24 +15463,24 @@ function generateLiteralCheck(doc, ctx, schema, accessor) {
     doc.write(`if (!${literalSet}.has(${accessor})) return INVALID;`);
     return accessor;
   }
-  const value = values[0];
-  if (typeof value === "number" && Number.isNaN(value)) {
+  const value2 = values[0];
+  if (typeof value2 === "number" && Number.isNaN(value2)) {
     const literalSet = addConstant(ctx, new Set(values));
     doc.write(`if (!${literalSet}.has(${accessor})) return INVALID;`);
     return accessor;
   }
-  if (typeof value === "string") {
-    doc.write(`if (${accessor} !== ${esc(value)}) return INVALID;`);
-  } else if (typeof value === "number" || typeof value === "boolean") {
-    doc.write(`if (${accessor} !== ${value}) return INVALID;`);
-  } else if (value === null) {
+  if (typeof value2 === "string") {
+    doc.write(`if (${accessor} !== ${esc(value2)}) return INVALID;`);
+  } else if (typeof value2 === "number" || typeof value2 === "boolean") {
+    doc.write(`if (${accessor} !== ${value2}) return INVALID;`);
+  } else if (value2 === null) {
     doc.write(`if (${accessor} !== null) return INVALID;`);
-  } else if (value === void 0) {
+  } else if (value2 === void 0) {
     doc.write(`if (${accessor} !== undefined) return INVALID;`);
-  } else if (typeof value === "bigint") {
-    doc.write(`if (${accessor} !== ${value}n) return INVALID;`);
+  } else if (typeof value2 === "bigint") {
+    doc.write(`if (${accessor} !== ${value2}n) return INVALID;`);
   } else {
-    throw new ZodCompileUnsupportedError(`literal type ${typeof value}`);
+    throw new ZodCompileUnsupportedError(`literal type ${typeof value2}`);
   }
   return accessor;
 }
@@ -15622,13 +15680,13 @@ function generateDiscriminatedUnionCheck(doc, ctx, def, accessor) {
     if (!values || values.size === 0) {
       throw new ZodCompileUnsupportedError("discriminated union option without static discriminator values");
     }
-    for (const value of values) {
-      if (claimed.has(value)) {
-        throw new ZodCompileUnsupportedError(`duplicate discriminator value ${String(value)}`);
+    for (const value2 of values) {
+      if (claimed.has(value2)) {
+        throw new ZodCompileUnsupportedError(`duplicate discriminator value ${String(value2)}`);
       }
-      claimed.add(value);
+      claimed.add(value2);
     }
-    const conditions = Array.from(values, (value) => literalEquality(ctx, discVar, value));
+    const conditions = Array.from(values, (value2) => literalEquality(ctx, discVar, value2));
     const prefix = firstBranch ? "if" : "else if";
     doc.write(`${prefix} (${conditions.join(" || ")}) {`);
     doc.indented((d) => {
@@ -15641,27 +15699,27 @@ function generateDiscriminatedUnionCheck(doc, ctx, def, accessor) {
   doc.write(`else { return INVALID; }`);
   return outputVar;
 }
-function literalEquality(ctx, accessor, value) {
-  if (typeof value === "string")
-    return `${accessor} === ${esc(value)}`;
-  if (typeof value === "number") {
-    if (Number.isNaN(value))
+function literalEquality(ctx, accessor, value2) {
+  if (typeof value2 === "string")
+    return `${accessor} === ${esc(value2)}`;
+  if (typeof value2 === "number") {
+    if (Number.isNaN(value2))
       return `Number.isNaN(${accessor})`;
-    return `${accessor} === ${value}`;
+    return `${accessor} === ${value2}`;
   }
-  if (typeof value === "boolean")
-    return `${accessor} === ${value}`;
-  if (value === null)
+  if (typeof value2 === "boolean")
+    return `${accessor} === ${value2}`;
+  if (value2 === null)
     return `${accessor} === null`;
-  if (value === void 0)
+  if (value2 === void 0)
     return `${accessor} === undefined`;
-  if (typeof value === "bigint")
-    return `${accessor} === ${value}n`;
-  if (typeof value === "symbol") {
-    const symbolConst = addConstant(ctx, value);
+  if (typeof value2 === "bigint")
+    return `${accessor} === ${value2}n`;
+  if (typeof value2 === "symbol") {
+    const symbolConst = addConstant(ctx, value2);
     return `${accessor} === ${symbolConst}`;
   }
-  throw new ZodCompileUnsupportedError(`literal discriminator value ${String(value)}`);
+  throw new ZodCompileUnsupportedError(`literal discriminator value ${String(value2)}`);
 }
 function generateIntersectionCheck(doc, ctx, schema, accessor) {
   const def = schema._zod.def;
@@ -15852,9 +15910,9 @@ function generatePipeCheck(doc, ctx, schema, accessor) {
       throw new ZodCompileAsyncError("z.compile: async transforms in pipes are not supported");
     }
     const transformFn = def.transform;
-    const helperFn = (value) => {
-      const fakePayload = { value, issues: [], addIssue: pushIssue };
-      const result = transformFn(value, fakePayload);
+    const helperFn = (value2) => {
+      const fakePayload = { value: value2, issues: [], addIssue: pushIssue };
+      const result = transformFn(value2, fakePayload);
       if (result instanceof Promise)
         return INVALID;
       return fakePayload.issues.length === 0 ? result : INVALID;
@@ -15888,8 +15946,8 @@ function generateCustomCheck(doc, ctx, schema, accessor) {
   }
   return accessor;
 }
-function runtimeCatch(innerSchema, catchValue, value) {
-  const result = innerSchema._zod.run({ value, issues: [] }, {});
+function runtimeCatch(innerSchema, catchValue, value2) {
+  const result = innerSchema._zod.run({ value: value2, issues: [] }, {});
   if (result && typeof result.then === "function")
     return INVALID;
   const r = result;
@@ -15927,9 +15985,9 @@ function generateTransformCheck(doc, ctx, schema, accessor) {
       throw new ZodCompileAsyncError("z.compile: async transforms are not supported");
     }
     const transformFn = def.transform;
-    const helperFn = (value) => {
-      const fakePayload = { value, issues: [], addIssue: pushIssue };
-      const result = transformFn(value, fakePayload);
+    const helperFn = (value2) => {
+      const fakePayload = { value: value2, issues: [], addIssue: pushIssue };
+      const result = transformFn(value2, fakePayload);
       if (result instanceof Promise)
         return INVALID;
       return fakePayload.issues.length === 0 ? result : INVALID;
@@ -16435,38 +16493,38 @@ function _nan(Class2, params) {
   });
 }
 // @__NO_SIDE_EFFECTS__
-function _lt(value, params) {
+function _lt(value2, params) {
   return new $ZodCheckLessThan({
     check: "less_than",
     ...normalizeParams(params),
-    value,
+    value: value2,
     inclusive: false
   });
 }
 // @__NO_SIDE_EFFECTS__
-function _lte(value, params) {
+function _lte(value2, params) {
   return new $ZodCheckLessThan({
     check: "less_than",
     ...normalizeParams(params),
-    value,
+    value: value2,
     inclusive: true
   });
 }
 // @__NO_SIDE_EFFECTS__
-function _gt(value, params) {
+function _gt(value2, params) {
   return new $ZodCheckGreaterThan({
     check: "greater_than",
     ...normalizeParams(params),
-    value,
+    value: value2,
     inclusive: false
   });
 }
 // @__NO_SIDE_EFFECTS__
-function _gte(value, params) {
+function _gte(value2, params) {
   return new $ZodCheckGreaterThan({
     check: "greater_than",
     ...normalizeParams(params),
-    value,
+    value: value2,
     inclusive: true
   });
 }
@@ -16487,11 +16545,11 @@ function _nonnegative(params) {
   return /* @__PURE__ */ _gte(0, params);
 }
 // @__NO_SIDE_EFFECTS__
-function _multipleOf(value, params) {
+function _multipleOf(value2, params) {
   return new $ZodCheckMultipleOf({
     check: "multiple_of",
     ...normalizeParams(params),
-    value
+    value: value2
   });
 }
 // @__NO_SIDE_EFFECTS__
@@ -16747,10 +16805,10 @@ function _nativeEnum(Class2, entries, params) {
   });
 }
 // @__NO_SIDE_EFFECTS__
-function _literal(Class2, value, params) {
+function _literal(Class2, value2, params) {
   return new Class2({
     type: "literal",
-    values: Array.isArray(value) ? value : [value],
+    values: Array.isArray(value2) ? value2 : [value2],
     ...normalizeParams(params)
   });
 }
@@ -17533,22 +17591,22 @@ var createStandardJSONSchemaMethod = (schema, io, processors = {}) => (params) =
 };
 
 // ../../node_modules/.pnpm/zod@4.6.6/node_modules/zod/v4/core/json-schema-processors.js
-var narrowMin = (agg, key2, value) => {
-  if (agg[key2] === void 0 || value > agg[key2])
-    agg[key2] = value;
+var narrowMin = (agg, key2, value2) => {
+  if (agg[key2] === void 0 || value2 > agg[key2])
+    agg[key2] = value2;
 };
-var narrowMax = (agg, key2, value) => {
-  if (agg[key2] === void 0 || value < agg[key2])
-    agg[key2] = value;
+var narrowMax = (agg, key2, value2) => {
+  if (agg[key2] === void 0 || value2 < agg[key2])
+    agg[key2] = value2;
 };
-var narrowBoth = (agg, value) => {
-  narrowMin(agg, "minimum", value);
-  narrowMax(agg, "maximum", value);
+var narrowBoth = (agg, value2) => {
+  narrowMin(agg, "minimum", value2);
+  narrowMax(agg, "maximum", value2);
 };
-var addDivisor = (agg, value) => {
+var addDivisor = (agg, value2) => {
   agg.multipleOf ?? (agg.multipleOf = []);
-  if (!agg.multipleOf.includes(value))
-    agg.multipleOf.push(value);
+  if (!agg.multipleOf.includes(value2))
+    agg.multipleOf.push(value2);
 };
 var addPattern = (agg, pattern) => {
   agg.patterns ?? (agg.patterns = /* @__PURE__ */ new Set());
@@ -17885,8 +17943,8 @@ var objectProcessor = (schema, ctx, _json, params) => {
   }
   const requiredKeys = [];
   for (const key2 of Object.keys(shape)) {
-    const field = def.shape[key2];
-    if (ctx.io === "input" ? inputOptin(field) === void 0 : field._zod.optout === void 0) {
+    const field2 = def.shape[key2];
+    if (ctx.io === "input" ? inputOptin(field2) === void 0 : field2._zod.optout === void 0) {
       requiredKeys.push(key2);
     }
   }
@@ -18124,9 +18182,9 @@ var nonoptionalProcessor = (schema, ctx, _json, params) => {
   seen.ref = def.innerType;
 };
 var UNREPRESENTABLE_DEFAULT = /* @__PURE__ */ Symbol();
-function serializeDefaultValue(value, schema, ctx, json2, params) {
+function serializeDefaultValue(value2, schema, ctx, json2, params) {
   let unrepresentable = false;
-  const serialized = JSON.stringify(value, (_, val) => {
+  const serialized = JSON.stringify(value2, (_, val) => {
     if (typeof val !== "bigint")
       return val;
     unrepresentable = true;
@@ -18142,9 +18200,9 @@ var defaultProcessor = (schema, ctx, json2, params) => {
   processSchema(def.innerType, ctx, params);
   const seen = ctx.seen.get(schema);
   seen.ref = def.innerType;
-  const value = serializeDefaultValue(def.defaultValue, schema, ctx, json2, params);
-  if (value !== UNREPRESENTABLE_DEFAULT)
-    json2.default = value;
+  const value2 = serializeDefaultValue(def.defaultValue, schema, ctx, json2, params);
+  if (value2 !== UNREPRESENTABLE_DEFAULT)
+    json2.default = value2;
 };
 var prefaultProcessor = (schema, ctx, json2, params) => {
   const def = schema._zod.def;
@@ -18153,9 +18211,9 @@ var prefaultProcessor = (schema, ctx, json2, params) => {
   seen.ref = def.innerType;
   if (ctx.io !== "input")
     return;
-  const value = serializeDefaultValue(def.defaultValue, schema, ctx, json2, params);
-  if (value !== UNREPRESENTABLE_DEFAULT)
-    json2._prefault = value;
+  const value2 = serializeDefaultValue(def.defaultValue, schema, ctx, json2, params);
+  if (value2 !== UNREPRESENTABLE_DEFAULT)
+    json2._prefault = value2;
 };
 var catchProcessor = (schema, ctx, json2, params) => {
   const def = schema._zod.def;
@@ -18307,8 +18365,8 @@ var JSONSchemaGenerator = class {
   get counter() {
     return this.ctx.counter;
   }
-  set counter(value) {
-    this.ctx.counter = value;
+  set counter(value2) {
+    this.ctx.counter = value2;
   }
   /** @deprecated Access via ctx instead */
   get seen() {
@@ -18584,12 +18642,12 @@ function _lazyMethod(proto, key2, make) {
     configurable: true,
     enumerable: false,
     get() {
-      const value = make(this);
-      Object.defineProperty(this, key2, { value, configurable: true, writable: true });
-      return value;
+      const value2 = make(this);
+      Object.defineProperty(this, key2, { value: value2, configurable: true, writable: true });
+      return value2;
     },
-    set(value) {
-      Object.defineProperty(this, key2, { value, configurable: true, writable: true });
+    set(value2) {
+      Object.defineProperty(this, key2, { value: value2, configurable: true, writable: true });
     }
   });
 }
@@ -18757,8 +18815,8 @@ var ZodType = /* @__PURE__ */ $constructor("ZodType", (inst, def) => {
       }
     });
   },
-  set "~standard"(value) {
-    util_exports.own(this, "~standard", value);
+  set "~standard"(value2) {
+    util_exports.own(this, "~standard", value2);
   },
   parse: function _parse2(data, params) {
     return parse2(this, data, params, { callee: _parse2 });
@@ -18776,8 +18834,8 @@ var ZodType = /* @__PURE__ */ $constructor("ZodType", (inst, def) => {
   get spa() {
     return this?.safeParseAsync;
   },
-  set spa(value) {
-    util_exports.own(this, "spa", value);
+  set spa(value2) {
+    util_exports.own(this, "spa", value2);
   },
   validate(data, params) {
     return validate(this, data, params);
@@ -19203,23 +19261,23 @@ var ZodNumber = /* @__PURE__ */ $constructor(
     },
     format: (inst) => aggregateChecks(inst).format ?? null
   }, {
-    gt(value, params) {
-      return this.check(_gt(value, params));
+    gt(value2, params) {
+      return this.check(_gt(value2, params));
     },
-    gte(value, params) {
-      return this.check(_gte(value, params));
+    gte(value2, params) {
+      return this.check(_gte(value2, params));
     },
-    min(value, params) {
-      return this.check(_gte(value, params));
+    min(value2, params) {
+      return this.check(_gte(value2, params));
     },
-    lt(value, params) {
-      return this.check(_lt(value, params));
+    lt(value2, params) {
+      return this.check(_lt(value2, params));
     },
-    lte(value, params) {
-      return this.check(_lte(value, params));
+    lte(value2, params) {
+      return this.check(_lte(value2, params));
     },
-    max(value, params) {
-      return this.check(_lte(value, params));
+    max(value2, params) {
+      return this.check(_lte(value2, params));
     },
     int(params) {
       return this.check(int(params));
@@ -19239,11 +19297,11 @@ var ZodNumber = /* @__PURE__ */ $constructor(
     nonpositive(params) {
       return this.check(_lte(0, params));
     },
-    multipleOf(value, params) {
-      return this.check(_multipleOf(value, params));
+    multipleOf(value2, params) {
+      return this.check(_multipleOf(value2, params));
     },
-    step(value, params) {
-      return this.check(_multipleOf(value, params));
+    step(value2, params) {
+      return this.check(_multipleOf(value2, params));
     },
     finite() {
       return this;
@@ -19292,23 +19350,23 @@ var ZodBigInt = /* @__PURE__ */ $constructor(
     maxValue: (inst) => aggregateChecks(inst).maximum ?? null,
     format: (inst) => aggregateChecks(inst).format ?? null
   }, {
-    gte(value, params) {
-      return this.check(_gte(value, params));
+    gte(value2, params) {
+      return this.check(_gte(value2, params));
     },
-    min(value, params) {
-      return this.check(_gte(value, params));
+    min(value2, params) {
+      return this.check(_gte(value2, params));
     },
-    gt(value, params) {
-      return this.check(_gt(value, params));
+    gt(value2, params) {
+      return this.check(_gt(value2, params));
     },
-    lt(value, params) {
-      return this.check(_lt(value, params));
+    lt(value2, params) {
+      return this.check(_lt(value2, params));
     },
-    lte(value, params) {
-      return this.check(_lte(value, params));
+    lte(value2, params) {
+      return this.check(_lte(value2, params));
     },
-    max(value, params) {
-      return this.check(_lte(value, params));
+    max(value2, params) {
+      return this.check(_lte(value2, params));
     },
     positive(params) {
       return this.check(_gt(BigInt(0), params));
@@ -19322,8 +19380,8 @@ var ZodBigInt = /* @__PURE__ */ $constructor(
     nonnegative(params) {
       return this.check(_gte(BigInt(0), params));
     },
-    multipleOf(value, params) {
-      return this.check(_multipleOf(value, params));
+    multipleOf(value2, params) {
+      return this.check(_multipleOf(value2, params));
     }
   })
 );
@@ -19402,8 +19460,8 @@ var ZodDate = /* @__PURE__ */ $constructor(
     $ZodDate.init(inst, def);
     ZodType.init(inst, def);
     inst._zod.processJSONSchema = (ctx, json2, params) => dateProcessor(inst, ctx, json2, params);
-    inst.min = (value, params) => inst.check(_gte(value, params));
-    inst.max = (value, params) => inst.check(_lte(value, params));
+    inst.min = (value2, params) => inst.check(_gte(value2, params));
+    inst.max = (value2, params) => inst.check(_lte(value2, params));
   },
   /* @__PURE__ */ util_exports.derived({
     minDate: (inst) => {
@@ -19695,11 +19753,11 @@ var ZodEnum = /* @__PURE__ */ $constructor("ZodEnum", (inst, def) => {
   const keys = new Set(Object.keys(def.entries));
   inst.extract = (values, params) => {
     const newEntries = {};
-    for (const value of values) {
-      if (keys.has(value)) {
-        newEntries[value] = def.entries[value];
+    for (const value2 of values) {
+      if (keys.has(value2)) {
+        newEntries[value2] = def.entries[value2];
       } else
-        throw new Error(`Key ${value} not found in enum`);
+        throw new Error(`Key ${value2} not found in enum`);
     }
     return new ZodEnum({
       ...def,
@@ -19710,11 +19768,11 @@ var ZodEnum = /* @__PURE__ */ $constructor("ZodEnum", (inst, def) => {
   };
   inst.exclude = (values, params) => {
     const newEntries = { ...def.entries };
-    for (const value of values) {
-      if (keys.has(value)) {
-        delete newEntries[value];
+    for (const value2 of values) {
+      if (keys.has(value2)) {
+        delete newEntries[value2];
       } else
-        throw new Error(`Key ${value} not found in enum`);
+        throw new Error(`Key ${value2} not found in enum`);
     }
     return new ZodEnum({
       ...def,
@@ -19753,10 +19811,10 @@ var ZodLiteral = /* @__PURE__ */ $constructor("ZodLiteral", (inst, def) => {
     }
   });
 });
-function literal(value, params) {
+function literal(value2, params) {
   return new ZodLiteral({
     type: "literal",
-    values: Array.isArray(value) ? value : [value],
+    values: Array.isArray(value2) ? value2 : [value2],
     ...util_exports.normalizeParams(params)
   });
 }
@@ -20268,11 +20326,11 @@ function resolveRef(ref, ctx) {
   throw new Error(`Reference not found: ${ref}`);
 }
 function checkObjectGuards(objectSchema, guards) {
-  const guard = z.transform((value) => value).check((payload) => {
-    const value = payload.value;
-    if (typeof value !== "object" || value === null || Array.isArray(value))
+  const guard = z.transform((value2) => value2).check((payload) => {
+    const value2 = payload.value;
+    if (typeof value2 !== "object" || value2 === null || Array.isArray(value2))
       return;
-    const keys = Object.getOwnPropertyNames(value);
+    const keys = Object.getOwnPropertyNames(value2);
     if (guards.minProperties !== void 0 && keys.length < guards.minProperties) {
       payload.issues.push({
         origin: "object",
@@ -20280,7 +20338,7 @@ function checkObjectGuards(objectSchema, guards) {
         minimum: guards.minProperties,
         inclusive: true,
         message: `Too small: expected object to have >=${guards.minProperties} properties`,
-        input: value,
+        input: value2,
         inst: objectSchema,
         continue: true
       });
@@ -20292,7 +20350,7 @@ function checkObjectGuards(objectSchema, guards) {
         maximum: guards.maxProperties,
         inclusive: true,
         message: `Too big: expected object to have <=${guards.maxProperties} properties`,
-        input: value,
+        input: value2,
         inst: objectSchema,
         continue: true
       });
@@ -20315,23 +20373,23 @@ function checkObjectGuards(objectSchema, guards) {
   });
   return guard.pipe(objectSchema);
 }
-function canonicalKey(value, seen) {
-  if (value === null)
+function canonicalKey(value2, seen) {
+  if (value2 === null)
     return "z";
-  const type = typeof value;
+  const type = typeof value2;
   if (type !== "object") {
-    if (type === "number" && Number.isNaN(value))
+    if (type === "number" && Number.isNaN(value2))
       return null;
-    const raw = String(value);
+    const raw = String(value2);
     return `${type[0]}${raw.length}:${raw}`;
   }
-  if (seen.has(value))
+  if (seen.has(value2))
     return null;
-  seen.add(value);
+  seen.add(value2);
   try {
-    if (Array.isArray(value)) {
+    if (Array.isArray(value2)) {
       const parts3 = [];
-      for (const item of value) {
+      for (const item of value2) {
         const key2 = canonicalKey(item, seen);
         if (key2 === null)
           return null;
@@ -20339,17 +20397,17 @@ function canonicalKey(value, seen) {
       }
       return `a${parts3.length}:[${parts3.join(",")}]`;
     }
-    const keys = Object.keys(value).sort();
+    const keys = Object.keys(value2).sort();
     const parts2 = [];
     for (const k of keys) {
-      const key2 = canonicalKey(value[k], seen);
+      const key2 = canonicalKey(value2[k], seen);
       if (key2 === null)
         return null;
       parts2.push(`${k.length}:${k}=${key2}`);
     }
     return `o${parts2.length}:{${parts2.join(",")}}`;
   } finally {
-    seen.delete(value);
+    seen.delete(value2);
   }
 }
 var SCHEMA_KEYWORDS = /* @__PURE__ */ new Set([
@@ -20378,14 +20436,14 @@ var SCHEMA_MAP_KEYWORDS = /* @__PURE__ */ new Set([
   "$defs",
   "definitions"
 ]);
-function containsRef(value) {
-  if (typeof value !== "object" || value === null)
+function containsRef(value2) {
+  if (typeof value2 !== "object" || value2 === null)
     return false;
-  if (Array.isArray(value))
-    return value.some(containsRef);
-  if (typeof value.$ref === "string")
+  if (Array.isArray(value2))
+    return value2.some(containsRef);
+  if (typeof value2.$ref === "string")
     return true;
-  return Object.entries(value).some(([key2, sub]) => {
+  return Object.entries(value2).some(([key2, sub]) => {
     if (SCHEMA_KEYWORDS.has(key2))
       return containsRef(sub);
     if (!SCHEMA_MAP_KEYWORDS.has(key2) || typeof sub !== "object" || sub === null)
@@ -20397,7 +20455,7 @@ function plural(n2) {
   return n2 === 1 ? "element" : "elements";
 }
 function checkArrayGuards(arraySchema, guards) {
-  const guard = z.transform((value) => value).check((payload) => {
+  const guard = z.transform((value2) => value2).check((payload) => {
     const items = payload.value;
     if (!Array.isArray(items))
       return;
@@ -22240,8 +22298,8 @@ function shareLine(text2, max = 70) {
   return pause >= 20 ? cut.slice(0, pause) : cut.replace(/\s+\S*$/, "");
 }
 var hex22 = (n2) => Math.max(0, Math.min(255, Math.round(n2))).toString(16).padStart(2, "0");
-function toHexColor(value) {
-  const v = value.trim().toLowerCase();
+function toHexColor(value2) {
+  const v = value2.trim().toLowerCase();
   let m = /^#([0-9a-f]{3})$/.exec(v);
   if (m) return `#${[...m[1]].map((c) => c + c).join("")}`;
   m = /^#([0-9a-f]{6})(ff)?$/.exec(v);
@@ -22458,7 +22516,7 @@ function mapPsi(json2, strategy) {
   const originExp = json2?.originLoadingExperience;
   const urlField = urlExp && !urlExp.origin_fallback ? fieldOf(urlExp) : [];
   const originField = fieldOf(originExp);
-  const field = urlField.length ? { scope: "url", metrics: urlField } : originField.length ? { scope: "origin", metrics: originField } : null;
+  const field2 = urlField.length ? { scope: "url", metrics: urlField } : originField.length ? { scope: "origin", metrics: originField } : null;
   return {
     strategy,
     requestedUrl: clean2(lr.requestedUrl ?? json2?.id, 2e3),
@@ -22467,7 +22525,7 @@ function mapPsi(json2, strategy) {
     lighthouseVersion: clean2(lr.lighthouseVersion, 20) || null,
     scores: { performance: score("performance"), accessibility: score("accessibility"), seo: score("seo"), bestPractices: score("best-practices") },
     lab,
-    field,
+    field: field2,
     opportunities,
     accessibility,
     seo: (cats.seo?.auditRefs ?? []).filter((r) => r?.id && (r.weight ?? 0) > 0).map((r) => audits[r.id] && toAudit(r.id, audits[r.id])).filter((a) => !!a && a.score !== null && a.score < 1),
@@ -22518,19 +22576,19 @@ function parseRobots(text2) {
     const m = /^([A-Za-z-]+)\s*:\s*(.*)$/.exec(line);
     if (!m) continue;
     const key2 = m[1].toLowerCase();
-    const value = m[2].trim();
+    const value2 = m[2].trim();
     if (key2 === "user-agent") {
       if (!current || !lastWasAgent) {
         current = { agents: [], rules: [] };
         groups.push(current);
       }
-      current.agents.push(value.toLowerCase());
+      current.agents.push(value2.toLowerCase());
       lastWasAgent = true;
       continue;
     }
     lastWasAgent = false;
-    if (key2 === "sitemap") sitemaps.push(value);
-    else if ((key2 === "allow" || key2 === "disallow") && current) current.rules.push({ allow: key2 === "allow", path: value });
+    if (key2 === "sitemap") sitemaps.push(value2);
+    else if ((key2 === "allow" || key2 === "disallow") && current) current.rules.push({ allow: key2 === "allow", path: value2 });
   }
   return { groups, sitemaps };
 }
@@ -22663,7 +22721,7 @@ var FIRST_LOOK_MESSAGE = "first look";
 var FIRST_SITE_RULE = 'A site that has never been live (this folder is not linked yet, or npx deployai@latest status shows no live version) follows this, and not the rule for later changes. Right at the start, before you build, ask once, naming the site and its address when you know it: "When your site is ready, should I put it live for you? Anyone will be able to see it." The answers: Yes, put it live (recommended), or Show me first. Then go on working, and do not ask it again for this first version. Deploy twice. First, the first look: when a first version works, deploy without --live and send the owner the preview address. Make every change they ask for in the folder, without deploying. Second, when everything they asked for is done: on Yes, deploy with --live and give them the live address, with no more questions. On Show me first, deploy without it, send the preview address and ask: "Put it live, or change something first?" If nothing changed since the first look, there is nothing to build: run promote on that version instead of a second deploy. Deploy again only when a deploy failed, or the owner asks for more after the last one, and then put all of it in one deploy. Database changes still get their own yes.';
 var DEPLOY_ASK_RULE = 'Once a site has been live, never deploy on your own, and never after each small edit: every deploy is a full build. Deploy only when what the owner asked for is done. Then say in short what changed and ask: "Put it live, see a preview first, or not yet?" Put it live: deploy with --live. Preview first: deploy without it and send the owner the preview address. Not yet: keep working, and the next change goes up in the same deploy. If the owner said to always put changes live, deploy with --live without asking. When deploy says the site goes live by itself, that is a setting the owner chose: do not ask about going live or a preview, deploy once the request is done, and tell the owner it is live and that Settings on the site page can make versions wait. Database changes still get their own yes. A version that is only your own test (an experiment, a size or speed check, a half done feature) deploys with --hold: it stays a preview and never goes live by itself, also on a site that goes live by itself (D-961).';
 var LOCAL_PREVIEW_RULE = "While you build, show the site on this computer, never a deploy after each change. Start the site's own dev command (the dev script in package.json, for example npm run dev) yourself, in the background, so it keeps running while you work: in Claude Code as a background command, in another tool with its own way to run a command in the background or in a terminal of its own. Never ask the owner to open a terminal or type a command. If a local preview of this folder is already running, use it instead of starting a second one. Send the owner the local address it prints once, as a link, and say in one line that it updates by itself while you work and opens only on this computer. Check every change there yourself. To see a page at phone width, run npx deployai@latest shot <address> and look at the phone picture it saves: resizing a browser window often keeps the page at desktop width, so never judge the phone layout from the code alone (D-916). The local preview is not the hosting: it has a local test database that starts empty, and the built-in email to the owner, visitor countries, 301 redirects and the DeployAI badge work only on a deployed preview, so test those there, and the owner checks a phone there. When to deploy does not change. When the work is done, stop the local preview you started.";
-var GIT_HISTORY_RULE = "Keep the site's history with git in this folder: run git init if there is none, commit before you start and after each part that works, with a short message in the owner's language about what they see changed. Never commit .env files or secrets. When the owner asks to undo a change, or to bring back or remove a feature, do it from the git history yourself and tell them in one line what changed; never ask them to run git. Git brings back code, not data: rows, files and tables that were deleted stay deleted, so ask the owner before a change that removes data.";
+var GIT_HISTORY_RULE = "Keep the site's history with git in this folder: run git init if there is none, commit before you start and after each part that works, with a short message in the owner's language about what they see changed. Never commit .env files or secrets. When the owner asks to undo a change, or to bring back or remove a feature, do it from the git history yourself and tell them in one line what changed; never ask them to run git. Git brings back code, not data: rows, files and tables that were deleted stay deleted, so ask the owner before a change that removes data. This git history is on this computer only; the team's shared history is the site's versions. When others work on the site too, deploy and start bring their newer live work into this folder by themselves and add their versions to git, so never copy their files in by hand.";
 var ASK_OWNER_RULE = `When a question to the owner has set answers, use your tool's own question feature with clickable choices if it has one, for example AskUserQuestion in Claude Code, AskQuestion in Cursor, askQuestions in Copilot in VS Code, request_user_input in Codex, or ask_user_question in Grok Build. Use the owner's language, with each answer as its own choice. If your tool has no such feature, or it is refused or fails, ask the same question once in plain text and go on. Never change a mode or a setting to get it. A yes or no question has set answers too. This holds for every question, also one you think of yourself in the middle of the work: say what you have to say, then ask through the feature, never as the last line of your message. A question about going live names the site and its address when you know it, and says anyone will be able to see it, so the owner's answer is about this exact site (D-691). Open details, like a phone number or hours, stay in plain text, in one short list. How the owner wants you to work is saved in .deployai/owner-mode (D-865): on-my-own or check-with-me. If the file is missing, ask once, "How should I work?", with "On my own (recommended)": I build and choose the recommended option at every step, I stop only for money, deleting your content or your real domain, and I leave you a short list at the end; and "Check with me". Save the answer there, and change it when the owner says so. On my own: take the recommended option without asking, install the tools you need, and stop only for money, deleting the owner's content, a real domain going live or a fact you would have to invent, which you leave out and list. Every question opens with a short tag naming who asks, like "Search add-on \xB7 1 of 2" or "Move \xB7 forms", and a question with several items offers "Approve all (recommended)" first. Never ask the owner about a package, library, framework, tool, file path or size: ask about the outcome in plain words.`;
 var QUESTION_FEATURE = { claudeCode: "AskUserQuestion", cursor: "AskQuestion", copilot: "askQuestions", codex: "request_user_input", grok: "ask_user_question" };
 function toolAskLine(tool) {
@@ -23193,11 +23251,11 @@ function readContainer(js, container) {
   const triggers = /* @__PURE__ */ new Map();
   const unescape = (v) => v.replace(/\\u([0-9a-f]{4})/gi, (_, h) => String.fromCharCode(parseInt(h, 16))).replace(/\\(["/\\])/g, "$1");
   for (const m of body.matchAll(/\{"function":"(_css|_eq|_cn|_sw)","arg0":\["macro",\d+\],"arg1":"((?:[^"\\]|\\.)*)"/g)) {
-    const value = unescape(m[2]);
-    if (!value || value.length > 200) continue;
-    if (m[1] === "_css") triggers.set(`s|${value}`, { type: "selector", value, container });
-    else if (value.startsWith("/") && !/\s/.test(value)) triggers.set(`p|${value}`, { type: "page", value, container });
-    else if (m[1] === "_eq" && /^[a-zA-Z][\w.-]{1,50}$/.test(value) && !value.startsWith("gtm.")) triggers.set(`e|${value}`, { type: "event", value, container });
+    const value2 = unescape(m[2]);
+    if (!value2 || value2.length > 200) continue;
+    if (m[1] === "_css") triggers.set(`s|${value2}`, { type: "selector", value: value2, container });
+    else if (value2.startsWith("/") && !/\s/.test(value2)) triggers.set(`p|${value2}`, { type: "page", value: value2, container });
+    else if (m[1] === "_eq" && /^[a-zA-Z][\w.-]{1,50}$/.test(value2) && !value2.startsWith("gtm.")) triggers.set(`e|${value2}`, { type: "event", value: value2, container });
   }
   const { tags: tags2 } = scanPageTags(text2, "https://container.invalid/");
   return { tags: tags2.filter((t) => t.key !== "gtm"), triggers: [...triggers.values()] };
@@ -23616,7 +23674,7 @@ var ENV_KEYS = {
   TURNSTILE_SECRET: { scope: "server", section: "tools", about: "The Turnstile secret key of the same widget." },
   TOOLS_FETCH_SECRET: { scope: "same", section: "tools", about: "Shared secret between the app and the tools Worker, 32 random characters or more. pnpm tools:deploy uploads it." },
   APPS_SIGNING_SECRET: { scope: "own", section: "tools", about: 'Signs the 60 second tokens from the app to the Uptime app Worker, and the alert calls back from it (D-556); pnpm app-uptime:deploy uploads it. Unset: Apps answer "not set up". openssl rand -hex 32' },
-  APP_GATE_SECRET: { scope: "own", section: "tools", about: "The gate on app sites (D-567): our server signs every /__app/op call with it and the dispatch Worker lets those paths reach an app only with a valid signature, so the public never starts a paused app. pnpm dispatch:deploy sends it to the dispatch Worker. Unset: no platform call reaches an app site. openssl rand -hex 32" },
+  APP_GATE_SECRET: { scope: "own", section: "tools", about: "The gate on app sites (D-567): our server signs every /__app/op call with it and the dispatch Worker lets those paths reach an app only with a valid signature, so the public never starts a paused app. It also signs every run of a site schedule (D-979). pnpm dispatch:deploy sends it to the dispatch Worker. Unset: no platform call reaches an app site and no site schedule runs. openssl rand -hex 32" },
   APP_TRIAL_KEYS: { scope: "own", section: "tools", about: "The trial key ring (D-567, docs/30 F3): v1:<hex>! (the ! marks the current key). Trial records keep only an HMAC of the mailbox under these keys. To rotate, add a key, deploy, then move the ! (docs/30). Unset: no trial can start. v1: then openssl rand -hex 32, then !" },
   UPTIME_ALERT_TO: { scope: "own", section: "tools", about: "Who gets the down and back up emails of the uptime Worker, comma separated. Without it no email is sent." },
   UPTIME_ALERT_TOKEN: { scope: "own", section: "tools", about: "A Cloudflare token with Email Sending edit only, stored as the uptime Worker's secret. Default CF_API_TOKEN." },
@@ -23713,16 +23771,31 @@ var SPACES = {
   test: build("test", { ...CLOUDFLARE_SPACES.prod, kvNamespaceId: "", sitesZoneId: null, backupBucket: null, toolsWorkerUrl: "", requestsWorkerUrl: "" }, { ...SPACE_ADDRESSES.prod, appUrl: "http://localhost:3000", siteUrl: "http://localhost:3000", trustedOrigins: [], storage: "local" })
 };
 
+// ../shared/src/scheduled-run.ts
+var SCHEDULED_PATH = "/__deployai/scheduled";
+
 // ../shared/src/protection-rule.ts
+var SKIP_ALWAYS = [
+  "cf.client.bot",
+  'starts_with(http.request.uri.path, "/__app/")',
+  // Our scheduler's run of a site's own scheduled handler (D-979, D-982): a site in Attack mode keeps its schedules.
+  `(http.request.method eq "POST" and http.request.uri.path eq "${SCHEDULED_PATH}")`,
+  'http.request.uri.path eq "/api/kit/mcp"',
+  'starts_with(http.request.uri.path, "/api/kit/oauth/")',
+  'starts_with(http.request.uri.path, "/.well-known/")',
+  'any(http.request.headers.names[*] == "x-deployai-probe")'
+];
 var SKIP_COUNTRY = [`http.cookie contains "${HUMAN_COOKIE}"`, 'http.request.uri.query contains "deployai_preview"', 'http.cookie contains "deployai_preview"', 'http.request.uri.query contains "deployai_team"', 'http.cookie contains "__deployai_team"', ...UNVERIFIED_BOT_TOKENS.map((t) => `lower(http.user_agent) contains "${t}"`)];
 var HUMAN_CHECK_CLAUSE = `http.request.uri.path eq "${HUMAN_CHECK_PATH}"`;
 
 // ../shared/src/agent-rules.ts
 var IPHONE_RULE = "iPhone: Safari is its own browser engine, so working in Chrome or on Android proves nothing. Full height sections use svh or dvh, never 100vh. Typing fields are at least 16px, or the page zooms. A video that plays by itself has muted and playsinline. Bars fixed to the bottom pad with env(safe-area-inset-bottom). Nothing needs a hover. Newer CSS and browser features need a working fallback.";
+var JOBS_RULE = "Background jobs (work that must not hold up a request): never create a queue of your own. Declare it in the wrangler config under queues.producers ({ binding, queue }) and queues.consumers ({ queue }), and export queue(batch, env, ctx) from the Worker entry. On DeployAI there is no env.<BINDING>: send with ctx.props.queues.<BINDING>.send(body, { delaySeconds }) or .sendBatch([{ body }]), from a request, a scheduled run or a queue run, only while that run lasts. When ctx.props.queues is missing (background jobs are off, or the plan has none), do the work in the request instead. In queue(), call ack() or retry() on each message, or throw to try the rest again; each message gets 4 tries. Keep bodies under 120 KB. The site's Data and files tab shows what was sent, done and failed.";
 var BUILD_WITH = [
   `Frameworks: ${SUPPORTED_FRAMEWORKS.map((f) => f.name).join(", ")}. In beta: ${BETA_FRAMEWORKS.map((f) => f.name).join(", ")} (Next.js through the OpenNext Cloudflare adapter).`,
   "Database: Cloudflare D1 (SQLite), through Drizzle with drizzle-orm/d1 or Prisma with the D1 adapter.",
-  "Uploaded files and images: Cloudflare R2 (object storage), never the local disk.",
+  // D-978: R2 only for files that come in or change after the build, so a site does not get an empty bucket.
+  "Files: add Cloudflare R2 (object storage) only when the site keeps files that people upload or that change after the build, and never write them to the local disk. Images and files that ship with the site stay in its own files, never in R2.",
   "Settings and secrets: environment variables, set with: npx deployai@latest env set <key>",
   "Images: resize at build time or serve them as they are; no native image modules at runtime.",
   // D-616: an icon is part of a finished site, and the command keeps one the site has.
@@ -23734,6 +23807,10 @@ var BUILD_WITH = [
   "Webhooks: a site answers only its own countries. When you add a webhook a service abroad calls, run: npx deployai@latest requests open <its address>, and make the code check the sender's signature, since anyone can now reach it. To see whether a request arrived and what happened to it, run: npx deployai@latest requests",
   IPHONE_RULE,
   "Server code runs per request: no long-running processes, background servers or child processes.",
+  // D-984: one shared queue of ours; the site gets its producer in the request's props, never a queue binding of its own.
+  JOBS_RULE,
+  // D-979, D-982: our scheduler runs a site's triggers.crons; user Workers have no Cron Triggers of their own.
+  `Schedules (work on a clock, such as a nightly cleanup or reminders): list the times in the wrangler config, "triggers": { "crons": ["0 3 * * *"] }, and export a scheduled handler beside fetch: export default { fetch, async scheduled(event, env, ctx) { ... } }. DeployAI runs it at those times with the site's own bindings. Times are UTC (Israel is 2 or 3 hours ahead), at most one run every 5 minutes, and the plan sets how many schedules a site has (a temporary site has none). Keep a run short: we wait up to 50 seconds for it. Never node-cron, setInterval or a job queue library. The owner sees each schedule, its last run and its error on the site's Data and files tab.`,
   // D-611: Durable Objects run when the site's own code exports them; D1 stays the default, they cost more for plain data.
   "Data goes in D1 by default. Use a Durable Object only for live state that needs one place to coordinate (a chat room, a live counter, booking slots that must not double-book, presence): export the class from this site's Worker and bind it with a name and class_name in the wrangler config, never script_name. Never remove or rename a class once it is live: that would delete its data, so the upload is refused. A preview starts with empty objects.",
   // D-535: the agent knows our built-in email, so it never adds an email provider or asks the owner for keys to email them.
@@ -23882,7 +23959,7 @@ function stackBlock(s) {
     `- Fonts: ${fonts.join(", ")}, from Google Fonts.`,
     `- CSS: ${s.css === "tailwind" ? "Tailwind CSS" : "plain CSS"}.`,
     `- Database: ${s.bindings.includes("d1") ? "Cloudflare D1 (SQLite) through Drizzle with drizzle-orm/d1." : "none."}`,
-    `- Files: ${s.bindings.includes("r2") ? "Cloudflare R2, never the local disk." : "none."}`
+    `- Files: ${s.bindings.includes("r2") ? "Cloudflare R2 for the files the owner uploads, never the local disk. Images and files that ship with the site stay in its own files." : "none. Images and files that ship with the site stay in its own files; do not add R2."}`
   ];
   if (s.needs.length) lines.push(`- The site has: ${s.needs.map((n2) => NEED_TEXT[n2]).join("; ")}.`);
   return lines.join("\n") + "\n";
@@ -24327,6 +24404,142 @@ var enc2 = new TextEncoder();
 // ../shared/src/app-gate.ts
 var enc3 = new TextEncoder();
 
+// ../shared/src/site-cron.ts
+var SITE_SCHEDULE_MIN_MINUTES = 5;
+var MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+var DAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+function value(token, min, max, names) {
+  const named = names ? names.indexOf(token.toUpperCase()) : -1;
+  const n2 = named >= 0 ? named + min : /^\d{1,2}$/.test(token) ? Number(token) : NaN;
+  return Number.isInteger(n2) && n2 >= min && n2 <= max ? n2 : null;
+}
+function field(text2, min, max, names) {
+  const out2 = /* @__PURE__ */ new Set();
+  for (const part of text2.split(",")) {
+    const m = /^(\*|\?|[A-Za-z0-9]+(?:-[A-Za-z0-9]+)?)(?:\/(\d{1,2}))?$/.exec(part);
+    if (!m) return null;
+    const step = m[2] ? Number(m[2]) : 1;
+    if (step < 1) return null;
+    let lo = min;
+    let hi = max;
+    if (m[1] !== "*" && m[1] !== "?") {
+      const [a, b] = m[1].split("-");
+      const x = value(a, min, max, names);
+      const y = b === void 0 ? m[2] ? max : x : value(b, min, max, names);
+      if (x === null || y === null || y < x) return null;
+      lo = x;
+      hi = y;
+    }
+    for (let v = lo; v <= hi; v += step) out2.add(v);
+  }
+  return [...out2].sort((a, b) => a - b);
+}
+function parseSiteCron(expr) {
+  const raw = expr.trim().split(/\s+/);
+  if (raw.length !== 5 || expr.length > 100) return { error: "A schedule has five parts: minute, hour, day of month, month, day of week." };
+  const [mi, ho, dm, mo, dw] = raw;
+  const minutes = field(mi, 0, 59);
+  const hours = field(ho, 0, 23);
+  const months = field(mo, 1, 12, MONTHS);
+  if (!minutes || !hours || !months) return { error: "The minute, hour or month part does not read." };
+  const dom = { any: dm === "*" || dm === "?", days: [], last: false, lastWeekday: false, nearest: [] };
+  if (!dom.any) {
+    for (const part of dm.split(",")) {
+      const up = part.toUpperCase();
+      if (up === "L") dom.last = true;
+      else if (up === "LW") dom.lastWeekday = true;
+      else if (/^\d{1,2}W$/.test(up) && value(up.slice(0, -1), 1, 31) !== null) dom.nearest.push(Number(up.slice(0, -1)));
+      else {
+        const list = field(part, 1, 31);
+        if (!list) return { error: "The day of month part does not read." };
+        dom.days.push(...list);
+      }
+    }
+  }
+  const dow = { any: dw === "*" || dw === "?", days: [], last: [], nth: [] };
+  if (!dow.any) {
+    for (const part of dw.split(",")) {
+      const last = /^([A-Za-z]{3}|\d)L$/.exec(part);
+      const nth = /^([A-Za-z]{3}|\d)#([1-5])$/.exec(part);
+      if (last) {
+        const d = value(last[1], 1, 7, DAYS);
+        if (d === null) return { error: "The day of week part does not read. Days are 1 to 7, 1 is Sunday, or SUN to SAT." };
+        dow.last.push(d);
+      } else if (nth) {
+        const d = value(nth[1], 1, 7, DAYS);
+        if (d === null) return { error: "The day of week part does not read. Days are 1 to 7, 1 is Sunday, or SUN to SAT." };
+        dow.nth.push([d, Number(nth[2])]);
+      } else {
+        const list = field(part, 1, 7, DAYS);
+        if (!list) return { error: "The day of week part does not read. Days are 1 to 7, 1 is Sunday, or SUN to SAT." };
+        dow.days.push(...list);
+      }
+    }
+  }
+  return { raw: [mi, ho, dm, mo, dw], minutes, hours, dom, months, dow };
+}
+var isSiteCronSpec = (x) => !("error" in x);
+var lastDayOf = (y, m) => new Date(Date.UTC(y, m, 0)).getUTCDate();
+var weekday = (y, m, d) => new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+function nearestWeekday(y, m, n2) {
+  const last = lastDayOf(y, m);
+  const d = Math.min(n2, last);
+  const w = weekday(y, m, d);
+  if (w === 6) return d === 1 ? 3 : d - 1;
+  if (w === 0) return d === last ? d - 2 : d + 1;
+  return d;
+}
+function dayMatches(s, y, m, d) {
+  const last = lastDayOf(y, m);
+  const w = weekday(y, m, d) + 1;
+  const domHit = s.dom.days.includes(d) || s.dom.last && d === last || s.dom.lastWeekday && d === nearestWeekday(y, m, last) || s.dom.nearest.some((n2) => d === nearestWeekday(y, m, n2));
+  const dowHit = s.dow.days.includes(w) || s.dow.last.includes(w) && d + 7 > last || s.dow.nth.some(([day, k]) => day === w && Math.ceil(d / 7) === k);
+  if (!s.dom.any && !s.dow.any) return domHit || dowHit;
+  if (!s.dom.any) return domHit;
+  if (!s.dow.any) return dowHit;
+  return true;
+}
+function nextSiteCronRun(s, after) {
+  let t = Math.floor(after.getTime() / 6e4) * 6e4 + 6e4;
+  for (let guard = 0; guard < 3e3; guard++) {
+    const at = new Date(t);
+    const y = at.getUTCFullYear();
+    const m = at.getUTCMonth() + 1;
+    const d = at.getUTCDate();
+    if (!s.months.includes(m)) {
+      t = Date.UTC(y, m, 1);
+      continue;
+    }
+    if (dayMatches(s, y, m, d)) {
+      const h0 = at.getUTCHours();
+      const m0 = at.getUTCMinutes();
+      for (const h of s.hours) {
+        if (h < h0) continue;
+        const minute = s.minutes.find((x) => h > h0 || x >= m0);
+        if (minute !== void 0) return new Date(Date.UTC(y, m - 1, d, h, minute));
+      }
+    }
+    t = Date.UTC(y, m - 1, d + 1);
+  }
+  return null;
+}
+function siteCronGapMinutes(s, from = new Date(Date.UTC(2026, 0, 1))) {
+  const first = nextSiteCronRun(s, new Date(from.getTime() - 6e4));
+  if (!first) return null;
+  const end = first.getTime() + 8 * 864e5;
+  let prev = first;
+  let gap = null;
+  for (let i = 0; i < 500; i++) {
+    const next = nextSiteCronRun(s, prev);
+    if (!next || next.getTime() > end) break;
+    const g = (next.getTime() - prev.getTime()) / 6e4;
+    gap = gap === null ? g : Math.min(gap, g);
+    if (gap < SITE_SCHEDULE_MIN_MINUTES) break;
+    prev = next;
+  }
+  return gap;
+}
+
 // ../shared/src/files.ts
 var FILES_PART_BYTES = 20 * 1024 * 1024;
 var FILES_MIN_EXPIRY_S = 5 * 60;
@@ -24662,7 +24875,7 @@ var M = {
     ownerKeys: "Owner keys for this site (shown once, save them now):",
     guestLive: "The site goes live when its build is done (about a minute).",
     guestClaim: "Open the claim link to keep the site (sign up or log in).",
-    claimLink: "Keep link of this temporary site: {url}",
+    claimLink: "Keep link for this temporary site: {url}",
     pulled: "Downloaded the code of version v{v}: {n} files.",
     pulledHistory: "Downloaded the history: {n} versions as git commits, up to the live version v{v}.",
     pullNoGit: "The history needs git on this computer. Install it from https://git-scm.com, or run pull without --history.",
@@ -24675,7 +24888,7 @@ var M = {
     claimEmailed: "Sent the keep link to {email}. A reminder comes 3 days before the site is deleted.",
     claimNoLink: "No temporary site was deployed from this folder on this computer, so there is no keep link here.",
     rollbackQueued: "Rollback to v{n} queued. No rebuild needed.",
-    promoteQueued: "Promote v{n} to live queued.",
+    promoteQueued: "Putting v{n} live is queued.",
     runStatus: "  Run: npx deployai@latest status",
     statusTitle: "DeployAI status",
     state: "State",
@@ -24701,7 +24914,7 @@ var M = {
     homeFix: "  Fix it and deploy again. This version did not go live; do not send its link to the owner yet.",
     creditLeft: "  The site still shows a builder's credit: {text}",
     creditFix: "  Remove it and put the site's own name and the year in its place, unless the owner asked to keep it.",
-    askLiveFirst: "Put it live as soon as the build is done? No shows you the preview first. (y/N) ",
+    askLiveFirst: "Put it live as soon as the build is done? Answer no to see the preview first. (y/N) ",
     askLiveNow: "Put v{n} live now? (y/N) ",
     waitBuild: "Waiting for the build of v{n}. Ctrl+C stops the waiting, not the build.",
     waitState: "  v{n}: {s}",
@@ -24768,6 +24981,12 @@ var M = {
     syncClash: "Two database changes have the same number: {mine} (this folder) and {theirs} (live). Give {mine} the next free number.",
     syncNext: "Next: npx deployai@latest check, then deploy again.",
     syncNextConflicts: "Show the owner each one in plain words, ask which to keep, then edit the file so it holds only that (no <<<<<<<, ======= or >>>>>>> lines). Then: npx deployai@latest check, and deploy again. Everything before the sync is in git, so it can be undone.",
+    caughtUp: "Brought in newer work from {names} (live version v{v}): {taken} files taken from the live site, {merged} joined with your changes.",
+    historyAdded: "Their versions are in this folder's git now too, as commits on refs/deployai/live ({n}), so undo covers their work.",
+    behindNoBase: "Version v{v} went live after this folder took its code, and nothing tells which version they share, so it cannot be joined by itself. Tell the owner: going live stops until this folder has v{v}. Get it with npx deployai@latest pull in a new empty folder, then copy your changed files in.",
+    caughtUpConflicts: "Not uploaded: the live site's newer work changed the same places as this folder. Show the owner each one above in plain words, ask which to keep, edit the file so it holds only that, then deploy again. Everything before is in git, so it can be undone.",
+    caughtUpNoLive: "Not going live this time: this upload joins someone else's work with yours, so the owner looks at the preview first.",
+    caughtUpPreview: "v{n} holds both sets of changes. Show the owner the preview; after their yes: npx deployai@latest promote {n}",
     syncLeftovers: "Not uploaded: the last sync left these for the owner to decide: {files}. Settle each one, then deploy again.",
     workOthers: "Also working on this site now: {names}. Tell the owner, so you do not change the same thing at once.",
     workYouElsewhere: "you, from another folder or computer",
@@ -24820,7 +25039,7 @@ var M = {
     deployNotLoggedIn: "Not logged in. Run: npx deployai@latest login, or deploy without an account: npx deployai@latest deploy --guest",
     deployBlocked: "Deploy stopped: fix the blockers above, then run: npx deployai@latest deploy",
     nothingToUpload: "Nothing to upload in this folder.",
-    uploadTooLarge: "Upload too large: {size}, max {max}. Add folders to .deployaiignore",
+    uploadTooLarge: "The upload is too large: {size}, and the limit is {max}. Add folders to .deployaiignore to leave them out.",
     uploadTooLargeGuest: "Upload too large for a site without an account: packed {size}, max {max}. Log in to upload more: npx deployai@latest login",
     notLinked: "This folder is not linked to a site. Run: npx deployai@latest link",
     askGuest: "Deploy without an account? You get a temporary site you can claim later. (y/N) ",
@@ -24887,19 +25106,19 @@ var M = {
   he: {
     startTitle: "DeployAI start",
     startNewFolder: "\u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5 \u05DB\u05D1\u05E8 \u05D9\u05E9 \u05E7\u05D1\u05E6\u05D9\u05DD, \u05D0\u05D6 \u05D4\u05D0\u05EA\u05E8 \u05D4\u05D7\u05D3\u05E9 \u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D7\u05D3\u05E9\u05D4: {dir}",
-    startUpdateFolder: "\u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5 \u05D9\u05E9 \u05E7\u05D1\u05E6\u05D9\u05DD \u05D0\u05D7\u05E8\u05D9\u05DD, \u05D0\u05D6 \u05D4\u05E7\u05D5\u05D3 \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8 \u05E0\u05DE\u05E6\u05D0 \u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D7\u05D3\u05E9\u05D4: {dir}. \u05DC\u05D0 \u05E9\u05D9\u05E0\u05D9\u05E0\u05D5 \u05DB\u05D0\u05DF \u05DB\u05DC\u05D5\u05DD.",
+    startUpdateFolder: "\u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5 \u05D9\u05E9 \u05E7\u05D1\u05E6\u05D9\u05DD \u05D0\u05D7\u05E8\u05D9\u05DD, \u05D0\u05D6 \u05D4\u05D5\u05E8\u05D3\u05E0\u05D5 \u05D0\u05EA \u05D4\u05E7\u05D5\u05D3 \u05E9\u05D1\u05D0\u05D5\u05D5\u05D9\u05E8 \u05DC\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D7\u05D3\u05E9\u05D4: {dir}. \u05DB\u05D0\u05DF \u05DC\u05D0 \u05E9\u05D9\u05E0\u05D9\u05E0\u05D5 \u05DB\u05DC\u05D5\u05DD.",
     nodeTooOld: "\u05D2\u05E8\u05E1\u05EA \u05D4\u05BENode.js \u05E9\u05DC\u05DB\u05DD \u05D4\u05D9\u05D0 {have}, \u05D5\u05BEDeployAI \u05E6\u05E8\u05D9\u05DA \u05D2\u05E8\u05E1\u05D4 {need} \u05D5\u05DE\u05E2\u05DC\u05D4. \u05DE\u05EA\u05E7\u05D9\u05E0\u05D9\u05DD \u05D0\u05EA \u05D2\u05E8\u05E1\u05EA \u05D4\u05BELTS \u05DE\u05BEnodejs.org, \u05E4\u05D5\u05EA\u05D7\u05D9\u05DD \u05D8\u05E8\u05DE\u05D9\u05E0\u05DC \u05D7\u05D3\u05E9 \u05D5\u05DE\u05E8\u05D9\u05E6\u05D9\u05DD \u05E9\u05D5\u05D1 \u05D0\u05EA \u05D4\u05E4\u05E7\u05D5\u05D3\u05D4. \u05D0\u05D9\u05DA \u05E2\u05D5\u05E9\u05D9\u05DD \u05D0\u05EA \u05D6\u05D4: {url}",
-    startDownloaded: "\u05D4\u05D3\u05D5\u05D2\u05DE\u05D4 {key} \u05D4\u05D5\u05E8\u05D3\u05D4: {n} \u05E7\u05D1\u05E6\u05D9\u05DD.",
-    startInstalled: "\u05D4\u05D7\u05D1\u05D9\u05DC\u05D5\u05EA \u05E9\u05DC\u05D4 \u05D4\u05D5\u05EA\u05E7\u05E0\u05D5 (npm install).",
-    startBrief: "\u05D4\u05E4\u05E8\u05D8\u05D9\u05DD \u05E9\u05DC \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05E0\u05DB\u05EA\u05D1\u05D5 \u05DC {file} (\u05DC\u05D0 \u05E0\u05DB\u05E0\u05E1\u05D9\u05DD \u05DC\u05BEgit \u05D5\u05DC\u05D0 \u05E2\u05D5\u05DC\u05D9\u05DD \u05DC\u05D0\u05EA\u05E8).",
-    startLinked: '\u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D7\u05D5\u05D1\u05E8\u05D4 \u05DC\u05D0\u05EA\u05E8 "{name}".',
-    startRules: "\u05D4\u05DB\u05DC\u05DC\u05D9\u05DD \u05DC\u05E1\u05D5\u05DB\u05DF \u05E0\u05DB\u05EA\u05D1\u05D5 \u05DC DEPLOYAI.md (\u05DC\u05D0 \u05E2\u05D5\u05DC\u05D9\u05DD \u05DC\u05D0\u05EA\u05E8).",
-    startStarter: "\u05E0\u05DB\u05EA\u05D1 \u05D3\u05E3 \u05E4\u05EA\u05D9\u05D7\u05D4 (index.html) \u05DC\u05D1\u05E0\u05D5\u05EA \u05E2\u05DC\u05D9\u05D5 \u05D0\u05EA \u05D4\u05D0\u05EA\u05E8.",
-    startStack: "\u05E0\u05E9\u05DE\u05E8 \u05D4\u05E1\u05D8\u05D0\u05E7 \u05E9\u05E0\u05D1\u05D7\u05E8 \u05D1\u05D0\u05EA\u05E8: {stack}.",
-    startScanned: "\u05E0\u05E1\u05E8\u05E7 \u05D4\u05D0\u05EA\u05E8 \u05D4\u05D9\u05E9\u05DF {url}: \u05D4\u05D3\u05E4\u05D9\u05DD, \u05D4\u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05D5\u05D4\u05EA\u05D5\u05DB\u05DF \u05E9\u05DC\u05D5 \u05D1 {dir}.",
+    startDownloaded: "\u05D4\u05D5\u05E8\u05D3\u05E0\u05D5 \u05D0\u05EA \u05D4\u05D3\u05D5\u05D2\u05DE\u05D4 {key}: {n} \u05E7\u05D1\u05E6\u05D9\u05DD.",
+    startInstalled: "\u05D4\u05EA\u05E7\u05E0\u05D5 \u05D0\u05EA \u05D4\u05D7\u05D1\u05D9\u05DC\u05D5\u05EA \u05E9\u05DC\u05D4 (npm install).",
+    startBrief: "\u05DB\u05EA\u05D1\u05E0\u05D5 \u05D0\u05EA \u05D4\u05E4\u05E8\u05D8\u05D9\u05DD \u05E9\u05DC \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D1\u05BE{file} (\u05D4\u05E7\u05D5\u05D1\u05E5 \u05DC\u05D0 \u05E0\u05DB\u05E0\u05E1 \u05DC\u05BEgit \u05D5\u05DC\u05D0 \u05E2\u05D5\u05DC\u05D4 \u05DC\u05D0\u05EA\u05E8).",
+    startLinked: '\u05D7\u05D9\u05D1\u05E8\u05E0\u05D5 \u05D0\u05EA \u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05DC\u05D0\u05EA\u05E8 "{name}".',
+    startRules: "\u05DB\u05EA\u05D1\u05E0\u05D5 \u05D0\u05EA \u05D4\u05DB\u05DC\u05DC\u05D9\u05DD \u05DC\u05E1\u05D5\u05DB\u05DF \u05D1\u05BEDEPLOYAI.md (\u05D4\u05E7\u05D5\u05D1\u05E5 \u05DC\u05D0 \u05E2\u05D5\u05DC\u05D4 \u05DC\u05D0\u05EA\u05E8).",
+    startStarter: "\u05DB\u05EA\u05D1\u05E0\u05D5 \u05D3\u05E3 \u05E4\u05EA\u05D9\u05D7\u05D4 (index.html) \u05E9\u05E2\u05DC\u05D9\u05D5 \u05D1\u05D5\u05E0\u05D9\u05DD \u05D0\u05EA \u05D4\u05D0\u05EA\u05E8.",
+    startStack: "\u05E9\u05DE\u05E8\u05E0\u05D5 \u05D0\u05EA \u05D4\u05E1\u05D8\u05D0\u05E7 \u05E9\u05E0\u05D1\u05D7\u05E8 \u05D1\u05D0\u05EA\u05E8: {stack}.",
+    startScanned: "\u05E1\u05E8\u05E7\u05E0\u05D5 \u05D0\u05EA \u05D4\u05D0\u05EA\u05E8 \u05D4\u05D9\u05E9\u05DF {url}: \u05D4\u05D3\u05E4\u05D9\u05DD, \u05D4\u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05D5\u05D4\u05EA\u05D5\u05DB\u05DF \u05E9\u05DC\u05D5 \u05E0\u05DE\u05E6\u05D0\u05D9\u05DD \u05D1\u05BE{dir}.",
     startBesideCode: "\u05D4\u05D0\u05EA\u05E8 \u05D4\u05D7\u05D3\u05E9 \u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05DE\u05E9\u05DC\u05D5, \u05DC\u05D9\u05D3 \u05D4\u05E7\u05D1\u05E6\u05D9\u05DD \u05E9\u05D4\u05D9\u05D5 \u05DB\u05D0\u05DF ({dir}). \u05D0\u05DD \u05D4\u05DD \u05D4\u05E7\u05D5\u05D3 \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D4\u05D9\u05E9\u05DF, \u05E7\u05E8\u05D0 \u05D0\u05D5\u05EA\u05DD \u05DC\u05E4\u05E0\u05D9 \u05D4\u05EA\u05DB\u05E0\u05D5\u05DF.",
     stackDiffers: "\u05E9\u05D9\u05DE\u05D5 \u05DC\u05D1: \u05D4\u05E1\u05D8\u05D0\u05E7 \u05E9\u05E0\u05D1\u05D7\u05E8 \u05D1\u05D0\u05EA\u05E8 \u05D4\u05D5\u05D0 {chosen}, \u05D0\u05D1\u05DC \u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5 \u05D4\u05D9\u05D0 {found}. \u05D4\u05DE\u05E9\u05D9\u05DB\u05D5 \u05D1\u05E1\u05D8\u05D0\u05E7 \u05E9\u05E0\u05D1\u05D7\u05E8, \u05D0\u05D5 \u05D4\u05E1\u05D1\u05D9\u05E8\u05D5 \u05DC\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05DC\u05DE\u05D4 \u05D4\u05D5\u05D0 \u05D4\u05E9\u05EA\u05E0\u05D4.",
-    startRelinked: '\u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D7\u05D5\u05D1\u05E8\u05D4 \u05DC\u05D0\u05EA\u05E8 "{name}" \u05D1\u05DE\u05E7\u05D5\u05DD \u05D4\u05D0\u05EA\u05E8 \u05E9\u05D4\u05D9\u05D9\u05EA\u05D4 \u05DE\u05D7\u05D5\u05D1\u05E8\u05EA \u05D0\u05DC\u05D9\u05D5.',
+    startRelinked: '\u05D7\u05D9\u05D1\u05E8\u05E0\u05D5 \u05D0\u05EA \u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05DC\u05D0\u05EA\u05E8 "{name}", \u05D1\u05DE\u05E7\u05D5\u05DD \u05D4\u05D0\u05EA\u05E8 \u05E9\u05D4\u05D9\u05D9\u05EA\u05D4 \u05DE\u05D7\u05D5\u05D1\u05E8\u05EA \u05D0\u05DC\u05D9\u05D5.',
     statusLine: "\u05DE\u05E6\u05D1: {s}",
     ready: "\u05DE\u05D5\u05DB\u05DF \u05DC\u05E2\u05DC\u05D5\u05EA",
     readyWarnings: "\u05DE\u05D5\u05DB\u05DF \u05DC\u05E2\u05DC\u05D5\u05EA, \u05E2\u05DD \u05D0\u05D6\u05D4\u05E8\u05D5\u05EA",
@@ -24913,13 +25132,13 @@ var M = {
     copied: "  (\u05D4\u05D5\u05E2\u05EA\u05E7)",
     runDeploy: '  \u05D4\u05E8\u05D9\u05E6\u05D5: npx deployai@latest deploy -m "<message>"',
     movedSlug: "\u05DB\u05EA\u05D5\u05D1\u05EA \u05D4\u05D0\u05EA\u05E8 \u05DC\u05E4\u05D9 \u05D4\u05D3\u05D5\u05DE\u05D9\u05D9\u05DF \u05D4\u05D9\u05E9\u05DF: {url}",
-    autoLiveOn: "\u05D4\u05D0\u05EA\u05E8 \u05D4\u05D6\u05D4 \u05E2\u05D5\u05DC\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8 \u05DC\u05D1\u05D3 \u05DB\u05E9\u05D4\u05D2\u05E8\u05E1\u05D4 \u05E0\u05D1\u05E0\u05D9\u05EA (\u05D4\u05D2\u05D3\u05E8\u05D4 \u05E9\u05DC \u05D4\u05D1\u05E2\u05DC\u05D9\u05DD, \u05D1\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA \u05D4\u05D0\u05EA\u05E8). \u05DE\u05D7\u05DB\u05D9\u05DD \u05E9\u05D9\u05E2\u05DC\u05D4.",
+    autoLiveOn: "\u05D4\u05D0\u05EA\u05E8 \u05D4\u05D6\u05D4 \u05E2\u05D5\u05DC\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8 \u05DC\u05D1\u05D3 \u05DB\u05E9\u05D4\u05D1\u05E0\u05D9\u05D9\u05D4 \u05DE\u05E1\u05EA\u05D9\u05D9\u05DE\u05EA, \u05DB\u05DE\u05D5 \u05E9\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D4\u05D2\u05D3\u05D9\u05E8 \u05D1\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA \u05D4\u05D0\u05EA\u05E8. \u05DE\u05D7\u05DB\u05D9\u05DD \u05E9\u05D9\u05E2\u05DC\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8.",
     holdOn: "\u05D2\u05E8\u05E1\u05EA \u05D1\u05D3\u05D9\u05E7\u05D4: v{n} \u05E0\u05E9\u05D0\u05E8\u05EA \u05D1\u05EA\u05E6\u05D5\u05D2\u05D4 \u05DE\u05E7\u05D3\u05D9\u05DE\u05D4 \u05D5\u05DC\u05D0 \u05E2\u05D5\u05DC\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8 \u05E2\u05D3 \u05E9\u05D4\u05D1\u05E2\u05DC\u05D9\u05DD \u05D9\u05D0\u05E9\u05E8\u05D5, \u05D2\u05DD \u05D1\u05D0\u05EA\u05E8 \u05E9\u05E2\u05D5\u05DC\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8 \u05DC\u05D1\u05D3.",
     holdAndLive: "--hold \u05DE\u05E9\u05D0\u05D9\u05E8 \u05D0\u05EA \u05D4\u05D2\u05E8\u05E1\u05D4 \u05D1\u05D4\u05DE\u05EA\u05E0\u05D4 \u05D5\u05BE--live \u05DE\u05E2\u05DC\u05D4 \u05D0\u05D5\u05EA\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8. \u05D1\u05D7\u05E8\u05D5 \u05D0\u05D7\u05D3 \u05DE\u05D4\u05DD.",
     holdGuest: "\u05D0\u05EA\u05E8 \u05D6\u05DE\u05E0\u05D9 \u05E2\u05D5\u05DC\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8 \u05D0\u05D7\u05E8\u05D9 \u05DB\u05DC \u05D1\u05E0\u05D9\u05D9\u05D4, \u05D5\u05DC\u05DB\u05DF \u200E--hold \u05DC\u05D0 \u05D7\u05DC \u05E2\u05DC\u05D9\u05D5.",
-    moveOfferGranted: "\u05D4\u05D0\u05EA\u05E8 \u05E2\u05D1\u05E8 \u05DE /move \u05D5\u05E7\u05D9\u05D1\u05DC {n} \u05EA\u05D5\u05E1\u05E4\u05D9\u05DD \u05D1\u05D7\u05D9\u05E0\u05DD. \u05D4\u05DD \u05DE\u05D7\u05DB\u05D9\u05DD \u05DC\u05E1\u05D5\u05E3 \u05D4\u05DE\u05E2\u05D1\u05E8, \u05D5\u05D4\u05E9\u05DC\u05D1 \u05D4\u05D0\u05D7\u05E8\u05D5\u05DF \u05DE\u05E6\u05D9\u05E2 \u05D0\u05D5\u05EA\u05DD.",
-    moveOfferCap: "\u05D4\u05EA\u05D5\u05E1\u05E4\u05D9\u05DD \u05D4\u05D7\u05D9\u05E0\u05DE\u05D9\u05D9\u05DD \u05DC\u05D0\u05EA\u05E8\u05D9\u05DD \u05E9\u05E2\u05D1\u05E8\u05D5 \u05DB\u05D1\u05E8 \u05E0\u05D5\u05E6\u05DC\u05D5 \u05D1 3 \u05D0\u05EA\u05E8\u05D9\u05DD \u05D1\u05D7\u05E9\u05D1\u05D5\u05DF \u05D4\u05D6\u05D4.",
-    moveOfferOver: "\u05DE\u05D1\u05E6\u05E2 \u05D4\u05EA\u05D5\u05E1\u05E4\u05D9\u05DD \u05D4\u05D7\u05D9\u05E0\u05DE\u05D9\u05D9\u05DD \u05DC\u05D0\u05EA\u05E8\u05D9\u05DD \u05E9\u05E2\u05D1\u05E8\u05D5 \u05D4\u05E1\u05EA\u05D9\u05D9\u05DD.",
+    moveOfferGranted: "\u05D4\u05D0\u05EA\u05E8 \u05D4\u05D2\u05D9\u05E2 \u05D3\u05E8\u05DA \u200E/move \u05D5\u05E7\u05D9\u05D1\u05DC {n} \u05EA\u05D5\u05E1\u05E4\u05D9\u05DD \u05D1\u05D7\u05D9\u05E0\u05DD. \u05E0\u05E6\u05D9\u05E2 \u05D0\u05D5\u05EA\u05DD \u05D1\u05E9\u05DC\u05D1 \u05D4\u05D0\u05D7\u05E8\u05D5\u05DF, \u05D0\u05D7\u05E8\u05D9 \u05E9\u05D4\u05D4\u05E2\u05D1\u05E8\u05D4 \u05DE\u05E1\u05EA\u05D9\u05D9\u05DE\u05EA.",
+    moveOfferCap: "\u05DB\u05D1\u05E8 \u05D4\u05E9\u05EA\u05DE\u05E9\u05EA\u05DD \u05D1\u05EA\u05D5\u05E1\u05E4\u05D9\u05DD \u05D4\u05D7\u05D9\u05E0\u05DE\u05D9\u05D9\u05DD \u05DC\u05D0\u05EA\u05E8\u05D9\u05DD \u05E9\u05D4\u05D5\u05E2\u05D1\u05E8\u05D5 \u05D1\u05BE3 \u05D0\u05EA\u05E8\u05D9\u05DD \u05D1\u05D7\u05E9\u05D1\u05D5\u05DF \u05D4\u05D6\u05D4.",
+    moveOfferOver: "\u05DE\u05D1\u05E6\u05E2 \u05D4\u05EA\u05D5\u05E1\u05E4\u05D9\u05DD \u05D4\u05D7\u05D9\u05E0\u05DE\u05D9\u05D9\u05DD \u05DC\u05D0\u05EA\u05E8\u05D9\u05DD \u05E9\u05D4\u05D5\u05E2\u05D1\u05E8\u05D5 \u05D4\u05E1\u05EA\u05D9\u05D9\u05DD.",
     initHint: "  \u05DB\u05D3\u05D9 \u05E9\u05D4\u05E1\u05D5\u05DB\u05DF \u05D9\u05E2\u05D1\u05D5\u05D3 \u05DC\u05E4\u05D9 \u05D4\u05DB\u05DC\u05DC\u05D9\u05DD \u05E9\u05DC DeployAI, \u05D4\u05E8\u05D9\u05E6\u05D5: npx deployai@latest init",
     emptyFolder: "\u05D0\u05D9\u05DF \u05E2\u05D3\u05D9\u05D9\u05DF \u05DE\u05D4 \u05DC\u05D1\u05D3\u05D5\u05E7: \u05D0\u05D9\u05DF \u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5 \u05D0\u05EA\u05E8. \u05D1\u05E0\u05D5 \u05DB\u05D0\u05DF \u05D0\u05EA \u05D4\u05D0\u05EA\u05E8, \u05D5\u05D0\u05D6 \u05D4\u05E8\u05D9\u05E6\u05D5: npx deployai@latest check",
     deployTitle: "DeployAI deploy",
@@ -24936,8 +25155,8 @@ var M = {
     goesLive: "\u05D4\u05D2\u05E8\u05E1\u05D4 \u05D4\u05D7\u05D3\u05E9\u05D4 \u05E2\u05D5\u05DC\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8 \u05DB\u05E9\u05D4\u05D1\u05E0\u05D9\u05D9\u05D4 \u05E9\u05DC\u05D4 \u05DE\u05E1\u05EA\u05D9\u05D9\u05DE\u05EA.",
     followBuild: "  \u05D4\u05E8\u05D9\u05E6\u05D5: npx deployai@latest status (\u05DB\u05D3\u05D9 \u05DC\u05E2\u05E7\u05D5\u05D1 \u05D0\u05D7\u05E8\u05D9 \u05D4\u05D1\u05E0\u05D9\u05D9\u05D4)",
     thenPromote: "  \u05D5\u05E8\u05E7 \u05D0\u05D7\u05E8\u05D9 \u05E9\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D0\u05D9\u05E9\u05E8 \u05D0\u05EA \u05D4\u05EA\u05E6\u05D5\u05D2\u05D4 \u05D4\u05DE\u05E7\u05D3\u05D9\u05DE\u05D4: npx deployai@latest promote v{n} (\u05DB\u05D3\u05D9 \u05DC\u05D4\u05E2\u05DC\u05D5\u05EA \u05D0\u05D5\u05EA\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8)",
-    heavyPage: "\u05E2\u05DE\u05D5\u05D3 \u05D4\u05D1\u05D9\u05EA \u05D8\u05D5\u05E2\u05DF {n} \u05E7\u05D1\u05E6\u05D9\u05DD \u05DE\u05D4\u05D0\u05EA\u05E8. \u05E4\u05D7\u05D5\u05EA \u05E7\u05D1\u05E6\u05D9\u05DD \u05D6\u05D4 \u05D0\u05EA\u05E8 \u05DE\u05D4\u05D9\u05E8 \u05D9\u05D5\u05EA\u05E8 \u05DC\u05DE\u05D1\u05E7\u05E8\u05D9\u05DD.",
-    prefetchPage: "\u05E2\u05DE\u05D5\u05D3 \u05D4\u05D1\u05D9\u05EA \u05D8\u05D5\u05E2\u05DF \u05E2\u05DE\u05D5\u05D3\u05D9\u05DD \u05DC\u05E4\u05E0\u05D9 \u05E9\u05DE\u05D9\u05E9\u05D4\u05D5 \u05E4\u05D5\u05EA\u05D7 \u05D0\u05D5\u05EA\u05DD (prefetch). \u05DB\u05D9\u05D1\u05D5\u05D9 \u05E9\u05DC\u05D5 \u05D1\u05E8\u05E9\u05D9\u05DE\u05D5\u05EA \u05E7\u05D9\u05E9\u05D5\u05E8\u05D9\u05DD \u05D0\u05E8\u05D5\u05DB\u05D5\u05EA \u05D7\u05D5\u05E1\u05DA \u05DC\u05DE\u05D1\u05E7\u05E8\u05D9\u05DD \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD.",
+    heavyPage: "\u05E2\u05DE\u05D5\u05D3 \u05D4\u05D1\u05D9\u05EA \u05D8\u05D5\u05E2\u05DF {n} \u05E7\u05D1\u05E6\u05D9\u05DD \u05DE\u05D4\u05D0\u05EA\u05E8. \u05DB\u05DB\u05DC \u05E9\u05D9\u05E9 \u05E4\u05D7\u05D5\u05EA \u05E7\u05D1\u05E6\u05D9\u05DD, \u05D4\u05D0\u05EA\u05E8 \u05E0\u05D8\u05E2\u05DF \u05DE\u05D4\u05E8 \u05D9\u05D5\u05EA\u05E8 \u05DC\u05DE\u05D1\u05E7\u05E8\u05D9\u05DD.",
+    prefetchPage: "\u05E2\u05DE\u05D5\u05D3 \u05D4\u05D1\u05D9\u05EA \u05D8\u05D5\u05E2\u05DF \u05E2\u05DE\u05D5\u05D3\u05D9\u05DD \u05DC\u05E4\u05E0\u05D9 \u05E9\u05DE\u05D9\u05E9\u05D4\u05D5 \u05E4\u05D5\u05EA\u05D7 \u05D0\u05D5\u05EA\u05DD (prefetch). \u05D0\u05DD \u05DE\u05DB\u05D1\u05D9\u05DD \u05D0\u05EA \u05D6\u05D4 \u05D1\u05E8\u05E9\u05D9\u05DE\u05D5\u05EA \u05E7\u05D9\u05E9\u05D5\u05E8\u05D9\u05DD \u05D0\u05E8\u05D5\u05DB\u05D5\u05EA, \u05D4\u05DE\u05D1\u05E7\u05E8\u05D9\u05DD \u05D7\u05D5\u05E1\u05DB\u05D9\u05DD \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD.",
     speedHint: "  \u05DC\u05D1\u05D3\u05D9\u05E7\u05D4: npx deployai@latest speed {url}",
     queueWaiting: "\u05DE\u05DE\u05EA\u05D9\u05DF \u05D1\u05EA\u05D5\u05E8, \u05DE\u05E7\u05D5\u05DD {n}",
     files: "\u05E7\u05D1\u05E6\u05D9\u05DD",
@@ -24948,8 +25167,8 @@ var M = {
     guestClaim: "\u05E4\u05EA\u05D7\u05D5 \u05D0\u05EA \u05E7\u05D9\u05E9\u05D5\u05E8 \u05D4\u05E9\u05DE\u05D9\u05E8\u05D4 \u05DB\u05D3\u05D9 \u05DC\u05E9\u05DE\u05D5\u05E8 \u05D0\u05EA \u05D4\u05D0\u05EA\u05E8 (\u05D4\u05E8\u05E9\u05DE\u05D4 \u05D0\u05D5 \u05DB\u05E0\u05D9\u05E1\u05D4).",
     claimLink: "\u05E7\u05D9\u05E9\u05D5\u05E8 \u05D4\u05E9\u05DE\u05D9\u05E8\u05D4 \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D4\u05D6\u05DE\u05E0\u05D9: {url}",
     pulled: "\u05D4\u05D5\u05E8\u05D3\u05E0\u05D5 \u05D0\u05EA \u05D4\u05E7\u05D5\u05D3 \u05E9\u05DC \u05D2\u05E8\u05E1\u05D4 v{v}: {n} \u05E7\u05D1\u05E6\u05D9\u05DD.",
-    pulledHistory: "\u05D4\u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D4 \u05D9\u05E8\u05D3\u05D4: {n} \u05D2\u05E8\u05E1\u05D0\u05D5\u05EA \u05DB commits \u05D1 git, \u05E2\u05D3 \u05D4\u05D2\u05E8\u05E1\u05D4 \u05D4\u05D7\u05D9\u05D4 v{v}.",
-    pullNoGit: "\u05DB\u05D3\u05D9 \u05DC\u05D4\u05D5\u05E8\u05D9\u05D3 \u05D0\u05EA \u05D4\u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D4 \u05E6\u05E8\u05D9\u05DA git \u05D1\u05DE\u05D7\u05E9\u05D1. \u05D4\u05EA\u05E7\u05D9\u05E0\u05D5 \u05D0\u05D5\u05EA\u05D5 \u05DE https://git-scm.com, \u05D0\u05D5 \u05D4\u05E8\u05D9\u05E6\u05D5 pull \u05D1\u05DC\u05D9 --history.",
+    pulledHistory: "\u05D4\u05D5\u05E8\u05D3\u05E0\u05D5 \u05D0\u05EA \u05D4\u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D4: {n} \u05D2\u05E8\u05E1\u05D0\u05D5\u05EA \u05DB\u05BEcommits \u05D1\u05BEgit, \u05E2\u05D3 \u05D4\u05D2\u05E8\u05E1\u05D4 \u05E9\u05D1\u05D0\u05D5\u05D5\u05D9\u05E8 v{v}.",
+    pullNoGit: "\u05DB\u05D3\u05D9 \u05DC\u05D4\u05D5\u05E8\u05D9\u05D3 \u05D0\u05EA \u05D4\u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D4 \u05E6\u05E8\u05D9\u05DA git \u05D1\u05DE\u05D7\u05E9\u05D1. \u05D4\u05EA\u05E7\u05D9\u05E0\u05D5 \u05D0\u05D5\u05EA\u05D5 \u05DE\u05BEhttps://git-scm.com, \u05D0\u05D5 \u05D4\u05E8\u05D9\u05E6\u05D5 pull \u05D1\u05DC\u05D9 \u200E--history.",
     pullNotLinked: "\u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5 \u05DC\u05D0 \u05DE\u05D7\u05D5\u05D1\u05E8\u05EA \u05DC\u05D0\u05EA\u05E8. \u05D4\u05E2\u05EA\u05D9\u05E7\u05D5 \u05E9\u05D5\u05D1 \u05D0\u05EA \u05D4\u05E9\u05D5\u05E8\u05D4 \u05DE\u05D3\u05E3 \u05D4\u05D0\u05EA\u05E8 \u05D1\u05BEDeployAI.",
     pullNotEmpty: "\u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5 \u05DB\u05D1\u05E8 \u05D9\u05E9 \u05E7\u05D1\u05E6\u05D9\u05DD, \u05D0\u05D6 \u05DC\u05D0 \u05D4\u05D5\u05E8\u05D3\u05E0\u05D5 \u05DB\u05DC\u05D5\u05DD. \u05D4\u05E9\u05EA\u05DE\u05E9\u05D5 \u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05E8\u05D9\u05E7\u05D4.",
     pullNoSource: "\u05DC\u05D0\u05EA\u05E8 \u05D4\u05D6\u05D4 \u05E2\u05D5\u05D3 \u05D0\u05D9\u05DF \u05D2\u05E8\u05E1\u05D4 \u05DC\u05D4\u05D5\u05E8\u05D9\u05D3.",
@@ -24958,17 +25177,17 @@ var M = {
     guestEmailHint: "\u05DC\u05E7\u05D1\u05DC \u05D0\u05D5\u05EA\u05D5 \u05D1\u05DE\u05D9\u05D9\u05DC, \u05E2\u05DD \u05EA\u05D6\u05DB\u05D5\u05E8\u05EA \u05DC\u05E4\u05E0\u05D9 \u05D4\u05DE\u05D7\u05D9\u05E7\u05D4: npx deployai@latest claim --email <email>",
     claimEmailed: "\u05E9\u05DC\u05D7\u05E0\u05D5 \u05D0\u05EA \u05E7\u05D9\u05E9\u05D5\u05E8 \u05D4\u05E9\u05DE\u05D9\u05E8\u05D4 \u05DC\u05BE{email}. \u05EA\u05D6\u05DB\u05D5\u05E8\u05EA \u05EA\u05D2\u05D9\u05E2 3 \u05D9\u05DE\u05D9\u05DD \u05DC\u05E4\u05E0\u05D9 \u05E9\u05D4\u05D0\u05EA\u05E8 \u05E0\u05DE\u05D7\u05E7.",
     claimNoLink: "\u05DE\u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5 \u05DC\u05D0 \u05D4\u05D5\u05E2\u05DC\u05D4 \u05D0\u05EA\u05E8 \u05D6\u05DE\u05E0\u05D9 \u05DE\u05D4\u05DE\u05D7\u05E9\u05D1 \u05D4\u05D6\u05D4, \u05D0\u05D6 \u05D0\u05D9\u05DF \u05DB\u05D0\u05DF \u05E7\u05D9\u05E9\u05D5\u05E8 \u05E9\u05DE\u05D9\u05E8\u05D4.",
-    rollbackQueued: "\u05D4\u05D7\u05D6\u05E8\u05D4 \u05DC\u05BEv{n} \u05D1\u05EA\u05D5\u05E8. \u05D0\u05D9\u05DF \u05E6\u05D5\u05E8\u05DA \u05D1\u05D1\u05E0\u05D9\u05D9\u05D4 \u05DE\u05D7\u05D3\u05E9.",
-    promoteQueued: "\u05D4\u05E2\u05DC\u05D0\u05EA v{n} \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8 \u05D1\u05EA\u05D5\u05E8.",
+    rollbackQueued: "\u05D4\u05D7\u05D6\u05E8\u05D4 \u05DC\u05BEv{n} \u05E0\u05DB\u05E0\u05E1\u05D4 \u05DC\u05EA\u05D5\u05E8. \u05DC\u05D0 \u05E6\u05E8\u05D9\u05DA \u05DC\u05D1\u05E0\u05D5\u05EA \u05DE\u05D7\u05D3\u05E9.",
+    promoteQueued: "\u05D4\u05E2\u05DC\u05D0\u05EA v{n} \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8 \u05E0\u05DB\u05E0\u05E1\u05D4 \u05DC\u05EA\u05D5\u05E8.",
     runStatus: "  \u05D4\u05E8\u05D9\u05E6\u05D5: npx deployai@latest status",
     statusTitle: "DeployAI status",
     state: "\u05DE\u05E6\u05D1",
-    liveVersion: "\u05D2\u05E8\u05E1\u05D4 \u05D7\u05D9\u05D4",
+    liveVersion: "\u05D2\u05E8\u05E1\u05D4 \u05D1\u05D0\u05D5\u05D5\u05D9\u05E8",
     newestVersion: "\u05D2\u05E8\u05E1\u05D4 \u05D0\u05D7\u05E8\u05D5\u05E0\u05D4",
     promoteReady: "  \u05D0\u05D7\u05E8\u05D9 \u05E9\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D0\u05D9\u05E9\u05E8 \u05D0\u05EA \u05D4\u05EA\u05E6\u05D5\u05D2\u05D4 \u05D4\u05DE\u05E7\u05D3\u05D9\u05DE\u05D4: npx deployai@latest promote v{n} (\u05DB\u05D3\u05D9 \u05DC\u05D4\u05E2\u05DC\u05D5\u05EA \u05D0\u05D5\u05EA\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8)",
-    firstLookNext: "  \u05D2\u05E8\u05E1\u05D4 {n} \u05D4\u05D9\u05D0 \u05D4\u05DE\u05D1\u05D8 \u05D4\u05E8\u05D0\u05E9\u05D5\u05DF \u05D4\u05E4\u05E8\u05D8\u05D9. \u05E9\u05D5\u05DD \u05D3\u05D1\u05E8 \u05DC\u05D0 \u05DE\u05D7\u05DB\u05D4 \u05DC\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8: \u05E9\u05DC\u05D7\u05D5 \u05D0\u05EA \u05DB\u05EA\u05D5\u05D1\u05EA \u05D4\u05EA\u05E6\u05D5\u05D2\u05D4 \u05D4\u05DE\u05E7\u05D3\u05D9\u05DE\u05D4 \u05D5\u05D4\u05DE\u05E9\u05D9\u05DB\u05D5 \u05DC\u05E9\u05DC\u05D1 \u05D4\u05D1\u05D0.",
+    firstLookNext: "  \u05D2\u05E8\u05E1\u05D4 {n} \u05D4\u05D9\u05D0 \u05D4\u05DE\u05D1\u05D8 \u05D4\u05E8\u05D0\u05E9\u05D5\u05DF \u05D4\u05E4\u05E8\u05D8\u05D9, \u05D5\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05DC\u05D0 \u05E6\u05E8\u05D9\u05DA \u05DC\u05D0\u05E9\u05E8 \u05D0\u05D5\u05EA\u05D4: \u05E9\u05DC\u05D7\u05D5 \u05D0\u05EA \u05DB\u05EA\u05D5\u05D1\u05EA \u05D4\u05EA\u05E6\u05D5\u05D2\u05D4 \u05D4\u05DE\u05E7\u05D3\u05D9\u05DE\u05D4 \u05D5\u05D4\u05DE\u05E9\u05D9\u05DB\u05D5 \u05DC\u05E9\u05DC\u05D1 \u05D4\u05D1\u05D0.",
     previewNotYet: "\u05E7\u05D9\u05E9\u05D5\u05E8 \u05D4\u05EA\u05E6\u05D5\u05D2\u05D4 \u05D4\u05DE\u05E7\u05D3\u05D9\u05DE\u05D4 \u05E2\u05D5\u05D3 \u05DC\u05D0 \u05E2\u05D5\u05E0\u05D4. \u05D6\u05D4 \u05D9\u05DB\u05D5\u05DC \u05DC\u05E7\u05D7\u05EA \u05DB\u05DE\u05D4 \u05D3\u05E7\u05D5\u05EA: \u05D4\u05DE\u05E9\u05D9\u05DB\u05D5 \u05DC\u05E2\u05D1\u05D5\u05D3, \u05D5\u05E4\u05EA\u05D7\u05D5 \u05D0\u05D5\u05EA\u05D5 \u05D0\u05D7\u05E8\u05D9 \u05D4\u05E9\u05DC\u05D1 \u05D4\u05D1\u05D0.",
-    publicLeftOut: "  {count} \u05E7\u05D1\u05E6\u05D9\u05DD \u05E9\u05D4\u05D0\u05EA\u05E8 \u05DE\u05D2\u05D9\u05E9 \u05DC\u05D0 \u05E2\u05D5\u05DC\u05D9\u05DD, \u05DB\u05D9 \u200E.gitignore \u05DE\u05D5\u05E6\u05D9\u05D0 \u05D0\u05D5\u05EA\u05DD. \u05D4\u05E8\u05D0\u05E9\u05D5\u05DF: {file}",
+    publicLeftOut: "  {count} \u05E7\u05D1\u05E6\u05D9\u05DD \u05E9\u05D4\u05D0\u05EA\u05E8 \u05DE\u05D2\u05D9\u05E9 \u05DC\u05D0 \u05E2\u05D5\u05DC\u05D9\u05DD, \u05DB\u05D9 \u200E.gitignore \u05DE\u05E9\u05D0\u05D9\u05E8 \u05D0\u05D5\u05EA\u05DD \u05D1\u05D7\u05D5\u05E5. \u05D4\u05E8\u05D0\u05E9\u05D5\u05DF: {file}",
     sameNameChanged: "  {count} \u05E7\u05D1\u05E6\u05D9\u05DD \u05D4\u05E9\u05EA\u05E0\u05D5 \u05D0\u05D1\u05DC \u05E9\u05DE\u05E8\u05D5 \u05E2\u05DC \u05D4\u05E9\u05DD, \u05D0\u05D6 \u05DE\u05D1\u05E7\u05E8\u05D9\u05DD \u05D7\u05D5\u05D6\u05E8\u05D9\u05DD \u05E2\u05DC\u05D5\u05DC\u05D9\u05DD \u05DC\u05E8\u05D0\u05D5\u05EA \u05D0\u05EA \u05D4\u05D9\u05E9\u05DF \u05E2\u05D3 \u05D7\u05D5\u05D3\u05E9. \u05D4\u05E8\u05D0\u05E9\u05D5\u05DF: {file}. \u05E9\u05DE\u05E8\u05D5 \u05EA\u05DE\u05D5\u05E0\u05D4 \u05E9\u05D4\u05E9\u05EA\u05E0\u05EA\u05D4 \u05D1\u05E9\u05DD \u05D7\u05D3\u05E9 \u05E2\u05DD \u05E7\u05D5\u05D3 \u05E7\u05E6\u05E8, \u05DB\u05DE\u05D5 team-3f9a2c.webp, \u05D5\u05E2\u05D3\u05DB\u05E0\u05D5 \u05D0\u05D9\u05E4\u05D4 \u05E9\u05D4\u05D9\u05D0 \u05D1\u05E9\u05D9\u05DE\u05D5\u05E9.",
     publicLeftOutFix: "  \u05DB\u05D3\u05D9 \u05DC\u05D4\u05E2\u05DC\u05D5\u05EA \u05D0\u05D5\u05EA\u05DD, \u05D4\u05D5\u05E1\u05D9\u05E4\u05D5 \u05D0\u05EA \u05D4\u05E9\u05D5\u05E8\u05D4 \u05D4\u05D6\u05D5 \u05DC\u05E7\u05D5\u05D1\u05E5 \u200E.deployaiignore: !{dir}/",
     statusWait: "  \u05DB\u05D3\u05D9 \u05DC\u05D7\u05DB\u05D5\u05EA \u05DB\u05D0\u05DF \u05E2\u05D3 \u05E9\u05D6\u05D4 \u05E0\u05D2\u05DE\u05E8: npx deployai@latest status --wait",
@@ -24982,20 +25201,20 @@ var M = {
     askOwner: '  \u05D2\u05E8\u05E1\u05D4 {n} \u05DE\u05D5\u05DB\u05E0\u05D4 \u05D5\u05E2\u05D5\u05D3 \u05DC\u05D0 \u05D1\u05D0\u05D5\u05D5\u05D9\u05E8. \u05E9\u05D0\u05DC\u05D5 \u05D0\u05EA \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8: "\u05D2\u05E8\u05E1\u05D4 {n} \u05DE\u05D5\u05DB\u05E0\u05D4. \u05DC\u05D4\u05E2\u05DC\u05D5\u05EA \u05D0\u05D5\u05EA\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8?"',
     showPreview: "  \u05E9\u05DC\u05D7\u05D5 \u05E7\u05D5\u05D3\u05DD \u05D0\u05EA \u05D4\u05EA\u05E6\u05D5\u05D2\u05D4 \u05D4\u05DE\u05E7\u05D3\u05D9\u05DE\u05D4: {url}",
     homeBroken: "  \u05D3\u05E3 \u05D4\u05D1\u05D9\u05EA \u05D1\u05EA\u05E6\u05D5\u05D2\u05D4 \u05D4\u05DE\u05E7\u05D3\u05D9\u05DE\u05D4 \u05DE\u05D7\u05D6\u05D9\u05E8 {status}, \u05D5\u05DC\u05DB\u05DF \u05DE\u05D1\u05E7\u05E8\u05D9\u05DD \u05DC\u05D0 \u05D9\u05E8\u05D0\u05D5 \u05D0\u05EA \u05D4\u05D0\u05EA\u05E8.",
-    homeFix: "  \u05EA\u05E7\u05E0\u05D5 \u05D5\u05E4\u05E8\u05E1\u05D5 \u05E9\u05D5\u05D1. \u05D4\u05D2\u05E8\u05E1\u05D4 \u05D4\u05D6\u05D5 \u05DC\u05D0 \u05E2\u05DC\u05EA\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8, \u05D5\u05D0\u05DC \u05EA\u05E9\u05DC\u05D7\u05D5 \u05E2\u05D3\u05D9\u05D9\u05DF \u05D0\u05EA \u05D4\u05E7\u05D9\u05E9\u05D5\u05E8 \u05DC\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8.",
+    homeFix: "  \u05EA\u05E7\u05E0\u05D5 \u05D5\u05D4\u05E2\u05DC\u05D5 \u05E9\u05D5\u05D1. \u05D4\u05D2\u05E8\u05E1\u05D4 \u05D4\u05D6\u05D5 \u05DC\u05D0 \u05E2\u05DC\u05EA\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8, \u05D0\u05D6 \u05E2\u05D5\u05D3 \u05D0\u05DC \u05EA\u05E9\u05DC\u05D7\u05D5 \u05D0\u05EA \u05D4\u05E7\u05D9\u05E9\u05D5\u05E8 \u05DC\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8.",
     creditLeft: "  \u05D4\u05D0\u05EA\u05E8 \u05E2\u05D3\u05D9\u05D9\u05DF \u05DE\u05E6\u05D9\u05D2 \u05E7\u05E8\u05D3\u05D9\u05D8 \u05E9\u05DC \u05D1\u05D5\u05E0\u05D4 \u05D0\u05EA\u05E8\u05D9\u05DD: {text}",
     creditFix: "  \u05D4\u05E1\u05D9\u05E8\u05D5 \u05D0\u05D5\u05EA\u05D5 \u05D5\u05E9\u05D9\u05DE\u05D5 \u05D1\u05DE\u05E7\u05D5\u05DE\u05D5 \u05D0\u05EA \u05E9\u05DD \u05D4\u05D0\u05EA\u05E8 \u05D5\u05D4\u05E9\u05E0\u05D4, \u05D0\u05DC\u05D0 \u05D0\u05DD \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D1\u05D9\u05E7\u05E9 \u05DC\u05D4\u05E9\u05D0\u05D9\u05E8 \u05D0\u05D5\u05EA\u05D5.",
-    askLiveFirst: "\u05DC\u05D4\u05E2\u05DC\u05D5\u05EA \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8 \u05DE\u05D9\u05D3 \u05DB\u05E9\u05D4\u05D1\u05E0\u05D9\u05D9\u05D4 \u05DE\u05E1\u05EA\u05D9\u05D9\u05DE\u05EA? \u05DC\u05D0 \u05DE\u05E6\u05D9\u05D2 \u05E7\u05D5\u05D3\u05DD \u05D0\u05EA \u05D4\u05EA\u05E6\u05D5\u05D2\u05D4 \u05D4\u05DE\u05E7\u05D3\u05D9\u05DE\u05D4. (y/N) ",
+    askLiveFirst: "\u05DC\u05D4\u05E2\u05DC\u05D5\u05EA \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8 \u05DE\u05D9\u05D3 \u05DB\u05E9\u05D4\u05D1\u05E0\u05D9\u05D9\u05D4 \u05DE\u05E1\u05EA\u05D9\u05D9\u05DE\u05EA? \u05D0\u05DD \u05EA\u05E2\u05E0\u05D5 \u05DC\u05D0, \u05EA\u05E8\u05D0\u05D5 \u05E7\u05D5\u05D3\u05DD \u05D0\u05EA \u05D4\u05EA\u05E6\u05D5\u05D2\u05D4 \u05D4\u05DE\u05E7\u05D3\u05D9\u05DE\u05D4. (y/N) ",
     askLiveNow: "\u05DC\u05D4\u05E2\u05DC\u05D5\u05EA \u05D0\u05EA v{n} \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8 \u05E2\u05DB\u05E9\u05D9\u05D5? (y/N) ",
     waitBuild: "\u05DE\u05D7\u05DB\u05D9\u05DD \u05DC\u05D1\u05E0\u05D9\u05D9\u05D4 \u05E9\u05DC v{n}. Ctrl+C \u05DE\u05E4\u05E1\u05D9\u05E7 \u05D0\u05EA \u05D4\u05D4\u05DE\u05EA\u05E0\u05D4, \u05DC\u05D0 \u05D0\u05EA \u05D4\u05D1\u05E0\u05D9\u05D9\u05D4.",
     waitState: "  v{n}: {s}",
     buildSlow: "\u05D4\u05D1\u05E0\u05D9\u05D9\u05D4 \u05E9\u05DC v{n} \u05DC\u05D5\u05E7\u05D7\u05EA \u05D9\u05D5\u05EA\u05E8 \u05D6\u05DE\u05DF \u05DE\u05D4\u05E8\u05D2\u05D9\u05DC.",
     liveNow: "v{n} \u05D1\u05D0\u05D5\u05D5\u05D9\u05E8: {url}",
     soundOn: "\u05D4\u05E6\u05DC\u05D9\u05DC \u05E4\u05D5\u05E2\u05DC: \u05D4\u05DE\u05D7\u05E9\u05D1 \u05D4\u05D6\u05D4 \u05D9\u05E9\u05DE\u05D9\u05E2 \u05E6\u05DC\u05D9\u05DC \u05DB\u05E9\u05D4\u05D0\u05EA\u05E8 \u05DE\u05D5\u05DB\u05DF. \u05DB\u05D3\u05D9 \u05DC\u05D4\u05E4\u05E1\u05D9\u05E7: npx deployai@latest sound off.",
-    soundAgentOn: "\u05D2\u05DD \u05D1\u05D8\u05E8\u05DE\u05D9\u05E0\u05DC \u05D4\u05D6\u05D4: \u05E6\u05DC\u05D9\u05DC \u05E8\u05DA \u05DB\u05E9\u05D4\u05E1\u05D5\u05DB\u05DF \u05DE\u05E1\u05D9\u05D9\u05DD, \u05D5\u05E6\u05DC\u05D9\u05DC \u05E0\u05D5\u05E1\u05E3 \u05DB\u05E9\u05D4\u05D5\u05D0 \u05E6\u05E8\u05D9\u05DA \u05D0\u05EA\u05DB\u05DD. \u05D4\u05E0\u05E7\u05D5\u05D3\u05D4 \u05D4\u05E6\u05D1\u05E2\u05D5\u05E0\u05D9\u05EA \u05D1\u05DC\u05E9\u05D5\u05E0\u05D9\u05EA \u05EA\u05D5\u05E4\u05D9\u05E2 \u05D1\u05E4\u05E2\u05DD \u05D4\u05D1\u05D0\u05D4 \u05E9-Claude Code \u05E0\u05E4\u05EA\u05D7.",
+    soundAgentOn: "\u05D2\u05DD \u05D1\u05D8\u05E8\u05DE\u05D9\u05E0\u05DC \u05D4\u05D6\u05D4: \u05E6\u05DC\u05D9\u05DC \u05E8\u05DA \u05DB\u05E9\u05D4\u05E1\u05D5\u05DB\u05DF \u05DE\u05E1\u05D9\u05D9\u05DD, \u05D5\u05E6\u05DC\u05D9\u05DC \u05E0\u05D5\u05E1\u05E3 \u05DB\u05E9\u05D4\u05D5\u05D0 \u05E6\u05E8\u05D9\u05DA \u05D0\u05EA\u05DB\u05DD. \u05D4\u05E0\u05E7\u05D5\u05D3\u05D4 \u05D4\u05E6\u05D1\u05E2\u05D5\u05E0\u05D9\u05EA \u05D1\u05DC\u05E9\u05D5\u05E0\u05D9\u05EA \u05EA\u05D5\u05E4\u05D9\u05E2 \u05D1\u05E4\u05E2\u05DD \u05D4\u05D1\u05D0\u05D4 \u05E9\u05BEClaude Code \u05E0\u05E4\u05EA\u05D7.",
     soundOff: "\u05D4\u05E6\u05DC\u05D9\u05DC \u05DB\u05D1\u05D5\u05D9. \u05DB\u05D3\u05D9 \u05DC\u05D4\u05E4\u05E2\u05D9\u05DC: npx deployai@latest sound on.",
-    soundTest: "\u05D4\u05E6\u05DC\u05D9\u05DC \u05D4\u05D5\u05E9\u05DE\u05E2. \u05DC\u05D0 \u05E9\u05DE\u05E2\u05EA\u05DD? \u05D1\u05D3\u05E7\u05D5 \u05D0\u05EA \u05D4\u05E8\u05DE\u05E7\u05D5\u05DC\u05D9\u05DD: \u05DE\u05D4 \u05E9\u05DE\u05D5\u05D3\u05E4\u05E1 \u05DB\u05D0\u05DF \u05EA\u05DE\u05D9\u05D3 \u05D0\u05D5\u05DE\u05E8 \u05D0\u05EA \u05D0\u05D5\u05EA\u05D5 \u05D4\u05D3\u05D1\u05E8.",
-    closedHere: "\u05D4\u05D0\u05EA\u05E8 \u05E4\u05EA\u05D5\u05D7 \u05E8\u05E7 \u05DC\u05DE\u05D1\u05E7\u05E8\u05D9\u05DD \u05DE: {countries}. \u05DE\u05DB\u05D0\u05DF ({country}) \u05DE\u05D5\u05E6\u05D2 \u05D3\u05E3 \u05D7\u05E1\u05D5\u05DD.",
+    soundTest: "\u05D4\u05E9\u05DE\u05E2\u05E0\u05D5 \u05D0\u05EA \u05D4\u05E6\u05DC\u05D9\u05DC. \u05DC\u05D0 \u05E9\u05DE\u05E2\u05EA\u05DD? \u05D1\u05D3\u05E7\u05D5 \u05D0\u05EA \u05D4\u05E8\u05DE\u05E7\u05D5\u05DC\u05D9\u05DD: \u05DE\u05D4 \u05E9\u05DE\u05D5\u05D3\u05E4\u05E1 \u05DB\u05D0\u05DF \u05EA\u05DE\u05D9\u05D3 \u05D0\u05D5\u05DE\u05E8 \u05D0\u05EA \u05D0\u05D5\u05EA\u05D5 \u05D4\u05D3\u05D1\u05E8.",
+    closedHere: "\u05D4\u05D0\u05EA\u05E8 \u05E4\u05EA\u05D5\u05D7 \u05E8\u05E7 \u05DC\u05DE\u05D1\u05E7\u05E8\u05D9\u05DD \u05DE\u05D4\u05DE\u05D3\u05D9\u05E0\u05D5\u05EA \u05D4\u05D0\u05DC\u05D4: {countries}. \u05DE\u05DB\u05D0\u05DF ({country}) \u05DE\u05D5\u05E6\u05D2 \u05D3\u05E3 \u05D7\u05E1\u05D5\u05DD.",
     closedHereOpen: "  \u05E4\u05EA\u05D7\u05D5 \u05D0\u05D5\u05EA\u05D5 \u05D2\u05DD \u05DC\u05BE{country}: {url}",
     closedHereAsk: "  \u05D1\u05E7\u05E9\u05D5 \u05DE\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05DC\u05E4\u05EA\u05D5\u05D7 \u05D0\u05D5\u05EA\u05D5 \u05D2\u05DD \u05DC\u05BE{country}.",
     closedHereVpn: "  \u05D0\u05D5 \u05D4\u05E9\u05EA\u05DE\u05E9\u05D5 \u05D1\u05BEVPN \u05D3\u05E8\u05DA \u05DE\u05D3\u05D9\u05E0\u05D4 \u05E9\u05D4\u05D0\u05EA\u05E8 \u05E4\u05EA\u05D5\u05D7 \u05D1\u05D4.",
@@ -25008,12 +25227,12 @@ var M = {
     envNone: "\u05DC\u05D0\u05EA\u05E8 \u05D4\u05D6\u05D4 \u05E2\u05D5\u05D3 \u05D0\u05D9\u05DF \u05DE\u05E9\u05EA\u05E0\u05D9\u05DD. \u05D4\u05D5\u05E1\u05D9\u05E4\u05D5 \u05D0\u05D7\u05D3: npx deployai@latest env set <KEY> <value>",
     envSecret: "\u05E1\u05D5\u05D3",
     envPlain: "\u05D2\u05DC\u05D5\u05D9",
-    envNeedValue: '\u05DB\u05EA\u05D1\u05D5 \u05D0\u05EA \u05D4\u05E2\u05E8\u05DA \u05D0\u05D7\u05E8\u05D9 \u05D4\u05E9\u05DD, \u05D0\u05D5 \u05D4\u05E2\u05D1\u05D9\u05E8\u05D5 \u05D0\u05D5\u05EA\u05D5 \u05D1\u05E6\u05D9\u05E0\u05D5\u05E8: echo "<value>" | npx deployai@latest env set <KEY>',
+    envNeedValue: '\u05DB\u05EA\u05D1\u05D5 \u05D0\u05EA \u05D4\u05E2\u05E8\u05DA \u05D0\u05D7\u05E8\u05D9 \u05D4\u05E9\u05DD, \u05D0\u05D5 \u05D4\u05E2\u05D1\u05D9\u05E8\u05D5 \u05D0\u05D5\u05EA\u05D5 \u05DE\u05E4\u05E7\u05D5\u05D3\u05D4 \u05D0\u05D7\u05E8\u05EA: echo "<value>" | npx deployai@latest env set <KEY>',
     envSavedSecret: "\u05E9\u05DE\u05E8\u05E0\u05D5 \u05D0\u05EA {key} \u05DB\u05E1\u05D5\u05D3 \u05D1\u05D0\u05EA\u05E8 \u05D4\u05D7\u05D9. \u05D4\u05E2\u05E8\u05DA \u05DC\u05D0 \u05E0\u05E9\u05DE\u05E8 \u05D0\u05E6\u05DC\u05E0\u05D5 \u05D5\u05DC\u05D0 \u05D9\u05D5\u05E6\u05D2 \u05E9\u05D5\u05D1.",
     envSavedPlain: "\u05E9\u05DE\u05E8\u05E0\u05D5 \u05D0\u05EA {key}. \u05D4\u05D0\u05EA\u05E8 \u05D4\u05D7\u05D9 \u05D9\u05E7\u05D1\u05DC \u05D0\u05D5\u05EA\u05D5 \u05EA\u05D5\u05DA \u05DB\u05D3\u05E7\u05D4.",
     envRemoved: "\u05D4\u05E1\u05E8\u05E0\u05D5 \u05D0\u05EA {key}. \u05D4\u05D5\u05D0 \u05D9\u05D9\u05E2\u05DC\u05DD \u05DE\u05D4\u05D0\u05EA\u05E8 \u05D4\u05D7\u05D9 \u05EA\u05D5\u05DA \u05DB\u05D3\u05E7\u05D4.",
-    guestNoEnv: "\u05DC\u05D0\u05EA\u05E8 \u05D6\u05DE\u05E0\u05D9 \u05D0\u05D9\u05DF \u05DE\u05E9\u05EA\u05E0\u05D9 \u05E1\u05D1\u05D9\u05D1\u05D4. \u05E9\u05DE\u05E8\u05D5 \u05D0\u05D5\u05EA\u05D5 \u05DC\u05D7\u05E9\u05D1\u05D5\u05DF \u05E7\u05D5\u05D3\u05DD: npx deployai@latest claim",
-    envInvalidKey: "\u05E9\u05DD \u05DE\u05E9\u05EA\u05E0\u05D4: \u05D0\u05D5\u05EA\u05D9\u05D5\u05EA \u05D2\u05D3\u05D5\u05DC\u05D5\u05EA \u05D1\u05D0\u05E0\u05D2\u05DC\u05D9\u05EA, \u05E1\u05E4\u05E8\u05D5\u05EA \u05D5-_, \u05DE\u05EA\u05D7\u05D9\u05DC \u05D1\u05D0\u05D5\u05EA, \u05E2\u05D3 64 \u05EA\u05D5\u05D5\u05D9\u05DD, \u05DB\u05DE\u05D5 STRIPE_KEY.",
+    guestNoEnv: "\u05DC\u05D0\u05EA\u05E8 \u05D6\u05DE\u05E0\u05D9 \u05D0\u05D9\u05DF \u05DE\u05E9\u05EA\u05E0\u05D9 \u05E1\u05D1\u05D9\u05D1\u05D4. \u05E7\u05D5\u05D3\u05DD \u05E9\u05DE\u05E8\u05D5 \u05D0\u05D5\u05EA\u05D5 \u05D1\u05D7\u05E9\u05D1\u05D5\u05DF: npx deployai@latest claim",
+    envInvalidKey: "\u05E9\u05DD \u05DE\u05E9\u05EA\u05E0\u05D4: \u05D0\u05D5\u05EA\u05D9\u05D5\u05EA \u05D2\u05D3\u05D5\u05DC\u05D5\u05EA \u05D1\u05D0\u05E0\u05D2\u05DC\u05D9\u05EA, \u05E1\u05E4\u05E8\u05D5\u05EA \u05D5\u05BE_, \u05DE\u05EA\u05D7\u05D9\u05DC \u05D1\u05D0\u05D5\u05EA, \u05E2\u05D3 64 \u05EA\u05D5\u05D5\u05D9\u05DD, \u05DB\u05DE\u05D5 STRIPE_KEY.",
     envTooLong: "\u05D4\u05E2\u05E8\u05DA \u05D2\u05D3\u05D5\u05DC \u05DE\u05BE5KB, \u05D0\u05E8\u05D5\u05DA \u05DE\u05D3\u05D9 \u05DC\u05DE\u05E9\u05EA\u05E0\u05D4.",
     envSendFailed: "\u05D4\u05E1\u05D5\u05D3 \u05DC\u05D0 \u05D4\u05D2\u05D9\u05E2 \u05DC\u05D0\u05EA\u05E8. \u05E0\u05E1\u05D5 \u05E9\u05D5\u05D1 \u05D1\u05E2\u05D5\u05D3 \u05D3\u05E7\u05D4.",
     envNoKey: "\u05DC\u05D0\u05EA\u05E8 \u05D0\u05D9\u05DF \u05DE\u05E9\u05EA\u05E0\u05D4 \u05D1\u05E9\u05DD \u05D4\u05D6\u05D4. \u05DC\u05E8\u05E9\u05D9\u05DE\u05D4: npx deployai@latest env list",
@@ -25023,8 +25242,8 @@ var M = {
     buildLogTail: "\u05E1\u05D5\u05E3 \u05D9\u05D5\u05DE\u05DF \u05D4\u05D1\u05E0\u05D9\u05D9\u05D4:",
     buildFixHint: '\u05EA\u05E7\u05E0\u05D5 \u05D0\u05EA \u05D4\u05E9\u05D2\u05D9\u05D0\u05D4 \u05E9\u05DC\u05DE\u05E2\u05DC\u05D4, \u05D5\u05D0\u05D6 \u05D4\u05E8\u05D9\u05E6\u05D5: npx deployai@latest check, \u05D5\u05D0\u05D7\u05E8\u05D9\u05D5 npx deployai@latest deploy -m "<message>" --fixed "<one sentence: what you changed, no code>"',
     buildFixHintNoNote: '\u05EA\u05E7\u05E0\u05D5 \u05D0\u05EA \u05D4\u05E9\u05D2\u05D9\u05D0\u05D4 \u05E9\u05DC\u05DE\u05E2\u05DC\u05D4, \u05D5\u05D0\u05D6 \u05D4\u05E8\u05D9\u05E6\u05D5: npx deployai@latest check, \u05D5\u05D0\u05D7\u05E8\u05D9\u05D5 npx deployai@latest deploy -m "<message>"',
-    buildFailedAfter: '\u05D4\u05D1\u05E0\u05D9\u05D9\u05D4 \u05E2\u05E6\u05DE\u05D4 \u05D4\u05E1\u05EA\u05D9\u05D9\u05DE\u05D4: \u05D4\u05D9\u05D5\u05DE\u05DF \u05E9\u05DC\u05D4 \u05E0\u05D2\u05DE\u05E8 \u05D1\u05DC\u05D9 \u05E9\u05D2\u05D9\u05D0\u05D4, \u05DB\u05DA \u05E9\u05D4\u05DB\u05D9\u05E9\u05DC\u05D5\u05DF \u05E7\u05E8\u05D4 \u05D1\u05E9\u05DC\u05D1 \u05E9\u05D0\u05D7\u05E8\u05D9\u05D4, \u05D0\u05E6\u05DC\u05E0\u05D5. \u05D0\u05DC \u05EA\u05E9\u05E0\u05D5 \u05DB\u05DC\u05D5\u05DD \u05D5\u05E4\u05E8\u05E1\u05D5 \u05E9\u05D5\u05D1 \u05D1\u05D0\u05D5\u05EA\u05D4 \u05E4\u05E7\u05D5\u05D3\u05D4. \u05D0\u05DD \u05D6\u05D4 \u05E0\u05DB\u05E9\u05DC \u05E9\u05D5\u05D1 \u05D1\u05D0\u05D5\u05EA\u05D4 \u05E6\u05D5\u05E8\u05D4, \u05E1\u05E4\u05E8\u05D5 \u05DC\u05E0\u05D5: npx deployai@latest feedback --kind blocker --command deploy --what "<what you ran and what it printed>"',
-    linkedTo: "\u05DE\u05D7\u05D5\u05D1\u05E8 \u05DC {name} ({slug}).",
+    buildFailedAfter: '\u05D4\u05D1\u05E0\u05D9\u05D9\u05D4 \u05E2\u05E6\u05DE\u05D4 \u05D4\u05E1\u05EA\u05D9\u05D9\u05DE\u05D4: \u05D4\u05D9\u05D5\u05DE\u05DF \u05E9\u05DC\u05D4 \u05E0\u05D2\u05DE\u05E8 \u05D1\u05DC\u05D9 \u05E9\u05D2\u05D9\u05D0\u05D4, \u05DB\u05DA \u05E9\u05D4\u05DB\u05D9\u05E9\u05DC\u05D5\u05DF \u05E7\u05E8\u05D4 \u05D1\u05E9\u05DC\u05D1 \u05E9\u05D0\u05D7\u05E8\u05D9\u05D4, \u05D0\u05E6\u05DC\u05E0\u05D5. \u05D0\u05DC \u05EA\u05E9\u05E0\u05D5 \u05DB\u05DC\u05D5\u05DD, \u05D5\u05D4\u05E2\u05DC\u05D5 \u05E9\u05D5\u05D1 \u05D1\u05D0\u05D5\u05EA\u05D4 \u05E4\u05E7\u05D5\u05D3\u05D4. \u05D0\u05DD \u05D6\u05D4 \u05E0\u05DB\u05E9\u05DC \u05E9\u05D5\u05D1 \u05D1\u05D0\u05D5\u05EA\u05D4 \u05E6\u05D5\u05E8\u05D4, \u05E1\u05E4\u05E8\u05D5 \u05DC\u05E0\u05D5: npx deployai@latest feedback --kind blocker --command deploy --what "<what you ran and what it printed>"',
+    linkedTo: "\u05DE\u05D7\u05D5\u05D1\u05E8 \u05DC\u05BE{name} ({slug}).",
     loginTitle: "DeployAI login",
     browserOpened: "\u05D4\u05D3\u05E4\u05D3\u05E4\u05DF \u05E0\u05E4\u05EA\u05D7. \u05D0\u05E9\u05E8\u05D5 \u05E9\u05DD \u05D0\u05EA \u05D4\u05E7\u05D5\u05D3.",
     openAddress: "\u05E4\u05EA\u05D7\u05D5 \u05D0\u05EA \u05D4\u05DB\u05EA\u05D5\u05D1\u05EA \u05E9\u05DC\u05DE\u05E2\u05DC\u05D4 \u05D1\u05D3\u05E4\u05D3\u05E4\u05DF \u05D5\u05D0\u05E9\u05E8\u05D5 \u05D0\u05EA \u05D4\u05E7\u05D5\u05D3.",
@@ -25038,21 +25257,27 @@ var M = {
     notEntitled: "\u05DC\u05D0\u05EA\u05E8 \u05D4\u05D6\u05D4 \u05D0\u05D9\u05DF \u05D0\u05EA \u05D4\u05EA\u05D5\u05E1\u05E3 \u05D4\u05D6\u05D4. \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D9\u05DB\u05D5\u05DC \u05DC\u05E7\u05E0\u05D5\u05EA \u05D0\u05D5\u05EA\u05D5 \u05DC\u05D0\u05EA\u05E8 \u05DB\u05D0\u05DF: {url}",
     forbidden: "\u05D4\u05D7\u05E9\u05D1\u05D5\u05DF \u05D4\u05D6\u05D4 \u05DC\u05D0 \u05D9\u05DB\u05D5\u05DC \u05DC\u05E9\u05E0\u05D5\u05EA \u05D0\u05EA \u05D4\u05D0\u05EA\u05E8 \u05D4\u05D6\u05D4. \u05D1\u05D3\u05E7\u05D5 \u05E9\u05E0\u05DB\u05E0\u05E1\u05EA\u05DD \u05E2\u05DD \u05D4\u05D7\u05E9\u05D1\u05D5\u05DF \u05E9\u05D4\u05D0\u05EA\u05E8 \u05E9\u05D9\u05D9\u05DA \u05DC\u05D5.",
     versionStale: "\u05D2\u05E8\u05E1\u05D4 {n} \u05E0\u05D1\u05E0\u05EA\u05D4 \u05DC\u05E4\u05E0\u05D9 \u05E9\u05D2\u05E8\u05E1\u05D4 {live} \u05E2\u05DC\u05EA\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8 ({by}). \u05D4\u05E2\u05DC\u05D0\u05D4 \u05E2\u05DB\u05E9\u05D9\u05D5 \u05EA\u05D5\u05E8\u05D9\u05D3 \u05D0\u05EA \u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D4\u05D0\u05DC\u05D4 \u05DE\u05D4\u05D0\u05EA\u05E8. \u05E7\u05D5\u05D3\u05DD \u05DE\u05DB\u05E0\u05D9\u05E1\u05D9\u05DD \u05D0\u05D5\u05EA\u05DD: npx deployai@latest sync, \u05D5\u05D0\u05D6 \u05DE\u05E2\u05DC\u05D9\u05DD \u05E9\u05D5\u05D1. \u05E8\u05E7 \u05D0\u05DD \u05D4\u05D1\u05E2\u05DC\u05D9\u05DD \u05D0\u05D5\u05DE\u05E8\u05D9\u05DD \u05DC\u05D4\u05E2\u05DC\u05D5\u05EA \u05D1\u05DB\u05DC \u05D6\u05D0\u05EA: npx deployai@latest promote {n} --anyway",
-    versionRolledBack: "\u05D4\u05D0\u05EA\u05E8 \u05D4\u05D5\u05D7\u05D6\u05E8 \u05DC\u05D2\u05E8\u05E1\u05D4 {live} \u05D0\u05D7\u05E8\u05D9 \u05E9\u05D4\u05E7\u05D5\u05D3 \u05E9\u05DC \u05D2\u05E8\u05E1\u05D4 {n} \u05E0\u05DC\u05E7\u05D7, \u05D5\u05D9\u05E9 \u05D1\u05D4 \u05E2\u05D3\u05D9\u05D9\u05DF \u05D0\u05EA \u05DE\u05D4 \u05E9\u05D4\u05D5\u05E8\u05D3 (\u05D2\u05E8\u05E1\u05D0\u05D5\u05EA {dropped}). \u05E9\u05D0\u05DC\u05D5 \u05D0\u05EA \u05D4\u05D1\u05E2\u05DC\u05D9\u05DD: \u05DC\u05D4\u05E9\u05D0\u05D9\u05E8 \u05D0\u05EA \u05D4\u05D0\u05EA\u05E8 \u05DB\u05DE\u05D5 \u05E9\u05D4\u05D5\u05D0 \u05E2\u05DB\u05E9\u05D9\u05D5 (npx deployai@latest sync \u05D5\u05D0\u05D6 \u05DE\u05E2\u05DC\u05D9\u05DD \u05E9\u05D5\u05D1), \u05D0\u05D5 \u05DC\u05D4\u05D7\u05D6\u05D9\u05E8 \u05D0\u05EA \u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD (npx deployai@latest promote {n} --anyway).",
+    versionRolledBack: "\u05D4\u05D0\u05EA\u05E8 \u05D7\u05D6\u05E8 \u05DC\u05D2\u05E8\u05E1\u05D4 {live} \u05D0\u05D7\u05E8\u05D9 \u05E9\u05DE\u05D9\u05E9\u05D4\u05D5 \u05DC\u05E7\u05D7 \u05D0\u05EA \u05D4\u05E7\u05D5\u05D3 \u05E9\u05DC \u05D2\u05E8\u05E1\u05D4 {n}, \u05D5\u05D1\u05E7\u05D5\u05D3 \u05D4\u05D6\u05D4 \u05E2\u05D3\u05D9\u05D9\u05DF \u05D9\u05E9 \u05D0\u05EA \u05DE\u05D4 \u05E9\u05D9\u05E8\u05D3 \u05DE\u05D4\u05D0\u05EA\u05E8 (\u05D2\u05E8\u05E1\u05D0\u05D5\u05EA {dropped}). \u05E9\u05D0\u05DC\u05D5 \u05D0\u05EA \u05D4\u05D1\u05E2\u05DC\u05D9\u05DD: \u05DC\u05D4\u05E9\u05D0\u05D9\u05E8 \u05D0\u05EA \u05D4\u05D0\u05EA\u05E8 \u05DB\u05DE\u05D5 \u05E9\u05D4\u05D5\u05D0 \u05E2\u05DB\u05E9\u05D9\u05D5 (npx deployai@latest sync \u05D5\u05D0\u05D6 \u05DE\u05E2\u05DC\u05D9\u05DD \u05E9\u05D5\u05D1), \u05D0\u05D5 \u05DC\u05D4\u05D7\u05D6\u05D9\u05E8 \u05D0\u05EA \u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD (npx deployai@latest promote {n} --anyway).",
     someone: "\u05DE\u05D9\u05E9\u05D4\u05D5",
     syncNoGit: "\u05DB\u05D3\u05D9 \u05DC\u05D7\u05D1\u05E8 \u05D0\u05EA \u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05E6\u05E8\u05D9\u05DA git \u05D1\u05DE\u05D7\u05E9\u05D1 \u05D4\u05D6\u05D4. \u05D4\u05EA\u05E7\u05D9\u05E0\u05D5 \u05D0\u05EA git (https://git-scm.com/downloads), \u05D5\u05D0\u05D6 \u05D4\u05E8\u05D9\u05E6\u05D5: npx deployai@latest sync",
     syncNoBase: "\u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5 \u05DC\u05D0 \u05D9\u05D5\u05D3\u05E2\u05EA \u05DE\u05D0\u05D9\u05D6\u05D5 \u05D2\u05E8\u05E1\u05D4 \u05D4\u05E7\u05D5\u05D3 \u05E9\u05DC\u05D4 \u05D1\u05D0, \u05D5\u05DC\u05DB\u05DF \u05D0\u05D9 \u05D0\u05E4\u05E9\u05E8 \u05DC\u05D7\u05D1\u05E8 \u05D0\u05EA \u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05DE\u05D4\u05D0\u05EA\u05E8 \u05D1\u05D1\u05D8\u05D7\u05D4. \u05D4\u05D5\u05E8\u05D9\u05D3\u05D5 \u05D0\u05EA \u05D4\u05E7\u05D5\u05D3 \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8 \u05DC\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05E8\u05D9\u05E7\u05D4 \u05D7\u05D3\u05E9\u05D4 (npx deployai@latest pull), \u05D4\u05E2\u05EA\u05D9\u05E7\u05D5 \u05D0\u05DC\u05D9\u05D4 \u05D0\u05EA \u05D4\u05E7\u05D1\u05E6\u05D9\u05DD \u05E9\u05E9\u05D9\u05E0\u05D9\u05EA\u05DD, \u05D5\u05D4\u05E2\u05DC\u05D5 \u05DE\u05E9\u05DD.",
     syncUpToDate: "\u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5 \u05DB\u05D1\u05E8 \u05D9\u05E9 \u05D0\u05EA \u05D4\u05D2\u05E8\u05E1\u05D4 \u05E9\u05D1\u05D0\u05D5\u05D5\u05D9\u05E8 (v{v}). \u05D0\u05D9\u05DF \u05DE\u05D4 \u05DC\u05D4\u05DB\u05E0\u05D9\u05E1.",
-    syncDone: "\u05D4\u05D5\u05DB\u05E0\u05E1\u05D4 \u05D4\u05D2\u05E8\u05E1\u05D4 \u05E9\u05D1\u05D0\u05D5\u05D5\u05D9\u05E8 v{v}: {taken} \u05E7\u05D1\u05E6\u05D9\u05DD \u05E0\u05DC\u05E7\u05D7\u05D5 \u05DE\u05D4\u05D0\u05EA\u05E8, {merged} \u05D7\u05D5\u05D1\u05E8\u05D5 \u05E2\u05DD \u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05E9\u05DC\u05DB\u05DD.",
+    syncDone: "\u05D4\u05DB\u05E0\u05E1\u05E0\u05D5 \u05D0\u05EA \u05D4\u05D2\u05E8\u05E1\u05D4 \u05E9\u05D1\u05D0\u05D5\u05D5\u05D9\u05E8 v{v}: \u05DC\u05E7\u05D7\u05E0\u05D5 {taken} \u05E7\u05D1\u05E6\u05D9\u05DD \u05DE\u05D4\u05D0\u05EA\u05E8, \u05D5\u05D7\u05D9\u05D1\u05E8\u05E0\u05D5 {merged} \u05E2\u05DD \u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05E9\u05DC\u05DB\u05DD.",
     syncConflicts: "\u05D0\u05EA \u05D0\u05DC\u05D4 \u05E9\u05D9\u05E0\u05D5 \u05D1\u05E9\u05E0\u05D9 \u05D4\u05E6\u05D3\u05D3\u05D9\u05DD, \u05D5\u05D4\u05D1\u05E2\u05DC\u05D9\u05DD \u05DE\u05D7\u05DC\u05D9\u05D8\u05D9\u05DD:",
     syncWhy_both: "\u05E9\u05D5\u05E0\u05D4 \u05D1\u05D0\u05D5\u05EA\u05D5 \u05DE\u05E7\u05D5\u05DD; \u05E9\u05EA\u05D9 \u05D4\u05D2\u05E8\u05E1\u05D0\u05D5\u05EA \u05D1\u05E7\u05D5\u05D1\u05E5 \u05D1\u05D9\u05DF \u05D4\u05E9\u05D5\u05E8\u05D5\u05EA <<<<<<< \u05D5\u05BE>>>>>>>",
     syncWhy_binary: "\u05EA\u05DE\u05D5\u05E0\u05D4 \u05D0\u05D5 \u05E7\u05D5\u05D1\u05E5 \u05D0\u05D7\u05E8 \u05E9\u05D4\u05E9\u05EA\u05E0\u05D4 \u05D1\u05E9\u05E0\u05D9 \u05D4\u05E6\u05D3\u05D3\u05D9\u05DD; \u05E9\u05DC\u05DB\u05DD \u05E0\u05E9\u05D0\u05E8, \u05D6\u05D4 \u05E9\u05D1\u05D0\u05D5\u05D5\u05D9\u05E8 \u05E0\u05DE\u05E6\u05D0 \u05D1\u05BE{live}",
     syncWhy_deleted_here: "\u05E0\u05DE\u05D7\u05E7 \u05DB\u05D0\u05DF \u05D0\u05D1\u05DC \u05E9\u05D5\u05E0\u05D4 \u05D1\u05D0\u05EA\u05E8; \u05D6\u05D4 \u05E9\u05D1\u05D0\u05D5\u05D5\u05D9\u05E8 \u05D7\u05D6\u05E8",
     syncWhy_deleted_live: "\u05E0\u05DE\u05D7\u05E7 \u05D1\u05D0\u05EA\u05E8 \u05D0\u05D1\u05DC \u05E9\u05D5\u05E0\u05D4 \u05DB\u05D0\u05DF; \u05E9\u05DC\u05DB\u05DD \u05E0\u05E9\u05D0\u05E8",
     syncClash: "\u05DC\u05E9\u05E0\u05D9 \u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05D9\u05E9 \u05D0\u05D5\u05EA\u05D5 \u05DE\u05E1\u05E4\u05E8: {mine} (\u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5) \u05D5\u05BE{theirs} (\u05D1\u05D0\u05D5\u05D5\u05D9\u05E8). \u05EA\u05E0\u05D5 \u05DC\u05BE{mine} \u05D0\u05EA \u05D4\u05DE\u05E1\u05E4\u05E8 \u05D4\u05E4\u05E0\u05D5\u05D9 \u05D4\u05D1\u05D0.",
-    syncNext: "\u05D4\u05D1\u05D0: npx deployai@latest check, \u05D5\u05D0\u05D6 \u05DE\u05E2\u05DC\u05D9\u05DD \u05E9\u05D5\u05D1.",
+    syncNext: "\u05D4\u05E9\u05DC\u05D1 \u05D4\u05D1\u05D0: npx deployai@latest check, \u05D5\u05D0\u05D6 \u05DE\u05E2\u05DC\u05D9\u05DD \u05E9\u05D5\u05D1.",
     syncNextConflicts: "\u05D4\u05E8\u05D0\u05D5 \u05DC\u05D1\u05E2\u05DC\u05D9\u05DD \u05DB\u05DC \u05D0\u05D7\u05D3 \u05D1\u05DE\u05D9\u05DC\u05D9\u05DD \u05E4\u05E9\u05D5\u05D8\u05D5\u05EA, \u05E9\u05D0\u05DC\u05D5 \u05DE\u05D4 \u05DC\u05D4\u05E9\u05D0\u05D9\u05E8, \u05D5\u05E2\u05E8\u05DB\u05D5 \u05D0\u05EA \u05D4\u05E7\u05D5\u05D1\u05E5 \u05DB\u05DA \u05E9\u05D9\u05D9\u05E9\u05D0\u05E8 \u05E8\u05E7 \u05D6\u05D4 (\u05D1\u05DC\u05D9 \u05E9\u05D5\u05E8\u05D5\u05EA <<<<<<<, ======= \u05D0\u05D5 >>>>>>>). \u05D5\u05D0\u05D6: npx deployai@latest check, \u05D5\u05DE\u05E2\u05DC\u05D9\u05DD \u05E9\u05D5\u05D1. \u05DB\u05DC \u05DE\u05D4 \u05E9\u05D4\u05D9\u05D4 \u05DC\u05E4\u05E0\u05D9 \u05D4\u05BEsync \u05E9\u05DE\u05D5\u05E8 \u05D1\u05BEgit, \u05D5\u05D0\u05E4\u05E9\u05E8 \u05DC\u05D1\u05D8\u05DC.",
-    syncLeftovers: "\u05DC\u05D0 \u05D4\u05D5\u05E2\u05DC\u05D4: \u05D4\u05BEsync \u05D4\u05D0\u05D7\u05E8\u05D5\u05DF \u05D4\u05E9\u05D0\u05D9\u05E8 \u05D0\u05EA \u05D0\u05DC\u05D4 \u05DC\u05D4\u05D7\u05DC\u05D8\u05EA \u05D4\u05D1\u05E2\u05DC\u05D9\u05DD: {files}. \u05E1\u05D2\u05E8\u05D5 \u05DB\u05DC \u05D0\u05D7\u05D3, \u05D5\u05D0\u05D6 \u05DE\u05E2\u05DC\u05D9\u05DD \u05E9\u05D5\u05D1.",
+    caughtUp: "\u05D4\u05DB\u05E0\u05E1\u05E0\u05D5 \u05E2\u05D1\u05D5\u05D3\u05D4 \u05D7\u05D3\u05E9\u05D4 \u05D9\u05D5\u05EA\u05E8 \u05E9\u05DC {names} (\u05D4\u05D2\u05E8\u05E1\u05D4 \u05E9\u05D1\u05D0\u05D5\u05D5\u05D9\u05E8, v{v}): \u05DC\u05E7\u05D7\u05E0\u05D5 {taken} \u05E7\u05D1\u05E6\u05D9\u05DD \u05DE\u05D4\u05D0\u05EA\u05E8, \u05D5\u05D7\u05D9\u05D1\u05E8\u05E0\u05D5 {merged} \u05E2\u05DD \u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05E9\u05DC\u05DB\u05DD.",
+    historyAdded: "\u05D4\u05D2\u05E8\u05E1\u05D0\u05D5\u05EA \u05E9\u05DC\u05D4\u05DD \u05E0\u05DE\u05E6\u05D0\u05D5\u05EA \u05E2\u05DB\u05E9\u05D9\u05D5 \u05D2\u05DD \u05D1\u05BEgit \u05E9\u05DC \u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 ({n} \u05E9\u05DE\u05D9\u05E8\u05D5\u05EA \u05D1\u05BErefs/deployai/live), \u05DB\u05DA \u05E9\u05D0\u05E4\u05E9\u05E8 \u05DC\u05D7\u05D6\u05D5\u05E8 \u05D2\u05DD \u05DC\u05E2\u05D1\u05D5\u05D3\u05D4 \u05E9\u05DC\u05D4\u05DD.",
+    behindNoBase: "\u05D2\u05E8\u05E1\u05D4 v{v} \u05E2\u05DC\u05EA\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8 \u05D0\u05D7\u05E8\u05D9 \u05E9\u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5 \u05DC\u05E7\u05D7\u05D4 \u05D0\u05EA \u05D4\u05E7\u05D5\u05D3, \u05D5\u05D0\u05D9\u05DF \u05D3\u05E8\u05DA \u05DC\u05D3\u05E2\u05EA \u05DE\u05D0\u05D9\u05D6\u05D5 \u05D2\u05E8\u05E1\u05D4 \u05DE\u05E9\u05D5\u05EA\u05E4\u05EA \u05E9\u05EA\u05D9\u05D4\u05DF \u05D4\u05EA\u05D7\u05D9\u05DC\u05D5, \u05D5\u05DC\u05DB\u05DF \u05D0\u05D9 \u05D0\u05E4\u05E9\u05E8 \u05DC\u05D7\u05D1\u05E8 \u05D0\u05D5\u05EA\u05DF \u05DC\u05D1\u05D3. \u05E1\u05E4\u05E8\u05D5 \u05DC\u05D1\u05E2\u05DC\u05D9\u05DD: \u05D4\u05E2\u05DC\u05D9\u05D9\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8 \u05EA\u05D9\u05E2\u05E6\u05E8 \u05E2\u05D3 \u05E9\u05EA\u05D4\u05D9\u05D4 \u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D2\u05E8\u05E1\u05D4 v{v}. \u05DE\u05D5\u05E8\u05D9\u05D3\u05D9\u05DD \u05D0\u05D5\u05EA\u05D4 \u05E2\u05DD npx deployai@latest pull \u05DC\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05E8\u05D9\u05E7\u05D4 \u05D7\u05D3\u05E9\u05D4, \u05D5\u05DE\u05E2\u05EA\u05D9\u05E7\u05D9\u05DD \u05D0\u05DC\u05D9\u05D4 \u05D0\u05EA \u05D4\u05E7\u05D1\u05E6\u05D9\u05DD \u05E9\u05E9\u05D9\u05E0\u05D9\u05EA\u05DD.",
+    caughtUpConflicts: "\u05DC\u05D0 \u05D4\u05D5\u05E2\u05DC\u05D4: \u05D4\u05E2\u05D1\u05D5\u05D3\u05D4 \u05D4\u05D7\u05D3\u05E9\u05D4 \u05E9\u05D1\u05D0\u05D5\u05D5\u05D9\u05E8 \u05E9\u05D9\u05E0\u05EA\u05D4 \u05D0\u05EA \u05D0\u05D5\u05EA\u05DD \u05DE\u05E7\u05D5\u05DE\u05D5\u05EA \u05DB\u05DE\u05D5 \u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5. \u05D4\u05E8\u05D0\u05D5 \u05DC\u05D1\u05E2\u05DC\u05D9\u05DD \u05DB\u05DC \u05D0\u05D7\u05D3 \u05DE\u05D4\u05DD \u05D1\u05DE\u05D9\u05DC\u05D9\u05DD \u05E4\u05E9\u05D5\u05D8\u05D5\u05EA, \u05E9\u05D0\u05DC\u05D5 \u05DE\u05D4 \u05DC\u05D4\u05E9\u05D0\u05D9\u05E8, \u05E2\u05E8\u05DB\u05D5 \u05D0\u05EA \u05D4\u05E7\u05D5\u05D1\u05E5 \u05DB\u05DA \u05E9\u05D9\u05D9\u05E9\u05D0\u05E8 \u05E8\u05E7 \u05D6\u05D4, \u05D5\u05D4\u05E2\u05DC\u05D5 \u05E9\u05D5\u05D1. \u05DB\u05DC \u05DE\u05D4 \u05E9\u05D4\u05D9\u05D4 \u05E7\u05D5\u05D3\u05DD \u05E9\u05DE\u05D5\u05E8 \u05D1\u05BEgit, \u05D5\u05D0\u05E4\u05E9\u05E8 \u05DC\u05D1\u05D8\u05DC.",
+    caughtUpNoLive: "\u05D4\u05E4\u05E2\u05DD \u05D6\u05D4 \u05DC\u05D0 \u05E2\u05D5\u05DC\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8: \u05D4\u05D4\u05E2\u05DC\u05D0\u05D4 \u05D4\u05D6\u05D5 \u05DE\u05D7\u05D1\u05E8\u05EA \u05D0\u05EA \u05D4\u05E2\u05D1\u05D5\u05D3\u05D4 \u05E9\u05DC \u05DE\u05D9\u05E9\u05D4\u05D5 \u05D0\u05D7\u05E8 \u05E2\u05DD \u05E9\u05DC\u05DB\u05DD, \u05D5\u05DC\u05DB\u05DF \u05D4\u05D1\u05E2\u05DC\u05D9\u05DD \u05D1\u05D5\u05D3\u05E7\u05D9\u05DD \u05E7\u05D5\u05D3\u05DD \u05D1\u05EA\u05E6\u05D5\u05D2\u05D4 \u05D4\u05DE\u05E7\u05D3\u05D9\u05DE\u05D4.",
+    caughtUpPreview: "\u05D1\u05BEv{n} \u05D9\u05E9 \u05D0\u05EA \u05E9\u05E0\u05D9 \u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD. \u05D4\u05E8\u05D0\u05D5 \u05DC\u05D1\u05E2\u05DC\u05D9\u05DD \u05D0\u05EA \u05D4\u05EA\u05E6\u05D5\u05D2\u05D4 \u05D4\u05DE\u05E7\u05D3\u05D9\u05DE\u05D4; \u05D0\u05D7\u05E8\u05D9 \u05E9\u05D9\u05D0\u05E9\u05E8\u05D5: npx deployai@latest promote {n}",
+    syncLeftovers: "\u05DC\u05D0 \u05D4\u05D5\u05E2\u05DC\u05D4: \u05D4\u05BEsync \u05D4\u05D0\u05D7\u05E8\u05D5\u05DF \u05D4\u05E9\u05D0\u05D9\u05E8 \u05D0\u05EA \u05D0\u05DC\u05D4 \u05DC\u05D4\u05D7\u05DC\u05D8\u05EA \u05D4\u05D1\u05E2\u05DC\u05D9\u05DD: {files}. \u05D4\u05D7\u05DC\u05D9\u05D8\u05D5 \u05E2\u05DC \u05DB\u05DC \u05D0\u05D7\u05D3, \u05D5\u05D0\u05D6 \u05D4\u05E2\u05DC\u05D5 \u05E9\u05D5\u05D1.",
     workOthers: "\u05E2\u05D5\u05D1\u05D3\u05D9\u05DD \u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05E2\u05DB\u05E9\u05D9\u05D5 \u05D2\u05DD: {names}. \u05E1\u05E4\u05E8\u05D5 \u05DC\u05D1\u05E2\u05DC\u05D9\u05DD, \u05DB\u05D3\u05D9 \u05E9\u05DC\u05D0 \u05EA\u05E9\u05E0\u05D5 \u05D0\u05EA \u05D0\u05D5\u05EA\u05D5 \u05D3\u05D1\u05E8 \u05D1\u05D0\u05D5\u05EA\u05D5 \u05D6\u05DE\u05DF.",
     workYouElsewhere: "\u05D0\u05EA\u05DD, \u05DE\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D0\u05D5 \u05DE\u05DE\u05D7\u05E9\u05D1 \u05D0\u05D7\u05E8\u05D9\u05DD",
     workMinutesAgo: "\u05DC\u05E4\u05E0\u05D9 {n} \u05D3\u05E7\u05F3",
@@ -25096,7 +25321,7 @@ var M = {
     deployLimitNoMax: "\u05D4\u05D2\u05E2\u05EA\u05DD \u05DC\u05DE\u05D2\u05D1\u05DC\u05EA \u05D4\u05D4\u05E2\u05DC\u05D0\u05D5\u05EA \u05D4\u05D9\u05D5\u05DE\u05D9\u05EA. \u05D0\u05E4\u05E9\u05E8 \u05DC\u05D4\u05E2\u05DC\u05D5\u05EA \u05E9\u05D5\u05D1 \u05DE\u05D7\u05E8.",
     bundleTooLarge: "\u05D4\u05D4\u05E2\u05DC\u05D0\u05D4 \u05D2\u05D3\u05D5\u05DC\u05D4 \u05DE\u05D3\u05D9: \u05E2\u05D3 50MB \u05DC\u05D0\u05EA\u05E8, \u05D5\u05E2\u05D3 10MB \u05DC\u05D0\u05EA\u05E8 \u05D6\u05DE\u05E0\u05D9. \u05D4\u05E9\u05D0\u05D9\u05E8\u05D5 \u05D1\u05D7\u05D5\u05E5 \u05E7\u05D1\u05E6\u05D9\u05DD \u05D2\u05D3\u05D5\u05DC\u05D9\u05DD \u05D5\u05E0\u05E1\u05D5 \u05E9\u05D5\u05D1.",
     guestExpired: "\u05D4\u05D0\u05EA\u05E8 \u05D4\u05D6\u05DE\u05E0\u05D9 \u05D4\u05D6\u05D4 \u05E4\u05D2 \u05D5\u05E0\u05DE\u05D7\u05E7. \u05DB\u05D3\u05D9 \u05DC\u05E7\u05D1\u05DC \u05D0\u05EA\u05E8 \u05D7\u05D3\u05E9, \u05D4\u05E2\u05DC\u05D5 \u05E9\u05D5\u05D1: npx deployai@latest deploy --guest",
-    envUploaded: "\u05E7\u05D5\u05D1\u05E5 .env \u05DC\u05D0 \u05E0\u05E9\u05DC\u05D7 \u05DC\u05E2\u05D5\u05DC\u05DD. \u05D4\u05E1\u05D9\u05E8\u05D5 \u05D0\u05D5\u05EA\u05D5 \u05DE\u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05E9\u05D0\u05EA\u05DD \u05DE\u05E2\u05DC\u05D9\u05DD \u05D5\u05E0\u05E1\u05D5 \u05E9\u05D5\u05D1.",
+    envUploaded: "\u05E7\u05D5\u05D1\u05E5 \u200E.env \u05D0\u05E3 \u05E4\u05E2\u05DD \u05DC\u05D0 \u05E2\u05D5\u05DC\u05D4. \u05D4\u05E1\u05D9\u05E8\u05D5 \u05D0\u05D5\u05EA\u05D5 \u05DE\u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05E9\u05D0\u05EA\u05DD \u05DE\u05E2\u05DC\u05D9\u05DD \u05D5\u05E0\u05E1\u05D5 \u05E9\u05D5\u05D1.",
     secretInFile: "\u05D1\u05E7\u05D5\u05D1\u05E5 {file} \u05D9\u05E9 \u05DE\u05E4\u05EA\u05D7 \u05E1\u05D5\u05D3\u05D9 ({kind}). \u05DE\u05D7\u05E7\u05D5 \u05D0\u05D5\u05EA\u05D5 \u05DE\u05D4\u05E7\u05D5\u05D1\u05E5, \u05E9\u05DE\u05E8\u05D5 \u05D0\u05D5\u05EA\u05D5 \u05E2\u05DD npx deployai@latest env set <KEY> \u05D5\u05E0\u05E1\u05D5 \u05E9\u05D5\u05D1. \u05D0\u05DD \u05D4\u05D5\u05D0 \u05DB\u05D1\u05E8 \u05E0\u05D7\u05E9\u05E3, \u05D4\u05D7\u05DC\u05D9\u05E4\u05D5 \u05D0\u05D5\u05EA\u05D5 \u05D0\u05E6\u05DC \u05D4\u05E1\u05E4\u05E7.",
     guestBindings: "\u05D0\u05EA\u05E8 \u05D6\u05DE\u05E0\u05D9 \u05D9\u05DB\u05D5\u05DC \u05DC\u05DB\u05DC\u05D5\u05DC \u05DE\u05E1\u05D3 \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05E7\u05D8\u05DF, \u05D0\u05D1\u05DC \u05DC\u05D0 \u05D0\u05D7\u05E1\u05D5\u05DF \u05E7\u05D1\u05E6\u05D9\u05DD \u05D0\u05D5 \u05DE\u05E9\u05EA\u05E0\u05D9 \u05E1\u05D1\u05D9\u05D1\u05D4. \u05E9\u05DE\u05E8\u05D5 \u05D0\u05EA \u05D4\u05D0\u05EA\u05E8 \u05D1\u05D7\u05E9\u05D1\u05D5\u05DF \u05DB\u05D3\u05D9 \u05DC\u05D4\u05E9\u05EA\u05DE\u05E9 \u05D1\u05D4\u05DD.",
     guestIpLimit: "\u05D4\u05D2\u05E2\u05EA\u05DD \u05DC\u05DE\u05D2\u05D1\u05DC\u05D4 \u05D4\u05D9\u05D5\u05DE\u05D9\u05EA \u05E9\u05DC \u05D0\u05EA\u05E8\u05D9\u05DD \u05D6\u05DE\u05E0\u05D9\u05D9\u05DD. \u05D4\u05D9\u05E8\u05E9\u05DE\u05D5 \u05DB\u05D3\u05D9 \u05DC\u05D4\u05E2\u05DC\u05D5\u05EA \u05E2\u05D5\u05D3.",
@@ -25104,8 +25329,8 @@ var M = {
     deployNotLoggedIn: "\u05DC\u05D0 \u05DE\u05D7\u05D5\u05D1\u05E8\u05D9\u05DD. \u05D4\u05E8\u05D9\u05E6\u05D5: npx deployai@latest login, \u05D0\u05D5 \u05D4\u05E2\u05DC\u05D5 \u05D1\u05DC\u05D9 \u05D7\u05E9\u05D1\u05D5\u05DF: npx deployai@latest deploy --guest",
     deployBlocked: "\u05D4\u05D4\u05E2\u05DC\u05D0\u05D4 \u05E0\u05E2\u05E6\u05E8\u05D4: \u05EA\u05E7\u05E0\u05D5 \u05D0\u05EA \u05D4\u05D7\u05D5\u05E1\u05DE\u05D9\u05DD \u05E9\u05DC\u05DE\u05E2\u05DC\u05D4, \u05D5\u05D0\u05D6 \u05D4\u05E8\u05D9\u05E6\u05D5: npx deployai@latest deploy",
     nothingToUpload: "\u05D0\u05D9\u05DF \u05DE\u05D4 \u05DC\u05D4\u05E2\u05DC\u05D5\u05EA \u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5.",
-    uploadTooLarge: "\u05D4\u05D4\u05E2\u05DC\u05D0\u05D4 \u05D2\u05D3\u05D5\u05DC\u05D4 \u05DE\u05D3\u05D9: {size}, \u05D4\u05DE\u05E7\u05E1\u05D9\u05DE\u05D5\u05DD {max}. \u05D4\u05D5\u05E1\u05D9\u05E4\u05D5 \u05EA\u05D9\u05E7\u05D9\u05D5\u05EA \u05DC\u05E7\u05D5\u05D1\u05E5 .deployaiignore",
-    uploadTooLargeGuest: "\u05D4\u05D4\u05E2\u05DC\u05D0\u05D4 \u05D2\u05D3\u05D5\u05DC\u05D4 \u05DE\u05D3\u05D9 \u05DC\u05D0\u05EA\u05E8 \u05D1\u05DC\u05D9 \u05D7\u05E9\u05D1\u05D5\u05DF: {size} \u05D0\u05D7\u05E8\u05D9 \u05DB\u05D9\u05D5\u05D5\u05E5, \u05D4\u05DE\u05E7\u05E1\u05D9\u05DE\u05D5\u05DD {max}. \u05D4\u05EA\u05D7\u05D1\u05E8\u05D5 \u05DB\u05D3\u05D9 \u05DC\u05D4\u05E2\u05DC\u05D5\u05EA \u05D9\u05D5\u05EA\u05E8: npx deployai@latest login",
+    uploadTooLarge: "\u05D4\u05D4\u05E2\u05DC\u05D0\u05D4 \u05D2\u05D3\u05D5\u05DC\u05D4 \u05DE\u05D3\u05D9: {size}, \u05D5\u05D0\u05E4\u05E9\u05E8 \u05E2\u05D3 {max}. \u05D4\u05D5\u05E1\u05D9\u05E4\u05D5 \u05EA\u05D9\u05E7\u05D9\u05D5\u05EA \u05DC\u05E7\u05D5\u05D1\u05E5 \u200E.deployaiignore \u05DB\u05D3\u05D9 \u05DC\u05D4\u05E9\u05D0\u05D9\u05E8 \u05D0\u05D5\u05EA\u05DF \u05D1\u05D7\u05D5\u05E5.",
+    uploadTooLargeGuest: "\u05D4\u05D4\u05E2\u05DC\u05D0\u05D4 \u05D2\u05D3\u05D5\u05DC\u05D4 \u05DE\u05D3\u05D9 \u05DC\u05D0\u05EA\u05E8 \u05D1\u05DC\u05D9 \u05D7\u05E9\u05D1\u05D5\u05DF: {size} \u05D0\u05D7\u05E8\u05D9 \u05DB\u05D9\u05D5\u05D5\u05E5, \u05D5\u05D0\u05E4\u05E9\u05E8 \u05E2\u05D3 {max}. \u05D4\u05EA\u05D7\u05D1\u05E8\u05D5 \u05DB\u05D3\u05D9 \u05DC\u05D4\u05E2\u05DC\u05D5\u05EA \u05D9\u05D5\u05EA\u05E8: npx deployai@latest login",
     notLinked: "\u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5 \u05DC\u05D0 \u05DE\u05D7\u05D5\u05D1\u05E8\u05EA \u05DC\u05D0\u05EA\u05E8. \u05D4\u05E8\u05D9\u05E6\u05D5: npx deployai@latest link",
     askGuest: "\u05DC\u05D4\u05E2\u05DC\u05D5\u05EA \u05D1\u05DC\u05D9 \u05D7\u05E9\u05D1\u05D5\u05DF? \u05EA\u05E7\u05D1\u05DC\u05D5 \u05D0\u05EA\u05E8 \u05D6\u05DE\u05E0\u05D9 \u05E9\u05D0\u05E4\u05E9\u05E8 \u05DC\u05E9\u05DE\u05D5\u05E8 \u05D0\u05D7\u05E8 \u05DB\u05DA. (y/N) ",
     inviteOnly: "\u05D4\u05E2\u05DC\u05D0\u05D4 \u05D1\u05DC\u05D9 \u05D7\u05E9\u05D1\u05D5\u05DF \u05DE\u05D5\u05E9\u05D4\u05D9\u05EA \u05DB\u05DC \u05E2\u05D5\u05D3 \u05D4\u05D4\u05E8\u05E9\u05DE\u05D4 \u05DC\u05BEDeployAI \u05D1\u05D4\u05D6\u05DE\u05E0\u05D4 \u05D1\u05DC\u05D1\u05D3. \u05D0\u05DD \u05D9\u05E9 \u05DC\u05DB\u05DD \u05D7\u05E9\u05D1\u05D5\u05DF \u05D0\u05D5 \u05D4\u05D6\u05DE\u05E0\u05D4, \u05D4\u05E8\u05D9\u05E6\u05D5: npx deployai@latest login",
@@ -25131,32 +25356,32 @@ var M = {
     sqlDestructive: "\u05D0\u05DC\u05D4 \u05DE\u05D5\u05D7\u05E7\u05D9\u05DD \u05D0\u05D5 \u05D3\u05D5\u05E8\u05E1\u05D9\u05DD \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD, \u05D5\u05D7\u05D6\u05E8\u05D4 \u05DC\u05D2\u05E8\u05E1\u05D4 \u05E7\u05D5\u05D3\u05DE\u05EA \u05DC\u05D0 \u05DE\u05D7\u05D6\u05D9\u05E8\u05D4 \u05D0\u05D5\u05EA\u05DD:",
     sqlRunningNow: "\u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05E9\u05DC v{n} \u05DB\u05D1\u05E8 \u05E8\u05E6\u05D9\u05DD. \u05D4\u05D9\u05D0 \u05E2\u05D5\u05DC\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8 \u05DB\u05E9\u05D4\u05DD \u05DE\u05E1\u05EA\u05D9\u05D9\u05DE\u05D9\u05DD.",
     sqlRunningNowShort: "\u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05DB\u05D1\u05E8 \u05E8\u05E6\u05D9\u05DD. \u05D4\u05D2\u05E8\u05E1\u05D4 \u05E2\u05D5\u05DC\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8 \u05DB\u05E9\u05D4\u05DD \u05DE\u05E1\u05EA\u05D9\u05D9\u05DE\u05D9\u05DD: {url}",
-    sqlOwnerOnly: "\u05D4\u05D7\u05E9\u05D1\u05D5\u05DF \u05D4\u05D6\u05D4 \u05D0\u05D9\u05E0\u05D5 \u05D4\u05D1\u05E2\u05DC\u05D9\u05DD \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8, \u05D5\u05E8\u05E7 \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05DE\u05D0\u05E9\u05E8 \u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD. \u05E9\u05DC\u05D7\u05D5 \u05D0\u05EA \u05D4\u05D3\u05E3 \u05D4\u05D6\u05D4 \u05DC\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8: {url}\n\u05D0\u05DD \u05D4\u05D0\u05EA\u05E8 \u05E9\u05DC\u05DB\u05DD, \u05D4\u05EA\u05D7\u05D1\u05E8\u05D5 \u05E2\u05DD \u05D4\u05D7\u05E9\u05D1\u05D5\u05DF \u05E9\u05D1\u05D1\u05E2\u05DC\u05D5\u05EA\u05D5 \u05D4\u05D0\u05EA\u05E8: npx deployai@latest login \u05D5\u05D0\u05D6 \u05D4\u05E8\u05D9\u05E6\u05D5 \u05E9\u05D5\u05D1.",
-    sqlNotOwner: "\u05D4-CLI \u05DE\u05D7\u05D5\u05D1\u05E8 \u05D1\u05EA\u05D5\u05E8 {account}, \u05E9\u05D0\u05D9\u05E0\u05D5 \u05D4\u05D1\u05E2\u05DC\u05D9\u05DD \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8, \u05D5\u05E8\u05E7 \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05DE\u05D0\u05E9\u05E8 \u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD. \u05E9\u05DC\u05D7\u05D5 \u05D0\u05EA \u05D4\u05D3\u05E3 \u05D4\u05D6\u05D4 \u05DC\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8: {url}\n\u05D0\u05DD \u05D4\u05D0\u05EA\u05E8 \u05E9\u05DC\u05DB\u05DD, \u05D4\u05EA\u05D7\u05D1\u05E8\u05D5 \u05E2\u05DD \u05D4\u05D7\u05E9\u05D1\u05D5\u05DF \u05E9\u05D1\u05D1\u05E2\u05DC\u05D5\u05EA\u05D5 \u05D4\u05D0\u05EA\u05E8: npx deployai@latest login \u05D5\u05D0\u05D6 \u05D4\u05E8\u05D9\u05E6\u05D5 \u05E9\u05D5\u05D1.",
+    sqlOwnerOnly: "\u05D4\u05D7\u05E9\u05D1\u05D5\u05DF \u05D4\u05D6\u05D4 \u05DC\u05D0 \u05D4\u05D1\u05E2\u05DC\u05D9\u05DD \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8, \u05D5\u05E8\u05E7 \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05DE\u05D0\u05E9\u05E8 \u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD. \u05E9\u05DC\u05D7\u05D5 \u05D0\u05EA \u05D4\u05D3\u05E3 \u05D4\u05D6\u05D4 \u05DC\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8: {url}\n\u05D0\u05DD \u05D4\u05D0\u05EA\u05E8 \u05E9\u05DC\u05DB\u05DD, \u05D4\u05EA\u05D7\u05D1\u05E8\u05D5 \u05E2\u05DD \u05D4\u05D7\u05E9\u05D1\u05D5\u05DF \u05E9\u05D4\u05D0\u05EA\u05E8 \u05E9\u05D9\u05D9\u05DA \u05DC\u05D5: npx deployai@latest login \u05D5\u05D0\u05D6 \u05D4\u05E8\u05D9\u05E6\u05D5 \u05E9\u05D5\u05D1.",
+    sqlNotOwner: "\u05D4\u05BECLI \u05DE\u05D7\u05D5\u05D1\u05E8 \u05D1\u05EA\u05D5\u05E8 {account}, \u05E9\u05D4\u05D5\u05D0 \u05DC\u05D0 \u05D4\u05D1\u05E2\u05DC\u05D9\u05DD \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8, \u05D5\u05E8\u05E7 \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05DE\u05D0\u05E9\u05E8 \u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD. \u05E9\u05DC\u05D7\u05D5 \u05D0\u05EA \u05D4\u05D3\u05E3 \u05D4\u05D6\u05D4 \u05DC\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8: {url}\n\u05D0\u05DD \u05D4\u05D0\u05EA\u05E8 \u05E9\u05DC\u05DB\u05DD, \u05D4\u05EA\u05D7\u05D1\u05E8\u05D5 \u05E2\u05DD \u05D4\u05D7\u05E9\u05D1\u05D5\u05DF \u05E9\u05D4\u05D0\u05EA\u05E8 \u05E9\u05D9\u05D9\u05DA \u05DC\u05D5: npx deployai@latest login \u05D5\u05D0\u05D6 \u05D4\u05E8\u05D9\u05E6\u05D5 \u05E9\u05D5\u05D1.",
     sqlDashboard: "\u05D0\u05EA \u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D4\u05D0\u05DC\u05D4 \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05DE\u05E1\u05D3\u05E8\u05D9\u05DD \u05D1\u05DC\u05D5\u05D7 \u05D4\u05D1\u05E7\u05E8\u05D4: {url}",
     sqlTypeDatabase: "\u05DB\u05D3\u05D9 \u05DC\u05D4\u05E8\u05D9\u05E5 \u05D0\u05D5\u05EA\u05DD \u05D5\u05DC\u05D4\u05E2\u05DC\u05D5\u05EA \u05D0\u05EA v{n} \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8, \u05D4\u05E7\u05DC\u05D9\u05D3\u05D5 \u05D0\u05EA \u05E9\u05DD \u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD ({db}): ",
     sqlAskRun: "\u05DC\u05D4\u05E8\u05D9\u05E5 \u05D0\u05D5\u05EA\u05DD \u05E2\u05DC {db} \u05D5\u05DC\u05D4\u05E2\u05DC\u05D5\u05EA \u05D0\u05EA v{n} \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8? (y/N) ",
-    sqlNotRun: "\u05DC\u05D0 \u05E8\u05E5. \u05E9\u05D5\u05DD \u05D3\u05D1\u05E8 \u05DC\u05D0 \u05D4\u05E9\u05EA\u05E0\u05D4.",
-    sqlAgentDestructive: "  \u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D4\u05D0\u05DC\u05D4 \u05DE\u05D5\u05D7\u05E7\u05D9\u05DD \u05D0\u05D5 \u05D3\u05D5\u05E8\u05E1\u05D9\u05DD \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD, \u05D5\u05DC\u05DB\u05DF \u05E8\u05E7 \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05DE\u05D0\u05E9\u05E8 \u05D0\u05D5\u05EA\u05DD: \u05D1\u05DE\u05E1\u05D5\u05E3 \u05E9\u05DC \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 (npx deployai@latest promote v{n}) \u05D0\u05D5 \u05DB\u05D0\u05DF: {url}",
+    sqlNotRun: "\u05DC\u05D0 \u05D4\u05E8\u05E6\u05E0\u05D5 \u05DB\u05DC\u05D5\u05DD. \u05E9\u05D5\u05DD \u05D3\u05D1\u05E8 \u05DC\u05D0 \u05D4\u05E9\u05EA\u05E0\u05D4.",
+    sqlAgentDestructive: "  \u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D4\u05D0\u05DC\u05D4 \u05DE\u05D5\u05D7\u05E7\u05D9\u05DD \u05D0\u05D5 \u05D3\u05D5\u05E8\u05E1\u05D9\u05DD \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD, \u05D5\u05DC\u05DB\u05DF \u05E8\u05E7 \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05DE\u05D0\u05E9\u05E8 \u05D0\u05D5\u05EA\u05DD: \u05D1\u05D8\u05E8\u05DE\u05D9\u05E0\u05DC \u05E9\u05DC \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 (npx deployai@latest promote v{n}) \u05D0\u05D5 \u05DB\u05D0\u05DF: {url}",
     sqlChanged: "\u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05E9\u05DC v{n} \u05D4\u05E9\u05EA\u05E0\u05D5 \u05DE\u05D0\u05D6 \u05E9\u05D4\u05D5\u05E6\u05D2\u05D5. \u05D4\u05E8\u05D9\u05E6\u05D5 npx deployai@latest sql v{n}, \u05D4\u05E8\u05D0\u05D5 \u05E9\u05D5\u05D1 \u05DC\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D5\u05E9\u05D0\u05DC\u05D5 \u05E9\u05D5\u05D1.",
     sqlChangedServer: "\u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05D4\u05E9\u05EA\u05E0\u05D5 \u05DE\u05D0\u05D6 \u05E9\u05D4\u05D5\u05E6\u05D2\u05D5. \u05D4\u05E6\u05D9\u05D2\u05D5 \u05D0\u05D5\u05EA\u05DD \u05E9\u05D5\u05D1 \u05D5\u05E9\u05D0\u05DC\u05D5 \u05E9\u05D5\u05D1: {url}",
-    sqlConfirmServer: "\u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D4\u05D0\u05DC\u05D4 \u05DE\u05D5\u05D7\u05E7\u05D9\u05DD \u05D0\u05D5 \u05D3\u05D5\u05E8\u05E1\u05D9\u05DD \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD, \u05D5\u05DC\u05DB\u05DF \u05DE\u05D0\u05E9\u05E8\u05D9\u05DD \u05D0\u05D5\u05EA\u05DD \u05E8\u05E7 \u05D1\u05DE\u05E1\u05D5\u05E3 \u05E9\u05DC \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D0\u05D5 \u05D1\u05DC\u05D5\u05D7 \u05D4\u05D1\u05E7\u05E8\u05D4: {url}",
+    sqlConfirmServer: "\u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D4\u05D0\u05DC\u05D4 \u05DE\u05D5\u05D7\u05E7\u05D9\u05DD \u05D0\u05D5 \u05D3\u05D5\u05E8\u05E1\u05D9\u05DD \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD, \u05D5\u05DC\u05DB\u05DF \u05DE\u05D0\u05E9\u05E8\u05D9\u05DD \u05D0\u05D5\u05EA\u05DD \u05E8\u05E7 \u05D1\u05D8\u05E8\u05DE\u05D9\u05E0\u05DC \u05E9\u05DC \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D0\u05D5 \u05D1\u05DC\u05D5\u05D7 \u05D4\u05D1\u05E7\u05E8\u05D4: {url}",
     sqlAgentAsk: '  \u05D4\u05E8\u05D0\u05D5 \u05DC\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D0\u05EA \u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05DC\u05DE\u05E2\u05DC\u05D4 \u05D5\u05E9\u05D0\u05DC\u05D5: "\u05D2\u05E8\u05E1\u05D4 {n} \u05DE\u05E9\u05E0\u05D4 \u05D0\u05EA \u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD {db}. \u05DC\u05D4\u05E8\u05D9\u05E5 \u05D0\u05EA \u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D5\u05DC\u05D4\u05E2\u05DC\u05D5\u05EA \u05D0\u05D5\u05EA\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8?"',
-    sqlAgentThen: "  \u05D0\u05D7\u05E8\u05D9 \u05EA\u05E9\u05D5\u05D1\u05D4 \u05D7\u05D9\u05D5\u05D1\u05D9\u05EA: npx deployai@latest promote v{n} --approve-sql {hash}",
+    sqlAgentThen: "  \u05D0\u05D7\u05E8\u05D9 \u05E9\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D0\u05D9\u05E9\u05E8: npx deployai@latest promote v{n} --approve-sql {hash}",
     sqlLater: "  \u05D2\u05E8\u05E1\u05D4 {n} \u05DE\u05E9\u05E0\u05D4 \u05D0\u05EA \u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD. \u05E9\u05D5\u05DD \u05D3\u05D1\u05E8 \u05DC\u05D0 \u05E8\u05E5 \u05E2\u05DB\u05E9\u05D9\u05D5 \u05D5\u05E9\u05D5\u05DD \u05D3\u05D1\u05E8 \u05DC\u05D0 \u05E2\u05D5\u05DC\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8: \u05D0\u05DC \u05EA\u05E9\u05D0\u05DC\u05D5 \u05E2\u05DC \u05D6\u05D4 \u05E2\u05D3\u05D9\u05D9\u05DF. \u05DB\u05E9\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05DE\u05D0\u05E9\u05E8 \u05DC\u05D4\u05E2\u05DC\u05D5\u05EA \u05D0\u05D5\u05EA\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8, \u05D4\u05E8\u05D9\u05E6\u05D5 npx deployai@latest promote v{n}, \u05D5\u05D4\u05D5\u05D0 \u05D9\u05E8\u05D0\u05D4 \u05D0\u05EA \u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05DC\u05D0\u05D9\u05E9\u05D5\u05E8.",
     sqlNone: "\u05D1\u05BEv{n} \u05D0\u05D9\u05DF \u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D7\u05D3\u05E9\u05D9\u05DD \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD.",
     sqlFirst: "\u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05E8\u05E6\u05D9\u05DD \u05E7\u05D5\u05D3\u05DD. \u05D0\u05DD \u05D4\u05DD \u05E0\u05DB\u05E9\u05DC\u05D9\u05DD, \u05D4\u05D2\u05E8\u05E1\u05D4 \u05E9\u05D1\u05D0\u05D5\u05D5\u05D9\u05E8 \u05E0\u05E9\u05D0\u05E8\u05EA.",
     sqlFailed: "\u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05E9\u05DC v{n} \u05E0\u05DB\u05E9\u05DC\u05D5. \u05D4\u05D2\u05E8\u05E1\u05D4 \u05E9\u05D1\u05D0\u05D5\u05D5\u05D9\u05E8 \u05E0\u05E9\u05D0\u05E8\u05D4.",
     sqlRetry: "  \u05D0\u05D7\u05E8\u05D9 \u05EA\u05D9\u05E7\u05D5\u05DF, \u05D4\u05E2\u05DC\u05D5 \u05E9\u05D5\u05D1, \u05D0\u05D5 \u05E0\u05E1\u05D5 \u05E9\u05D5\u05D1: npx deployai@latest promote v{n}",
-    sqlRunningState: "\u05DE\u05E8\u05D9\u05E5 \u05D0\u05EA \u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD",
+    sqlRunningState: "\u05DE\u05E8\u05D9\u05E6\u05D9\u05DD \u05D0\u05EA \u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD",
     sqlBeforeUpload: "\u05D1\u05D4\u05E2\u05DC\u05D0\u05D4 \u05D4\u05D6\u05D5 \u05D9\u05E9 \u05E7\u05D5\u05D1\u05E6\u05D9 SQL. \u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D7\u05D3\u05E9\u05D9\u05DD \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05E8\u05E6\u05D9\u05DD \u05E8\u05E7 \u05D0\u05D7\u05E8\u05D9 \u05D0\u05D9\u05E9\u05D5\u05E8, \u05DB\u05E9\u05D4\u05D1\u05E0\u05D9\u05D9\u05D4 \u05DE\u05E1\u05EA\u05D9\u05D9\u05DE\u05EA.",
     sqlWaiting: "\u05D1\u05D2\u05E8\u05E1\u05D4 \u05D4\u05D6\u05D5 \u05D9\u05E9 \u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD (SQL) \u05E9\u05E2\u05D5\u05D3 \u05DC\u05D0 \u05E8\u05E6\u05D5. \u05D0\u05E9\u05E8\u05D5 \u05D0\u05D5\u05EA\u05DD \u05E7\u05D5\u05D3\u05DD \u05D1\u05DC\u05D5\u05D7 \u05D4\u05D1\u05E7\u05E8\u05D4, \u05D5\u05D0\u05D6 \u05D4\u05E2\u05DC\u05D5 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8 \u05E9\u05D5\u05D1: {url}",
-    tokenOtherApi: "\u05D4\u05DB\u05E0\u05D9\u05E1\u05D4 \u05D1\u05DE\u05D7\u05E9\u05D1 \u05D4\u05D6\u05D4 \u05D4\u05D9\u05D0 \u05DC {saved}, \u05DC\u05D0 \u05DC {url}. \u05D4\u05E8\u05D9\u05E6\u05D5: npx deployai@latest login --api {url}, \u05D0\u05D5 \u05D4\u05D5\u05E8\u05D9\u05D3\u05D5 \u05D0\u05EA --api \u05D5\u05D0\u05EA DEPLOYAI_API_URL.",
-    linkConfirm: "\u05DC\u05D7\u05D1\u05E8 \u05D0\u05EA \u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5 \u05DC {name} ({address})? (y/N) ",
+    tokenOtherApi: "\u05D4\u05DB\u05E0\u05D9\u05E1\u05D4 \u05D1\u05DE\u05D7\u05E9\u05D1 \u05D4\u05D6\u05D4 \u05D4\u05D9\u05D0 \u05DC\u05BE{saved}, \u05DC\u05D0 \u05DC\u05BE{url}. \u05D4\u05E8\u05D9\u05E6\u05D5: npx deployai@latest login --api {url}, \u05D0\u05D5 \u05D4\u05D5\u05E8\u05D9\u05D3\u05D5 \u05D0\u05EA --api \u05D5\u05D0\u05EA DEPLOYAI_API_URL.",
+    linkConfirm: "\u05DC\u05D7\u05D1\u05E8 \u05D0\u05EA \u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5 \u05DC\u05BE{name} ({address})? (y/N) ",
     linkOnlyOne: "\u05D9\u05E9 \u05DC\u05DB\u05DD \u05D0\u05EA\u05E8 \u05D0\u05D7\u05D3: {name} ({address}). \u05DB\u05D3\u05D9 \u05DC\u05D7\u05D1\u05E8 \u05D0\u05D5\u05EA\u05D5, \u05D0\u05D5 \u05D0\u05EA\u05E8 \u05D7\u05D3\u05E9, \u05D4\u05E8\u05D9\u05E6\u05D5:",
     linkCancelled: "\u05DC\u05D0 \u05D7\u05D5\u05D1\u05E8. \u05E9\u05D5\u05DD \u05D3\u05D1\u05E8 \u05DC\u05D0 \u05D4\u05E9\u05EA\u05E0\u05D4.",
     loggedOutLocalOnly: "\u05D4\u05EA\u05E0\u05EA\u05E7\u05EA\u05DD \u05D1\u05DE\u05D7\u05E9\u05D1 \u05D4\u05D6\u05D4. \u05DC\u05D0 \u05D4\u05E6\u05DC\u05D7\u05E0\u05D5 \u05DC\u05D4\u05D2\u05D9\u05E2 \u05DC\u05BEDeployAI, \u05D0\u05D6 \u05D4\u05D8\u05D5\u05E7\u05DF \u05EA\u05E7\u05E3 \u05E2\u05D3 \u05E9\u05D9\u05E4\u05D5\u05D2 (30 \u05D9\u05D5\u05DD).",
-    savedIn: "\u05E0\u05E9\u05DE\u05E8 \u05D1 .deployai/project.json",
+    savedIn: "\u05E0\u05E9\u05DE\u05E8 \u05D1\u05E7\u05D5\u05D1\u05E5 \u200E.deployai/project.json",
     createdProject: "\u05E0\u05D5\u05E6\u05E8 \u05D4\u05D0\u05EA\u05E8 {name}.",
     noProjects: "\u05D0\u05D9\u05DF \u05E2\u05D3\u05D9\u05D9\u05DF \u05D0\u05EA\u05E8\u05D9\u05DD.",
     projects: "\u05D0\u05EA\u05E8\u05D9\u05DD",
@@ -25189,8 +25414,8 @@ function err(line = "") {
 function pad(text2, width) {
   return text2.length >= width ? text2 + " " : text2 + " ".repeat(width - text2.length);
 }
-function row(label, value, width = LABEL_WIDTH) {
-  return pad(label, width) + value;
+function row(label, value2, width = LABEL_WIDTH) {
+  return pad(label, width) + value2;
 }
 function rows(items) {
   const width = Math.max(LABEL_WIDTH, ...items.map(([l]) => l.length + 2));
@@ -25203,7 +25428,7 @@ function formatBytes(n2) {
 }
 
 // src/version.ts
-var CLI_VERSION = "0.1.0-beta.43";
+var CLI_VERSION = "0.1.0-beta.44";
 
 // src/api.ts
 function apiContext(apiFlag, root) {
@@ -26030,6 +26255,20 @@ function analyzeProject(root) {
     add({ code: "durable_objects", severity: "blocker", file: name, line: at < 0 ? 1 : text2.slice(0, at).split("\n").length, detail: "" });
     break;
   }
+  for (const name of ["wrangler.toml", "wrangler.json", "wrangler.jsonc"]) {
+    if (!existsSync4(join4(root, name))) continue;
+    const text2 = readFileSync5(join4(root, name), "utf8");
+    for (const cron of parseWranglerConfig(name, text2).crons) {
+      const spec = parseSiteCron(cron);
+      const gap = isSiteCronSpec(spec) ? siteCronGapMinutes(spec) : null;
+      const why = !isSiteCronSpec(spec) ? "not a five part cron line" : gap !== null && gap < SITE_SCHEDULE_MIN_MINUTES ? `more often than every ${SITE_SCHEDULE_MIN_MINUTES} minutes` : null;
+      if (!why) continue;
+      const quoted = Math.max(text2.indexOf(`"${cron}"`), text2.indexOf(`'${cron}'`));
+      const at = quoted >= 0 ? quoted : text2.indexOf(cron);
+      add({ code: "schedule_not_run", severity: "warning", file: name, line: at < 0 ? 1 : text2.slice(0, at).split("\n").length, detail: ` ("${cron}", ${why})` });
+    }
+    break;
+  }
   const DB_CODE = {
     postgres: "unsupported_db_postgres",
     mysql: "unsupported_db_mysql",
@@ -26776,16 +27015,16 @@ function readObject(file2) {
     return null;
   }
 }
-function writeObject(file2, value) {
+function writeObject(file2, value2) {
   mkdirSync4(dirname(file2), { recursive: true });
-  writeFileSync7(file2, `${JSON.stringify(value, null, 2)}
+  writeFileSync7(file2, `${JSON.stringify(value2, null, 2)}
 `);
 }
-function addTo(obj, key2, list, value) {
+function addTo(obj, key2, list, value2) {
   const inner = obj[key2] && typeof obj[key2] === "object" && !Array.isArray(obj[key2]) ? obj[key2] : {};
   const items = Array.isArray(inner[list]) ? inner[list] : [];
-  if (items.includes(value)) return false;
-  inner[list] = [...items, value];
+  if (items.includes(value2)) return false;
+  inner[list] = [...items, value2];
   obj[key2] = inner;
   return true;
 }
@@ -28134,11 +28373,11 @@ import { gunzipSync as gunzipSync2 } from "zlib";
 import { readFileSync as readFileSync12 } from "fs";
 import { gzipSync } from "zlib";
 var BLOCK = 512;
-function writeString(buf, offset, length, value) {
-  buf.write(value, offset, Math.min(length, Buffer.byteLength(value)), "utf8");
+function writeString(buf, offset, length, value2) {
+  buf.write(value2, offset, Math.min(length, Buffer.byteLength(value2)), "utf8");
 }
-function writeOctal(buf, offset, length, value) {
-  const str2 = Math.floor(value).toString(8).padStart(length - 1, "0");
+function writeOctal(buf, offset, length, value2) {
+  const str2 = Math.floor(value2).toString(8).padStart(length - 1, "0");
   buf.write(str2.slice(-(length - 1)), offset, length - 1, "ascii");
   buf[offset + length - 1] = 0;
 }
@@ -28182,8 +28421,8 @@ function splitUstar(path) {
   }
   return null;
 }
-function paxRecord(key2, value) {
-  const body = ` ${key2}=${value}
+function paxRecord(key2, value2) {
+  const body = ` ${key2}=${value2}
 `;
   let len = Buffer.byteLength(body) + 1;
   while (String(len).length + Buffer.byteLength(body) !== len) len = String(len).length + Buffer.byteLength(body);
@@ -28257,22 +28496,32 @@ import { resolve as resolve2 } from "path";
 function placeOf(ctx, root) {
   return createHash3("sha256").update(`${ctx.config.installId}:${resolve2(root)}`).digest("hex").slice(0, 16);
 }
-async function touchWork(ctx, root, projectId) {
+async function checkWork(ctx, root, projectId, builtOn, retried = false) {
+  const none = { others: [], behind: null, answered: false };
   const token = tokenIfOwnApi(ctx);
-  if (!token) return [];
+  if (!token) return none;
   try {
     const res = await fetch(`${ctx.apiUrl}/api/cli/working`, {
       method: "POST",
       headers: { "User-Agent": userAgent(ctx.config), "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ projectId, place: placeOf(ctx, root) }),
+      body: JSON.stringify({ projectId, place: placeOf(ctx, root), ...builtOn && builtOn > 0 ? { builtOn } : {} }),
       signal: AbortSignal.timeout(5e3)
     });
-    if (!res.ok) return [];
+    if (!res.ok) return none;
     const data = await res.json();
-    return Array.isArray(data.others) ? data.others : [];
+    const behind = data.behind && typeof data.behind.live === "number" && Array.isArray(data.behind.newer) ? data.behind : null;
+    return { others: Array.isArray(data.others) ? data.others : [], behind, answered: true };
   } catch {
-    return [];
+    if (!retried) return checkWork(ctx, root, projectId, builtOn, true);
+    return none;
   }
+}
+async function touchWork(ctx, root, projectId, builtOn) {
+  return (await checkWork(ctx, root, projectId, builtOn)).others;
+}
+function behindNames(behind) {
+  const names = [...new Set(behind.newer.map((v) => v.by).filter((x) => !!x))];
+  return (names.length ? names : behind.by ? [behind.by] : []).join(", ");
 }
 function othersLine(root, others) {
   if (!others.length) return null;
@@ -28420,12 +28669,12 @@ async function pullCommand(root, ctx, opts = {}) {
   requireToken(ctx);
   if (opts.history) return pullHistory(root, ctx, projectId);
   const n2 = extractInto(await fetchSource(root, ctx, projectId), root, t("pullDamaged"));
-  if (lastVersion && Number(lastVersion) > 0) updateProject(root, { builtOn: Number(lastVersion) });
-  await touchWork(ctx, root, projectId);
+  const builtOn = lastVersion && Number(lastVersion) > 0 ? Number(lastVersion) : void 0;
+  if (builtOn) updateProject(root, { builtOn });
+  await touchWork(ctx, root, projectId, builtOn);
   out(t("pulled", { n: n2, v: lastVersion ?? "?" }));
 }
 var lastVersion = null;
-var fetchedVersion = () => lastVersion && Number(lastVersion) > 0 ? Number(lastVersion) : null;
 async function fetchSource(root, ctx, projectId, version2) {
   const t = messages(root);
   const token = requireToken(ctx);
@@ -28522,31 +28771,19 @@ function mergeText(ours2, base, live, liveLabel) {
     rmSync3(dir, { recursive: true, force: true });
   }
 }
-async function syncCommand(root, ctx) {
+async function bringIn(root, ctx, projectId, behind) {
   const t = messages(root);
-  const project = readProject(root);
-  if (!project?.projectId) throw new CliError(t("pullNotLinked"), 1, "not_linked");
-  requireToken(ctx);
   if (git2(root, ["--version"]).status !== 0) throw new CliError(t("syncNoGit"), 1, "usage");
-  if (!project.builtOn) throw new CliError(t("syncNoBase"), 1, "usage");
-  const projectId = project.projectId;
-  const others = othersLine(root, await touchWork(ctx, root, projectId));
-  const liveGz = await fetchSource(root, ctx, projectId);
-  const live = fetchedVersion();
-  if (!live) throw new CliError(t("pullNoSource"), 1, "not_found");
-  if (live === project.builtOn) {
-    out(t("syncUpToDate", { v: live }));
-    if (others) out(others);
-    return;
-  }
-  const baseFiles = filesOf(await fetchSource(root, ctx, projectId, project.builtOn));
-  const liveFiles = filesOf(liveGz);
+  if (!behind.base) throw new CliError(t("syncNoBase"), 1, "usage");
+  const live = behind.live;
+  const liveFiles = filesOf(await fetchSource(root, ctx, projectId, live));
+  const baseFiles = filesOf(await fetchSource(root, ctx, projectId, behind.base));
   const plan = planUpload(root);
   const ourFiles = new Map(plan.files.map((f) => [f.rel, readFileSync13(f.abs)]));
   if (!existsSync15(join17(root, ".git")) && git2(root, ["init", "-q"]).status !== 0) throw new CliError(t("syncNoGit"), 1, "usage");
   git2(root, ["add", "-A"]);
-  git2(root, ["-c", "user.name=DeployAI", "-c", "user.email=versions@deployai.co.il", "commit", "-q", "--allow-empty", "-m", `Before sync with live v${live}`]);
-  const state = { live, base: project.builtOn, conflicts: [], clashes: migrationClashes(baseFiles, liveFiles, ourFiles) };
+  git2(root, ["-c", `user.name=${BOT.name}`, "-c", `user.email=${BOT.email}`, "commit", "-q", "--allow-empty", "-m", `Before sync with live v${live}`]);
+  const state = { live, base: behind.base, conflicts: [], clashes: migrationClashes(baseFiles, liveFiles, ourFiles) };
   let taken = 0;
   let merged = 0;
   const write = (path, data) => {
@@ -28596,20 +28833,98 @@ async function syncCommand(root, ctx) {
   ensureDeployaiDir(root);
   writeFileSync13(join17(root, SYNC_FILE), JSON.stringify(state, null, 2) + "\n");
   updateProject(root, { builtOn: live });
-  out(t("syncDone", { v: live, taken, merged }));
-  if (state.conflicts.length) {
+  const tip = await recordHistory(root, ctx, projectId, behind).catch(() => null);
+  if (tip && !state.conflicts.length && !state.clashes.length) {
+    git2(root, ["add", "-A"]);
+    const tree = git2(root, ["write-tree"]).stdout.trim();
+    const head = git2(root, ["rev-parse", "HEAD"]).stdout.trim();
+    const names = behindNames(behind);
+    const c = spawnSync3("git", ["commit-tree", tree, "-p", head, "-p", tip.sha, "-m", `Brought in live v${live}${names ? ` (${names})` : ""}`], { cwd: root, encoding: "utf8", env: { ...process.env, ...botEnv() } });
+    if (c.status === 0 && c.stdout.trim()) git2(root, ["update-ref", "HEAD", c.stdout.trim()]);
+  }
+  return { live, taken, merged, conflicts: state.conflicts, clashes: state.clashes, history: tip?.added ?? 0 };
+}
+var BOT = { name: "DeployAI", email: "versions@deployai.co.il" };
+var botEnv = (name = BOT.name, at) => ({
+  GIT_AUTHOR_NAME: name,
+  GIT_AUTHOR_EMAIL: BOT.email,
+  GIT_COMMITTER_NAME: BOT.name,
+  GIT_COMMITTER_EMAIL: BOT.email,
+  ...at ? { GIT_AUTHOR_DATE: at, GIT_COMMITTER_DATE: at } : {}
+});
+var LIVE_REF = "refs/deployai/live";
+var HISTORY_MAX = 20;
+async function recordHistory(root, ctx, projectId, behind) {
+  const t = messages(root);
+  const gitDir = join17(root, ".git");
+  if (!existsSync15(gitDir)) return null;
+  const run = (args, env = {}) => spawnSync3("git", [`--git-dir=${gitDir}`, ...args], { encoding: "utf8", env: { ...process.env, ...env } });
+  let tip = run(["rev-parse", "-q", "--verify", LIVE_REF]).stdout.trim() || null;
+  const lastNumber = tip ? Number(/^v(\d+)/.exec(run(["log", "-1", "--format=%s", LIVE_REF]).stdout.trim())?.[1] ?? 0) : 0;
+  const todo = behind.newer.filter((v) => v.number > lastNumber).slice(-HISTORY_MAX);
+  let added = 0;
+  for (const v of todo) {
+    const gz = await fetchSource(root, ctx, projectId, v.number).catch(() => null);
+    if (!gz) continue;
+    const tree = mkdtempSync(join17(tmpdir(), "deployai-history-"));
+    const index = join17(tmpdir(), `deployai-index-${process.pid}-${v.number}`);
+    try {
+      extractInto(gz, tree, t("pullDamaged"));
+      const env = { GIT_INDEX_FILE: index };
+      if (run([`--work-tree=${tree}`, "add", "-A"], env).status !== 0) continue;
+      const id = run(["write-tree"], env).stdout.trim();
+      if (!id) continue;
+      const c = run(["commit-tree", id, ...tip ? ["-p", tip] : [], "-m", `v${v.number}: ${v.message || "update"}`], botEnv(`${v.by ?? "Someone"} via DeployAI`, v.at));
+      const sha2 = c.stdout.trim();
+      if (c.status !== 0 || !sha2) continue;
+      tip = sha2;
+      added++;
+    } finally {
+      rmSync3(tree, { recursive: true, force: true });
+      rmSync3(index, { force: true });
+    }
+  }
+  if (!tip) return null;
+  run(["update-ref", LIVE_REF, tip]);
+  return { sha: tip, added };
+}
+function printBroughtIn(root, r, behind) {
+  const t = messages(root);
+  const names = behindNames(behind);
+  out(names ? t("caughtUp", { v: r.live, names, taken: r.taken, merged: r.merged }) : t("syncDone", { v: r.live, taken: r.taken, merged: r.merged }));
+  if (r.history) out(t("historyAdded", { n: r.history }));
+  if (r.conflicts.length) {
     out();
     out(t("syncConflicts"));
-    for (const c of state.conflicts) out(`  - ${c.path}: ${t(`syncWhy_${c.why}`, { live: `${DEPLOYAI_DIR}/sync/${c.path}.live` })}`);
+    for (const c of r.conflicts) out(`  - ${c.path}: ${t(`syncWhy_${c.why}`, { live: `${DEPLOYAI_DIR}/sync/${c.path}.live` })}`);
   }
-  for (const [mine, theirs] of state.clashes) out(t("syncClash", { mine, theirs }));
+  for (const [mine, theirs] of r.clashes) out(t("syncClash", { mine, theirs }));
+}
+async function syncCommand(root, ctx) {
+  const t = messages(root);
+  const project = readProject(root);
+  if (!project?.projectId) throw new CliError(t("pullNotLinked"), 1, "not_linked");
+  requireToken(ctx);
+  if (git2(root, ["--version"]).status !== 0) throw new CliError(t("syncNoGit"), 1, "usage");
+  if (!project.builtOn) throw new CliError(t("syncNoBase"), 1, "usage");
+  const projectId = project.projectId;
+  const work = await checkWork(ctx, root, projectId, project.builtOn);
+  const others = othersLine(root, work.others);
+  if (!work.answered) throw new CliError(messages()("unreachable", { url: ctx.apiUrl }), 1, "network");
+  if (!work.behind) {
+    out(t("syncUpToDate", { v: project.builtOn }));
+    if (others) out(others);
+    return;
+  }
+  const r = await bringIn(root, ctx, projectId, work.behind);
+  printBroughtIn(root, r, work.behind);
   if (others) {
     out();
     out(others);
   }
   out();
-  out(state.conflicts.length || state.clashes.length ? t("syncNextConflicts") : t("syncNext"));
-  if (state.conflicts.length || state.clashes.length) process.exitCode = 1;
+  out(r.conflicts.length || r.clashes.length ? t("syncNextConflicts") : t("syncNext"));
+  if (r.conflicts.length || r.clashes.length) process.exitCode = 1;
 }
 function syncLeftovers(root) {
   let state;
@@ -28960,14 +29275,35 @@ function addTool(form, ctx, model) {
   const m = toDeployModel(model) ?? deployModelFromEnv(process.env);
   if (m) form.append("model", m);
 }
+async function catchUp(root, ctx, projectId, builtOn) {
+  const t = messages(root);
+  const work = await checkWork(ctx, root, projectId, builtOn);
+  const others = othersLine(root, work.others);
+  if (others) out(others);
+  const behind = work.behind;
+  if (!behind) return null;
+  if (!behind.base) {
+    out(t("behindNoBase", { v: behind.live }));
+    return null;
+  }
+  const r = await bringIn(root, ctx, projectId, behind);
+  printBroughtIn(root, r, behind);
+  out();
+  if (r.conflicts.length || r.clashes.length) throw new CliError(t("caughtUpConflicts"), 1, "sync_conflicts");
+  return r;
+}
 async function deployVersion(root, ctx, opts, guest) {
   requireToken(ctx);
   const project = readProject(root);
   if (!project?.projectId) throw new CliError(messages(root)("notLinked"), 1, "not_linked");
   const message = (opts.message ?? "").trim() || "update";
-  const { archive, info, hasSql } = await prepare(root, ctx, guest ? GUEST_MAX_BYTES : Number.POSITIVE_INFINITY);
   const t = messages(root);
-  const hold = Boolean(opts.hold);
+  const caught = guest ? null : await catchUp(root, ctx, project.projectId, project.builtOn);
+  if (caught) project.builtOn = caught.live;
+  const { archive, info, hasSql } = await prepare(root, ctx, guest ? GUEST_MAX_BYTES : Number.POSITIVE_INFINITY);
+  if (caught && opts.live) out(t("caughtUpNoLive"));
+  const hold = Boolean(opts.hold) || Boolean(caught);
+  if (caught) opts = { ...opts, live: false };
   if (hold && (opts.live || guest)) throw new CliError(t(guest ? "holdGuest" : "holdAndLive"), 1, "usage");
   const wait = opts.live || opts.wait !== false;
   let live = Boolean(opts.live);
@@ -28990,7 +29326,7 @@ async function deployVersion(root, ctx, opts, guest) {
   const res = await apiRequest(ctx, "/api/cli/deploy", DeployResponse, { method: "POST", form, timeoutMs: 5 * 6e4 });
   if (!guest) {
     updateProject(root, { builtOn: res.number });
-    await touchWork(ctx, root, project.projectId);
+    await touchWork(ctx, root, project.projectId, res.number);
   }
   out();
   if (guest) {
@@ -29009,7 +29345,8 @@ async function deployVersion(root, ctx, opts, guest) {
   );
   pageHint(res, root);
   out();
-  if (hold) out(t("holdOn", { n: res.number }));
+  if (caught) out(t("caughtUpPreview", { n: res.number }));
+  else if (hold) out(t("holdOn", { n: res.number }));
   if (!wait) {
     out(t("nextStep"));
     out(t("followBuild"));
@@ -29446,8 +29783,20 @@ ${choices.brief}
   if (root !== here) out(t(update ? "startUpdateFolder" : "startNewFolder", { dir: relative3(here, root) }));
   for (const line of done) out(`- ${line}`);
   if (choices.projectId && signedIn) {
-    const others = othersLine(root, await touchWork(ctxNow, root, choices.projectId));
+    const builtOn = readProject(root)?.builtOn;
+    const work = await checkWork(ctxNow, root, choices.projectId, builtOn);
+    const others = othersLine(root, work.others);
     if (others) out(`- ${others}`);
+    if (work.behind && !pullNow) {
+      if (!work.behind.base) out(`- ${t("behindNoBase", { v: work.behind.live })}`);
+      else {
+        try {
+          printBroughtIn(root, await bringIn(root, ctxNow, choices.projectId, work.behind), work.behind);
+        } catch (e3) {
+          out(`- ${e3 instanceof Error ? e3.message : String(e3)}`);
+        }
+      }
+    }
   }
   out();
   const lines = [];
@@ -30686,11 +31035,11 @@ async function envListCommand(root, ctx) {
   const width = Math.max(...vars.map((v) => v.key.length)) + 2;
   for (const v of vars) out(`  ${v.key.padEnd(width)}${(v.isSecret ? t("envSecret") : t("envPlain")).padEnd(10)}${v.hint}`);
 }
-async function envSetCommand(root, ctx, key2, value, opts) {
+async function envSetCommand(root, ctx, key2, value2, opts) {
   requireToken(ctx);
   const projectId = linkedProjectId(root);
   const t = messages(root);
-  const v = value ?? (process.stdin.isTTY ? void 0 : await readStdin());
+  const v = value2 ?? (process.stdin.isTTY ? void 0 : await readStdin());
   if (v === void 0) throw new CliError(t("envNeedValue"), 1, "usage");
   const r = await apiRequest(ctx, "/api/cli/env", EnvSetResponse, { method: "POST", body: { projectId, key: key2, value: v, secret: !opts.plain } });
   out(t(r.secret ? "envSavedSecret" : "envSavedPlain", { key: r.key }));
@@ -30790,7 +31139,7 @@ ${AGENT_FEEDBACK_RULES.join("\n\n")}
   });
   const env = program.command("env").description("the site's environment variables: secrets by default, never shown again");
   env.command("list").description("list the keys, with a hint of each value").action((_opts, cmd) => envListCommand(root(cmd), ctx(cmd)));
-  env.command("set").argument("<key>", "the name, like API_KEY").argument("[value]", "the value; leave it out to pipe it in, so it stays out of the shell history").option("--plain", "a plain value the dashboard may show, not a secret").description("set a variable on the live site").action((key2, value, opts, cmd) => envSetCommand(root(cmd), ctx(cmd), key2, value, opts));
+  env.command("set").argument("<key>", "the name, like API_KEY").argument("[value]", "the value; leave it out to pipe it in, so it stays out of the shell history").option("--plain", "a plain value the dashboard may show, not a secret").description("set a variable on the live site").action((key2, value2, opts, cmd) => envSetCommand(root(cmd), ctx(cmd), key2, value2, opts));
   env.command("remove").argument("<key>", "the name to remove").description("remove a variable from the live site").action((key2, _opts, cmd) => envRemoveCommand(root(cmd), ctx(cmd), key2));
   return program;
 }
