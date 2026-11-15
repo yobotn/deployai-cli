@@ -21352,6 +21352,9 @@ var Version = external_exports.object({
 });
 var VersionsResponse = external_exports.object({ versions: external_exports.array(Version) });
 var RequestsResponse = external_exports.object({ lines: external_exports.array(external_exports.object({ at: external_exports.number(), method: external_exports.string(), path: external_exports.string(), status: external_exports.number(), outcome: external_exports.string(), country: external_exports.string(), dropped: external_exports.number().optional() })).nullable() });
+var LogLine = external_exports.object({ at: external_exports.number(), kind: external_exports.enum(["request", "log", "exception"]), level: external_exports.string(), text: external_exports.string() });
+var LogsReady = external_exports.object({ name: external_exports.string(), url: external_exports.string().nullable(), until: external_exports.number() });
+var LogsEnd = external_exports.object({ reason: external_exports.enum(["time", "replaced", "cloudflare"]) });
 var EnvSetRequest = external_exports.object({ projectId: external_exports.string(), key: external_exports.string(), value: external_exports.string(), secret: external_exports.boolean().default(true) });
 var EnvSetResponse = external_exports.object({ ok: external_exports.literal(true), key: external_exports.string(), secret: external_exports.boolean(), delivered: external_exports.boolean() });
 var EnvRemoveRequest = external_exports.object({ projectId: external_exports.string(), key: external_exports.string() });
@@ -21410,7 +21413,9 @@ var StatusResponse = external_exports.object({
   /** The live site's country rule shuts out the country this call came from (D-682). `settingsUrl` is null when only the owner can change it. */
   closedHere: external_exports.object({ country: external_exports.string(), countries: external_exports.array(external_exports.string()), settingsUrl: external_exports.string().nullable() }).nullable().optional(),
   /** How the live version went live and when (D-817). `via` is cli, chat, dashboard or deploy; null for one from before it was recorded. */
-  liveVia: external_exports.object({ via: external_exports.string().nullable(), at: external_exports.string() }).nullable().optional()
+  liveVia: external_exports.object({ via: external_exports.string().nullable(), at: external_exports.string() }).nullable().optional(),
+  /** The newest version that waits in an open pull request on GitHub (D-997), with the line to print in each language. */
+  githubPull: external_exports.object({ version: external_exports.number(), number: external_exports.number(), url: external_exports.string(), he: external_exports.string(), en: external_exports.string() }).nullable().optional()
 });
 var ApiError = external_exports.object({
   error: external_exports.string(),
@@ -21671,6 +21676,7 @@ var ARCH_EDGES = [
   { id: "uptime-web", from: "uptime-worker", to: "web", kind: "http", label: "health check" },
   { id: "dispatch-requests", from: "dispatch", to: "requests-worker", kind: "http", label: "request lines, service binding" },
   { id: "web-requests", from: "web", to: "requests-worker", kind: "http", label: "signed reads" },
+  { id: "web-dispatch-tail", from: "web", to: "dispatch", kind: "http", label: "live tail for deployai logs (D-991)" },
   { id: "web-app-uptime", from: "web", to: "app-uptime", kind: "http", label: "signed /__app/ calls" },
   { id: "web-app-cron", from: "web", to: "app-cron", kind: "http", label: "signed /__app/ calls" },
   { id: "app-cron-web", from: "app-cron", to: "web", kind: "http", label: "failure and slow-run email" },
@@ -22711,6 +22717,7 @@ function deployToolFromEnv(env) {
 }
 
 // ../shared/src/start-flow.ts
+var START_ID_ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789";
 var START_ID_RE = /^[a-hjkmnp-z2-9]{10}$/;
 var MIGRATION_DIR = ".deployai/migration";
 var BRIEF_FILE = ".deployai/brief.md";
@@ -22910,6 +22917,8 @@ var CLI_MAP_NODES = [
   n("api-sql", "server", "/api/cli/sql", "\u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05E9\u05DE\u05D7\u05DB\u05D9\u05DD \u05DC\u05D0\u05D9\u05E9\u05D5\u05E8, \u05D5\u05E7\u05D5\u05D3 \u05E9\u05DE\u05D7\u05D1\u05E8 \u05D0\u05EA \u05D4\u05D0\u05D9\u05E9\u05D5\u05E8 \u05D0\u05DC\u05D9\u05D4\u05DD.", "The changes that wait for a yes, and a code that ties the yes to them."),
   n("cmd-versions", "cli", "versions", "\u05E8\u05E9\u05D9\u05DE\u05EA \u05D4\u05D2\u05E8\u05E1\u05D0\u05D5\u05EA \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8.", "The site's versions."),
   n("cmd-requests", "cli", "requests / requests open <address>", "\u05D4\u05D1\u05E7\u05E9\u05D5\u05EA \u05D4\u05E0\u05DB\u05E0\u05E1\u05D5\u05EA \u05DC\u05D0\u05EA\u05E8 \u05D5\u05DE\u05D4 \u05E7\u05E8\u05D4 \u05DC\u05D4\u05DF, \u05D5\u05E4\u05EA\u05D9\u05D7\u05EA \u05DB\u05EA\u05D5\u05D1\u05EA \u05DB\u05DE\u05D5 webhook \u05DC\u05DB\u05DC \u05D4\u05DE\u05D3\u05D9\u05E0\u05D5\u05EA.", "The site's incoming requests and what happened to them, and opening an address such as a webhook to every country."),
+  n("cmd-logs", "cli", "logs [--json] [--errors]", "\u05DC\u05D5\u05D2\u05D9\u05DD \u05D7\u05D9\u05D9\u05DD \u05E9\u05DC \u05D4\u05E7\u05D5\u05D3 \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8: \u05D1\u05E7\u05E9\u05D5\u05EA, \u05E9\u05D5\u05E8\u05D5\u05EA console \u05D5\u05E9\u05D2\u05D9\u05D0\u05D5\u05EA, \u05E2\u05D3 10 \u05D3\u05E7\u05D5\u05EA. \u05E8\u05E7 \u05DC\u05D1\u05E2\u05DC\u05D9\u05DD \u05D0\u05D5 \u05DC\u05E2\u05D5\u05E8\u05DA, \u05D5\u05DC\u05D0 \u05E0\u05E9\u05DE\u05E8\u05D9\u05DD \u05D0\u05E6\u05DC\u05E0\u05D5.", "Live logs of the site's code: requests, console lines and errors, up to 10 minutes. Owner or editor only, never stored by us."),
+  n("api-logs", "server", "/api/cli/logs", "\u05D6\u05E8\u05DD \u05D0\u05D9\u05E8\u05D5\u05E2\u05D9\u05DD \u05DE\u05D4\u05BEtail \u05E9\u05DC \u05D4\u05BEdispatch Worker, \u05DE\u05E1\u05D5\u05E0\u05DF \u05DC\u05E1\u05E7\u05E8\u05D9\u05E4\u05D8 \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D1\u05DC\u05D1\u05D3. \u05D1\u05DC\u05D9 \u05DB\u05D5\u05EA\u05E8\u05D5\u05EA \u05D5\u05D1\u05DC\u05D9 IP.", "An event stream from the dispatch Worker's tail, filtered to the site's own script. No headers and no IP."),
   n("api-requests", "server", "/api/cli/requests", "\u05D4\u05E8\u05E9\u05D9\u05DE\u05D4 \u05D1\u05DC\u05D9 IP \u05D5\u05D1\u05DC\u05D9 \u05EA\u05D5\u05DB\u05DF, \u05D5\u05E4\u05EA\u05D9\u05D7\u05D4 \u05D0\u05D5 \u05E1\u05D2\u05D9\u05E8\u05D4 \u05E9\u05DC \u05DB\u05EA\u05D5\u05D1\u05EA.", "The list with no IP and no content, and opening or closing an address."),
   n("cmd-rollback", "cli", "rollback v<N>", "\u05D7\u05D5\u05D6\u05E8 \u05DC\u05D2\u05E8\u05E1\u05D4 \u05E7\u05D5\u05D3\u05DE\u05EA.", "Goes back to an earlier version."),
   n("cmd-addons", "cli", "addons / addon next / addon buy", "\u05D4\u05EA\u05D5\u05E1\u05E4\u05D9\u05DD \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8, \u05D4\u05E9\u05DC\u05D1 \u05D4\u05D1\u05D0 \u05E9\u05DC \u05EA\u05D5\u05E1\u05E3 \u05E9\u05E0\u05E7\u05E0\u05D4, \u05D5\u05E7\u05D9\u05E9\u05D5\u05E8 \u05E7\u05E0\u05D9\u05D9\u05D4 \u05DC\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8.", "The site's add-ons, the next step of one it bought, and a buy link for the owner."),
@@ -22993,6 +23002,7 @@ var CLI_MAP_EDGES = [
   e("cmd-telemetry", "api-check"),
   e("cmd-feedback", "api-check"),
   e("cmd-requests", "api-requests"),
+  e("cmd-logs", "api-logs"),
   e("cmd-status", "api-status"),
   e("cmd-versions", "api-status"),
   e("cmd-promote", "api-promote"),
@@ -23828,6 +23838,44 @@ var AGENT_POINTER = "Read DEPLOYAI.md before your first answer and before you wr
 var SITE_COPY_RULE = "Words on the site: write each language from what a visitor must know, the way a native writer of that language says it, never word for word from another language. Read each page alone in its own language: if it sounds translated, rewrite it. Keep one term for each thing in every language (when .deployai/glossary.md exists, use its terms and add new ones to it), and dates, prices, phone numbers and addresses in the local form of that language. Never reword text the owner wrote without asking. When you wrote a language you are not sure of, or a legal page, say in one line that a native speaker should read it.";
 var FOLDER_READY_RULE = `This folder is already set up. When the owner has not asked for anything yet, say only, in their language: "The folder is set up and ready. What do you want to change?" Add the site's name when .deployai/project.json has it. If the folder has no site files yet, ask instead: "The folder is set up and ready. What do you want to build?" Never ask them for a start line, a command or an id. While the folder holds a site, never offer a sample or a new start: go on with that site.`;
 
+// ../shared/src/blocked-reasons.ts
+var BLOCKED_REASONS = [
+  // migrate verify: old pages on the preview
+  "pages_missing",
+  "pages_moved",
+  "pages_error",
+  "title_lost",
+  "description_lost",
+  // migrate verify: tags and connections (the tag finding's own problem)
+  "tag_lost",
+  "trigger_lost",
+  "field_lost",
+  "verification_lost",
+  "file_lost",
+  "blocked_by_headers",
+  "event_lost",
+  // migrate verify: what is left of the old site
+  "builder_credit",
+  "vendor_files",
+  "old_host_assets",
+  // migrate scan
+  "source_closed",
+  // deploy
+  "check_blocked",
+  "build_failed",
+  "preview_down",
+  "not_live",
+  // start
+  "login_wait",
+  "other_account",
+  // sync
+  "sync_conflicts"
+];
+function blockedLine(codes) {
+  const set2 = new Set(codes);
+  return BLOCKED_REASONS.filter((c) => set2.has(c)).join(" ");
+}
+
 // ../shared/src/deployai-md.ts
 var DEPLOYAI_MD = `# DeployAI rules
 
@@ -24438,10 +24486,10 @@ function parseSiteCron(expr) {
   const raw = expr.trim().split(/\s+/);
   if (raw.length !== 5 || expr.length > 100) return { error: "A schedule has five parts: minute, hour, day of month, month, day of week." };
   const [mi, ho, dm, mo, dw] = raw;
-  const minutes = field(mi, 0, 59);
+  const minutes2 = field(mi, 0, 59);
   const hours = field(ho, 0, 23);
   const months = field(mo, 1, 12, MONTHS);
-  if (!minutes || !hours || !months) return { error: "The minute, hour or month part does not read." };
+  if (!minutes2 || !hours || !months) return { error: "The minute, hour or month part does not read." };
   const dom = { any: dm === "*" || dm === "?", days: [], last: false, lastWeekday: false, nearest: [] };
   if (!dom.any) {
     for (const part of dm.split(",")) {
@@ -24476,7 +24524,7 @@ function parseSiteCron(expr) {
       }
     }
   }
-  return { raw: [mi, ho, dm, mo, dw], minutes, hours, dom, months, dow };
+  return { raw: [mi, ho, dm, mo, dw], minutes: minutes2, hours, dom, months, dow };
 }
 var isSiteCronSpec = (x) => !("error" in x);
 var lastDayOf = (y, m) => new Date(Date.UTC(y, m, 0)).getUTCDate();
@@ -24790,14 +24838,16 @@ function updateProject(root, patch) {
 
 // src/errors.ts
 var CliError = class extends Error {
-  constructor(message, exitCode = 1, category = "error") {
+  constructor(message, exitCode = 1, category = "error", reason2) {
     super(message);
     this.exitCode = exitCode;
     this.category = category;
+    this.reason = reason2;
     this.name = "CliError";
   }
   exitCode;
   category;
+  reason;
 };
 
 // src/i18n.ts
@@ -25101,6 +25151,17 @@ var M = {
     runLink: "  Run: npx deployai@latest link",
     nextSteps: "Next steps",
     readme: "Read README.md in the folder for what each file does.",
+    logsWatching: "Live logs of {name} ({url}) until {time}. Ctrl+C stops.",
+    logsErrorsOnly: "Errors only.",
+    logsNote: "Only what runs the site's code shows here: pages and files sent as they are do not. DeployAI does not save these lines.",
+    logsEndTime: "Stopped after 10 minutes. To keep watching, run: npx deployai@latest logs",
+    logsEndReplaced: "Stopped: logs of this site were opened somewhere else. One at a time per site.",
+    logsEndCloudflare: "The logs stopped on Cloudflare's side. Run the same command again.",
+    logsEndClosed: "The connection to DeployAI closed. Run the same command again.",
+    logsStopped: "Stopped.",
+    logsNotLive: 'This site has nothing live yet, so there are no logs. Put a version live first: npx deployai@latest deploy -m "<message>" --live',
+    logsSiteOff: "The site is off, so its code does not run and there are no logs. The owner turns it back on in the dashboard.",
+    logsUnavailable: "Logs cannot be read right now. Try again in a few minutes.",
     states: { online: "live", building: "building", ready: "ready for review", failed: "failed", paused: "paused", off: "off", queued: "waiting", replaced: "replaced by a newer upload", deleted: "deleted", new: "new" }
   },
   he: {
@@ -25391,6 +25452,17 @@ var M = {
     runLink: "  \u05D4\u05E8\u05D9\u05E6\u05D5: npx deployai@latest link",
     nextSteps: "\u05D4\u05E9\u05DC\u05D1\u05D9\u05DD \u05D4\u05D1\u05D0\u05D9\u05DD",
     readme: "\u05D1\u05BEREADME.md \u05E9\u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05DB\u05EA\u05D5\u05D1 \u05DE\u05D4 \u05DB\u05DC \u05E7\u05D5\u05D1\u05E5 \u05E2\u05D5\u05E9\u05D4.",
+    logsWatching: "\u05DC\u05D5\u05D2\u05D9\u05DD \u05D7\u05D9\u05D9\u05DD \u05E9\u05DC {name} ({url}) \u05E2\u05D3 {time}. \u05DC\u05E2\u05E6\u05D9\u05E8\u05D4: Ctrl+C.",
+    logsErrorsOnly: "\u05E8\u05E7 \u05E9\u05D2\u05D9\u05D0\u05D5\u05EA.",
+    logsNote: "\u05DE\u05D5\u05E4\u05D9\u05E2 \u05DB\u05D0\u05DF \u05E8\u05E7 \u05DE\u05D4 \u05E9\u05DE\u05E8\u05D9\u05E5 \u05D0\u05EA \u05D4\u05E7\u05D5\u05D3 \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8. \u05D3\u05E4\u05D9\u05DD \u05D5\u05E7\u05D1\u05E6\u05D9\u05DD \u05E9\u05E0\u05E9\u05DC\u05D7\u05D9\u05DD \u05DB\u05DE\u05D5 \u05E9\u05D4\u05DD \u05DC\u05D0 \u05DE\u05D5\u05E4\u05D9\u05E2\u05D9\u05DD. DeployAI \u05DC\u05D0 \u05E9\u05D5\u05DE\u05E8\u05EA \u05D0\u05EA \u05D4\u05E9\u05D5\u05E8\u05D5\u05EA \u05D4\u05D0\u05DC\u05D4.",
+    logsEndTime: "\u05E2\u05E6\u05E8\u05E0\u05D5 \u05D0\u05D7\u05E8\u05D9 10 \u05D3\u05E7\u05D5\u05EA. \u05DB\u05D3\u05D9 \u05DC\u05D4\u05DE\u05E9\u05D9\u05DA \u05DC\u05E8\u05D0\u05D5\u05EA, \u05D4\u05E8\u05D9\u05E6\u05D5: npx deployai@latest logs",
+    logsEndReplaced: "\u05E0\u05E2\u05E6\u05E8: \u05D4\u05DC\u05D5\u05D2\u05D9\u05DD \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D4\u05D6\u05D4 \u05E0\u05E4\u05EA\u05D7\u05D5 \u05D1\u05DE\u05E7\u05D5\u05DD \u05D0\u05D7\u05E8. \u05D0\u05E4\u05E9\u05E8 \u05DC\u05E6\u05E4\u05D5\u05EA \u05D1\u05D4\u05DD \u05E8\u05E7 \u05D1\u05DE\u05E7\u05D5\u05DD \u05D0\u05D7\u05D3 \u05D1\u05DB\u05DC \u05E4\u05E2\u05DD.",
+    logsEndCloudflare: "\u05D4\u05DC\u05D5\u05D2\u05D9\u05DD \u05E0\u05E2\u05E6\u05E8\u05D5 \u05D1\u05E6\u05D3 \u05E9\u05DC Cloudflare. \u05D4\u05E8\u05D9\u05E6\u05D5 \u05E9\u05D5\u05D1 \u05D0\u05EA \u05D0\u05D5\u05EA\u05D4 \u05E4\u05E7\u05D5\u05D3\u05D4.",
+    logsEndClosed: "\u05D4\u05D7\u05D9\u05D1\u05D5\u05E8 \u05DC\u05BEDeployAI \u05E0\u05E1\u05D2\u05E8. \u05D4\u05E8\u05D9\u05E6\u05D5 \u05E9\u05D5\u05D1 \u05D0\u05EA \u05D0\u05D5\u05EA\u05D4 \u05E4\u05E7\u05D5\u05D3\u05D4.",
+    logsStopped: "\u05E0\u05E2\u05E6\u05E8.",
+    logsNotLive: '\u05DC\u05D0\u05EA\u05E8 \u05D4\u05D6\u05D4 \u05E2\u05D5\u05D3 \u05D0\u05D9\u05DF \u05D2\u05E8\u05E1\u05D4 \u05D1\u05D0\u05D5\u05D5\u05D9\u05E8, \u05D5\u05DC\u05DB\u05DF \u05D0\u05D9\u05DF \u05DC\u05D5\u05D2\u05D9\u05DD. \u05D4\u05E2\u05DC\u05D5 \u05E7\u05D5\u05D3\u05DD \u05D2\u05E8\u05E1\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8: npx deployai@latest deploy -m "<message>" --live',
+    logsSiteOff: "\u05D4\u05D0\u05EA\u05E8 \u05DB\u05D1\u05D5\u05D9, \u05D5\u05DC\u05DB\u05DF \u05D4\u05E7\u05D5\u05D3 \u05E9\u05DC\u05D5 \u05DC\u05D0 \u05E8\u05E5 \u05D5\u05D0\u05D9\u05DF \u05DC\u05D5\u05D2\u05D9\u05DD. \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05DE\u05D3\u05DC\u05D9\u05E7 \u05D0\u05D5\u05EA\u05D5 \u05DE\u05D7\u05D3\u05E9 \u05D1\u05DC\u05D5\u05D7 \u05D4\u05D1\u05E7\u05E8\u05D4.",
+    logsUnavailable: "\u05D0\u05D9 \u05D0\u05E4\u05E9\u05E8 \u05DC\u05E7\u05E8\u05D5\u05D0 \u05DC\u05D5\u05D2\u05D9\u05DD \u05DB\u05E8\u05D2\u05E2. \u05E0\u05E1\u05D5 \u05E9\u05D5\u05D1 \u05D1\u05E2\u05D5\u05D3 \u05DB\u05DE\u05D4 \u05D3\u05E7\u05D5\u05EA.",
     states: { online: "\u05D1\u05D0\u05D5\u05D5\u05D9\u05E8", building: "\u05D1\u05D1\u05E0\u05D9\u05D9\u05D4", ready: "\u05DE\u05D7\u05DB\u05D4 \u05DC\u05D0\u05D9\u05E9\u05D5\u05E8", failed: "\u05E0\u05DB\u05E9\u05DC", paused: "\u05DE\u05D5\u05E9\u05D4\u05D4", off: "\u05DB\u05D1\u05D5\u05D9", queued: "\u05D1\u05EA\u05D5\u05E8", replaced: "\u05D4\u05D5\u05D7\u05DC\u05E4\u05D4 \u05D1\u05D4\u05E2\u05DC\u05D0\u05D4 \u05D7\u05D3\u05E9\u05D4 \u05D9\u05D5\u05EA\u05E8", deleted: "\u05E0\u05DE\u05D7\u05E7", new: "\u05D7\u05D3\u05E9" }
   }
 };
@@ -25428,7 +25500,7 @@ function formatBytes(n2) {
 }
 
 // src/version.ts
-var CLI_VERSION = "0.1.0-beta.44";
+var CLI_VERSION = "0.1.0-beta.45";
 
 // src/api.ts
 function apiContext(apiFlag, root) {
@@ -25615,7 +25687,7 @@ import { arch as arch2, platform as platform2 } from "os";
 var TELEMETRY_SENT = [
   "Install id (random, made on this computer) and CLI version",
   "After each command: command name, result (success, blocked, error category), how long it took and which AI tool ran it, when the environment says so. A start that has to wait for a login sends one more, before it waits",
-  "After an error: the error line with addresses, paths, file names, emails and ids removed, or the wrong command or flag name",
+  "After an error: the error line with addresses, paths, file names, emails and ids removed, or the wrong command or flag name. After a blocked result: a short code for the check that stopped it (for example pages_missing)",
   "A note your agent sends with the feedback command: what got in its way and what would help, or in general words what owners ask it for, one sentence each, shown to you as it was sent",
   "Linked project id, detected framework and version",
   "After each check: compatible or not, blocker and warning codes (for example fs_write)",
@@ -25679,7 +25751,7 @@ function buildTelemetryEvent(installId, command, result, errorCategory, extra = 
   const tool = deployToolFromEnv(process.env);
   if (tool) ev.tool = tool;
   if (extra.durationMs !== void 0) ev.durationMs = Math.max(0, Math.round(extra.durationMs));
-  if (result === "error" && extra.errorLine) ev.errorLine = scrubText(extra.errorLine, ERROR_LINE_MAX);
+  if ((result === "error" || result === "blocked") && extra.errorLine) ev.errorLine = scrubText(extra.errorLine, ERROR_LINE_MAX);
   return ev;
 }
 async function sendTelemetryEvent(ctx, event) {
@@ -25698,6 +25770,73 @@ async function sendTelemetryEvent(ctx, event) {
     });
   } catch {
   }
+}
+
+// src/blocked.ts
+var reasons = /* @__PURE__ */ new Set();
+function blockedBy(...codes) {
+  for (const c of codes) reasons.add(c);
+}
+function takeBlockedLine() {
+  const line = blockedLine(reasons);
+  reasons.clear();
+  return line || void 0;
+}
+
+// src/did-you-mean.ts
+var RUN = "npx deployai@latest";
+var VALUE_OPTIONS = /* @__PURE__ */ new Set(["--api", "--dir", "-C", "--lang"]);
+var MEANS = {
+  connect: [
+    "There is no connect command.",
+    `To connect this folder to the site the owner made on DeployAI, run the line the site gave: ${RUN} start <id>`,
+    `For a site that is already on DeployAI: ${RUN} link`,
+    "To connect a domain, the owner opens the site's Domains page in the DeployAI dashboard. To connect an AI chat: https://deployai.co.il/en/connect-ai"
+  ],
+  publish: [`To publish: ${RUN} deploy`],
+  upload: [`To upload a new version: ${RUN} deploy`],
+  push: [`To upload a new version: ${RUN} deploy`],
+  live: [`To put a ready version live: ${RUN} promote <version>`]
+};
+function editDistance(a, b) {
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    const row2 = [i];
+    for (let j = 1; j <= b.length; j++) row2[j] = Math.min(prev[j] + 1, row2[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    prev = row2;
+  }
+  return prev[b.length];
+}
+function closestCommand(word, names) {
+  const w = word.toLowerCase();
+  let best = null;
+  for (const name of names) {
+    const d = name.startsWith(w) && w.length >= 3 ? 0.5 : editDistance(w, name);
+    if (!best || d < best.d) best = { name, d };
+  }
+  return best && best.d <= Math.max(1, Math.floor(w.length / 3)) ? best.name : null;
+}
+var START_ID = new RegExp(`^[${START_ID_ALPHABET}]{10}$`);
+function unknownCommandHelp(args, program) {
+  const words = [];
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i];
+    if (VALUE_OPTIONS.has(a)) i++;
+    else if (!a.startsWith("-")) words.push({ w: a, at: i });
+  }
+  const rest = (at) => args.length > at + 1 ? ` ${args.slice(at + 1).join(" ")}` : "";
+  const [first, second] = words;
+  if (!first) return [`All commands: ${RUN} --help`];
+  const group = program.commands.find((c) => c.name() === first.w && c.commands.length);
+  if (group && second) {
+    const near2 = closestCommand(second.w, group.commands.map((c) => c.name()));
+    return [...near2 ? [`Did you mean: ${RUN} ${first.w} ${near2}${rest(second.at)}`] : [], `The ${first.w} commands: ${RUN} ${first.w} --help`];
+  }
+  const meant = MEANS[first.w.toLowerCase()];
+  if (meant) return [...meant, `All commands: ${RUN} --help`];
+  if (START_ID.test(first.w)) return [`That looks like the site's start id. Run: ${RUN} start ${first.w}`];
+  const near = closestCommand(first.w, program.commands.map((c) => c.name()));
+  return [...near ? [`Did you mean: ${RUN} ${near}${rest(first.at)}`] : [], `All commands: ${RUN} --help`];
 }
 
 // src/commands/feedback.ts
@@ -26674,11 +26813,16 @@ function copyToClipboard(text2) {
   }
   return false;
 }
+function windowsBrowserDirs(env = process.env) {
+  const drive = env.SystemDrive || "C:";
+  const dirs = [env.ProgramW6432, env.PROGRAMFILES, env.ProgramFiles, env["PROGRAMFILES(X86)"], env["ProgramFiles(x86)"], `${drive}\\Program Files`, `${drive}\\Program Files (x86)`, env.LOCALAPPDATA, env.USERPROFILE ? join8(env.USERPROFILE, "AppData", "Local") : void 0];
+  return [...new Set(dirs.filter((d) => !!d))];
+}
 function findBrowser() {
   if (process.env.DEPLOYAI_NO_BROWSER) return null;
   const set2 = process.env.CHROME_PATH;
   if (set2 && existsSync7(set2)) return set2;
-  const places = process.platform === "win32" ? [process.env.PROGRAMFILES, process.env["PROGRAMFILES(X86)"], process.env.LOCALAPPDATA].flatMap((d) => d ? [join8(d, "Google/Chrome/Application/chrome.exe"), join8(d, "Microsoft/Edge/Application/msedge.exe")] : []) : process.platform === "darwin" ? ["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge", "/Applications/Chromium.app/Contents/MacOS/Chromium"] : ["/usr/bin/google-chrome", "/usr/bin/google-chrome-stable", "/usr/bin/chromium", "/usr/bin/chromium-browser", "/usr/bin/microsoft-edge", "/snap/bin/chromium"];
+  const places = process.platform === "win32" ? windowsBrowserDirs().flatMap((d) => d ? [join8(d, "Google/Chrome/Application/chrome.exe"), join8(d, "Microsoft/Edge/Application/msedge.exe")] : []) : process.platform === "darwin" ? ["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge", "/Applications/Chromium.app/Contents/MacOS/Chromium"] : ["/usr/bin/google-chrome", "/usr/bin/google-chrome-stable", "/usr/bin/chromium", "/usr/bin/chromium-browser", "/usr/bin/microsoft-edge", "/snap/bin/chromium"];
   return places.find((p) => existsSync7(p)) ?? null;
 }
 function openBrowser(url2) {
@@ -27760,7 +27904,7 @@ async function migrateScanCommand(root, raw, opts = {}) {
   if (isBlockedMoveSite(source)) throw new CliError("We do not move sites of banks, hospitals, health funds, insurers, payment services or government bodies. Tell the owner this in one line and stop.", 1, "blocked_site");
   const home = await get(source);
   if (!home) throw new CliError(`Could not reach ${source}. Check the address, or that the site is up.`, 1, "network");
-  if (home.status === 401 || home.status === 403) throw new CliError(`${source} answers ${home.status}: it is behind a login or a security check. If it opens in a browser, open it in your browser tool, ask the owner to pass any check in that window, and read the pages there (recommended). Else ask the owner to pause the check while it moves, or work from their export.`, 1, "blocked");
+  if (home.status === 401 || home.status === 403) throw new CliError(`${source} answers ${home.status}: it is behind a login or a security check. If it opens in a browser, open it in your browser tool, ask the owner to pass any check in that window, and read the pages there (recommended). Else ask the owner to pause the check while it moves, or work from their export.`, 1, "blocked", "source_closed");
   const origin = new URL(home.url).origin;
   const base = (origin + new URL(home.url).pathname).replace(/\/+$/, "");
   const html = await home.text();
@@ -28179,12 +28323,14 @@ async function migrateVerifyCommand(root, previewRaw, ctx, retryMs = PREVIEW_RET
     out(`A builder's credit is still on the preview:`);
     for (const [text2, path] of credits) out(`  ${path}  ${text2}`);
     out("Remove each and put the site's own name and the year in its place, unless the owner asked to keep it, then deploy again and run verify again.");
+    blockedBy("builder_credit");
     process.exitCode = 1;
   }
   if (vendors.size) {
     out(`Files of a plugin or theme are still on the preview:`);
     for (const [name, path] of vendors) out(`  ${path}  ${name}`);
     out("Remove them. Write what the page needs into the site's own stylesheet and scripts, or use a UI source, so it looks and works the same, then deploy again and run verify again.");
+    blockedBy("vendor_files");
     process.exitCode = 1;
   }
   if (leftOnOld.length) {
@@ -28192,6 +28338,7 @@ async function migrateVerifyCommand(root, previewRaw, ctx, retryMs = PREVIEW_RET
     out("Still loading from the old site and missing from this one, so it breaks when the old site closes:");
     for (const a of leftOnOld) out(`  ${what[a.kind]}  ${a.url}`);
     out("Put each file in the site's own public folder (migrate media saved the images in .deployai/migration), point the tag at the site's own address, deploy again and run verify again.");
+    blockedBy("old_host_assets");
     process.exitCode = 1;
   }
   if (tagFindings.length) {
@@ -28199,6 +28346,7 @@ async function migrateVerifyCommand(root, previewRaw, ctx, retryMs = PREVIEW_RET
     for (const f of tagFindings.slice(0, 60)) out(`  ${f.what}  ${TAG_WORDS[f.problem]}${f.detail ? ` (${f.detail})` : ""}${f.page ? ` on ${f.page}` : ""}`);
     if (tagFindings.length > 60) out(`  and ${tagFindings.length - 60} more in verify.json`);
     out('Put each one back, deploy again and run verify again. If one was left out on purpose (the owner asked, or the plan replaced it with ours): npx deployai@latest migrate tags --removed "<its number or name>", and give its plan row the status "Replaced with <what took its place>" so the report says so.');
+    blockedBy(...tagFindings.map((f) => f.problem));
     process.exitCode = 1;
   }
   const clean3 = !findings.length && !tagFindings.length && !credits.size && !vendors.size && !leftOnOld.length;
@@ -28216,6 +28364,8 @@ async function migrateVerifyCommand(root, previewRaw, ctx, retryMs = PREVIEW_RET
   for (const f of findings.slice(0, 60)) out(`  ${f.path}  ${words[f.problem]}${f.detail ? ` ${f.detail}` : ""}`);
   if (findings.length > 60) out(`  and ${findings.length - 60} more in verify.json`);
   out("Give each page its old address back (or, only if it truly cannot stay, a line in public/_redirects), deploy again, and run verify again.");
+  const pageReason = { missing: "pages_missing", moved: "pages_moved", error: "pages_error", title_lost: "title_lost", description_lost: "description_lost" };
+  blockedBy(...findings.map((f) => pageReason[f.problem]));
   process.exitCode = 1;
 }
 
@@ -28924,7 +29074,10 @@ async function syncCommand(root, ctx) {
   }
   out();
   out(r.conflicts.length || r.clashes.length ? t("syncNextConflicts") : t("syncNext"));
-  if (r.conflicts.length || r.clashes.length) process.exitCode = 1;
+  if (r.conflicts.length || r.clashes.length) {
+    blockedBy("sync_conflicts");
+    process.exitCode = 1;
+  }
 }
 function syncLeftovers(root) {
   let state;
@@ -29066,6 +29219,10 @@ function printStatus(root, ctx, projectId, s) {
     ])
   );
   printClosedHere(root, s);
+  if (s.githubPull) {
+    out();
+    out(cliLang(root) === "he" ? s.githubPull.he : s.githubPull.en);
+  }
   if (s.latest?.goingLive) {
     out();
     out(t("goingLive", { n: s.latest.number }));
@@ -29244,7 +29401,7 @@ async function prepare(root, ctx, maxBytes) {
   if (!analysis.compatible) {
     await runCheck(root, { ...ctx, config: { ...ctx.config, telemetry: false } }, {});
     out();
-    throw new CliError(messages(root)("deployBlocked"), 1, "blocked");
+    throw new CliError(messages(root)("deployBlocked"), 1, "blocked", "check_blocked");
   }
   const t = messages(root);
   const left = syncLeftovers(root);
@@ -29391,6 +29548,7 @@ async function afterBuild(root, ctx, projectId, n2, o) {
   }
   if (ready && built.latest?.preview) {
     if (!await homeAnswers(root, built.latest.preview, o.homeRetryMs)) {
+      blockedBy("preview_down");
       process.exitCode = 1;
       return;
     }
@@ -29425,7 +29583,10 @@ async function afterBuild(root, ctx, projectId, n2, o) {
       return;
     }
     printStatus(root, ctx, projectId, built);
-    if (built.latest?.number === n2 && built.latest.status === "failed") process.exitCode = 1;
+    if (built.latest?.number === n2 && built.latest.status === "failed") {
+      blockedBy("build_failed");
+      process.exitCode = 1;
+    }
     return;
   }
   await apiRequest(ctx, "/api/cli/promote", null, { method: "POST", body: { projectId, number: n2, ...approval } });
@@ -29444,6 +29605,7 @@ async function afterBuild(root, ctx, projectId, n2, o) {
     return;
   }
   printStatus(root, ctx, projectId, after);
+  blockedBy("not_live");
   process.exitCode = 1;
 }
 async function readPreview(url2) {
@@ -29549,6 +29711,118 @@ async function claimCommand(root, ctx, opts) {
     return;
   }
   out(t("claimLink", { url: url2 }));
+}
+
+// src/commands/logs.ts
+var REFUSALS = {
+  site_deleted: "siteDeleted",
+  not_on_site: "notOnSite",
+  view_only: "viewOnly",
+  not_found: "notFound",
+  logs_not_live: "logsNotLive",
+  logs_site_off: "logsSiteOff",
+  logs_unavailable: "logsUnavailable"
+};
+var two = (n2) => String(n2).padStart(2, "0");
+var clock = (at) => {
+  const d = new Date(at);
+  return `${two(d.getHours())}:${two(d.getMinutes())}:${two(d.getSeconds())}`;
+};
+var formatLogLine = (l) => `${clock(l.at)}  ${l.level.toUpperCase().padEnd(5)}  ${l.text}`;
+function readEvents(buffer) {
+  const events = [];
+  const parts2 = buffer.replace(/\r\n/g, "\n").split("\n\n");
+  const rest = parts2.pop() ?? "";
+  for (const block of parts2) {
+    let event = "message";
+    const data = [];
+    for (const line of block.split("\n")) {
+      if (line.startsWith(":")) continue;
+      if (line.startsWith("event:")) event = line.slice(6).trim();
+      else if (line.startsWith("data:")) data.push(line.slice(5).replace(/^ /, ""));
+    }
+    if (data.length) events.push({ event, data: data.join("\n") });
+  }
+  return { events, rest };
+}
+async function logsCommand(root, ctx, opts) {
+  const token = requireToken(ctx);
+  const projectId = linkedProjectId(root);
+  const t = messages(root);
+  const say = opts.json ? err : out;
+  const abort = new AbortController();
+  let stopped = false;
+  const onSigint = () => {
+    stopped = true;
+    abort.abort();
+  };
+  process.once("SIGINT", onSigint);
+  try {
+    const url2 = `${ctx.apiUrl}/api/cli/logs?projectId=${encodeURIComponent(projectId)}${opts.errors ? "&errors=1" : ""}`;
+    const headersWait = setTimeout(() => abort.abort(), 3e4);
+    let res;
+    try {
+      res = await fetch(url2, { headers: { Authorization: `Bearer ${token}`, Accept: "text/event-stream", "User-Agent": userAgent(ctx.config) }, signal: abort.signal });
+    } catch {
+      if (stopped) return say(t("logsStopped"));
+      throw new CliError(t("unreachable", { url: ctx.apiUrl }), 1, "network");
+    } finally {
+      clearTimeout(headersWait);
+    }
+    if (res.status === 401) throw new CliError(t("sessionExpired"), 1, "auth");
+    if (!res.ok || !res.body) {
+      const parsed = ApiError.safeParse(await res.json().catch(() => null));
+      const code = parsed.success ? parsed.data.error : `HTTP ${res.status}`;
+      const key2 = REFUSALS[code];
+      throw new CliError(key2 ? t(key2) : t("apiError", { code }), 1, code.startsWith("logs_") ? code : res.status === 403 ? "forbidden" : res.status === 404 ? "not_found" : "api");
+    }
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let ended = null;
+    for (; ; ) {
+      let chunk;
+      try {
+        chunk = await reader.read();
+      } catch {
+        break;
+      }
+      if (chunk.done) break;
+      buffer += decoder.decode(chunk.value, { stream: true });
+      const { events, rest } = readEvents(buffer);
+      buffer = rest;
+      for (const e3 of events) {
+        let data;
+        try {
+          data = JSON.parse(e3.data);
+        } catch {
+          continue;
+        }
+        if (e3.event === "ready") {
+          const r = LogsReady.safeParse(data);
+          if (!r.success) continue;
+          say(t("logsWatching", { name: r.data.name, url: r.data.url ?? "-", time: clock(r.data.until).slice(0, 5) }));
+          if (opts.errors) say(t("logsErrorsOnly"));
+          say(t("logsNote"));
+        } else if (e3.event === "line") {
+          const l = LogLine.safeParse(data);
+          if (l.success) out(opts.json ? JSON.stringify(l.data) : formatLogLine(l.data));
+        } else if (e3.event === "end") {
+          const r = LogsEnd.safeParse(data);
+          if (r.success) ended = r.data.reason;
+        }
+      }
+      if (ended) break;
+    }
+    if (stopped) return say(t("logsStopped"));
+    if (ended === "time") return say(t("logsEndTime"));
+    if (ended === "replaced") return say(t("logsEndReplaced"));
+    if (ended === "cloudflare") throw new CliError(t("logsEndCloudflare"), 1, "logs_ended");
+    throw new CliError(t("logsEndClosed"), 1, "logs_ended");
+  } finally {
+    process.removeListener("SIGINT", onSigint);
+    abort.abort();
+  }
 }
 
 // src/commands/requests.ts
@@ -29679,7 +29953,7 @@ async function startCommand(cwd, ctx, id, opts = {}) {
     out(messages(process.cwd())("startLoginFirst"));
     out(START_LOGIN_WAIT_LINE);
     out();
-    await sendTelemetryEvent(ctxNow, buildTelemetryEvent(ctxNow.config.installId, "start", "blocked"));
+    await sendTelemetryEvent(ctxNow, buildTelemetryEvent(ctxNow.config.installId, "start", "blocked", void 0, { errorLine: "login_wait" }));
     await loginCommand(ctxNow, { pollMs: opts.pollMs, quiet: true }).catch((e3) => {
       if (e3 instanceof CliError && e3.category === "auth_expired") throw new CliError(messages(process.cwd())("startLoginExpired", { id: key2 }), 1, "auth_expired");
       throw e3;
@@ -29694,7 +29968,7 @@ async function startCommand(cwd, ctx, id, opts = {}) {
     out(t0("startOtherAccount", { email: ctxNow.config.email ?? "?", maker }));
     out(START_LOGIN_WAIT_LINE);
     out();
-    await sendTelemetryEvent(ctxNow, buildTelemetryEvent(ctxNow.config.installId, "start", "blocked", "other_account"));
+    await sendTelemetryEvent(ctxNow, buildTelemetryEvent(ctxNow.config.installId, "start", "blocked", void 0, { errorLine: "other_account" }));
     await loginCommand(ctxNow, { pollMs: opts.pollMs, quiet: true, force: true }).catch((e3) => {
       if (e3 instanceof CliError && e3.category === "auth_expired") throw new CliError(t0("startLoginExpired", { id: key2 }), 1, "auth_expired");
       throw e3;
@@ -30016,7 +30290,8 @@ async function addonDoneCommand(root, ctx, runId, opts) {
 
 // src/commands/speed.ts
 import { spawn as spawn3 } from "child_process";
-import { mkdtempSync as mkdtempSync2, readFileSync as readFileSync14, rmSync as rmSync4 } from "fs";
+import { createHash as createHash4 } from "crypto";
+import { mkdirSync as mkdirSync11, mkdtempSync as mkdtempSync2, readFileSync as readFileSync14, rmSync as rmSync4, writeFileSync as writeFileSync17 } from "fs";
 import { tmpdir as tmpdir2 } from "os";
 import { join as join21 } from "path";
 var ms = (v) => v >= 1e3 ? `${(v / 1e3).toFixed(1)} s` : `${Math.round(v)} ms`;
@@ -30054,9 +30329,9 @@ async function localSpeed(url2, strategy, run = runLighthouse, browser = findBro
     rmSync4(dir, { recursive: true, force: true, maxRetries: 3 });
   }
 }
-function printReport(r, strategy, local) {
+function printReport(r, strategy, local2) {
   out();
-  out(`Lab test (one simulated ${strategy} load${local ? " on this computer" : ""}), Lighthouse ${r.lighthouseVersion ?? ""}`);
+  out(`Lab test (one simulated ${strategy} load${local2 ? " on this computer" : ""}), Lighthouse ${r.lighthouseVersion ?? ""}`);
   out(`  Performance score  ${r.scores.performance ?? "?"}`);
   for (const m of r.lab) out(`  ${m.id.padEnd(26)} ${m.display ?? "?"}`);
   out();
@@ -30064,7 +30339,7 @@ function printReport(r, strategy, local) {
     out(`Real visitors, last 28 days (${r.field.scope === "url" ? "this page" : "whole site"}, 75th percentile)`);
     for (const f of r.field.metrics) out(`  ${f.id.toUpperCase().padEnd(6)} ${(f.id === "cls" ? f.p75.toFixed(2) : ms(f.p75)).padEnd(10)} ${f.rating.replace("_", " ")}`);
   } else {
-    out(local ? "Real visitors: only Google has these, so this test does not show them." : "Real visitors: Google has not enough data for this site yet.");
+    out(local2 ? "Real visitors: only Google has these, so this test does not show them." : "Real visitors: Google has not enough data for this site yet.");
   }
   if (r.opportunities.length) {
     out();
@@ -30072,6 +30347,24 @@ function printReport(r, strategy, local) {
     for (const a of r.opportunities.slice(0, 8)) out(`  - ${a.title}${a.display ? ` (${a.display})` : a.savingsMs ? ` (about ${ms(a.savingsMs)})` : ""}`);
   }
 }
+var CACHE_MS = 10 * 6e4;
+var cacheFile = (dir, url2, strategy) => join21(dir, `${createHash4("sha256").update(`${strategy} ${url2}`).digest("hex").slice(0, 24)}.json`);
+function readCache(dir, url2, strategy) {
+  try {
+    return JSON.parse(readFileSync14(cacheFile(dir, url2, strategy), "utf8"));
+  } catch {
+    return null;
+  }
+}
+function writeCache(dir, url2, strategy, c) {
+  try {
+    mkdirSync11(dir, { recursive: true });
+    writeFileSync17(cacheFile(dir, url2, strategy), JSON.stringify(c));
+  } catch {
+  }
+}
+var minutes = (msLeft) => Math.max(1, Math.ceil(msLeft / 6e4));
+var waitText = (s) => s >= 7200 ? `in about ${Math.ceil(s / 3600)} hours` : `in about ${minutes(s * 1e3)} minutes`;
 async function speedCommand(ctx, url2, opts, deps = {}) {
   requireToken(ctx);
   const strategy = opts.desktop ? "desktop" : "mobile";
@@ -30082,7 +30375,32 @@ async function speedCommand(ctx, url2, opts, deps = {}) {
   } catch {
     throw new CliError(`Not an address: ${url2}. Use the full address, for example https://example.com/`, 1, "usage");
   }
-  const { id } = await apiRequest(ctx, "/api/cli/speed", null, { method: "POST", body: { url: url2, strategy } });
+  const dir = deps.cacheDir ?? join21(tmpdir2(), "deployai-speed-cache");
+  const now = deps.now ?? Date.now;
+  const cached2 = readCache(dir, page3, strategy);
+  if (cached2 && now() - cached2.at < CACHE_MS) {
+    out(`Showing the result from ${minutes(now() - cached2.at)} minutes ago: a new test of the same page runs after ${minutes(CACHE_MS - (now() - cached2.at))} more minutes.`);
+    printReport(cached2.report, strategy, cached2.local);
+    if (cached2.link) {
+      out();
+      out(`Full report: ${cached2.link}`);
+    }
+    return;
+  }
+  const started = await apiRequest(ctx, "/api/cli/speed", null, { method: "POST", body: { url: url2, strategy } });
+  if (started.limited) {
+    const when = waitText(started.retryAfter ?? 3600);
+    if (cached2 || started.last) {
+      out(`Too many speed tests for now. Try again ${when}. Here is the last result of this page${started.last ? ` (${started.last.at.slice(0, 16).replace("T", " ")} UTC)` : ""}.`);
+      if (cached2) printReport(cached2.report, strategy, cached2.local);
+      out();
+      out(`Full report: ${started.last ? `${ctx.apiUrl}/tools/r/${started.last.id}` : cached2?.link ?? ""}`);
+      return;
+    }
+    throw new CliError(`Too many speed tests for now, and this page has no earlier result. Try again ${when}, or go on without speed numbers and tell the owner in one line.`, 1, "speed_limited");
+  }
+  const id = started.id;
+  if (!id) return local(page3, strategy, deps, dir, now);
   out(`Testing ${url2} (${strategy}) with Google PageSpeed Insights. This usually takes 15 to 40 seconds...`);
   const deadline = Date.now() + (deps.waitMs ?? 15e4);
   let run = null;
@@ -30092,17 +30410,22 @@ async function speedCommand(ctx, url2, opts, deps = {}) {
     if (run.status === "done" || run.status === "failed") break;
   }
   if (run?.status === "done" && run.result) {
+    writeCache(dir, page3, strategy, { at: now(), report: run.result, local: false, link: `${ctx.apiUrl}/tools/r/${id}` });
     printReport(run.result, strategy, false);
     out();
     out(`Full report: ${ctx.apiUrl}/tools/r/${id}`);
     return;
   }
   if (run?.error === "psi_unreachable") throw new CliError("Google could not load this page. Check that the address opens and is public, then try again.", 1, "speed_failed");
+  return local(page3, strategy, deps, dir, now);
+}
+async function local(page3, strategy, deps, dir, now) {
   out("Google's test is not available right now, so Lighthouse is running on this computer. This takes about a minute...");
   const browser = deps.browser === void 0 ? findBrowser() : deps.browser;
   if (!browser) throw new CliError("The speed test could not run: Google's test is not available, and no Chrome or Edge was found on this computer (looked in Program Files and the user's apps). If one is installed elsewhere, set CHROME_PATH to its path and run speed again; else go on without speed numbers and tell the owner in one line.", 1, "speed_failed");
   const report2 = await localSpeed(page3, strategy, deps.run, browser);
   if (!report2) throw new CliError(`The speed test could not finish: Lighthouse started with ${browser} and gave no result. Its first run downloads Lighthouse, which can take a few minutes, and it needs Node 22.19 or newer. Run speed again once; if it fails again, go on without speed numbers and tell the owner in one line.`, 1, "speed_failed");
+  writeCache(dir, page3, strategy, { at: now(), report: report2, local: true, link: null });
   printReport(report2, strategy, true);
   out();
   out("Measured on this computer, so compare it only with numbers measured the same way.");
@@ -30110,7 +30433,7 @@ async function speedCommand(ctx, url2, opts, deps = {}) {
 
 // src/commands/shot.ts
 import { spawn as spawn4 } from "child_process";
-import { existsSync as existsSync18, mkdirSync as mkdirSync11, readFileSync as readFileSync15, rmSync as rmSync5, writeFileSync as writeFileSync17 } from "fs";
+import { existsSync as existsSync18, mkdirSync as mkdirSync12, readFileSync as readFileSync15, rmSync as rmSync5, writeFileSync as writeFileSync18 } from "fs";
 import { tmpdir as tmpdir3 } from "os";
 import { join as join22, resolve as resolve6 } from "path";
 var SHOT_SIZES = [{ name: "phone", size: "390,844" }, { name: "desktop", size: "1440,900" }];
@@ -30177,9 +30500,9 @@ async function shotCommand(root, address, opts = {}, run = runNpx) {
   if (!opts.webkit && !browser) throw new CliError("No Chrome or Edge was found on this computer. Install Chrome, set CHROME_PATH to its path, or run shot again with --webkit (it downloads Safari's engine first).", 1, "no_browser");
   if (opts.webkit && await run(["--yes", PLAYWRIGHT, "install", "webkit"]) !== 0) throw new CliError("Safari's engine could not be installed. Run shot without --webkit to use Chrome or Edge.", 1, "shot_failed");
   const dir = resolve6(root, opts.out ?? join22(".deployai", "shots"));
-  mkdirSync11(dir, { recursive: true });
+  mkdirSync12(dir, { recursive: true });
   const taker = join22(tmpdir3(), "deployai-shot.cjs");
-  writeFileSync17(taker, TAKER);
+  writeFileSync18(taker, TAKER);
   const saved = [];
   for (const s of SHOT_SIZES) {
     const file2 = join22(dir, shotName(url2.toString(), s.name));
@@ -30200,7 +30523,7 @@ async function shotCommand(root, address, opts = {}, run = runNpx) {
 
 // src/commands/images.ts
 import { spawnSync as spawnSync5 } from "child_process";
-import { existsSync as existsSync19, mkdirSync as mkdirSync12, readdirSync as readdirSync6, statSync as statSync3, writeFileSync as writeFileSync18 } from "fs";
+import { existsSync as existsSync19, mkdirSync as mkdirSync13, readdirSync as readdirSync6, statSync as statSync3, writeFileSync as writeFileSync19 } from "fs";
 import { createRequire } from "module";
 import { homedir as homedir3 } from "os";
 import { extname, join as join23, relative as relative4, resolve as resolve7 } from "path";
@@ -30230,8 +30553,8 @@ function outputsFor(file2, width) {
 function loadSharp() {
   const dir = join23(homedir3(), ".deployai", "tools", "sharp");
   if (!existsSync19(join23(dir, "node_modules", "sharp"))) {
-    mkdirSync12(dir, { recursive: true });
-    if (!existsSync19(join23(dir, "package.json"))) writeFileSync18(join23(dir, "package.json"), '{"private":true}');
+    mkdirSync13(dir, { recursive: true });
+    if (!existsSync19(join23(dir, "package.json"))) writeFileSync19(join23(dir, "package.json"), '{"private":true}');
     out("Getting the image tool once (it stays outside the site)...");
     const r = spawnSync5(process.platform === "win32" ? "npm.cmd" : "npm", ["install", SHARP, "--no-audit", "--no-fund", "--silent"], { cwd: dir, stdio: "ignore", shell: process.platform === "win32" });
     if (r.status !== 0) throw new CliError("The image tool could not be installed. Check the internet connection and run optimize again.", 1, "images_failed");
@@ -30272,8 +30595,8 @@ async function imagesCommand(root, folder, sharp = loadSharp) {
 }
 
 // src/commands/blocks.ts
-import { createHash as createHash4 } from "crypto";
-import { existsSync as existsSync20, mkdirSync as mkdirSync13, readFileSync as readFileSync16, writeFileSync as writeFileSync19 } from "fs";
+import { createHash as createHash5 } from "crypto";
+import { existsSync as existsSync20, mkdirSync as mkdirSync14, readFileSync as readFileSync16, writeFileSync as writeFileSync20 } from "fs";
 import { dirname as dirname7, resolve as resolve8, sep as sep3 } from "path";
 import { gunzipSync as gunzipSync3 } from "zlib";
 var BLOCKS = [
@@ -30283,7 +30606,7 @@ var BLOCKS = [
   { key: "late-tags", title: "Tracking tags (Tag Manager, Google, Meta, Clarity) that load a moment after the page shows, at once on conversion pages and ad clicks" }
 ];
 var MAX_BYTES3 = 5 * 1024 * 1024;
-var sha = (data) => createHash4("sha256").update(data).digest("hex");
+var sha = (data) => createHash5("sha256").update(data).digest("hex");
 var lockPath = (base, key2) => resolve8(base, ".deployai", "blocks", `${key2}.lock.json`);
 function readLock(base, key2) {
   try {
@@ -30332,26 +30655,26 @@ async function blocksCommand(root, ctx, name, opts = {}) {
       if (now === sha(e3.data)) {
         lock[e3.name] = now;
       } else if (opts.update && lock[e3.name] === now) {
-        writeFileSync19(target, e3.data);
+        writeFileSync20(target, e3.data);
         lock[e3.name] = sha(e3.data);
         updated.push(e3.name);
       } else {
         const upstream = resolve8(base, ".deployai", "blocks", `${block.key}-upstream`, e3.name);
         if (upstream.startsWith(base + sep3)) {
-          mkdirSync13(dirname7(upstream), { recursive: true });
-          writeFileSync19(upstream, e3.data);
+          mkdirSync14(dirname7(upstream), { recursive: true });
+          writeFileSync20(upstream, e3.data);
         }
         kept.push(e3.name);
       }
       continue;
     }
-    mkdirSync13(dirname7(target), { recursive: true });
-    writeFileSync19(target, e3.data);
+    mkdirSync14(dirname7(target), { recursive: true });
+    writeFileSync20(target, e3.data);
     lock[e3.name] = sha(e3.data);
     written.push(e3.name);
   }
-  mkdirSync13(dirname7(lockPath(base, block.key)), { recursive: true });
-  writeFileSync19(lockPath(base, block.key), `${JSON.stringify(lock, null, 2)}
+  mkdirSync14(dirname7(lockPath(base, block.key)), { recursive: true });
+  writeFileSync20(lockPath(base, block.key), `${JSON.stringify(lock, null, 2)}
 `);
   out(`Added the ${block.key} block: ${written.length} files.`);
   written.forEach((f) => out(`  + ${f}`));
@@ -30413,7 +30736,7 @@ async function integrationsCommand(ctx, name, opts = {}) {
 
 // src/commands/brand.ts
 import { spawn as spawn5 } from "child_process";
-import { copyFileSync, existsSync as existsSync21, mkdirSync as mkdirSync14, mkdtempSync as mkdtempSync3, readdirSync as readdirSync7, readFileSync as readFileSync17, rmSync as rmSync6, statSync as statSync4, writeFileSync as writeFileSync20 } from "fs";
+import { copyFileSync, existsSync as existsSync21, mkdirSync as mkdirSync15, mkdtempSync as mkdtempSync3, readdirSync as readdirSync7, readFileSync as readFileSync17, rmSync as rmSync6, statSync as statSync4, writeFileSync as writeFileSync21 } from "fs";
 import { createServer } from "http";
 import { tmpdir as tmpdir4 } from "os";
 import { basename as basename2, dirname as dirname8, extname as extname2, join as join24, relative as relative5, sep as sep4 } from "path";
@@ -30631,11 +30954,11 @@ function writeSiteFile(root, file2, data) {
   const target = join24(webRoot(root), file2);
   if (existsSync21(target)) {
     const keep = join24(root, BRAND_DIR, "originals");
-    mkdirSync14(keep, { recursive: true });
+    mkdirSync15(keep, { recursive: true });
     copyFileSync(target, join24(keep, file2));
   }
-  mkdirSync14(dirname8(target), { recursive: true });
-  writeFileSync20(target, data);
+  mkdirSync15(dirname8(target), { recursive: true });
+  writeFileSync21(target, data);
 }
 var send = (res, status, body = "", type = "text/plain; charset=utf-8") => {
   res.writeHead(status, { "content-type": type, "cache-control": "no-store", "x-content-type-options": "nosniff" });
@@ -30994,10 +31317,10 @@ async function brandImagesCommand(root, urls, opts) {
     if (verdict !== "ok") onPages.push({ where: m.src, width: m.width, height: m.height, shownWidth: m.shownWidth, verdict, alt: m.alt });
   }
   const weak = [...onPages, ...findings];
-  mkdirSync14(join24(root, BRAND_DIR), { recursive: true });
+  mkdirSync15(join24(root, BRAND_DIR), { recursive: true });
   const file2 = `${BRAND_DIR}/images.json`;
   const data = { measuredAt: (/* @__PURE__ */ new Date()).toISOString(), pages: urls, unmeasured, filesChecked: total, imagesMeasured: shown.size, weak };
-  writeFileSync20(join24(root, file2), `${JSON.stringify(data, null, 2)}
+  writeFileSync21(join24(root, file2), `${JSON.stringify(data, null, 2)}
 `);
   if (opts.json) {
     out(JSON.stringify(data));
@@ -31096,6 +31419,7 @@ ${AGENT_FEEDBACK_RULES.join("\n\n")}
     if (!address) throw new CliError("Name the address, for example: npx deployai@latest requests open /api/webhooks/payments", 1, "usage");
     return requestsOpenCommand(root(cmd), ctx(cmd), address, action === "open");
   });
+  program.command("logs").description("live logs of the linked site's code: the requests it answered, console lines and errors, up to 10 minutes, Ctrl+C stops. A failed build's log is in: npx deployai@latest status").option("--json", "one JSON object a line").option("--errors", "only errors").action((opts, cmd) => logsCommand(root(cmd), ctx(cmd), opts));
   program.command("versions").description("list versions").action((_opts, cmd) => versionsCommand(root(cmd), ctx(cmd)));
   program.command("rollback").description("put an earlier version back live, with no rebuild").argument("<version>", "for example v5").action((version2, _opts, cmd) => changeLiveCommand(root(cmd), ctx(cmd), version2, "rollback"));
   program.command("promote").description("put a version live; new database changes (SQL) are shown and run first, after a yes").argument("<version>", "for example v5").option("--approve-sql <code>", "for an agent, after the owner said yes to the SQL that sql printed: the code it printed; never for SQL that removes data").option("--anyway", "put live a version made before a newer one went live, only after the owner said so (D-907)").action((version2, opts, cmd) => changeLiveCommand(root(cmd), ctx(cmd), version2, "promote", opts));
@@ -31161,8 +31485,10 @@ function withoutDoubledName(argv) {
 }
 async function main(rawArgv = process.argv) {
   const argv = withoutDoubledName(rawArgv);
+  if (argv !== rawArgv) err(`The first word was deployai again, so it was left out. Next time run: npx deployai@latest ${argv.slice(2).join(" ") || "--help"}`);
   const program = buildProgram();
   const started = Date.now();
+  takeBlockedLine();
   let command = null;
   let apiFlag;
   program.hook("preAction", (_this, actionCmd) => {
@@ -31179,13 +31505,17 @@ async function main(rawArgv = process.argv) {
   let errorLine;
   try {
     await program.parseAsync(argv);
-    if (process.exitCode === 1 && exitBefore !== 1) result = "blocked";
+    if (process.exitCode === 1 && exitBefore !== 1) {
+      result = "blocked";
+      errorLine = takeBlockedLine();
+    }
   } catch (e3) {
     if (e3 instanceof CliError) {
       err(e3.message);
       process.exitCode = e3.exitCode;
       if (e3.category === "blocked") {
         result = "blocked";
+        errorLine = e3.reason;
       } else {
         result = "error";
         errorCategory = e3.category;
@@ -31202,7 +31532,7 @@ async function main(rawArgv = process.argv) {
         errorCategory = "usage";
         errorLine = parserErrorLine(e3.code, e3.message);
         if (asked.quoted) err(`Pass each word on its own, with no quotes around them: npx deployai@latest ${asked.quoted}`);
-        if (errorLine === "unknownCommand logs") err("There is no logs command. A failed build prints its reason and the end of its log in: npx deployai@latest status");
+        if (e3.code === "commander.unknownCommand" && !asked.quoted) for (const line of unknownCommandHelp(argv.slice(2), program)) err(line);
       }
     } else {
       err(`Unexpected error: ${e3?.message ?? String(e3)}`);
@@ -31239,7 +31569,7 @@ function nodeGuideUrl(lang, base = API_BASE_DEFAULT) {
 
 // src/update.ts
 import { spawnSync as spawnSync6 } from "child_process";
-import { existsSync as existsSync23, mkdirSync as mkdirSync15, readdirSync as readdirSync8, readFileSync as readFileSync18, rmSync as rmSync7, writeFileSync as writeFileSync21 } from "fs";
+import { existsSync as existsSync23, mkdirSync as mkdirSync16, readdirSync as readdirSync8, readFileSync as readFileSync18, rmSync as rmSync7, writeFileSync as writeFileSync22 } from "fs";
 import { join as join26 } from "path";
 var CHECK_EVERY_MS = 60 * 60 * 1e3;
 var ASK_NPM_MS = 1500;
@@ -31290,8 +31620,8 @@ function readState() {
 }
 function writeState(state) {
   try {
-    mkdirSync15(configDir(), { recursive: true });
-    writeFileSync21(statePath(), JSON.stringify(state) + "\n");
+    mkdirSync16(configDir(), { recursive: true });
+    writeFileSync22(statePath(), JSON.stringify(state) + "\n");
   } catch {
   }
 }
@@ -31314,8 +31644,8 @@ function getVersion(version2, env) {
 `);
   const root = join26(configDir(), "cli");
   const dir = join26(root, version2);
-  mkdirSync15(dir, { recursive: true });
-  writeFileSync21(join26(dir, "package.json"), '{"private":true}\n');
+  mkdirSync16(dir, { recursive: true });
+  writeFileSync22(join26(dir, "package.json"), '{"private":true}\n');
   const installed = spawnSync6(`npm install deployai@${version2} --ignore-scripts --no-audit --no-fund --silent`, { cwd: dir, env, shell: true, stdio: "ignore", windowsHide: true, timeout: GET_VERSION_MS });
   if (installed.status !== 0) return false;
   const ran = spawnSync6(process.execPath, [versionEntry(version2), "--version"], { env: { ...env, DEPLOYAI_NO_UPDATE: "1" }, encoding: "utf8", timeout: GET_VERSION_MS });

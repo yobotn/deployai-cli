@@ -53,6 +53,7 @@ It stays up to date by itself. `npx deployai@latest` always runs the newest vers
 | `deployai promote v5` | Puts version 5 live. New database changes (SQL) are shown and run first, after a yes; SQL that removes data needs the database name typed. An agent passes `--approve-sql <code>` only after the owner said yes, and never for SQL that removes data. |
 | `deployai sql v5` | The database changes version 5 runs before it goes live. |
 | `deployai status` | Site state, address, live version, the newest version when it is not live yet (with the promote command once it is ready), and queue. When the live site is closed to the country you run this from, it says so and how to open it, or to use a VPN. |
+| `deployai logs` | Live logs of the linked site's code: each request it answered, its console lines and errors, with the time, for up to 10 minutes (Ctrl+C stops). `--errors` keeps only errors, `--json` prints one JSON object a line. For the site's owner or an editor; the lines may hold your visitors' data, so they go only to your terminal and DeployAI never stores them. |
 | `deployai deploy --guest` | No login needed: puts the site live as a temporary site with a claim link. More below. |
 | `deployai pull` | Downloads the code of the linked site's live version into this empty folder. Needs login. |
 | `deployai pull --history` | The same, with the site's history as git commits, one per version up to the live one, oldest first. |
