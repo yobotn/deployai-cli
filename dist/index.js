@@ -23631,6 +23631,7 @@ var ENV_KEYS = {
   BETTER_AUTH_SECRET: { scope: "own", section: "app", required: ["server"], sample: { local: "change-me-to-a-long-random-string", server: "" }, about: "Signs login sessions and our own links; changing it logs everyone out. 32 characters or more in production: openssl rand -base64 48" },
   APP_SHOTS_SITES: { scope: "local", section: "app", about: "The demo app sites whose product page screenshots are taken again with each new app version (D-609): uptime:<siteId>:<host>,cron:<siteId>:<host>. Unset: no automatic screenshots; pnpm apps:shots still works by hand." },
   DEV_SUPERADMIN_PASSWORD: { scope: "local", section: "app", about: "The superadmin password after every local wipe. Without it the one in apps/web/local-logins.md is kept (D-100)." },
+  POSTHOG_PROJECT_KEY: { scope: "own", section: "app", about: "PostHog project key (phc_..., EU cloud) for session replay on our own sign up, move and pay pages, Israel only (D-999). Read by the server at request time, so no rebuild. A separate project for dev and prod. Empty records nothing." },
   NEXT_PUBLIC_SUPPORT_WHATSAPP: { scope: "same", section: "app", about: "The WhatsApp number people reach us on, digits with the country code (972...). Empty shows only the email (D-237)." },
   OPENAI_APPS_CHALLENGE: { scope: "server", section: "app", about: "The domain check token from the OpenAI platform portal (Plugins, domain verification), served as plain text at /.well-known/openai-apps-challenge (D-474). Unset: that page is a 404." },
   TUNNEL_ORIGIN_CERT: { scope: "local", section: "app", about: "The cloudflared login certificate pnpm dev:public checks. Default ~/.cloudflared/cert.pem." },
@@ -25500,7 +25501,7 @@ function formatBytes(n2) {
 }
 
 // src/version.ts
-var CLI_VERSION = "0.1.0-beta.45";
+var CLI_VERSION = "0.1.0-beta.46";
 
 // src/api.ts
 function apiContext(apiFlag, root) {
@@ -30120,6 +30121,10 @@ function linkedProjectId2(root) {
   if (!id) throw new CliError("This folder is not linked to a DeployAI site. Run: npx deployai@latest login, then npx deployai@latest link", 1, "not_linked");
   return id;
 }
+function requireSiteCode(root) {
+  if (filesIn(root).length) return;
+  throw new CliError("This folder has no site code yet, so an add-on has nothing to change. Run: npx deployai@latest pull, then run this command again. If pull says the site has no version yet, build the site and deploy it first, then add the add-ons.", 1, "empty_folder");
+}
 var STATUS_WORDS = { todo: "not started", served: "in progress", done: "done", failed: "failed", skipped: "skipped" };
 async function addonsCommand(root, ctx) {
   requireToken(ctx);
@@ -30168,6 +30173,7 @@ async function addonsRunCommand(root, ctx, opts = {}) {
     out(r.addons.some((a) => a.owned) ? "Every add-on of this site is done or skipped. To run one again: npx deployai@latest addon run <name>" : "This site has no add-ons yet. See them: npx deployai@latest addons");
     return;
   }
+  requireSiteCode(root);
   const all = opts.all === true || !opts.oneByOne && readProject(root)?.addonsAll === true;
   if (!order && r.picked && !r.agreed && todo.length > 1 && (opts.all || !all)) {
     const stamps = readStamps(root);
@@ -30243,6 +30249,7 @@ function printAddon(root, a) {
 async function addonNextCommand(root, ctx) {
   requireToken(ctx);
   const projectId = linkedProjectId2(root);
+  requireSiteCode(root);
   try {
     printAddon(root, await apiRequest(ctx, "/api/cli/addons/next", AddonServe, { method: "POST", body: { projectId } }));
   } catch (e3) {
@@ -30256,6 +30263,7 @@ async function addonNextCommand(root, ctx) {
 async function addonRunCommand(root, ctx, key2) {
   requireToken(ctx);
   const projectId = linkedProjectId2(root);
+  requireSiteCode(root);
   printAddon(root, await apiRequest(ctx, `/api/cli/addons/${encodeURIComponent(key2.trim().toLowerCase())}?projectId=${encodeURIComponent(projectId)}`, AddonServe));
 }
 async function addonDoneCommand(root, ctx, runId, opts) {
