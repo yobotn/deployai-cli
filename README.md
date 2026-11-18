@@ -74,7 +74,8 @@ It stays up to date by itself. `npx deployai@latest` always runs the newest vers
 | `deployai optimize [folder]` | AVIF and WebP next to every JPG and PNG under public/, plus a phone width for wide images. Originals never change. |
 | `deployai addons` | The marketplace add-ons of the linked site: which it has, which are done and which is next. The server checks that the site has each add-on. It runs what the site has even before the marketplace opens. |
 | `deployai addon next` | Prints the next add-on of the site for your agent. `deployai addon run <name>` prints one by name. |
-| `deployai addons run` | With more than one add-on waiting, prints a question for the owner. `--one-by-one` (recommended): after each add-on, the owner chooses whether to publish. `--all`: they all finish first, then one publish at the end. The owner still approves each plan. |
+| `deployai addons run` | Runs the add-ons picked for the site one after another, with no question between them and one publish at the end. With more than one picked and no order yet, prints what is known of each, and the agent comes back with `--order`. `--parallel` (On my own only) runs them in waves, each lane in its own git worktree next to the folder. |
+| `deployai addons merge` | Brings the lanes of a wave back into the folder, in order, and removes the lane folders. Stops on a conflict and lists the files. |
 | `deployai addon done <runId>` | Saves the report of a finished add-on (`--status done\|failed\|skipped`, `--report .deployai/addon-report.json`) and prints the next one. |
 | `deployai telemetry status\|on\|off` | Shows exactly what is sent, or turns it on or off. |
 | `deployai sound on\|off\|status\|test` | A sound on this computer when your site is ready. Off until you say yes. |

@@ -6,12 +6,38 @@ var __export = (target, all) => {
 };
 
 // src/cli.ts
-import { existsSync as existsSync22 } from "fs";
-import { join as join25, resolve as resolve10 } from "path";
+import { existsSync as existsSync23 } from "fs";
+import { join as join26, resolve as resolve11 } from "path";
 import { Command, CommanderError } from "commander";
 
 // ../shared/src/plans.ts
 var VAT_RATE = 0.18;
+var ADDON_WAVES = [
+  [["redesign", "code-quality"]],
+  [["dashboard", "legal", "sso"], ["ux", "responsive", "graphics"]],
+  [["language"]],
+  [["security"], ["accessibility"], ["exposure"], ["performance"]]
+];
+var addonWave = (key2) => {
+  const i = ADDON_WAVES.findIndex((w) => w.some((lane) => lane.includes(key2)));
+  return i < 0 ? ADDON_WAVES.length - 1 : i;
+};
+function nextAddonWave(keys) {
+  if (!keys.length) return null;
+  const wave = Math.min(...keys.map(addonWave));
+  const inWave = keys.filter((k) => addonWave(k) === wave);
+  const laneOf2 = (k) => {
+    const i = (ADDON_WAVES[wave] ?? []).findIndex((lane) => lane.includes(k));
+    return i < 0 ? `own:${k}` : String(i);
+  };
+  const lanes = [];
+  for (const k of inWave) {
+    const lane = lanes.find((l) => laneOf2(l.keys[0]) === laneOf2(k));
+    if (lane) lane.keys.push(k);
+    else lanes.push({ name: k, keys: [k] });
+  }
+  return { wave, lanes };
+}
 
 // ../shared/src/blockers.ts
 var ISSUES = [
@@ -791,12 +817,12 @@ function bindingsOf(list) {
   if (!Array.isArray(list)) return [];
   return list.map((x) => x && typeof x === "object" && typeof x.binding === "string" ? { binding: x.binding } : null).filter((x) => x !== null);
 }
-function parseWranglerConfig(fileName, text2) {
+function parseWranglerConfig(fileName, text3) {
   const empty = { d1: [], r2: [], vars: [], main: null, assetsDir: null, compatibilityDate: null, compatibilityFlags: [], durableObjects: [], crons: [], queues: { producers: [], consumers: [] } };
-  if (/\.toml$/.test(fileName)) return parseWranglerToml(text2);
+  if (/\.toml$/.test(fileName)) return parseWranglerToml(text3);
   let j;
   try {
-    j = JSON.parse(jsoncToJson(text2));
+    j = JSON.parse(jsoncToJson(text3));
   } catch {
     return empty;
   }
@@ -820,11 +846,11 @@ function tomlString(v) {
   const m = /^\s*(?:"((?:[^"\\]|\\.)*)"|'([^']*)')/.exec(v);
   return m ? m[1] ?? m[2] ?? "" : null;
 }
-function parseWranglerToml(text2) {
+function parseWranglerToml(text3) {
   const decl = { d1: [], r2: [], vars: [], main: null, assetsDir: null, compatibilityDate: null, compatibilityFlags: [], durableObjects: [], crons: [], queues: { producers: [], consumers: [] } };
   let section = "";
   let cronLines = false;
-  for (const rawLine of text2.split(/\r?\n/)) {
+  for (const rawLine of text3.split(/\r?\n/)) {
     const line = rawLine.replace(/\s+#.*$/, "").replace(/^#.*$/, "").trim();
     if (!line) continue;
     if (cronLines) {
@@ -6516,7 +6542,7 @@ var recursive = /* @__PURE__ */ new WeakMap();
 var NONE = 0;
 var ASSUMED = 1;
 var PROVEN = 2;
-function isRecursive(inst, stack, resolve11) {
+function isRecursive(inst, stack, resolve12) {
   const cached2 = recursive.get(inst);
   if (cached2 !== void 0)
     return cached2 ? PROVEN : NONE;
@@ -6526,7 +6552,7 @@ function isRecursive(inst, stack, resolve11) {
   let result = NONE;
   const check2 = (child) => {
     if (result !== PROVEN && child?._zod) {
-      const answer = isRecursive(child, stack, resolve11);
+      const answer = isRecursive(child, stack, resolve12);
       if (answer > result)
         result = answer;
     }
@@ -6537,7 +6563,7 @@ function isRecursive(inst, stack, resolve11) {
       const desc = Object.getOwnPropertyDescriptor(sh, key2);
       if (spread && !desc.enumerable)
         continue;
-      const child = desc.get ? ASSUMED : desc.value?._zod ? isRecursive(desc.value, stack, resolve11) : NONE;
+      const child = desc.get ? ASSUMED : desc.value?._zod ? isRecursive(desc.value, stack, resolve12) : NONE;
       if (child > answer)
         answer = child;
     }
@@ -6601,7 +6627,7 @@ function isRecursive(inst, stack, resolve11) {
       break;
     // `$ZodLazy` caches its inner on the def, so a resolved edge is followed exactly
     case "lazy": {
-      const inner = def._cachedInner ?? (resolve11 ? inst._zod.innerType : void 0);
+      const inner = def._cachedInner ?? (resolve12 ? inst._zod.innerType : void 0);
       merge2(inner ? isRecursive(inner, stack, false) : ASSUMED);
       break;
     }
@@ -10799,8 +10825,8 @@ function ko_default() {
 }
 
 // ../../node_modules/.pnpm/zod@4.6.6/node_modules/zod/v4/locales/lt.js
-var capitalizeFirstCharacter = (text2) => {
-  return text2.charAt(0).toUpperCase() + text2.slice(1);
+var capitalizeFirstCharacter = (text3) => {
+  return text3.charAt(0).toUpperCase() + text3.slice(1);
 };
 function getUnitTypeFromNumber(number4) {
   const abs = Math.abs(number4);
@@ -21180,21 +21206,21 @@ var SECRET_PATTERNS = [
 ];
 var SECRET_PLACEHOLDER = /^(?:password|passwd|pass|pwd|secret|changeme|example|x+|\*+|<[^>]*>|\[[^\]]*\])$|\$\{|\$[A-Z_]/i;
 var SECRET_SCAN_MAX_BYTES = 1024 * 1024;
-function lineAt(text2, index) {
+function lineAt(text3, index) {
   let line = 1;
-  for (let i = 0; i < index && i < text2.length; i++) if (text2.charCodeAt(i) === 10) line++;
+  for (let i = 0; i < index && i < text3.length; i++) if (text3.charCodeAt(i) === 10) line++;
   return line;
 }
-function findSecretLine(text2, re) {
+function findSecretLine(text3, re) {
   if (!re.global) {
-    const m2 = re.exec(text2);
-    return m2 ? lineAt(text2, m2.index) : null;
+    const m2 = re.exec(text3);
+    return m2 ? lineAt(text3, m2.index) : null;
   }
   re.lastIndex = 0;
   let m;
-  while (m = re.exec(text2)) {
+  while (m = re.exec(text3)) {
     if (m[1] && SECRET_PLACEHOLDER.test(m[1])) continue;
-    return lineAt(text2, m.index);
+    return lineAt(text3, m.index);
   }
   return null;
 }
@@ -21248,11 +21274,11 @@ var SCRUB_RULES = [
   [/\b(?=[A-Za-z0-9_-]*\d)(?=[A-Za-z0-9_-]*[A-Za-z])[A-Za-z0-9_-]{24,}\b/g, "[id]"],
   [/\+?\d[\d -]{7,}\d/g, "[number]"]
 ];
-function secretKindIn(text2) {
-  return SECRET_PATTERNS.find((p) => findSecretLine(text2, p.re) !== null)?.kind ?? null;
+function secretKindIn(text3) {
+  return SECRET_PATTERNS.find((p) => findSecretLine(text3, p.re) !== null)?.kind ?? null;
 }
-function scrubText(text2, max) {
-  let out2 = text2;
+function scrubText(text3, max) {
+  let out2 = text3;
   for (const { re } of SECRET_PATTERNS) out2 = out2.replace(new RegExp(re.source, re.flags.includes("g") ? re.flags : `${re.flags}g`), "[secret]");
   for (const [re, to] of SCRUB_RULES) out2 = out2.replace(re, to);
   out2 = out2.replace(FILE_NAME, (name) => SAFE_NAME.test(name) ? name : "[file]");
@@ -21848,8 +21874,8 @@ function tags(html, name) {
   while (m = re.exec(html)) out2.push({ attrs: parseAttrs(m[0]), index: m.index });
   return out2;
 }
-function decode3(text2) {
-  return text2.replace(/&#(\d{1,7});/g, (m, n2) => Number(n2) > 0 && Number(n2) <= 1114111 ? String.fromCodePoint(Number(n2)) : m).replace(/&#x([0-9a-f]{1,6});/gi, (m, h) => parseInt(h, 16) > 0 && parseInt(h, 16) <= 1114111 ? String.fromCodePoint(parseInt(h, 16)) : m).replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
+function decode3(text3) {
+  return text3.replace(/&#(\d{1,7});/g, (m, n2) => Number(n2) > 0 && Number(n2) <= 1114111 ? String.fromCodePoint(Number(n2)) : m).replace(/&#x([0-9a-f]{1,6});/gi, (m, h) => parseInt(h, 16) > 0 && parseInt(h, 16) <= 1114111 ? String.fromCodePoint(parseInt(h, 16)) : m).replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
 }
 function titleOfPage(html) {
   const m = /<title\b[^>]*>([\s\S]*?)<\/title>/i.exec(html);
@@ -22300,8 +22326,8 @@ function readSiteIdentity(html) {
   const description = metaContent2(html, "name", "description") ?? metaContent2(html, "property", "og:description");
   return { name: metaContent2(html, "property", "og:site_name") ?? fromTitle, line: description ? shareLine(description) : null, themeColor: metaContent2(html, "name", "theme-color") };
 }
-function shareLine(text2, max = 70) {
-  const first = decode4(text2).split(/(?<=[.!?\u05c3])\s/)[0] ?? "";
+function shareLine(text3, max = 70) {
+  const first = decode4(text3).split(/(?<=[.!?\u05c3])\s/)[0] ?? "";
   if (first.length <= max) return first.replace(/[.\s]+$/, "");
   const cut = first.slice(0, max);
   const pause = Math.max(cut.lastIndexOf(":"), cut.lastIndexOf(","), cut.lastIndexOf(";"));
@@ -22365,7 +22391,7 @@ function svgLogoColor(svg) {
   }
   return [...count.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] ?? null;
 }
-var isSvgText = (text2) => /<svg[\s>]/i.test(text2);
+var isSvgText = (text3) => /<svg[\s>]/i.test(text3);
 function iconLinks(html) {
   const found = [];
   for (const m of html.matchAll(/<link\b[^>]*>/gi)) {
@@ -22410,8 +22436,8 @@ function vendorFiles(html) {
 }
 function builderCredits(html) {
   const found = /* @__PURE__ */ new Set();
-  const say = (text2) => {
-    const t = text2.replace(/\s+/g, " ").trim();
+  const say = (text3) => {
+    const t = text3.replace(/\s+/g, " ").trim();
     found.add(t.length > 80 ? `${t.slice(0, 77)}...` : t);
   };
   const footers = [...html.matchAll(/<footer\b[\s\S]*?<\/footer\s*>/gi)].map((m) => pageText(m[0])).join(" ");
@@ -22463,11 +22489,11 @@ function auditItems(audit) {
     }
     const url2 = typeof it?.url === "string" ? it.url : typeof it?.source?.url === "string" ? it.source.url : null;
     const label = clean2(it?.label ?? it?.groupLabel ?? it?.entity?.text ?? it?.entity, 160);
-    const text2 = url2 ?? label;
-    if (!text2) continue;
+    const text3 = url2 ?? label;
+    if (!text3) continue;
     const wastedMs = typeof it?.wastedMs === "number" ? Math.round(it.wastedMs) : void 0;
     const wastedBytes = typeof it?.wastedBytes === "number" ? Math.round(it.wastedBytes) : void 0;
-    out2.push({ text: clean2(text2, 300), wastedMs, wastedBytes });
+    out2.push({ text: clean2(text3, 300), wastedMs, wastedBytes });
   }
   return out2;
 }
@@ -22576,12 +22602,12 @@ function readPageSeo(html, headers = {}) {
     spaShell: isSpaShell(html)
   };
 }
-function parseRobots(text2) {
+function parseRobots(text3) {
   const groups = [];
   const sitemaps = [];
   let current = null;
   let lastWasAgent = false;
-  for (const raw of text2.split(/\r?\n/)) {
+  for (const raw of text3.split(/\r?\n/)) {
     const line = raw.replace(/#.*$/, "").trim();
     const m = /^([A-Za-z-]+)\s*:\s*(.*)$/.exec(line);
     if (!m) continue;
@@ -22748,7 +22774,7 @@ var PROMOTE = { cmd: "npx deployai@latest promote v<N>", say: "Only when deploy 
 var DEPLOY_SAY = "Add --live only if the owner chose to put it live right away. It waits for the build: with --live it ends with the live address, else with the preview address to send the owner. When it prints database changes, a yes to going live does not cover them (D-541): show the owner the changes and ask the question it prints, and only after a yes run the promote --approve-sql command it printed; changes it says remove data only the owner approves, never you. Write the -m message in a few words in the language of the owner, about what they see changed.";
 var BUILD = { say: "This folder had no site, so start wrote a starter page. Do not ask where the site comes from or which way to start: build a first version of the owner's site in its place now. Use what you know (the instructions above, .deployai/brief.md if it exists, the folder name) and choose the layout, colors and wording yourself. Besides the question about going live, ask at most one short question, and only if you cannot tell what the site is for. Leave out what you do not know (phone, prices, hours) instead of asking for it. The steps below show it to the owner as the first look: offer to add those details then. Run check only after you built it." };
 var OFFER_DASHBOARD = { cmd: "npx deployai@latest addon run dashboard", say: "Only after the site is live, and only if the owner says yes: in one sentence, offer the site's own free dashboard, to read form messages, hide and edit pages and manage a blog or a shop without an agent." };
-var ADDONS_RUN = { cmd: "npx deployai@latest addons run", say: "With more than one add-on picked, it prints what you know about each and asks you to suggest the order for this site. Tell the owner your order and why, ask how to run them, run the command for their answer, work through each step it prints, and report each add-on as it says." };
+var ADDONS_RUN = { cmd: "npx deployai@latest addons run", say: "With more than one add-on picked, it prints what you know about each and asks you to decide the order for this site. Run the command it prints for your order, work through each step it prints, and report each add-on as it says. Nothing is asked between add-ons, and one publish comes at the end." };
 var TAGS_SEEN = { cmd: "npx deployai@latest migrate tags --requests <file>", say: "While you look at the old site, save the outside addresses your browser asks for to a file, one a line, and run this: Tag Manager loads tags that are not in the page. Never send a form on the old site. If the old site shows a security check (Cloudflare, a captcha) or blocks a command but opens in a browser (D-916): open it in your browser tool, tell the owner in one line that a check may show in that window and to pass it there, wait up to three minutes, and read the pages in that browser. Offer this first, as the recommended answer, when you ask the owner; turning the check off for the move or sending an export are the other answers." };
 var PLAN_SHOW = "Then show the owner the plan as one chat message, never as the file, a table or one long paragraph, since a long table breaks in a terminal: Moves as it is, with a count and at most three names. Changes, one short line for each Replaced with row. Needs you, one short line for each Needs me or Not possible row. End with the link it printed, for the full list. Do not use a plan mode: it changes the owner's setting.";
 var REPORT_SAY = "Once .deployai/migration/plan.md is written, with its features as one table (| Feature | Status | Note |) and a row for each tag and connection in tags.json: this adds it to the owner's move report and prints the link.";
@@ -22791,7 +22817,7 @@ var MIGRATE_STEPS = [
   PROMOTE,
   AFTER_LIVE
 ];
-var MOVE_ADDONS = { cmd: "npx deployai@latest addons", say: 'The move is done, so offer the second part: the free add-ons. This lists the ones this site has; never offer the ones to buy here. If none is waiting, finish. The dashboard came with the move: do not offer it again. Else tell the owner in one short line what the waiting ones add, in plain words, and ask once: "Your site moved. Go on to the free add-ons?" with three answers. One by one (recommended): run npx deployai@latest addons run --one-by-one, and after each add-on the owner chooses whether to publish. All at once: run npx deployai@latest addons run --all, with one publish at the end. With more than one waiting, the command then asks you to suggest their order: do what it prints. Not now: finish here, and tell them the add-ons stay with this site, on its page in the dashboard, with no time limit. Never start an add-on without their answer.' };
+var MOVE_ADDONS = { cmd: "npx deployai@latest addons", say: 'The move is done, so offer the second part: the free add-ons. This lists the ones this site has; never offer the ones to buy here. If none is waiting, finish. The dashboard came with the move: do not offer it again. Else tell the owner in one short line what the waiting ones add, in plain words, and ask once: "Your site moved. Go on to the free add-ons?" with two answers. Run them now (recommended): run npx deployai@latest addons run, and do what it prints; they run one after another with no question between them, side by side when it prints how, and one publish comes at the end. Not now: finish here, and tell them the add-ons stay with this site, on its page in the dashboard, with no time limit. Never start an add-on without their answer.' };
 var managedStatus = (stage, note, say) => ({ cmd: `npx deployai@latest migrate status ${stage} "${note}"`, say });
 var stepWith = (part) => MIGRATE_STEPS.find((step) => step.cmd?.includes(part));
 var MANAGED_STEPS = [
@@ -22835,8 +22861,8 @@ function startSteps(kind, opts = {}) {
 }
 function withServerSteps(bundled, server) {
   if (!Array.isArray(server) || server.length !== bundled.length) return bundled;
-  const ok = server.every((s, i) => s && typeof s === "object" && typeof s.say === "string" && s.say.trim() && s.say.length < 8e3 && (s.cmd ?? void 0) === bundled[i].cmd);
-  return ok ? bundled.map((b, i) => ({ ...b, say: server[i].say })) : bundled;
+  const ok2 = server.every((s, i) => s && typeof s === "object" && typeof s.say === "string" && s.say.trim() && s.say.length < 8e3 && (s.cmd ?? void 0) === bundled[i].cmd);
+  return ok2 ? bundled.map((b, i) => ({ ...b, say: server[i].say })) : bundled;
 }
 var startStepsQuery = (kind, opts) => `kind=${kind}&o=${["emptyFolder", "starter", "managed", "signedIn", "addons"].filter((k) => opts[k]).join(",")}`;
 function stepsOf(kind, opts) {
@@ -22925,7 +22951,7 @@ var CLI_MAP_NODES = [
   n("api-logs", "server", "/api/cli/logs", "\u05D6\u05E8\u05DD \u05D0\u05D9\u05E8\u05D5\u05E2\u05D9\u05DD \u05DE\u05D4\u05BEtail \u05E9\u05DC \u05D4\u05BEdispatch Worker, \u05DE\u05E1\u05D5\u05E0\u05DF \u05DC\u05E1\u05E7\u05E8\u05D9\u05E4\u05D8 \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D1\u05DC\u05D1\u05D3. \u05D1\u05DC\u05D9 \u05DB\u05D5\u05EA\u05E8\u05D5\u05EA \u05D5\u05D1\u05DC\u05D9 IP.", "An event stream from the dispatch Worker's tail, filtered to the site's own script. No headers and no IP."),
   n("api-requests", "server", "/api/cli/requests", "\u05D4\u05E8\u05E9\u05D9\u05DE\u05D4 \u05D1\u05DC\u05D9 IP \u05D5\u05D1\u05DC\u05D9 \u05EA\u05D5\u05DB\u05DF, \u05D5\u05E4\u05EA\u05D9\u05D7\u05D4 \u05D0\u05D5 \u05E1\u05D2\u05D9\u05E8\u05D4 \u05E9\u05DC \u05DB\u05EA\u05D5\u05D1\u05EA.", "The list with no IP and no content, and opening or closing an address."),
   n("cmd-rollback", "cli", "rollback v<N>", "\u05D7\u05D5\u05D6\u05E8 \u05DC\u05D2\u05E8\u05E1\u05D4 \u05E7\u05D5\u05D3\u05DE\u05EA.", "Goes back to an earlier version."),
-  n("cmd-addons", "cli", "addons / addon next / addon buy", "\u05D4\u05EA\u05D5\u05E1\u05E4\u05D9\u05DD \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8, \u05D4\u05E9\u05DC\u05D1 \u05D4\u05D1\u05D0 \u05E9\u05DC \u05EA\u05D5\u05E1\u05E3 \u05E9\u05E0\u05E7\u05E0\u05D4, \u05D5\u05E7\u05D9\u05E9\u05D5\u05E8 \u05E7\u05E0\u05D9\u05D9\u05D4 \u05DC\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8.", "The site's add-ons, the next step of one it bought, and a buy link for the owner."),
+  n("cmd-addons", "cli", "addons / addon next / addon buy", "\u05D4\u05EA\u05D5\u05E1\u05E4\u05D9\u05DD \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8, \u05D4\u05E8\u05E6\u05D4 \u05E9\u05DC \u05DB\u05D5\u05DC\u05DD \u05D1\u05DC\u05D9 \u05E2\u05E6\u05D9\u05E8\u05D5\u05EA (\u05D2\u05DD \u05D1\u05DE\u05E7\u05D1\u05D9\u05DC, \u05D1\u05D2\u05DC\u05D9\u05DD), \u05D4\u05E9\u05DC\u05D1 \u05D4\u05D1\u05D0 \u05E9\u05DC \u05EA\u05D5\u05E1\u05E3 \u05E9\u05E0\u05E7\u05E0\u05D4, \u05D5\u05E7\u05D9\u05E9\u05D5\u05E8 \u05E7\u05E0\u05D9\u05D9\u05D4 \u05DC\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8.", "The site's add-ons, a run of all of them with no stops (also side by side, in waves), the next step of one it bought, and a buy link for the owner."),
   n("cmd-addon-run", "cli", "addon run / done", "\u05EA\u05D5\u05E1\u05E3 \u05D0\u05D7\u05D3 \u05DC\u05E4\u05D9 \u05E9\u05DD, \u05D5\u05D3\u05D9\u05D5\u05D5\u05D7 \u05E9\u05D4\u05E9\u05DC\u05D1 \u05D4\u05E1\u05EA\u05D9\u05D9\u05DD.", "One add-on by name, and the report that a step is done."),
   n("cmd-env", "cli", "env list / set / remove", "\u05DE\u05E9\u05EA\u05E0\u05D9 \u05D4\u05E1\u05D1\u05D9\u05D1\u05D4 \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8. \u05E1\u05D5\u05D3 \u05DB\u05D1\u05E8\u05D9\u05E8\u05EA \u05DE\u05D7\u05D3\u05DC, \u05D5\u05DC\u05D0 \u05DE\u05D5\u05E6\u05D2 \u05E9\u05D5\u05D1.", "The site's environment variables. A secret by default, never shown again."),
   n("cmd-speed", "cli", "speed <url>", "\u05D1\u05D3\u05D9\u05E7\u05EA \u05DE\u05D4\u05D9\u05E8\u05D5\u05EA \u05E9\u05DC \u05DB\u05EA\u05D5\u05D1\u05EA \u05D7\u05D9\u05D4.", "A speed test of a live address."),
@@ -22963,7 +22989,7 @@ var CLI_MAP_NODES = [
   n("text-details", "agent", "site.details / site.ask-details", "\u05E7\u05D5\u05E8\u05D0\u05D9\u05DD \u05D0\u05EA \u05D4\u05E4\u05E8\u05D8\u05D9\u05DD \u05DE .deployai/brief.md, \u05D0\u05D5 \u05E9\u05D5\u05D0\u05DC\u05D9\u05DD \u05D0\u05EA \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8.", "Read the details from .deployai/brief.md, or ask the owner."),
   n("text-update", "agent", "site.update", "\u05E2\u05D5\u05E9\u05D9\u05DD \u05D0\u05EA \u05D4\u05E9\u05D9\u05E0\u05D5\u05D9 \u05E9\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D1\u05D9\u05E7\u05E9.", "Make the change the owner asked for."),
   n("text-refresh", "agent", "site.refresh", "\u05E2\u05D9\u05E6\u05D5\u05D1 \u05D7\u05D3\u05E9 \u05DC\u05D0\u05EA\u05E8 \u05D7\u05D9: \u05DB\u05DC \u05E2\u05DE\u05D5\u05D3, \u05DB\u05EA\u05D5\u05D1\u05EA, \u05DE\u05D9\u05DC\u05D4 \u05D5\u05DE\u05D5\u05EA\u05D2 \u05E0\u05E9\u05D0\u05E8\u05D9\u05DD, \u05EA\u05E6\u05D5\u05D2\u05D4 \u05DE\u05E7\u05D3\u05D9\u05DE\u05D4 \u05DC\u05E4\u05E0\u05D9 \u05E9\u05E2\u05D5\u05DC\u05D4.", "A new look for a live site: every page, address, word and the brand stay, a preview before it goes live."),
-  n("text-run-addons", "agent", "site.addons", "\u05DE\u05E8\u05D9\u05E6\u05D9\u05DD \u05D0\u05EA \u05D4\u05EA\u05D5\u05E1\u05E4\u05D9\u05DD \u05E9\u05DC \u05D0\u05EA\u05E8 \u05D7\u05D9, \u05D0\u05D7\u05D3 \u05D0\u05D7\u05E8\u05D9 \u05D4\u05E9\u05E0\u05D9: \u05D4\u05D0\u05EA\u05E8 \u05E0\u05E9\u05D0\u05E8 \u05DB\u05DE\u05D5 \u05E9\u05D4\u05D5\u05D0 \u05E2\u05D3 \u05E9\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05DE\u05D0\u05E9\u05E8.", "Run a live site's add-ons one by one: the site stays as it is until the owner approves."),
+  n("text-run-addons", "agent", "site.addons", "\u05DE\u05E8\u05D9\u05E6\u05D9\u05DD \u05D0\u05EA \u05D4\u05EA\u05D5\u05E1\u05E4\u05D9\u05DD \u05E9\u05DC \u05D0\u05EA\u05E8 \u05D7\u05D9 \u05D1\u05DC\u05D9 \u05DC\u05E2\u05E6\u05D5\u05E8 \u05D1\u05D9\u05E0\u05D9\u05D4\u05DD: \u05D4\u05D0\u05EA\u05E8 \u05E0\u05E9\u05D0\u05E8 \u05DB\u05DE\u05D5 \u05E9\u05D4\u05D5\u05D0 \u05E2\u05D3 \u05E9\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05DE\u05D0\u05E9\u05E8 \u05D1\u05E1\u05D5\u05E3.", "Run a live site's add-ons with no stop between them: the site stays as it is until the owner approves at the end."),
   n("text-migrate-keep", "agent", "site.migrate-keep", "\u05E8\u05E7 \u05DB\u05E9\u05D4\u05E6\u05D5\u05D5\u05EA \u05D1\u05D7\u05E8 \u05D1\u05D6\u05D4 \u05D1\u05D1\u05E7\u05E9\u05EA \u05D4\u05E2\u05D1\u05E8\u05D4, \u05DC\u05D1\u05D3\u05D9\u05E7\u05D4: \u05DE\u05E2\u05D1\u05D9\u05E8\u05D9\u05DD \u05D0\u05EA \u05D4\u05D0\u05EA\u05E8 \u05D4\u05D9\u05E9\u05DF \u05DB\u05DE\u05D5 \u05E9\u05D4\u05D5\u05D0, \u05E2\u05DD \u05D4\u05E2\u05D9\u05E6\u05D5\u05D1 \u05D5\u05D4\u05E1\u05E7\u05E8\u05D9\u05E4\u05D8\u05D9\u05DD \u05E9\u05DC\u05D5, \u05D5\u05DE\u05E9\u05D5\u05D5\u05D9\u05DD \u05E6\u05D9\u05DC\u05D5\u05DE\u05D9 \u05DE\u05E1\u05DA. \u05DE\u05E0\u05E7\u05D9\u05DD \u05E8\u05E7 \u05DE\u05D4 \u05E9\u05DE\u05D1\u05E7\u05E8 \u05DC\u05D0 \u05E8\u05D5\u05D0\u05D4.", "Only when the team picks it on a move request, to test: move the old site exactly as it is, with its own front end, and compare screenshots. Clean up only what a visitor cannot see."),
   n("text-migrate", "agent", "site.migrate", "\u05D1\u05E8\u05D9\u05E8\u05EA \u05D4\u05DE\u05D7\u05D3\u05DC: \u05D1\u05D5\u05E0\u05D9\u05DD \u05DE\u05D7\u05D3\u05E9 \u05D0\u05EA \u05D4\u05D0\u05EA\u05E8 \u05D4\u05D9\u05E9\u05DF \u05E2\u05DC \u05D4\u05D3\u05D5\u05D2\u05DE\u05D4, \u05E9\u05D5\u05DE\u05E8\u05D9\u05DD \u05DB\u05DC \u05DB\u05EA\u05D5\u05D1\u05EA \u05D5\u05DB\u05D5\u05EA\u05E8\u05EA, \u05EA\u05D5\u05DB\u05E0\u05D9\u05EA \u05E2\u05DD \u05E1\u05D8\u05D8\u05D5\u05E1 \u05DC\u05DB\u05DC \u05D9\u05DB\u05D5\u05DC\u05EA.", "The default: rebuild the old site on the sample, keep every address and title, a plan with a status for each feature."),
   n("text-move", "agent", "site.move", "\u05DE\u05E2\u05D1\u05D9\u05E8\u05D9\u05DD \u05D0\u05EA\u05E8 \u05E7\u05D9\u05D9\u05DD \u05D1\u05DC\u05D9 \u05DC\u05E9\u05E0\u05D5\u05EA \u05D0\u05EA \u05D4\u05E2\u05D9\u05E6\u05D5\u05D1 \u05D0\u05D5 \u05D4\u05DE\u05E1\u05D2\u05E8\u05EA.", "Move an existing site without changing its design or framework."),
@@ -23261,7 +23287,7 @@ function readContainer(js, container) {
   if (start2 < 0 || !js.includes('"predicates"')) return null;
   const end = js.indexOf('"runtime"', start2);
   const body = js.slice(start2, end > start2 ? end : void 0);
-  const text2 = body.replace(/\\u([0-9a-f]{4})/gi, (_, h) => String.fromCharCode(parseInt(h, 16))).replace(/\\\\x([0-9a-f]{2})/gi, (_, h) => String.fromCharCode(parseInt(h, 16))).replace(/\\\//g, "/").replace(/\\"/g, '"');
+  const text3 = body.replace(/\\u([0-9a-f]{4})/gi, (_, h) => String.fromCharCode(parseInt(h, 16))).replace(/\\\\x([0-9a-f]{2})/gi, (_, h) => String.fromCharCode(parseInt(h, 16))).replace(/\\\//g, "/").replace(/\\"/g, '"');
   const triggers = /* @__PURE__ */ new Map();
   const unescape = (v) => v.replace(/\\u([0-9a-f]{4})/gi, (_, h) => String.fromCharCode(parseInt(h, 16))).replace(/\\(["/\\])/g, "$1");
   for (const m of body.matchAll(/\{"function":"(_css|_eq|_cn|_sw)","arg0":\["macro",\d+\],"arg1":"((?:[^"\\]|\\.)*)"/g)) {
@@ -23271,7 +23297,7 @@ function readContainer(js, container) {
     else if (value2.startsWith("/") && !/\s/.test(value2)) triggers.set(`p|${value2}`, { type: "page", value: value2, container });
     else if (m[1] === "_eq" && /^[a-zA-Z][\w.-]{1,50}$/.test(value2) && !value2.startsWith("gtm.")) triggers.set(`e|${value2}`, { type: "event", value: value2, container });
   }
-  const { tags: tags2 } = scanPageTags(text2, "https://container.invalid/");
+  const { tags: tags2 } = scanPageTags(text3, "https://container.invalid/");
   return { tags: tags2.filter((t) => t.key !== "gtm"), triggers: [...triggers.values()] };
 }
 function selectorInPage(selector, html) {
@@ -23306,11 +23332,11 @@ function addPageTags(site, page3, path) {
   site.ownNames = [.../* @__PURE__ */ new Set([...site.ownNames, ...page3.ownNames])];
   site.plugins = [.../* @__PURE__ */ new Set([...site.plugins, ...page3.plugins])];
   site.serverContainers = [.../* @__PURE__ */ new Set([...site.serverContainers, ...page3.serverContainers])];
-  for (const text2 of page3.events) if (!site.events.some((x) => x.text === text2)) site.events.push({ text: text2, page: path });
+  for (const text3 of page3.events) if (!site.events.some((x) => x.text === text3)) site.events.push({ text: text3, page: path });
   for (const v of page3.verification) if (!site.verification.some((x) => x.service === v.service && x.value === v.value)) site.verification.push({ ...v, page: path });
   for (const f of page3.forms) {
-    const same3 = site.forms.some((x) => x.id === f.id && x.action === f.action && x.classes === f.classes);
-    if (!same3 && site.forms.length < FORMS_KEPT) site.forms.push({ ...f, page: path });
+    const same4 = site.forms.some((x) => x.id === f.id && x.action === f.action && x.classes === f.classes);
+    if (!same4 && site.forms.length < FORMS_KEPT) site.forms.push({ ...f, page: path });
   }
 }
 function addBrowserRequests(site, urls, siteUrl) {
@@ -24160,11 +24186,11 @@ function isBlockedMoveSite(url2) {
   return [...BLOCKED_MOVE_ENDINGS, ...BLOCKED_MOVE_HOSTS].some((name) => host === name || host.endsWith(`.${name}`));
 }
 function normalizeSourceUrl(raw) {
-  const text2 = raw.trim();
-  if (!text2 || text2.length > 300) return null;
+  const text3 = raw.trim();
+  if (!text3 || text3.length > 300) return null;
   let u;
   try {
-    u = new URL(/^https?:\/\//i.test(text2) ? text2 : `https://${text2}`);
+    u = new URL(/^https?:\/\//i.test(text3) ? text3 : `https://${text3}`);
   } catch {
     return null;
   }
@@ -24258,8 +24284,9 @@ ${t.join("\n")}` : "tags: []",
       "---",
       ""
     ].join("\n");
-    const base = (safeSlug(p.slug) || `post-${p.id}`).replace(/[^\p{L}\p{N}-]+/gu, "-").slice(0, 80) || `post-${p.id}`;
-    const file2 = used.has(base) ? `${base}-${p.id}.md` : `${base}.md`;
+    const id = String(p.id ?? "").replace(/[^0-9]/g, "").slice(0, 20) || "0";
+    const base = (safeSlug(p.slug) || `post-${id}`).replace(/[^\p{L}\p{N}-]+/gu, "-").slice(0, 80) || `post-${id}`;
+    const file2 = used.has(base) ? `${base}-${id}.md` : `${base}.md`;
     used.add(base);
     return { file: file2, text: front + (p.content?.rendered ?? "").replace(sameHost, "").trim() + "\n" };
   });
@@ -24353,8 +24380,9 @@ function wpPostsToKit(input2) {
       path = safeSlug(new URL(p.link ?? "").pathname);
     } catch {
     }
-    let slug = safeSlug(p.slug).slice(0, 100) || `post-${p.id}`;
-    if (used.has(slug)) slug = `${slug.slice(0, 90)}-${p.id}`;
+    const id = String(p.id ?? "").replace(/[^0-9]/g, "").slice(0, 20) || "0";
+    let slug = safeSlug(p.slug).slice(0, 100) || `post-${id}`;
+    if (used.has(slug)) slug = `${slug.slice(0, 90)}-${id}`;
     used.add(slug);
     const { body, lost } = wpHtmlToRich(p.content?.rendered ?? "", input2.origin);
     const picture2 = p.featured_media ? media.get(p.featured_media) : void 0;
@@ -24367,7 +24395,7 @@ function wpPostsToKit(input2) {
       excerpt: plain(p.excerpt?.rendered).replace(/\s*(\[&hellip;\]|\[…\]|…)$/, "").slice(0, 300),
       image: (picture2?.source_url ?? "").replace(sameHost, ""),
       image_alt: (picture2?.alt_text ?? "").slice(0, 200),
-      category: (p.categories ?? []).map((id) => cats.get(id)?.name).find(Boolean)?.slice(0, 60) ?? "",
+      category: (p.categories ?? []).map((id2) => cats.get(id2)?.name).find(Boolean)?.slice(0, 60) ?? "",
       published_at: p.date ? p.date.replace("T", " ") : null
     };
   });
@@ -24478,9 +24506,9 @@ function value(token, min, max, names) {
   const n2 = named >= 0 ? named + min : /^\d{1,2}$/.test(token) ? Number(token) : NaN;
   return Number.isInteger(n2) && n2 >= min && n2 <= max ? n2 : null;
 }
-function field(text2, min, max, names) {
+function field(text3, min, max, names) {
   const out2 = /* @__PURE__ */ new Set();
-  for (const part of text2.split(",")) {
+  for (const part of text3.split(",")) {
     const m = /^(\*|\?|[A-Za-z0-9]+(?:-[A-Za-z0-9]+)?)(?:\/(\d{1,2}))?$/.exec(part);
     if (!m) return null;
     const step = m[2] ? Number(m[2]) : 1;
@@ -24647,20 +24675,20 @@ var orderFact = (a) => {
   if (a.status === "skipped") return "skipped last time.";
   return a.trace.files.length ? `not run here, but this folder has ${a.trace.files.join(", ")}: check whether it is already done.` : "not run yet.";
 };
-function addonOrderBrief(items, mode) {
+function addonOrderBrief(items, parallel) {
   const keys = items.map((a) => a.key);
-  const flags = mode ? [`--${mode}`] : ["--one-by-one", "--all"];
   return [
-    `The owner picked ${items.length} add-ons for this site. No order is fixed: you suggest what goes first, and the owner approves. Change no file yet.`,
+    `The owner picked ${items.length} add-ons for this site. No order is fixed: you decide what goes first for this site. Change no file yet.`,
     ...items.map((a) => `- ${a.key}: ${orderFact(a)}`),
     `Starting order, to challenge: ${keys.join(", ")}.`,
     "Read the code in this folder and the site itself, then decide for this site:",
     "- First: what hurts visitors, safety or the business most today, and what the others build on. Last: what measures the final result, like speed.",
-    "- Work already in the site, where nothing since touched its topic, never goes first. Recommend leaving it out. A change counts only if it touched that topic: a text edit gives security or code quality nothing new to do.",
-    "Never add an add-on the owner did not pick. Leave one out only with their OK.",
-    `Tell the owner in a short list, in plain words: your order, one reason for each, and what you would leave out and why. Ask once: "Run in this order, or change it?"${mode ? "" : " In the same question ask: one by one (recommended, after each add-on they choose whether to publish) or all at once (they all finish first, then one publish at the end). If they have no preference, use one by one."}`,
-    "Then run, with the keys in the agreed order:",
-    ...flags.map((f) => `  npx deployai@latest addons run --order ${keys.join(",")} ${f}`)
+    "- Work already in the site, where nothing since touched its topic, never goes first. Leave it out. A change counts only if it touched that topic: a text edit gives security or code quality nothing new to do.",
+    "Never add an add-on the owner did not pick.",
+    'If .deployai/owner-mode says check-with-me, tell the owner in a short list, in plain words, your order, one reason for each and what you would leave out, and ask once: "Run in this order, or change it?" Else do not ask: tell them the same list in one short message and go on.',
+    "Then run, with the keys in your order:",
+    `  npx deployai@latest addons run --order ${keys.join(",")}${parallel ? " --parallel" : ""}`,
+    ...parallel ? [] : ["Add --parallel only when .deployai/owner-mode says on-my-own and your tool can run several helper agents at the same time: lanes that touch different files then run side by side, each in its own copy of the folder."]
   ];
 }
 function addonTrace(key2, exists, stamps) {
@@ -24799,7 +24827,7 @@ function forgetAccount(email3) {
 }
 
 // src/project.ts
-import { existsSync as existsSync2, mkdirSync as mkdirSync2, readFileSync as readFileSync3, writeFileSync as writeFileSync2 } from "fs";
+import { existsSync as existsSync2, mkdirSync as mkdirSync2, readFileSync as readFileSync3, rmSync, writeFileSync as writeFileSync2 } from "fs";
 import { join as join2 } from "path";
 
 // src/json.ts
@@ -24812,8 +24840,8 @@ function readText(path) {
     swapped.swap16();
     return swapped.toString("utf16le");
   }
-  const text2 = b.toString("utf8");
-  return text2.charCodeAt(0) === 65279 ? text2.slice(1) : text2;
+  const text3 = b.toString("utf8");
+  return text3.charCodeAt(0) === 65279 ? text3.slice(1) : text3;
 }
 function readJson(path) {
   return JSON.parse(readText(path));
@@ -24832,7 +24860,7 @@ function ensureDeployaiDir(root) {
   if (!existsSync2(dir)) mkdirSync2(dir, { recursive: true });
   const ignore = join2(dir, ".gitignore");
   const have = existsSync2(ignore) ? readFileSync3(ignore, "utf8") : "";
-  const missing = ["last-check.json", "brief.md", "start.md", "blocks/*.md", "sync.json", "sync/"].filter((f) => !have.split(/\r?\n/).includes(f));
+  const missing = ["last-check.json", "brief.md", "start.md", "blocks/*.md", "sync.json", "sync/", "run.json"].filter((f) => !have.split(/\r?\n/).includes(f));
   if (missing.length) writeFileSync2(ignore, have + (have && !have.endsWith("\n") ? "\n" : "") + missing.join("\n") + "\n");
 }
 function readProject(root) {
@@ -24851,6 +24879,30 @@ function updateProject(root, patch) {
   const cfg = { ...readProject(root) ?? { projectId: null }, ...patch };
   writeProject(root, cfg);
   return cfg;
+}
+var runFile = (root) => join2(root, DEPLOYAI_DIR, "run.json");
+function readRun(root) {
+  try {
+    return readJson(runFile(root));
+  } catch {
+    return null;
+  }
+}
+function writeRun(root, state) {
+  if (!state) {
+    if (existsSync2(runFile(root))) rmSync(runFile(root));
+    return;
+  }
+  ensureDeployaiDir(root);
+  writeFileSync2(runFile(root), JSON.stringify(state, null, 2) + "\n");
+}
+function ownerMode(root) {
+  try {
+    const v = readFileSync3(join2(root, DEPLOYAI_DIR, "owner-mode"), "utf8").trim();
+    return v === "on-my-own" || v === "check-with-me" ? v : null;
+  } catch {
+    return null;
+  }
 }
 
 // src/errors.ts
@@ -24916,6 +24968,7 @@ var M = {
     moveOfferGranted: "Moved from /move: the site got {n} add-ons free. They wait until the move is done, and the last step offers them.",
     moveOfferCap: "The free add-ons for moved sites were already used on 3 sites of this account.",
     moveOfferOver: "The free add-ons offer for moved sites is over.",
+    moveOfferNotMove: "No free add-ons: this folder did not start from /move, so the site does not count as a move.",
     initHint: "  So your agent follows the DeployAI rules, run: npx deployai@latest init",
     emptyFolder: "Nothing to check yet: this folder has no site. Build the site here, then run: npx deployai@latest check",
     deployTitle: "DeployAI deploy",
@@ -25218,6 +25271,7 @@ var M = {
     moveOfferGranted: "\u05D4\u05D0\u05EA\u05E8 \u05D4\u05D2\u05D9\u05E2 \u05D3\u05E8\u05DA \u200E/move \u05D5\u05E7\u05D9\u05D1\u05DC {n} \u05EA\u05D5\u05E1\u05E4\u05D9\u05DD \u05D1\u05D7\u05D9\u05E0\u05DD. \u05E0\u05E6\u05D9\u05E2 \u05D0\u05D5\u05EA\u05DD \u05D1\u05E9\u05DC\u05D1 \u05D4\u05D0\u05D7\u05E8\u05D5\u05DF, \u05D0\u05D7\u05E8\u05D9 \u05E9\u05D4\u05D4\u05E2\u05D1\u05E8\u05D4 \u05DE\u05E1\u05EA\u05D9\u05D9\u05DE\u05EA.",
     moveOfferCap: "\u05DB\u05D1\u05E8 \u05D4\u05E9\u05EA\u05DE\u05E9\u05EA\u05DD \u05D1\u05EA\u05D5\u05E1\u05E4\u05D9\u05DD \u05D4\u05D7\u05D9\u05E0\u05DE\u05D9\u05D9\u05DD \u05DC\u05D0\u05EA\u05E8\u05D9\u05DD \u05E9\u05D4\u05D5\u05E2\u05D1\u05E8\u05D5 \u05D1\u05BE3 \u05D0\u05EA\u05E8\u05D9\u05DD \u05D1\u05D7\u05E9\u05D1\u05D5\u05DF \u05D4\u05D6\u05D4.",
     moveOfferOver: "\u05DE\u05D1\u05E6\u05E2 \u05D4\u05EA\u05D5\u05E1\u05E4\u05D9\u05DD \u05D4\u05D7\u05D9\u05E0\u05DE\u05D9\u05D9\u05DD \u05DC\u05D0\u05EA\u05E8\u05D9\u05DD \u05E9\u05D4\u05D5\u05E2\u05D1\u05E8\u05D5 \u05D4\u05E1\u05EA\u05D9\u05D9\u05DD.",
+    moveOfferNotMove: "\u05D0\u05D9\u05DF \u05EA\u05D5\u05E1\u05E4\u05D9\u05DD \u05D1\u05D7\u05D9\u05E0\u05DD: \u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05DC\u05D0 \u05D4\u05EA\u05D7\u05D9\u05DC\u05D4 \u05DE\u05BE\u200E/move, \u05D5\u05DC\u05DB\u05DF \u05D4\u05D0\u05EA\u05E8 \u05DC\u05D0 \u05E0\u05D7\u05E9\u05D1 \u05DB\u05D4\u05E2\u05D1\u05E8\u05D4.",
     initHint: "  \u05DB\u05D3\u05D9 \u05E9\u05D4\u05E1\u05D5\u05DB\u05DF \u05D9\u05E2\u05D1\u05D5\u05D3 \u05DC\u05E4\u05D9 \u05D4\u05DB\u05DC\u05DC\u05D9\u05DD \u05E9\u05DC DeployAI, \u05D4\u05E8\u05D9\u05E6\u05D5: npx deployai@latest init",
     emptyFolder: "\u05D0\u05D9\u05DF \u05E2\u05D3\u05D9\u05D9\u05DF \u05DE\u05D4 \u05DC\u05D1\u05D3\u05D5\u05E7: \u05D0\u05D9\u05DF \u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5 \u05D0\u05EA\u05E8. \u05D1\u05E0\u05D5 \u05DB\u05D0\u05DF \u05D0\u05EA \u05D4\u05D0\u05EA\u05E8, \u05D5\u05D0\u05D6 \u05D4\u05E8\u05D9\u05E6\u05D5: npx deployai@latest check",
     deployTitle: "DeployAI deploy",
@@ -25502,8 +25556,8 @@ function out(line = "") {
 function err(line = "") {
   process.stderr.write(line + "\n");
 }
-function pad(text2, width) {
-  return text2.length >= width ? text2 + " " : text2 + " ".repeat(width - text2.length);
+function pad(text3, width) {
+  return text3.length >= width ? text3 + " " : text3 + " ".repeat(width - text3.length);
 }
 function row(label, value2, width = LABEL_WIDTH) {
   return pad(label, width) + value2;
@@ -25519,7 +25573,7 @@ function formatBytes(n2) {
 }
 
 // src/version.ts
-var CLI_VERSION = "0.1.0-beta.49";
+var CLI_VERSION = "0.1.0-beta.50";
 
 // src/api.ts
 function apiContext(apiFlag, root) {
@@ -25601,10 +25655,10 @@ async function apiRequest(ctx, path, schema, opts = {}) {
     err(messages(process.cwd())("retrying", { n: attempt + 2, max: waits.length + 1 }));
     await new Promise((r) => setTimeout(r, waits[attempt]));
   }
-  const text2 = await res.text().catch(() => "");
+  const text3 = await res.text().catch(() => "");
   let data = null;
   try {
-    data = text2 ? JSON.parse(text2) : null;
+    data = text3 ? JSON.parse(text3) : null;
   } catch {
     data = null;
   }
@@ -25633,8 +25687,8 @@ async function apiRequest(ctx, path, schema, opts = {}) {
     const msg = parsed2.success ? parsed2.data.error : `HTTP ${res.status}`;
     const category = res.status === 403 ? "forbidden" : res.status === 404 ? "not_found" : res.status === 429 ? "rate_limited" : "api";
     const serverLine = parsed2.success ? parsed2.data.messageHe : void 0;
-    const text3 = category === "forbidden" ? t("forbidden") : category === "not_found" ? t("notFound") : category === "rate_limited" ? t("rateLimited") : serverLine ? t("apiRefused", { code: msg, message: serverLine }) : t("apiError", { code: msg });
-    throw new CliError(text3, 1, category);
+    const text4 = category === "forbidden" ? t("forbidden") : category === "not_found" ? t("notFound") : category === "rate_limited" ? t("rateLimited") : serverLine ? t("apiRefused", { code: msg, message: serverLine }) : t("apiError", { code: msg });
+    throw new CliError(text4, 1, category);
   }
   if (!schema) return data;
   const parsed = schema.safeParse(data);
@@ -25981,9 +26035,9 @@ function globToRegex(glob) {
   }
   return re;
 }
-function parseIgnore(text2) {
+function parseIgnore(text3) {
   const rules = [];
-  for (const rawLine of text2.split(/\r?\n/)) {
+  for (const rawLine of text3.split(/\r?\n/)) {
     let line = rawLine.trim();
     if (!line || line.startsWith("#")) continue;
     let negate = false;
@@ -26021,12 +26075,12 @@ function loadIgnore(root) {
   }
 }
 function loadUploadIgnore(root) {
-  let git3 = [];
+  let git4 = [];
   try {
-    git3 = parseIgnore(readFileSync4(join3(root, ".gitignore"), "utf8"));
+    git4 = parseIgnore(readFileSync4(join3(root, ".gitignore"), "utf8"));
   } catch {
   }
-  return [...git3, ...loadIgnore(root)];
+  return [...git4, ...loadIgnore(root)];
 }
 function walkFiles(root, opts = {}) {
   const result = [];
@@ -26157,14 +26211,14 @@ function brokenRegexLine(code) {
   }
   return null;
 }
-function lineAt3(text2, index) {
+function lineAt3(text3, index) {
   let line = 1;
-  for (let i = 0; i < index && i < text2.length; i++) if (text2.charCodeAt(i) === 10) line++;
+  for (let i = 0; i < index && i < text3.length; i++) if (text3.charCodeAt(i) === 10) line++;
   return line;
 }
-function firstMatchLine(text2, re) {
-  const m = re.exec(text2);
-  return m ? lineAt3(text2, m.index) : null;
+function firstMatchLine(text3, re) {
+  const m = re.exec(text3);
+  return m ? lineAt3(text3, m.index) : null;
 }
 function escapeRe(s) {
   return s.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&");
@@ -26354,16 +26408,16 @@ function analyzeProject(root) {
   }
   for (const f of files) {
     if (!f.rel.endsWith(".prisma")) continue;
-    let text2 = "";
+    let text3 = "";
     try {
-      text2 = stripComments(readFileSync5(f.abs, "utf8"));
+      text3 = stripComments(readFileSync5(f.abs, "utf8"));
     } catch {
       continue;
     }
-    const block = /datasource\s+\w+\s*\{[^}]*?provider\s*=\s*"(\w+)"/.exec(text2);
+    const block = /datasource\s+\w+\s*\{[^}]*?provider\s*=\s*"(\w+)"/.exec(text3);
     if (!block) continue;
     const provider = block[1];
-    const line = lineAt3(text2, block.index + block[0].lastIndexOf("provider"));
+    const line = lineAt3(text3, block.index + block[0].lastIndexOf("provider"));
     const kind = provider === "postgresql" || provider === "cockroachdb" ? "postgres" : provider === "mysql" ? "mysql" : provider === "mongodb" ? "mongodb" : provider === "sqlite" ? deps["@prisma/adapter-d1"] ? "d1" : "sqlite" : null;
     if (kind) databases.push({ kind, via: "Prisma", file: f.rel, line });
   }
@@ -26402,32 +26456,32 @@ function analyzeProject(root) {
   if (!databases.some((d) => d.kind === "d1")) {
     for (const name of ["wrangler.toml", "wrangler.json", "wrangler.jsonc"]) {
       if (!existsSync4(join4(root, name))) continue;
-      const text2 = readFileSync5(join4(root, name), "utf8");
-      const at = text2.search(/d1_databases/);
+      const text3 = readFileSync5(join4(root, name), "utf8");
+      const at = text3.search(/d1_databases/);
       if (at < 0) continue;
-      databases.push({ kind: "d1", via: "wrangler config", file: name, line: text2.slice(0, at).split("\n").length });
+      databases.push({ kind: "d1", via: "wrangler config", file: name, line: text3.slice(0, at).split("\n").length });
       break;
     }
   }
   for (const name of ["wrangler.toml", "wrangler.json", "wrangler.jsonc"]) {
     if (!existsSync4(join4(root, name))) continue;
-    const text2 = readFileSync5(join4(root, name), "utf8");
-    if (!parseWranglerConfig(name, text2).durableObjects.some((o) => o.script || !o.name || !o.className)) break;
-    const at = text2.search(/script_name/) >= 0 ? text2.search(/script_name/) : text2.search(/durable_objects/);
-    add({ code: "durable_objects", severity: "blocker", file: name, line: at < 0 ? 1 : text2.slice(0, at).split("\n").length, detail: "" });
+    const text3 = readFileSync5(join4(root, name), "utf8");
+    if (!parseWranglerConfig(name, text3).durableObjects.some((o) => o.script || !o.name || !o.className)) break;
+    const at = text3.search(/script_name/) >= 0 ? text3.search(/script_name/) : text3.search(/durable_objects/);
+    add({ code: "durable_objects", severity: "blocker", file: name, line: at < 0 ? 1 : text3.slice(0, at).split("\n").length, detail: "" });
     break;
   }
   for (const name of ["wrangler.toml", "wrangler.json", "wrangler.jsonc"]) {
     if (!existsSync4(join4(root, name))) continue;
-    const text2 = readFileSync5(join4(root, name), "utf8");
-    for (const cron of parseWranglerConfig(name, text2).crons) {
+    const text3 = readFileSync5(join4(root, name), "utf8");
+    for (const cron of parseWranglerConfig(name, text3).crons) {
       const spec = parseSiteCron(cron);
       const gap = isSiteCronSpec(spec) ? siteCronGapMinutes(spec) : null;
       const why = !isSiteCronSpec(spec) ? "not a five part cron line" : gap !== null && gap < SITE_SCHEDULE_MIN_MINUTES ? `more often than every ${SITE_SCHEDULE_MIN_MINUTES} minutes` : null;
       if (!why) continue;
-      const quoted = Math.max(text2.indexOf(`"${cron}"`), text2.indexOf(`'${cron}'`));
-      const at = quoted >= 0 ? quoted : text2.indexOf(cron);
-      add({ code: "schedule_not_run", severity: "warning", file: name, line: at < 0 ? 1 : text2.slice(0, at).split("\n").length, detail: ` ("${cron}", ${why})` });
+      const quoted = Math.max(text3.indexOf(`"${cron}"`), text3.indexOf(`'${cron}'`));
+      const at = quoted >= 0 ? quoted : text3.indexOf(cron);
+      add({ code: "schedule_not_run", severity: "warning", file: name, line: at < 0 ? 1 : text3.slice(0, at).split("\n").length, detail: ` ("${cron}", ${why})` });
     }
     break;
   }
@@ -26634,7 +26688,7 @@ import { appendFileSync, existsSync as existsSync5, readFileSync as readFileSync
 import { join as join6 } from "path";
 var RULES_FILE = "DEPLOYAI.md";
 var RULES_STAMP = `${DEPLOYAI_DIR}/rules.json`;
-var rulesHash = (text2) => createHash("sha256").update(text2.replace(/\r\n/g, "\n")).digest("hex");
+var rulesHash = (text3) => createHash("sha256").update(text3.replace(/\r\n/g, "\n")).digest("hex");
 function readStamp(root) {
   try {
     const v = readJson(join6(root, RULES_STAMP));
@@ -26643,37 +26697,37 @@ function readStamp(root) {
     return null;
   }
 }
-function writeStamp(root, text2) {
+function writeStamp(root, text3) {
   ensureDeployaiDir(root);
-  writeFileSync4(join6(root, RULES_STAMP), `${JSON.stringify({ deployaiMd: rulesHash(text2) }, null, 2)}
+  writeFileSync4(join6(root, RULES_STAMP), `${JSON.stringify({ deployaiMd: rulesHash(text3) }, null, 2)}
 `);
 }
 function writeRulesFile(root, md) {
   writeFileSync4(join6(root, RULES_FILE), md);
   writeStamp(root, md);
 }
-function addMissingRules(file2, text2, later) {
-  const missing = later.filter((r) => !text2.includes(r.has));
+function addMissingRules(file2, text3, later) {
+  const missing = later.filter((r) => !text3.includes(r.has));
   if (!missing.length) return false;
-  const eol = text2.includes("\r\n") ? "\r\n" : "\n";
-  const gap = text2.endsWith("\n") ? eol : eol + eol;
+  const eol = text3.includes("\r\n") ? "\r\n" : "\n";
+  const gap = text3.endsWith("\n") ? eol : eol + eol;
   appendFileSync(file2, `${gap}## Added later by DeployAI${eol}${eol}${missing.map((r) => r.text).join(eol + eol)}${eol}`);
   return true;
 }
 function syncRulesFile(root, md, later = DEPLOYAI_LATER_RULES) {
   const file2 = join6(root, RULES_FILE);
   if (!existsSync5(file2)) return "none";
-  const text2 = readFileSync6(file2, "utf8");
-  const now = rulesHash(text2);
+  const text3 = readFileSync6(file2, "utf8");
+  const now = rulesHash(text3);
   if (now === rulesHash(md)) {
     if (readStamp(root) !== now) writeStamp(root, md);
     return "current";
   }
   if (readStamp(root) === now) {
-    writeRulesFile(root, text2.includes("\r\n") ? md.replace(/\r?\n/g, "\r\n") : md);
+    writeRulesFile(root, text3.includes("\r\n") ? md.replace(/\r?\n/g, "\r\n") : md);
     return "updated";
   }
-  return addMissingRules(file2, text2, later) ? "added" : "edited";
+  return addMissingRules(file2, text3, later) ? "added" : "edited";
 }
 
 // src/commands/init.ts
@@ -26695,16 +26749,16 @@ function runInit(root, opts = {}) {
   if (opts.agentFiles !== false) {
     for (const name of AGENT_FILES) {
       const file2 = join7(root, name);
-      const text2 = existsSync6(file2) ? readFileSync7(file2, "utf8") : null;
-      if (text2 === null) {
+      const text3 = existsSync6(file2) ? readFileSync7(file2, "utf8") : null;
+      if (text3 === null) {
         writeFileSync5(file2, `${AGENT_POINTER}
 `);
         created.push(name);
-      } else if (text2.includes("DEPLOYAI.md")) {
+      } else if (text3.includes("DEPLOYAI.md")) {
         kept.push(name);
       } else {
-        const eol = text2.includes("\r\n") ? "\r\n" : "\n";
-        const gap = !text2.trim() ? "" : text2.endsWith("\n") ? eol : eol + eol;
+        const eol = text3.includes("\r\n") ? "\r\n" : "\n";
+        const gap = !text3.trim() ? "" : text3.endsWith("\n") ? eol : eol + eol;
         appendFileSync2(file2, `${gap}${AGENT_POINTER}${eol}`);
         updated.push(name);
       }
@@ -26820,7 +26874,7 @@ function buildPrompt(analysis) {
 import { spawn, spawnSync } from "child_process";
 import { existsSync as existsSync7 } from "fs";
 import { join as join8 } from "path";
-function copyToClipboard(text2) {
+function copyToClipboard(text3) {
   if (process.env.DEPLOYAI_NO_CLIPBOARD) return false;
   const candidates = process.platform === "win32" ? [["clip", []]] : process.platform === "darwin" ? [["pbcopy", []]] : [
     ["wl-copy", []],
@@ -26829,7 +26883,7 @@ function copyToClipboard(text2) {
   ];
   for (const [cmd, args] of candidates) {
     try {
-      const r = spawnSync(cmd, args, { input: text2, timeout: 2e3, stdio: ["pipe", "ignore", "ignore"], windowsHide: true });
+      const r = spawnSync(cmd, args, { input: text3, timeout: 2e3, stdio: ["pipe", "ignore", "ignore"], windowsHide: true });
       if (r.status === 0 && !r.error) return true;
     } catch {
     }
@@ -27198,9 +27252,9 @@ function addTo(obj, key2, list, value2) {
 function ignoreInGit(root, path) {
   if (!existsSync9(join10(root, ".git"))) return;
   const gi = join10(root, ".gitignore");
-  const text2 = existsSync9(gi) ? readFileSync8(gi, "utf8") : "";
-  if (text2.split(/\r?\n/).some((l) => l.trim() === path)) return;
-  appendFileSync3(gi, `${text2 && !text2.endsWith("\n") ? "\n" : ""}${path}
+  const text3 = existsSync9(gi) ? readFileSync8(gi, "utf8") : "";
+  if (text3.split(/\r?\n/).some((l) => l.trim() === path)) return;
+  appendFileSync3(gi, `${text3 && !text3.endsWith("\n") ? "\n" : ""}${path}
 `);
 }
 function detectTool() {
@@ -27256,7 +27310,7 @@ function allowCommand(tool) {
 }
 
 // src/commands/sound.ts
-import { existsSync as existsSync11, readFileSync as readFileSync9, rmSync, writeFileSync as writeFileSync9 } from "fs";
+import { existsSync as existsSync11, readFileSync as readFileSync9, rmSync as rmSync2, writeFileSync as writeFileSync9 } from "fs";
 import { homedir as homedir2 } from "os";
 import { join as join12 } from "path";
 
@@ -27386,9 +27440,9 @@ function agentOn(root, opts = {}) {
   writeSoundFiles();
   ensureDeployaiDir(root);
   const script = join12(root, AGENT_SCRIPT);
-  const text2 = agentScript(soundsDir());
-  const scriptSame = existsSync11(script) && readFileSync9(script, "utf8") === text2;
-  if (!scriptSame) writeFileSync9(script, text2);
+  const text3 = agentScript(soundsDir());
+  const scriptSame = existsSync11(script) && readFileSync9(script, "utf8") === text3;
+  if (!scriptSame) writeFileSync9(script, text3);
   const hooks = hooksOf(obj);
   const env = obj.env && typeof obj.env === "object" ? obj.env : {};
   let added = env[TITLE_ENV] !== "1";
@@ -27430,7 +27484,7 @@ function agentOff(root) {
   }
   const script = join12(root, AGENT_SCRIPT);
   if (existsSync11(script)) {
-    rmSync(script);
+    rmSync2(script);
     removed = true;
   }
   return removed;
@@ -27498,11 +27552,11 @@ function soundCommand(root, action, state, tool, opts = {}) {
 function refreshAgentScript(root) {
   const script = join12(root, AGENT_SCRIPT);
   if (!existsSync11(script)) return false;
-  const text2 = agentScript(soundsDir());
+  const text3 = agentScript(soundsDir());
   const now = readFileSync9(script, "utf8");
-  if (now === text2 || !now.startsWith("// DeployAI's sound and tab dot")) return false;
+  if (now === text3 || !now.startsWith("// DeployAI's sound and tab dot")) return false;
   writeSoundFiles();
-  writeFileSync9(script, text2);
+  writeFileSync9(script, text3);
   return true;
 }
 
@@ -27672,7 +27726,12 @@ async function wordpressContent(base, dir) {
   if (posts?.length) {
     const files = wpPostsToMarkdown({ origin: new URL(base).origin, posts, categories: readJson3(join13(dir, "content", "categories.json")) ?? [], tags: readJson3(join13(dir, "content", "tags.json")) ?? [], users: readJson3(join13(dir, "content", "users.json")) ?? [], media: readJson3(join13(dir, "content", "media.json")) ?? [] });
     mkdirSync6(join13(dir, "posts"), { recursive: true });
-    for (const f of files) writeFileSync10(join13(dir, "posts", f.file), f.text);
+    const postsDir = resolve(dir, "posts");
+    for (const f of files) {
+      const target = resolve(postsDir, f.file);
+      if (dirname2(target) !== postsDir) continue;
+      writeFileSync10(target, f.text);
+    }
     out(`  posts as Markdown: ${files.length}`);
   }
   return true;
@@ -27766,10 +27825,10 @@ async function saveOldStyles(html, pageUrl, dir) {
   for (const url2 of stylesheetLinks(html, pageUrl, 6)) {
     const res = await get(url2, "text/css,*/*;q=0.8");
     if (!res?.ok) continue;
-    const text2 = await res.text();
-    if (text2.length > ICON_MAX_BYTES) continue;
+    const text3 = await res.text();
+    if (text3.length > ICON_MAX_BYTES) continue;
     mkdirSync6(styles, { recursive: true });
-    writeFileSync10(join13(styles, `${++n2}.css`), text2);
+    writeFileSync10(join13(styles, `${++n2}.css`), text3);
   }
 }
 var TRIGGER_PAGES_CAP = 30;
@@ -28344,7 +28403,7 @@ async function migrateVerifyCommand(root, previewRaw, ctx, retryMs = PREVIEW_RET
   writeJson(report2, { checkedAt: (/* @__PURE__ */ new Date()).toISOString(), preview: preview.origin, checked, findings, credits: [...credits.keys()], vendors: [...vendors.keys()], tags: tagFindings, leftOnOld });
   if (credits.size) {
     out(`A builder's credit is still on the preview:`);
-    for (const [text2, path] of credits) out(`  ${path}  ${text2}`);
+    for (const [text3, path] of credits) out(`  ${path}  ${text3}`);
     out("Remove each and put the site's own name and the year in its place, unless the owner asked to keep it, then deploy again and run verify again.");
     blockedBy("builder_credit");
     process.exitCode = 1;
@@ -28414,7 +28473,7 @@ async function moveOffer(root, p, ctx) {
       out(t("movedSlug", { url: r.url ?? r.slug }));
     }
     if (r.granted?.length) out(t("moveOfferGranted", { n: r.granted.length }));
-    else if (r.reason && r.reason !== "start_used") out(t(r.reason === "cap" ? "moveOfferCap" : "moveOfferOver"));
+    else if (r.reason && r.reason !== "start_used") out(t(r.reason === "cap" ? "moveOfferCap" : r.reason === "offer_over" ? "moveOfferOver" : "moveOfferNotMove"));
   } catch {
   }
 }
@@ -28540,7 +28599,7 @@ function changedUnderSameName(root, files) {
 
 // src/commands/sync.ts
 import { spawnSync as spawnSync3 } from "child_process";
-import { existsSync as existsSync15, mkdirSync as mkdirSync9, mkdtempSync, readFileSync as readFileSync13, rmSync as rmSync3, unlinkSync, writeFileSync as writeFileSync13 } from "fs";
+import { existsSync as existsSync15, mkdirSync as mkdirSync9, mkdtempSync, readFileSync as readFileSync13, rmSync as rmSync4, unlinkSync, writeFileSync as writeFileSync13 } from "fs";
 import { tmpdir } from "os";
 import { dirname as dirname5, join as join17, resolve as resolve4, sep as sep3 } from "path";
 import { gunzipSync as gunzipSync2 } from "zlib";
@@ -28668,6 +28727,9 @@ function readTar(tar) {
   }
   return entries;
 }
+function aliasPathPart(path) {
+  return path.split("/").some((p) => /^[^.]{1,8}~\d+(\.[^.]{0,3})?$/.test(p) || /[. ]$/.test(p) || p.includes(":"));
+}
 
 // src/work.ts
 import { createHash as createHash3 } from "crypto";
@@ -28711,7 +28773,7 @@ function othersLine(root, others) {
 
 // src/commands/pull.ts
 import { spawnSync as spawnSync2 } from "child_process";
-import { existsSync as existsSync14, readdirSync as readdirSync5, rmSync as rmSync2 } from "fs";
+import { existsSync as existsSync14, readdirSync as readdirSync5, rmSync as rmSync3 } from "fs";
 import { join as join16 } from "path";
 
 // src/commands/samples.ts
@@ -28794,7 +28856,7 @@ function extractInto(gz, root, damaged) {
   let written = 0;
   for (const e3 of entries) {
     if (e3.type !== "0" && e3.type !== "\0") continue;
-    if (privateProjectFile(e3.name.replace(/\\/g, "/"))) continue;
+    if (privateProjectFile(e3.name.replace(/\\/g, "/")) || aliasPathPart(e3.name.replace(/\\/g, "/"))) continue;
     const target = resolve3(base, e3.name);
     if (target !== base && !target.startsWith(base + sep2)) continue;
     mkdirSync8(dirname4(target), { recursive: true });
@@ -28882,7 +28944,7 @@ var git = (root, args, env = {}) => spawnSync2("git", args, { cwd: root, encodin
 function clearTree(root) {
   for (const name of readdirSync5(root)) {
     if (name === ".git" || name === ".deployai") continue;
-    rmSync2(join16(root, name), { recursive: true, force: true });
+    rmSync3(join16(root, name), { recursive: true, force: true });
   }
 }
 async function pullHistory(root, ctx, projectId) {
@@ -28926,7 +28988,7 @@ function safeSourceName(raw) {
   if (!name || name.startsWith("/") || /^[a-zA-Z]:/.test(name) || name.includes("\0")) return null;
   if (name.split("/").some((p) => p === ".." || p === ".")) return null;
   if (privateProjectFile(name)) return null;
-  if (name.split("/").some((p) => /^[^.]{1,8}~\d+(\.[^.]{0,3})?$/.test(p) || /[. ]$/.test(p))) return null;
+  if (aliasPathPart(name)) return null;
   return name;
 }
 var same2 = (a, b) => a === void 0 && b === void 0 || a !== void 0 && b !== void 0 && a.equals(b);
@@ -28956,7 +29018,7 @@ function mergeText(ours2, base, live, liveLabel) {
     if (r.error || r.status === null || r.status < 0) return null;
     return { text: r.stdout, conflicts: r.status > 0 };
   } finally {
-    rmSync3(dir, { recursive: true, force: true });
+    rmSync4(dir, { recursive: true, force: true });
   }
 }
 async function bringIn(root, ctx, projectId, behind) {
@@ -29070,8 +29132,8 @@ async function recordHistory(root, ctx, projectId, behind) {
       tip = sha2;
       added++;
     } finally {
-      rmSync3(tree, { recursive: true, force: true });
-      rmSync3(index, { force: true });
+      rmSync4(tree, { recursive: true, force: true });
+      rmSync4(index, { force: true });
     }
   }
   if (!tip) return null;
@@ -30173,8 +30235,150 @@ ${choices.brief}
 }
 
 // src/commands/addon.ts
-import { dirname as dirname6, join as join20, resolve as resolve6 } from "path";
-import { mkdirSync as mkdirSync10, existsSync as existsSync17, writeFileSync as writeFileSync16 } from "fs";
+import { dirname as dirname7, join as join21, resolve as resolve7 } from "path";
+import { mkdirSync as mkdirSync11, existsSync as existsSync18, writeFileSync as writeFileSync17 } from "fs";
+
+// src/commands/addon-lanes.ts
+import { spawnSync as spawnSync5 } from "child_process";
+import { copyFileSync, existsSync as existsSync17, lstatSync as lstatSync2, mkdirSync as mkdirSync10, readdirSync as readdirSync6, rmdirSync, statSync as statSync3, unlinkSync as unlinkSync2, writeFileSync as writeFileSync16 } from "fs";
+import { basename as basename2, dirname as dirname6, join as join20, resolve as resolve6 } from "path";
+var git3 = (cwd, args) => spawnSync5("git", args, { cwd, encoding: "utf8" });
+var ok = (cwd, args) => git3(cwd, args).status === 0;
+var text2 = (cwd, args) => (git3(cwd, args).stdout ?? "").trim();
+var same3 = (a, b) => resolve6(a).replace(/\\/g, "/").toLowerCase() === resolve6(b).replace(/\\/g, "/").toLowerCase();
+var LOCAL_FILES = [".env", ".env.local", ".env.production", ".dev.vars"];
+function mainFolderOf(root) {
+  const common = text2(root, ["rev-parse", "--path-format=absolute", "--git-common-dir"]);
+  if (!common || basename2(common) !== ".git") return null;
+  const main2 = dirname6(common);
+  return same3(main2, root) ? null : main2;
+}
+function laneOf(root) {
+  const main2 = mainFolderOf(root);
+  if (!main2) return null;
+  const lane = readRun(main2)?.wave?.lanes.find((l) => same3(l.dir, root));
+  return lane ? { ...lane, main: main2 } : null;
+}
+function laneRules(lane) {
+  return `You are the helper of lane ${lane.name} (${lane.keys.join(", ")}), in this folder only: ${lane.dir}. The owner chose On my own, so never ask them anything: take the recommended option and list what waits for them in the report. Install the site's packages here with its own package manager; never link node_modules from another folder. Never deploy and never merge. After each add-on, commit here: git add -A, then git commit -m "<the add-on>".`;
+}
+function startWave(root, keys) {
+  const w = nextAddonWave(keys);
+  if (!w) return null;
+  const label = `Wave ${w.wave + 1} of ${ADDON_WAVES.length}`;
+  if (w.lanes.length === 1) {
+    writeRun(root, { mode: "parallel" });
+    out(`${label}: ${w.lanes[0].keys.join(", ")}, one after another in this folder.`);
+    return w.lanes[0].keys[0];
+  }
+  if (!ok(root, ["rev-parse", "--is-inside-work-tree"])) throw new CliError('Running add-ons side by side needs git in this folder. Run: git init, then git add -A, then git commit -m "Before add-ons", then this command again.', 1, "no_git");
+  if (text2(root, ["status", "--porcelain"])) throw new CliError('This folder has changes that are not committed. Commit them first: git add -A, then git commit -m "Before add-ons", then run this command again.', 1, "dirty");
+  const base = text2(root, ["rev-parse", "HEAD"]);
+  if (!base) throw new CliError('This folder has no commit yet. Run: git add -A, then git commit -m "Before add-ons", then this command again.', 1, "no_commit");
+  const parent = join20(dirname6(root), `${basename2(root)}-addons`);
+  const lanes = w.lanes.map((l) => ({ name: l.name, keys: l.keys, dir: join20(parent, l.name), branch: `addon/${l.name}` }));
+  for (const l of lanes) {
+    if (existsSync17(l.dir)) throw new CliError(`A lane folder from an earlier run is still there: ${l.dir}. Bring its work in with npx deployai@latest addons merge, or remove it with git worktree remove "${l.dir}", then run this again.`, 1, "lane_exists");
+    if (ok(root, ["rev-parse", "--verify", "--quiet", `refs/heads/${l.branch}`])) throw new CliError(`The branch ${l.branch} from an earlier run is still there. Bring it in with git merge ${l.branch}, or remove it with git branch -D ${l.branch}, then run this again.`, 1, "lane_exists");
+  }
+  for (const l of lanes) {
+    const r = git3(root, ["worktree", "add", "-b", l.branch, l.dir, base]);
+    if (r.status !== 0) throw new CliError(`Could not make the lane folder ${l.dir}: ${(r.stderr || r.stdout).trim()}`, 1, "worktree");
+    copyLocalFiles(root, l.dir);
+  }
+  writeRun(root, { mode: "parallel", wave: { number: w.wave, base, lanes } });
+  out(`${label}: ${lanes.length} lanes run side by side, each in its own copy of this folder.`);
+  out("Start one helper agent per lane now, all at the same time. Give each one its lane line below as its task, word for word:");
+  for (const l of lanes) out(`- Lane ${l.name}: in ${l.dir}, run ${l.keys.map((k) => `npx deployai@latest addon run ${k}`).join(", then ")}, and follow what each prints.`);
+  out("Each helper installs the packages in its own folder, commits after each add-on, never deploys and never asks the owner.");
+  out("While they run, change nothing in this folder. Tell the owner in one line which add-ons run now. When every helper is done, run here: npx deployai@latest addons merge");
+  return null;
+}
+function copyLocalFiles(from, to) {
+  const dir = join20(from, DEPLOYAI_DIR);
+  const files = existsSync17(dir) ? readdirSync6(dir).map((f) => join20(DEPLOYAI_DIR, f)).filter((f) => statSync3(join20(from, f)).isFile()) : [];
+  for (const f of [...files, ...LOCAL_FILES]) {
+    if (f === join20(DEPLOYAI_DIR, "run.json")) continue;
+    if (!existsSync17(join20(from, f)) || existsSync17(join20(to, f))) continue;
+    mkdirSync10(dirname6(join20(to, f)), { recursive: true });
+    copyFileSync(join20(from, f), join20(to, f));
+  }
+}
+function mergeStamps(root) {
+  const side = (n2) => {
+    try {
+      return JSON.parse(text2(root, ["show", `:${n2}:${ADDON_STAMP_FILE}`]) || "{}");
+    } catch {
+      return null;
+    }
+  };
+  const ours2 = side(2);
+  const theirs = side(3);
+  if (!ours2 || !theirs) return false;
+  const merged = { ...ours2 };
+  for (const [k, v] of Object.entries(theirs)) merged[k] = { ...ours2[k] ?? {}, ...v };
+  writeFileSync16(join20(root, ADDON_STAMP_FILE), JSON.stringify(merged, null, 2));
+  return ok(root, ["add", "--", ADDON_STAMP_FILE]);
+}
+function removeLane(root, lane) {
+  const nm = join20(lane.dir, "node_modules");
+  try {
+    if (lstatSync2(nm).isSymbolicLink()) {
+      try {
+        unlinkSync2(nm);
+      } catch {
+        rmdirSync(nm);
+      }
+    }
+  } catch {
+  }
+  git3(root, ["worktree", "remove", "--force", lane.dir]);
+  git3(root, ["branch", "-D", lane.branch]);
+}
+function addonsMergeCommand(root) {
+  if (laneOf(root)) throw new CliError("This is a lane folder. Run addons merge in the main folder, after every lane is done.", 1, "in_lane");
+  const run = readRun(root);
+  const wave = run?.wave;
+  if (!wave) {
+    out("No lanes are running, so there is nothing to merge. To go on: npx deployai@latest addons run --parallel");
+    return;
+  }
+  if (ok(root, ["rev-parse", "-q", "--verify", "MERGE_HEAD"])) throw new CliError("A merge is still open in this folder. Resolve what it lists, then git add -A, then git commit --no-edit, then run npx deployai@latest addons merge again.", 1, "merge_open");
+  for (const lane of wave.lanes) {
+    if (existsSync17(lane.dir) && text2(lane.dir, ["status", "--porcelain"])) throw new CliError(`Lane ${lane.name} has work that is not committed in ${lane.dir}. If its helper is still working, wait for it. Else commit it there: git add -A, then git commit -m "${lane.keys.join(", ")}", then run this again.`, 1, "lane_dirty");
+    if (!ok(root, ["rev-parse", "--verify", "--quiet", `refs/heads/${lane.branch}`])) throw new CliError(`The branch ${lane.branch} is missing, so lane ${lane.name} cannot come in. Run its add-ons here instead: ${lane.keys.map((k) => `npx deployai@latest addon run ${k}`).join(", then ")}.`, 1, "lane_missing");
+    if (ok(root, ["merge-base", "--is-ancestor", lane.branch, "HEAD"])) continue;
+    const r = git3(root, ["merge", "--no-ff", "-m", `Add-ons: ${lane.keys.join(", ")}`, lane.branch]);
+    if (r.status === 0) {
+      out(`Merged lane ${lane.name}: ${lane.keys.join(", ")}.`);
+      continue;
+    }
+    const conflicted = text2(root, ["diff", "--name-only", "--diff-filter=U"]).split("\n").filter(Boolean);
+    const left = conflicted.filter((f) => !(f === ADDON_STAMP_FILE && mergeStamps(root)));
+    if (!conflicted.length) throw new CliError(`Could not merge lane ${lane.name}: ${(r.stderr || r.stdout).trim()}`, 1, "merge_failed");
+    if (!left.length && ok(root, ["commit", "--no-edit"])) {
+      out(`Merged lane ${lane.name}: ${lane.keys.join(", ")}.`);
+      continue;
+    }
+    out(`Lane ${lane.name} (${lane.keys.join(", ")}) changed the same lines as a lane merged before it, in:`);
+    left.forEach((f) => out(`  ${f}`));
+    out("Resolve each file so it keeps what both add-ons meant: never take one side whole. A lock file (package-lock.json, pnpm-lock.yaml, yarn.lock, bun.lock) is never edited by hand: take either side, then run the site's install to rebuild it.");
+    out("Then: git add -A, then git commit --no-edit, then run npx deployai@latest addons merge again.");
+    throw new CliError(`Lane ${lane.name} needs its conflicts resolved.`, 1, "merge_conflict");
+  }
+  for (const lane of wave.lanes) removeLane(root, lane);
+  const parent = join20(dirname6(root), `${basename2(root)}-addons`);
+  try {
+    if (existsSync17(parent) && !readdirSync6(parent).length) rmdirSync(parent);
+  } catch {
+  }
+  writeRun(root, { mode: "parallel" });
+  const keys = wave.lanes.flatMap((l) => l.keys);
+  out(`Wave ${wave.number + 1} is merged: ${keys.join(", ")}.`);
+  out(`Now, in this folder: install the packages, build the site, run npx deployai@latest check, and run the "Verify with" commands of ${keys.join(", ")} again on the merged code. Fix what broke, then git add -A and git commit -m "Wave ${wave.number + 1} checked". Do not deploy. Then at once: npx deployai@latest addons run --parallel`);
+}
+
+// src/commands/addon.ts
 function linkedProjectId2(root) {
   const id = readProject(root)?.projectId;
   if (!id) throw new CliError("This folder is not linked to a DeployAI site. Run: npx deployai@latest login, then npx deployai@latest link", 1, "not_linked");
@@ -30210,13 +30414,21 @@ async function addonsCommand(root, ctx) {
   }
   out(`Next: ${r.next}. To run what is waiting: npx deployai@latest addons run (or one: npx deployai@latest addon run <name>)`);
 }
+var FINAL_PUBLISH = 'Now the one publish. Run npx deployai@latest check, then ask the owner once, naming the site and its address: "See a preview first, put it live, or not yet?" Preview first is the recommended answer. If a check waits for a preview, offer only a preview or not yet. Then run once: npx deployai@latest deploy -m "<the add-ons, in a few words>", with --live only if they chose to put it live. Run the checks that waited on that preview and fix what they find; deploy again only if a fix was needed.';
 async function addonsRunCommand(root, ctx, opts = {}) {
   requireToken(ctx);
-  if (opts.all && opts.oneByOne) throw new CliError("Choose one: --one-by-one or --all.", 1, "usage");
+  if (laneOf(root)) throw new CliError("This is a lane folder of an add-on run. Here, run only the add-ons of this lane with npx deployai@latest addon run <name>.", 1, "in_lane");
   const projectId = linkedProjectId2(root);
   const r = await apiRequest(ctx, `/api/cli/addons?projectId=${encodeURIComponent(projectId)}`, AddonsResponse);
   if (!r.open) {
     out("The DeployAI marketplace is not open yet, so this site has no add-ons to run.");
+    return;
+  }
+  const running = readRun(root);
+  if (running?.wave) {
+    out(`Wave ${running.wave.number + 1} is still running in ${running.wave.lanes.length} lanes:`);
+    running.wave.lanes.forEach((l) => out(`- Lane ${l.name} (${l.keys.join(", ")}): ${l.dir}`));
+    out("When every helper is done, run here: npx deployai@latest addons merge");
     return;
   }
   const order = opts.order === void 0 ? null : [...new Set(opts.order.split(",").map((k) => k.trim().toLowerCase()).filter(Boolean))];
@@ -30228,37 +30440,37 @@ async function addonsRunCommand(root, ctx, opts = {}) {
   const pickedKeys = order ?? r.picked;
   const todo = pickedKeys ? pickedKeys.flatMap((k) => r.addons.filter((a) => a.key === k)) : r.addons.filter((a) => a.owned && a.status !== "done" && a.status !== "skipped");
   if (!todo.length) {
-    updateProject(root, { addonsAll: false });
+    writeRun(root, null);
+    if (running) {
+      out("The add-ons of this run are done or skipped.");
+      out(FINAL_PUBLISH);
+      return;
+    }
     out(r.addons.some((a) => a.owned) ? "Every add-on of this site is done or skipped. To run one again: npx deployai@latest addon run <name>" : "This site has no add-ons yet. See them: npx deployai@latest addons");
     return;
   }
   requireSiteCode(root);
-  const all = opts.all === true || !opts.oneByOne && readProject(root)?.addonsAll === true;
-  if (!order && r.picked && !r.agreed && todo.length > 1 && (opts.all || !all)) {
+  const checkWithMe = ownerMode(root) === "check-with-me";
+  if (!order && !running && r.picked && !r.agreed && todo.length > 1) {
     const stamps = readStamps(root);
-    const items = todo.map((a) => ({ ...a, trace: addonTrace(a.key, (path) => existsSync17(join20(root, path)), stamps) }));
-    addonOrderBrief(items, opts.all ? "all" : opts.oneByOne ? "one-by-one" : null).forEach((line) => out(line));
+    const items = todo.map((a) => ({ ...a, trace: addonTrace(a.key, (path) => existsSync18(join21(root, path)), stamps) }));
+    addonOrderBrief(items, Boolean(opts.parallel) && !checkWithMe).forEach((line) => out(line));
     return;
   }
-  if (!all && !opts.oneByOne && todo.length > 1) {
-    out(`This site has ${todo.length} add-ons waiting: ${todo.map((a) => a.key).join(", ")}.`);
-    out("If .deployai/owner-mode says on-my-own, do not ask: run npx deployai@latest addons run --all (D-865).");
-    out('Else ask the owner: "Run the add-ons one by one, or all at once?"');
-    out("- One by one (recommended): after each add-on, choose whether to publish.");
-    out("  Run: npx deployai@latest addons run --one-by-one");
-    out("- All at once: they all finish first, then one publish at the end.");
-    out("  Run: npx deployai@latest addons run --all");
-    out("If the owner has no preference, use one by one.");
+  const parallel = Boolean(opts.parallel || running?.mode === "parallel") && todo.length > 1;
+  if (parallel && checkWithMe) out("Check with me runs the add-ons one after another, so the owner can approve each plan.");
+  if (parallel && !checkWithMe) {
+    const here = startWave(root, todo.map((a) => a.key));
+    if (here) {
+      out();
+      await addonRunCommand(root, ctx, here);
+    }
     return;
   }
-  updateProject(root, { addonsAll: all });
-  if (all) {
-    out(`Running every add-on of this site in one go: ${todo.map((a) => a.key).join(", ")}.`);
-    out('Do each one fully, build the site, run npx deployai@latest check after it, and report it with addon done as it says; the next one starts right after, without asking. Do not deploy between add-ons: tell the owner once, "I will publish once, after all the add-ons are done." The owner still approves each plan before you change any file. Tell the owner in one line which add-on you are on.');
-    out();
-  } else if (todo.length > 1) {
-    out(`Running the add-ons of this site one by one: ${todo.map((a) => a.key).join(", ")}.`);
-    out("The owner approves each plan before you change any file, and after each add-on chooses whether to publish and whether to go on.");
+  writeRun(root, { mode: running?.mode === "parallel" && !checkWithMe ? "parallel" : "sequence" });
+  if (todo.length > 1) {
+    out(`Running the add-ons of this site one after another: ${todo.map((a) => a.key).join(", ")}.`);
+    out(`Do each one fully, build the site, run npx deployai@latest check after it, commit, and report it with addon done as it says; the next one starts right after, without asking. Do not deploy between add-ons: tell the owner once, "I will publish once, after all the add-ons are done."${checkWithMe ? " The owner approves each plan before you change any file." : ""} Tell the owner in one line which add-on you are on.`);
     out();
   }
   await addonNextCommand(root, ctx);
@@ -30284,21 +30496,23 @@ async function addonBuyCommand(root, ctx, key2) {
 }
 function readStamps(root) {
   try {
-    return readJson(join20(root, ADDON_STAMP_FILE));
+    return readJson(join21(root, ADDON_STAMP_FILE));
   } catch {
     return {};
   }
 }
 function writeStamps(root, stamps) {
-  const file2 = join20(root, ADDON_STAMP_FILE);
-  mkdirSync10(dirname6(file2), { recursive: true });
-  writeFileSync16(file2, JSON.stringify(stamps, null, 2));
+  const file2 = join21(root, ADDON_STAMP_FILE);
+  mkdirSync11(dirname7(file2), { recursive: true });
+  writeFileSync17(file2, JSON.stringify(stamps, null, 2));
 }
 function printAddon(root, a) {
+  const lane = laneOf(root);
   const stamps = readStamps(root);
-  const trace = addonTrace(a.key, (path) => existsSync17(join20(root, path)), stamps);
+  const trace = addonTrace(a.key, (path) => existsSync18(join21(root, path)), stamps);
   writeStamps(root, { ...stamps, [a.key]: { ...stamps[a.key], runId: a.runId } });
   out(`DeployAI add-on ${a.position} of ${a.total}: ${a.name} (${a.key}, run ${a.runId}).`);
+  if (lane) out(laneRules(lane));
   const line = addonTraceLine(a.key, a.runId, trace);
   if (line) out(line);
   out("Follow these instructions step by step, with the site owner:");
@@ -30330,7 +30544,7 @@ async function addonDoneCommand(root, ctx, runId, opts) {
   let report2;
   if (opts.report) {
     try {
-      report2 = readJson(resolve6(root, opts.report));
+      report2 = readJson(resolve7(root, opts.report));
     } catch {
       throw new CliError(`Cannot read the report file ${opts.report} as JSON.`, 1, "usage");
     }
@@ -30345,22 +30559,33 @@ async function addonDoneCommand(root, ctx, runId, opts) {
     const key2 = Object.keys(stamps).find((k) => stamps[k]?.runId === runId.trim());
     if (key2) writeStamps(root, { ...stamps, [key2]: { ...stamps[key2], doneAt: (/* @__PURE__ */ new Date()).toISOString() } });
   }
-  const all = readProject(root)?.addonsAll === true;
-  if (r.next && all) out(`Next: ${r.next}. Do not deploy yet: everything goes up in one deploy after the last add-on. Run npx deployai@latest check, then at once: npx deployai@latest addon next`);
+  const lane = laneOf(root);
+  if (lane) {
+    const stamps = readStamps(root);
+    const key2 = Object.keys(stamps).find((k) => stamps[k]?.runId === runId.trim());
+    const after = key2 ? lane.keys[lane.keys.indexOf(key2) + 1] : void 0;
+    out('Commit this add-on here now: git add -A, then git commit -m "<the add-on>".');
+    if (after) out(`Next in lane ${lane.name}, at once: npx deployai@latest addon run ${after}`);
+    else out(`Lane ${lane.name} is done. Do not deploy and do not merge: tell the main agent this lane is done. It runs npx deployai@latest addons merge in ${lane.main} once every lane is done.`);
+    return;
+  }
+  const run = readRun(root);
+  if (run?.mode === "parallel") out('Build the site, run npx deployai@latest check, and commit: git add -A, then git commit -m "<the add-on>". Do not deploy yet. Then at once: npx deployai@latest addons run --parallel');
+  else if (r.next && run) out(`Next: ${r.next}. Do not deploy yet: everything goes up in one deploy after the last add-on. Run npx deployai@latest check, commit, then at once: npx deployai@latest addon next`);
   else if (r.next) out(`Next: ${r.next}. Tell the site owner what is next, and only with their OK run: npx deployai@latest addon next`);
   else {
-    if (all) updateProject(root, { addonsAll: false });
+    writeRun(root, null);
     out("The add-ons of this run are done or skipped.");
-    if (all) out('Now the one publish. Run npx deployai@latest check, then ask the owner once, naming the site and its address: "Put it live, see a preview first, or not yet?" If a check waits for a preview, offer only a preview or not yet. Then run once: npx deployai@latest deploy -m "<the add-ons, in a few words>", with --live only if they chose to put it live. Run the checks that waited on that preview and fix what they find; deploy again only if a fix was needed.');
+    if (run) out(FINAL_PUBLISH);
   }
 }
 
 // src/commands/speed.ts
 import { spawn as spawn3 } from "child_process";
 import { createHash as createHash4 } from "crypto";
-import { mkdirSync as mkdirSync11, mkdtempSync as mkdtempSync2, readFileSync as readFileSync14, rmSync as rmSync4, writeFileSync as writeFileSync17 } from "fs";
+import { mkdirSync as mkdirSync12, mkdtempSync as mkdtempSync2, readFileSync as readFileSync14, rmSync as rmSync5, writeFileSync as writeFileSync18 } from "fs";
 import { tmpdir as tmpdir2 } from "os";
-import { join as join21 } from "path";
+import { join as join22 } from "path";
 var ms = (v) => v >= 1e3 ? `${(v / 1e3).toFixed(1)} s` : `${Math.round(v)} ms`;
 var LOCAL_WAIT_MS = 18e4;
 function runLighthouse(url2, strategy, browser, file2) {
@@ -30384,16 +30609,16 @@ function runLighthouse(url2, strategy, browser, file2) {
 }
 async function localSpeed(url2, strategy, run = runLighthouse, browser = findBrowser()) {
   if (!browser) return null;
-  const dir = mkdtempSync2(join21(tmpdir2(), "deployai-speed-"));
+  const dir = mkdtempSync2(join22(tmpdir2(), "deployai-speed-"));
   try {
-    const file2 = join21(dir, "report.json");
+    const file2 = join22(dir, "report.json");
     await run(url2, strategy, browser, file2);
     const lighthouseResult = JSON.parse(readFileSync14(file2, "utf8"));
     return lighthouseResult.categories ? mapPsi({ lighthouseResult }, strategy) : null;
   } catch {
     return null;
   } finally {
-    rmSync4(dir, { recursive: true, force: true, maxRetries: 3 });
+    rmSync5(dir, { recursive: true, force: true, maxRetries: 3 });
   }
 }
 function printReport(r, strategy, local2) {
@@ -30415,7 +30640,7 @@ function printReport(r, strategy, local2) {
   }
 }
 var CACHE_MS = 10 * 6e4;
-var cacheFile = (dir, url2, strategy) => join21(dir, `${createHash4("sha256").update(`${strategy} ${url2}`).digest("hex").slice(0, 24)}.json`);
+var cacheFile = (dir, url2, strategy) => join22(dir, `${createHash4("sha256").update(`${strategy} ${url2}`).digest("hex").slice(0, 24)}.json`);
 function readCache(dir, url2, strategy) {
   try {
     return JSON.parse(readFileSync14(cacheFile(dir, url2, strategy), "utf8"));
@@ -30425,8 +30650,8 @@ function readCache(dir, url2, strategy) {
 }
 function writeCache(dir, url2, strategy, c) {
   try {
-    mkdirSync11(dir, { recursive: true });
-    writeFileSync17(cacheFile(dir, url2, strategy), JSON.stringify(c));
+    mkdirSync12(dir, { recursive: true });
+    writeFileSync18(cacheFile(dir, url2, strategy), JSON.stringify(c));
   } catch {
   }
 }
@@ -30442,7 +30667,7 @@ async function speedCommand(ctx, url2, opts, deps = {}) {
   } catch {
     throw new CliError(`Not an address: ${url2}. Use the full address, for example https://example.com/`, 1, "usage");
   }
-  const dir = deps.cacheDir ?? join21(tmpdir2(), "deployai-speed-cache");
+  const dir = deps.cacheDir ?? join22(tmpdir2(), "deployai-speed-cache");
   const now = deps.now ?? Date.now;
   const cached2 = readCache(dir, page3, strategy);
   if (cached2 && now() - cached2.at < CACHE_MS) {
@@ -30500,9 +30725,9 @@ async function local(page3, strategy, deps, dir, now) {
 
 // src/commands/shot.ts
 import { spawn as spawn4 } from "child_process";
-import { existsSync as existsSync18, mkdirSync as mkdirSync12, readFileSync as readFileSync15, rmSync as rmSync5, writeFileSync as writeFileSync18 } from "fs";
+import { existsSync as existsSync19, mkdirSync as mkdirSync13, readFileSync as readFileSync15, rmSync as rmSync6, writeFileSync as writeFileSync19 } from "fs";
 import { tmpdir as tmpdir3 } from "os";
-import { join as join22, resolve as resolve7 } from "path";
+import { join as join23, resolve as resolve8 } from "path";
 var SHOT_SIZES = [{ name: "phone", size: "390,844" }, { name: "desktop", size: "1440,900" }];
 var PLAYWRIGHT = "playwright@1.56";
 var WAIT_MS3 = 18e4;
@@ -30566,19 +30791,19 @@ async function shotCommand(root, address, opts = {}, run = runNpx) {
   const browser = opts.webkit ? null : findBrowser();
   if (!opts.webkit && !browser) throw new CliError("No Chrome or Edge was found on this computer. Install Chrome, set CHROME_PATH to its path, or run shot again with --webkit (it downloads Safari's engine first).", 1, "no_browser");
   if (opts.webkit && await run(["--yes", PLAYWRIGHT, "install", "webkit"]) !== 0) throw new CliError("Safari's engine could not be installed. Run shot without --webkit to use Chrome or Edge.", 1, "shot_failed");
-  const dir = resolve7(root, opts.out ?? join22(".deployai", "shots"));
-  mkdirSync12(dir, { recursive: true });
-  const taker = join22(tmpdir3(), "deployai-shot.cjs");
-  writeFileSync18(taker, TAKER);
+  const dir = resolve8(root, opts.out ?? join23(".deployai", "shots"));
+  mkdirSync13(dir, { recursive: true });
+  const taker = join23(tmpdir3(), "deployai-shot.cjs");
+  writeFileSync19(taker, TAKER);
   const saved = [];
   for (const s of SHOT_SIZES) {
-    const file2 = join22(dir, shotName(url2.toString(), s.name));
+    const file2 = join23(dir, shotName(url2.toString(), s.name));
     const engine = opts.webkit ? ["--browser=webkit"] : [`--channel=${channelFor(browser)}`];
-    rmSync5(file2, { force: true });
+    rmSync6(file2, { force: true });
     const code = await run(["--yes", "-p", PLAYWRIGHT, "node", taker, ...engine, `--viewport-size=${s.size}`, url2.toString(), file2]);
-    if (code !== 0 || !existsSync18(file2)) {
-      const step = existsSync18(`${file2}.step`) ? readFileSync15(`${file2}.step`, "utf8").trim() : "";
-      rmSync5(`${file2}.step`, { force: true });
+    if (code !== 0 || !existsSync19(file2)) {
+      const step = existsSync19(`${file2}.step`) ? readFileSync15(`${file2}.step`, "utf8").trim() : "";
+      rmSync6(`${file2}.step`, { force: true });
       throw new CliError(`The ${s.name} picture of ${url2} could not be taken${step ? `, stopped at: ${step}` : code === TIMED_OUT ? ", it took over 3 minutes" : ""}. Check that the page opens, then run shot again; if it stops again, look with your own browser tool or at home.html.`, 1, "shot_failed");
     }
     saved.push(file2);
@@ -30589,26 +30814,26 @@ async function shotCommand(root, address, opts = {}, run = runNpx) {
 }
 
 // src/commands/images.ts
-import { spawnSync as spawnSync5 } from "child_process";
-import { existsSync as existsSync19, mkdirSync as mkdirSync13, readdirSync as readdirSync6, statSync as statSync3, writeFileSync as writeFileSync19 } from "fs";
+import { spawnSync as spawnSync6 } from "child_process";
+import { existsSync as existsSync20, mkdirSync as mkdirSync14, readdirSync as readdirSync7, statSync as statSync4, writeFileSync as writeFileSync20 } from "fs";
 import { createRequire } from "module";
 import { homedir as homedir3 } from "os";
-import { extname, join as join23, relative as relative4, resolve as resolve8 } from "path";
+import { extname, join as join24, relative as relative4, resolve as resolve9 } from "path";
 var PHONE_WIDTH = 640;
 var SHARP = "sharp@0.34";
 var SKIP_DIRS2 = /* @__PURE__ */ new Set(["node_modules", ".git", ".deployai", "dist", ".astro", ".next"]);
 function imagesIn(dir) {
   const found = [];
   const walk2 = (d) => {
-    for (const name of readdirSync6(d)) {
-      const p = join23(d, name);
-      const st = statSync3(p);
+    for (const name of readdirSync7(d)) {
+      const p = join24(d, name);
+      const st = statSync4(p);
       if (st.isDirectory()) {
         if (!SKIP_DIRS2.has(name)) walk2(p);
       } else if (/\.(jpe?g|png)$/i.test(name)) found.push(p);
     }
   };
-  if (existsSync19(dir)) walk2(dir);
+  if (existsSync20(dir)) walk2(dir);
   return found.sort();
 }
 function outputsFor(file2, width) {
@@ -30618,18 +30843,18 @@ function outputsFor(file2, width) {
   return list;
 }
 function loadSharp() {
-  const dir = join23(homedir3(), ".deployai", "tools", "sharp");
-  if (!existsSync19(join23(dir, "node_modules", "sharp"))) {
-    mkdirSync13(dir, { recursive: true });
-    if (!existsSync19(join23(dir, "package.json"))) writeFileSync19(join23(dir, "package.json"), '{"private":true}');
+  const dir = join24(homedir3(), ".deployai", "tools", "sharp");
+  if (!existsSync20(join24(dir, "node_modules", "sharp"))) {
+    mkdirSync14(dir, { recursive: true });
+    if (!existsSync20(join24(dir, "package.json"))) writeFileSync20(join24(dir, "package.json"), '{"private":true}');
     out("Getting the image tool once (it stays outside the site)...");
-    const r = spawnSync5(process.platform === "win32" ? "npm.cmd" : "npm", ["install", SHARP, "--no-audit", "--no-fund", "--silent"], { cwd: dir, stdio: "ignore", shell: process.platform === "win32" });
+    const r = spawnSync6(process.platform === "win32" ? "npm.cmd" : "npm", ["install", SHARP, "--no-audit", "--no-fund", "--silent"], { cwd: dir, stdio: "ignore", shell: process.platform === "win32" });
     if (r.status !== 0) throw new CliError("The image tool could not be installed. Check the internet connection and run optimize again.", 1, "images_failed");
   }
-  return createRequire(join23(dir, "package.json"))("sharp");
+  return createRequire(join24(dir, "package.json"))("sharp");
 }
 async function imagesCommand(root, folder, sharp = loadSharp) {
-  const dir = resolve8(root, folder ?? "public");
+  const dir = resolve9(root, folder ?? "public");
   const files = imagesIn(dir);
   if (!files.length) {
     out(`No JPG or PNG images under ${relative4(root, dir) || "."}.`);
@@ -30640,10 +30865,10 @@ async function imagesCommand(root, folder, sharp = loadSharp) {
   let skipped = 0;
   let saved = 0;
   for (const file2 of files) {
-    const size = statSync3(file2).size;
+    const size = statSync4(file2).size;
     const meta3 = await make(file2).metadata();
     const outputs = outputsFor(file2, meta3.width);
-    if (outputs.every((o) => existsSync19(o.file) && statSync3(o.file).mtimeMs >= statSync3(file2).mtimeMs)) {
+    if (outputs.every((o) => existsSync20(o.file) && statSync4(o.file).mtimeMs >= statSync4(file2).mtimeMs)) {
       skipped++;
       continue;
     }
@@ -30663,8 +30888,8 @@ async function imagesCommand(root, folder, sharp = loadSharp) {
 
 // src/commands/blocks.ts
 import { createHash as createHash5 } from "crypto";
-import { existsSync as existsSync20, mkdirSync as mkdirSync14, readFileSync as readFileSync16, writeFileSync as writeFileSync20 } from "fs";
-import { dirname as dirname7, resolve as resolve9, sep as sep4 } from "path";
+import { existsSync as existsSync21, mkdirSync as mkdirSync15, readFileSync as readFileSync16, writeFileSync as writeFileSync21 } from "fs";
+import { dirname as dirname8, resolve as resolve10, sep as sep4 } from "path";
 import { gunzipSync as gunzipSync3 } from "zlib";
 var BLOCKS = [
   { key: "dashboard", title: "The site's own dashboard: messages, pages, blog, shop, images, accessibility, documents. Add --update to get a newer version" },
@@ -30674,7 +30899,7 @@ var BLOCKS = [
 ];
 var MAX_BYTES3 = 5 * 1024 * 1024;
 var sha = (data) => createHash5("sha256").update(data).digest("hex");
-var lockPath = (base, key2) => resolve9(base, ".deployai", "blocks", `${key2}.lock.json`);
+var lockPath = (base, key2) => resolve10(base, ".deployai", "blocks", `${key2}.lock.json`);
 function readLock(base, key2) {
   try {
     return readJson(lockPath(base, key2));
@@ -30708,40 +30933,40 @@ async function blocksCommand(root, ctx, name, opts = {}) {
   } catch {
     throw new CliError("The block download is damaged. Try again.", 1, "api");
   }
-  const base = resolve9(root);
+  const base = resolve10(root);
   const written = [];
   const kept = [];
   const updated = [];
   const lock = readLock(base, block.key);
   for (const e3 of entries) {
     if (e3.type !== "0" && e3.type !== "\0") continue;
-    const target = resolve9(base, e3.name);
+    const target = resolve10(base, e3.name);
     if (target === base || !target.startsWith(base + sep4)) continue;
-    if (existsSync20(target)) {
+    if (existsSync21(target)) {
       const now = sha(readFileSync16(target));
       if (now === sha(e3.data)) {
         lock[e3.name] = now;
       } else if (opts.update && lock[e3.name] === now) {
-        writeFileSync20(target, e3.data);
+        writeFileSync21(target, e3.data);
         lock[e3.name] = sha(e3.data);
         updated.push(e3.name);
       } else {
-        const upstream = resolve9(base, ".deployai", "blocks", `${block.key}-upstream`, e3.name);
+        const upstream = resolve10(base, ".deployai", "blocks", `${block.key}-upstream`, e3.name);
         if (upstream.startsWith(base + sep4)) {
-          mkdirSync14(dirname7(upstream), { recursive: true });
-          writeFileSync20(upstream, e3.data);
+          mkdirSync15(dirname8(upstream), { recursive: true });
+          writeFileSync21(upstream, e3.data);
         }
         kept.push(e3.name);
       }
       continue;
     }
-    mkdirSync14(dirname7(target), { recursive: true });
-    writeFileSync20(target, e3.data);
+    mkdirSync15(dirname8(target), { recursive: true });
+    writeFileSync21(target, e3.data);
     lock[e3.name] = sha(e3.data);
     written.push(e3.name);
   }
-  mkdirSync14(dirname7(lockPath(base, block.key)), { recursive: true });
-  writeFileSync20(lockPath(base, block.key), `${JSON.stringify(lock, null, 2)}
+  mkdirSync15(dirname8(lockPath(base, block.key)), { recursive: true });
+  writeFileSync21(lockPath(base, block.key), `${JSON.stringify(lock, null, 2)}
 `);
   out(`Added the ${block.key} block: ${written.length} files.`);
   written.forEach((f) => out(`  + ${f}`));
@@ -30803,10 +31028,10 @@ async function integrationsCommand(ctx, name, opts = {}) {
 
 // src/commands/brand.ts
 import { spawn as spawn5 } from "child_process";
-import { copyFileSync, existsSync as existsSync21, mkdirSync as mkdirSync15, mkdtempSync as mkdtempSync3, readdirSync as readdirSync7, readFileSync as readFileSync17, rmSync as rmSync6, statSync as statSync4, writeFileSync as writeFileSync21 } from "fs";
+import { copyFileSync as copyFileSync2, existsSync as existsSync22, mkdirSync as mkdirSync16, mkdtempSync as mkdtempSync3, readdirSync as readdirSync8, readFileSync as readFileSync17, rmSync as rmSync7, statSync as statSync5, writeFileSync as writeFileSync22 } from "fs";
 import { createServer } from "http";
 import { tmpdir as tmpdir4 } from "os";
-import { basename as basename2, dirname as dirname8, extname as extname2, join as join24, relative as relative5, sep as sep5 } from "path";
+import { basename as basename3, dirname as dirname9, extname as extname2, join as join25, relative as relative5, sep as sep5 } from "path";
 import { randomBytes } from "crypto";
 
 // src/commands/brand-page.ts
@@ -30898,22 +31123,22 @@ var WALK_CAP = 4e3;
 var SKIP_DIRS3 = /* @__PURE__ */ new Set(["node_modules", ".git", ".next", "dist", "build", "out", ".astro", ".output", ".svelte-kit", ".wrangler", ".deployai"]);
 var TYPES = { ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".gif": "image/gif", ".ico": "image/x-icon", ".avif": "image/avif" };
 function webRoot(root) {
-  for (const d of ["public", "static"]) if (existsSync21(join24(root, d))) return join24(root, d);
+  for (const d of ["public", "static"]) if (existsSync22(join25(root, d))) return join25(root, d);
   return root;
 }
 function walk(dir, found = []) {
   let names;
   try {
-    names = readdirSync7(dir);
+    names = readdirSync8(dir);
   } catch {
     return found;
   }
   for (const n2 of names) {
     if (found.length >= WALK_CAP) break;
-    const p = join24(dir, n2);
+    const p = join25(dir, n2);
     let isDir = false;
     try {
-      isDir = statSync4(p).isDirectory();
+      isDir = statSync5(p).isDirectory();
     } catch {
       continue;
     }
@@ -30925,30 +31150,30 @@ function walk(dir, found = []) {
 }
 function existingFavicon(root) {
   const web = webRoot(root);
-  for (const f of ["favicon.ico", "favicon.svg", "favicon.png", "icon.svg", "icon.png"]) if (existsSync21(join24(web, f))) return relative5(root, join24(web, f)).split(sep5).join("/");
-  for (const d of ["app", "src/app"]) for (const f of ["favicon.ico", "icon.svg", "icon.png", "icon.tsx", "icon.jpg"]) if (existsSync21(join24(root, d, f))) return `${d}/${f}`;
+  for (const f of ["favicon.ico", "favicon.svg", "favicon.png", "icon.svg", "icon.png"]) if (existsSync22(join25(web, f))) return relative5(root, join25(web, f)).split(sep5).join("/");
+  for (const d of ["app", "src/app"]) for (const f of ["favicon.ico", "icon.svg", "icon.png", "icon.tsx", "icon.jpg"]) if (existsSync22(join25(root, d, f))) return `${d}/${f}`;
   for (const f of walk(root).filter((p) => /\.(html|astro|tsx|jsx|vue|svelte)$/.test(p)).slice(0, 400)) {
     try {
       const m = readFileSync17(f, "utf8").match(/<link\b[^>]*\brel=["'](?:shortcut )?icon["'][^>]*>/i);
       if (!m) continue;
       const href = m[0].match(/\shref=["']([^"']+)/i)?.[1] ?? "";
-      if (href.startsWith("data:") || /^https?:/.test(href) || existsSync21(join24(web, href.split("?")[0]))) return relative5(root, f).split(sep5).join("/");
+      if (href.startsWith("data:") || /^https?:/.test(href) || existsSync22(join25(web, href.split("?")[0]))) return relative5(root, f).split(sep5).join("/");
     } catch {
     }
   }
   return null;
 }
 function scannedIcons(root) {
-  const base = join24(root, MIGRATION_DIR);
-  if (!existsSync21(base)) return [];
+  const base = join25(root, MIGRATION_DIR);
+  if (!existsSync22(base)) return [];
   const found = [];
-  for (const host of readdirSync7(base)) {
-    const dir = join24(base, host, "icons");
+  for (const host of readdirSync8(base)) {
+    const dir = join25(base, host, "icons");
     try {
-      const list = readJson(join24(dir, "icons.json"));
+      const list = readJson(join25(dir, "icons.json"));
       for (const i of list) {
-        const path = join24(dir, i.file);
-        if (!existsSync21(path)) continue;
+        const path = join25(dir, i.file);
+        if (!existsSync22(path)) continue;
         const size = imageSize(readFileSync17(path));
         found.push({ path, kind: i.kind, big: !size || size.width >= 64 });
       }
@@ -30961,7 +31186,7 @@ function findSource(root) {
   const icons = scannedIcons(root);
   const sharp = icons.find((i) => i.kind === "icon" && i.big);
   if (sharp) return { path: sharp.path, from: "old-icon" };
-  const dirs = ["public", "static", "src/assets", "assets", "images", "img"].map((d) => join24(root, d));
+  const dirs = ["public", "static", "src/assets", "assets", "images", "img"].map((d) => join25(root, d));
   const logos = dirs.flatMap((d) => walk(d)).filter((p) => looksLikeLogo(relative5(root, p).split(sep5).join("/")));
   const logo = logos.find((p) => /\.svg$/i.test(p)) ?? logos[0];
   if (logo) return { path: logo, from: "logo" };
@@ -30981,18 +31206,18 @@ function readText2(path) {
   }
 }
 function scanDirs(root) {
-  const base = join24(root, MIGRATION_DIR);
+  const base = join25(root, MIGRATION_DIR);
   try {
-    return readdirSync7(base).map((h) => join24(base, h)).filter((d) => existsSync21(join24(d, "home.html")));
+    return readdirSync8(base).map((h) => join25(base, h)).filter((d) => existsSync22(join25(d, "home.html")));
   } catch {
     return [];
   }
 }
 function homePage(root) {
-  for (const d of scanDirs(root)) return readText2(join24(d, "home.html"));
+  for (const d of scanDirs(root)) return readText2(join25(d, "home.html"));
   for (const f of ["index.html", "public/index.html", "src/index.html", "src/pages/index.astro", "src/pages/index.html", "app/layout.tsx", "src/app/layout.tsx", "src/layouts/Layout.astro"]) {
-    const text2 = readText2(join24(root, f));
-    if (text2) return text2;
+    const text3 = readText2(join25(root, f));
+    if (text3) return text3;
   }
   return "";
 }
@@ -31002,37 +31227,37 @@ function siteFacts(root, given = {}) {
   const id = readSiteIdentity(home);
   let pkg;
   try {
-    pkg = readJson(join24(root, "package.json")).name;
+    pkg = readJson(join25(root, "package.json")).name;
   } catch {
   }
-  const name = given.name?.trim() || readProject(root)?.name || id.name || (pkg && !pkg.startsWith("@") ? pkg : "") || basename2(root);
+  const name = given.name?.trim() || readProject(root)?.name || id.name || (pkg && !pkg.startsWith("@") ? pkg : "") || basename3(root);
   if (given.color) return { name, line: given.line ?? id.line ?? "", color: given.color, colorFrom: "given" };
-  const old = scanDirs(root).flatMap((d) => walkAll(join24(d, "styles")).map((f) => ({ text: readText2(f) })));
+  const old = scanDirs(root).flatMap((d) => walkAll(join25(d, "styles")).map((f) => ({ text: readText2(f) })));
   const fromOld = scanDirs(root).length ? pickBrandColor([{ text: home, themeColor: id.themeColor }, ...old]) : null;
   const sources = [{ text: home, themeColor: id.themeColor }];
-  for (const f of ["tailwind.config.js", "tailwind.config.ts", "tailwind.config.mjs", "tailwind.config.cjs"]) sources.push({ text: readText2(join24(root, f)) });
-  const code = ["src", "app", "styles", "css", "public", "static"].flatMap((d) => walk(join24(root, d))).filter((p) => CODE_EXT2.test(p));
-  const plain2 = readdirSync7(root).filter((f) => CODE_EXT2.test(f)).map((f) => join24(root, f));
+  for (const f of ["tailwind.config.js", "tailwind.config.ts", "tailwind.config.mjs", "tailwind.config.cjs"]) sources.push({ text: readText2(join25(root, f)) });
+  const code = ["src", "app", "styles", "css", "public", "static"].flatMap((d) => walk(join25(root, d))).filter((p) => CODE_EXT2.test(p));
+  const plain2 = readdirSync8(root).filter((f) => CODE_EXT2.test(f)).map((f) => join25(root, f));
   for (const f of [...plain2, ...code].slice(0, READ_CAP)) sources.push({ text: readText2(f) });
   const color = fromOld ?? pickBrandColor(sources);
   return { name, line: given.line ?? id.line ?? "", color: color ?? BRAND_DEFAULT_COLOR, colorFrom: color ? "site" : "default" };
 }
 function writeSiteFile(root, file2, data) {
-  const target = join24(webRoot(root), file2);
-  if (existsSync21(target)) {
-    const keep = join24(root, BRAND_DIR, "originals");
-    mkdirSync15(keep, { recursive: true });
-    copyFileSync(target, join24(keep, file2));
+  const target = join25(webRoot(root), file2);
+  if (existsSync22(target)) {
+    const keep = join25(root, BRAND_DIR, "originals");
+    mkdirSync16(keep, { recursive: true });
+    copyFileSync2(target, join25(keep, file2));
   }
-  mkdirSync15(dirname8(target), { recursive: true });
-  writeFileSync21(target, data);
+  mkdirSync16(dirname9(target), { recursive: true });
+  writeFileSync22(target, data);
 }
 var send = (res, status, body = "", type = "text/plain; charset=utf-8") => {
   res.writeHead(status, { "content-type": type, "cache-control": "no-store", "x-content-type-options": "nosniff" });
   res.end(body);
 };
 function readBody(req) {
-  return new Promise((ok, fail) => {
+  return new Promise((ok2, fail) => {
     const parts2 = [];
     let size = 0;
     req.on("data", (c) => {
@@ -31042,16 +31267,16 @@ function readBody(req) {
         fail(new Error("too large"));
       } else parts2.push(c);
     });
-    req.on("end", () => ok(Buffer.concat(parts2)));
+    req.on("end", () => ok2(Buffer.concat(parts2)));
     req.on("error", fail);
   });
 }
 function listen(server) {
-  return new Promise((ok, fail) => {
+  return new Promise((ok2, fail) => {
     server.once("error", fail);
     server.listen(0, "127.0.0.1", () => {
       const a = server.address();
-      if (a && typeof a === "object") ok(a.port);
+      if (a && typeof a === "object") ok2(a.port);
       else fail(new Error("no port"));
     });
   });
@@ -31060,7 +31285,7 @@ function allowed(req, url2, port, token) {
   return req.headers.host === `127.0.0.1:${port}` && url2.searchParams.get("t") === token;
 }
 async function headless(browser, url2, width, until, timeoutMs) {
-  const profile = mkdtempSync3(join24(tmpdir4(), "deployai-brand-"));
+  const profile = mkdtempSync3(join25(tmpdir4(), "deployai-brand-"));
   const child = spawn5(browser, ["--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check", "--disable-extensions", `--user-data-dir=${profile}`, `--window-size=${width},900`, url2], { stdio: "ignore", windowsHide: true });
   child.on("error", () => {
   });
@@ -31080,7 +31305,7 @@ async function headless(browser, url2, width, until, timeoutMs) {
       setTimeout(done, 3e3);
     });
     try {
-      rmSync6(profile, { recursive: true, force: true, maxRetries: 3, retryDelay: 200 });
+      rmSync7(profile, { recursive: true, force: true, maxRetries: 3, retryDelay: 200 });
     } catch {
     }
   }
@@ -31092,8 +31317,8 @@ async function drawInBrowser(o, browser) {
   let port = 0;
   let finish;
   let abort;
-  const finished = new Promise((ok, fail) => {
-    finish = ok;
+  const finished = new Promise((ok2, fail) => {
+    finish = ok2;
     abort = fail;
   });
   const allowedFiles = new Set(o.targets.map((t) => t.file));
@@ -31196,7 +31421,7 @@ function printStatus2(root, files) {
   const web = webRoot(root);
   const icon = existingFavicon(root);
   out(icon ? `Icon: ${icon}` : "Icon: missing. Run: npx deployai@latest brand favicon");
-  const missing = files.filter((f) => f !== "favicon.svg" && !existsSync21(join24(web, f)));
+  const missing = files.filter((f) => f !== "favicon.svg" && !existsSync22(join25(web, f)));
   if (files.length) out(missing.length ? `Missing from the full set: ${missing.join(", ")}` : "The full set is there.");
 }
 function printFacts(f, picture2) {
@@ -31215,7 +31440,7 @@ function withLogoColor(facts, source) {
 }
 function pickSource(root, from) {
   const source = from ? { path: from, from: "file" } : findSource(root);
-  if (source.path && !existsSync21(source.path)) throw new CliError(`No such file: ${source.path}`, 1, "usage");
+  if (source.path && !existsSync22(source.path)) throw new CliError(`No such file: ${source.path}`, 1, "usage");
   return source;
 }
 async function brandFaviconCommand(root, opts) {
@@ -31243,7 +31468,7 @@ async function brandFaviconCommand(root, opts) {
 }
 function iconsToDraw(root, force) {
   const icon = force ? null : existingFavicon(root);
-  const keepOg = !force && existsSync21(join24(webRoot(root), "og-image.png"));
+  const keepOg = !force && existsSync22(join25(webRoot(root), "og-image.png"));
   return {
     targets: BRAND_TARGETS.filter((t) => !(keepOg && t.file === "og-image.png") && !(icon && t.icoOnly)),
     keepIcon: Boolean(icon),
@@ -31266,8 +31491,8 @@ async function measurePage(browser, address, width, scripts) {
   const token = randomBytes(24).toString("hex");
   let port = 0;
   let finish;
-  const finished = new Promise((ok) => {
-    finish = ok;
+  const finished = new Promise((ok2) => {
+    finish = ok2;
   });
   const res = await fetch(address, { headers: { accept: "text/html" }, signal: AbortSignal.timeout(2e4) });
   const page3 = await res.text();
@@ -31299,25 +31524,25 @@ async function measurePage(browser, address, width, scripts) {
   }
 }
 function imageFiles(root) {
-  const dirs = [webRoot(root) === root ? null : webRoot(root), join24(root, "src"), join24(root, MIGRATION_DIR)].filter((d) => !!d);
+  const dirs = [webRoot(root) === root ? null : webRoot(root), join25(root, "src"), join25(root, MIGRATION_DIR)].filter((d) => !!d);
   const files = dirs.flatMap((d) => walkAll(d));
   if (webRoot(root) === root) files.push(...walk(root));
-  return [...new Set(files)].filter((p) => IMAGE_EXT.test(p) && !p.split(sep5).includes("icons") && !BRAND_FILES.includes(basename2(p)));
+  return [...new Set(files)].filter((p) => IMAGE_EXT.test(p) && !p.split(sep5).includes("icons") && !BRAND_FILES.includes(basename3(p)));
 }
 function walkAll(dir) {
   const found = [];
   const go = (d) => {
     let names = [];
     try {
-      names = readdirSync7(d);
+      names = readdirSync8(d);
     } catch {
       return;
     }
     for (const n2 of names) {
       if (found.length >= WALK_CAP) return;
-      const p = join24(d, n2);
+      const p = join25(d, n2);
       try {
-        if (statSync4(p).isDirectory()) {
+        if (statSync5(p).isDirectory()) {
           if (!SKIP_DIRS3.has(n2) || n2 === ".deployai") go(p);
         } else found.push(p);
       } catch {
@@ -31384,10 +31609,10 @@ async function brandImagesCommand(root, urls, opts) {
     if (verdict !== "ok") onPages.push({ where: m.src, width: m.width, height: m.height, shownWidth: m.shownWidth, verdict, alt: m.alt });
   }
   const weak = [...onPages, ...findings];
-  mkdirSync15(join24(root, BRAND_DIR), { recursive: true });
+  mkdirSync16(join25(root, BRAND_DIR), { recursive: true });
   const file2 = `${BRAND_DIR}/images.json`;
   const data = { measuredAt: (/* @__PURE__ */ new Date()).toISOString(), pages: urls, unmeasured, filesChecked: total, imagesMeasured: shown.size, weak };
-  writeFileSync21(join24(root, file2), `${JSON.stringify(data, null, 2)}
+  writeFileSync22(join25(root, file2), `${JSON.stringify(data, null, 2)}
 `);
   if (opts.json) {
     out(JSON.stringify(data));
@@ -31450,10 +31675,10 @@ function buildProgram() {
     if (lang === "he" || lang === "en") process.env.DEPLOYAI_LANG = lang;
   }).showHelpAfterError();
   const g = (cmd) => cmd.optsWithGlobals();
-  const root = (cmd) => resolve10(g(cmd).dir ?? process.cwd());
+  const root = (cmd) => resolve11(g(cmd).dir ?? process.cwd());
   const ctx = (cmd) => apiContext(g(cmd).api, root(cmd));
   program.hook("preAction", async (_p, action) => {
-    if (["init", "start", "rules"].includes(action.name()) || !existsSync22(join25(root(action), "DEPLOYAI.md"))) return;
+    if (["init", "start", "rules"].includes(action.name()) || !existsSync23(join26(root(action), "DEPLOYAI.md"))) return;
     await refreshRules(root(action), ctx(action).apiUrl);
   });
   program.command("init").description("create DEPLOYAI.md and .deployai/ guard files").option("--force", "overwrite DEPLOYAI.md").option("--no-agent-files", "do not add the DEPLOYAI.md line to AGENTS.md and CLAUDE.md").action((opts, cmd) => initCommand(root(cmd), opts, ctx(cmd).apiUrl));
@@ -31511,10 +31736,11 @@ ${AGENT_FEEDBACK_RULES.join("\n\n")}
   brand.command("favicon").description("gives the site an icon if it has none: the old site's, else its logo, else a letter").option("--from <file>", "the logo or picture to use").option("--name <name>", "the site's name, for the letter").option("--color <#rrggbb>", "the background color").option("--force", "replace the icon the site has").option("--check", "only say whether the site has an icon").action((opts, cmd) => brandFaviconCommand(root(cmd), opts));
   brand.command("icons").description("makes every icon size and the 1200 by 630 share image from the site itself").option("--from <file>", "use this picture instead of the logo it finds").option("--name <name>", "correct the name it reads").option("--line <text>", "correct the line it reads").option("--color <#rrggbb>", "correct the color it reads").option("--check", "only list what is missing").option("--force", "redraw the site's own tab icon and share image too").action((opts, cmd) => brandIconsCommand(root(cmd), opts));
   brand.command("images").description("reports images too weak for where they show, by measuring them; never changes one").argument("[pages...]", "up to 10 page addresses to measure in a browser").option("--json", "print the result as JSON").action((pages, opts, cmd) => brandImagesCommand(root(cmd), pages, opts));
-  program.command("addons").description("the add-ons of this site: which it has, which are done and which is next; addons run prints what to agree with the owner before they run").argument("[action]", "run: the add-ons picked for this site, one by one or all at once").option("--one-by-one", "after each add-on, the owner chooses whether to publish (recommended)").option("--all", "finish every add-on first, then one publish at the end").option("--order <keys>", "the add-ons to run in the order agreed with the owner, separated by commas").action((action, opts, cmd) => {
+  program.command("addons").description("the add-ons of this site: which it has, which are done and which is next; addons run prints what to agree with the owner before they run").argument("[action]", "run: the add-ons picked for this site, one after another with one publish at the end; merge: bring the lanes of a wave back in").option("--parallel", "run in waves, the lanes of each wave side by side in their own git worktrees (On my own only)").option("--order <keys>", "the add-ons to run, in the order the agent chose, separated by commas").action((action, opts, cmd) => {
     if (!action) return addonsCommand(root(cmd), ctx(cmd));
     if (action === "run") return addonsRunCommand(root(cmd), ctx(cmd), opts);
-    throw new CliError(`Unknown: addons ${action}. Use npx deployai@latest addons, or npx deployai@latest addons run`, 1, "usage");
+    if (action === "merge") return addonsMergeCommand(root(cmd));
+    throw new CliError(`Unknown: addons ${action}. Use npx deployai@latest addons, addons run or addons merge`, 1, "usage");
   });
   const addon = program.command("addon").description("run the add-ons of this site, one at a time");
   addon.command("next").description("print the next add-on for your agent").action((_opts, cmd) => addonNextCommand(root(cmd), ctx(cmd)));
@@ -31635,9 +31861,9 @@ function nodeGuideUrl(lang, base = API_BASE_DEFAULT) {
 }
 
 // src/update.ts
-import { spawnSync as spawnSync6 } from "child_process";
-import { existsSync as existsSync23, mkdirSync as mkdirSync16, readdirSync as readdirSync8, readFileSync as readFileSync18, rmSync as rmSync7, writeFileSync as writeFileSync22 } from "fs";
-import { join as join26 } from "path";
+import { spawnSync as spawnSync7 } from "child_process";
+import { existsSync as existsSync24, mkdirSync as mkdirSync17, readdirSync as readdirSync9, readFileSync as readFileSync18, rmSync as rmSync8, writeFileSync as writeFileSync23 } from "fs";
+import { join as join27 } from "path";
 var CHECK_EVERY_MS = 60 * 60 * 1e3;
 var ASK_NPM_MS = 1500;
 var GET_VERSION_MS = 12e4;
@@ -31675,7 +31901,7 @@ function updateAllowed(env, args) {
   return resolveApiUrl(void 0, loadConfig()) === API_BASE_DEFAULT.replace(/\/+$/, "");
 }
 function statePath() {
-  return join26(configDir(), "update-check.json");
+  return join27(configDir(), "update-check.json");
 }
 function readState() {
   try {
@@ -31687,8 +31913,8 @@ function readState() {
 }
 function writeState(state) {
   try {
-    mkdirSync16(configDir(), { recursive: true });
-    writeFileSync22(statePath(), JSON.stringify(state) + "\n");
+    mkdirSync17(configDir(), { recursive: true });
+    writeFileSync23(statePath(), JSON.stringify(state) + "\n");
   } catch {
   }
 }
@@ -31704,24 +31930,24 @@ async function askNpmLatest(env) {
   }
 }
 function versionEntry(version2) {
-  return join26(configDir(), "cli", version2, "node_modules", "deployai", "dist", "index.js");
+  return join27(configDir(), "cli", version2, "node_modules", "deployai", "dist", "index.js");
 }
 function getVersion(version2, env) {
   process.stderr.write(`Getting the newest DeployAI CLI, version ${version2}.
 `);
-  const root = join26(configDir(), "cli");
-  const dir = join26(root, version2);
-  mkdirSync16(dir, { recursive: true });
-  writeFileSync22(join26(dir, "package.json"), '{"private":true}\n');
-  const installed = spawnSync6(`npm install deployai@${version2} --ignore-scripts --no-audit --no-fund --silent`, { cwd: dir, env, shell: true, stdio: "ignore", windowsHide: true, timeout: GET_VERSION_MS });
+  const root = join27(configDir(), "cli");
+  const dir = join27(root, version2);
+  mkdirSync17(dir, { recursive: true });
+  writeFileSync23(join27(dir, "package.json"), '{"private":true}\n');
+  const installed = spawnSync7(`npm install deployai@${version2} --ignore-scripts --no-audit --no-fund --silent`, { cwd: dir, env, shell: true, stdio: "ignore", windowsHide: true, timeout: GET_VERSION_MS });
   if (installed.status !== 0) return false;
-  const ran = spawnSync6(process.execPath, [versionEntry(version2), "--version"], { env: { ...env, DEPLOYAI_NO_UPDATE: "1" }, encoding: "utf8", timeout: GET_VERSION_MS });
+  const ran = spawnSync7(process.execPath, [versionEntry(version2), "--version"], { env: { ...env, DEPLOYAI_NO_UPDATE: "1" }, encoding: "utf8", timeout: GET_VERSION_MS });
   if (ran.status !== 0 || ran.stdout.trim() !== version2) return false;
-  for (const old of readdirSync8(root)) if (old !== version2) rmSync7(join26(root, old), { recursive: true, force: true });
+  for (const old of readdirSync9(root)) if (old !== version2) rmSync8(join27(root, old), { recursive: true, force: true });
   return true;
 }
 function runVersion(version2, args, env = process.env) {
-  const r = spawnSync6(process.execPath, [versionEntry(version2), ...args], { stdio: "inherit", env: { ...env, DEPLOYAI_NO_UPDATE: "1" } });
+  const r = spawnSync7(process.execPath, [versionEntry(version2), ...args], { stdio: "inherit", env: { ...env, DEPLOYAI_NO_UPDATE: "1" } });
   if (r.error) return null;
   return r.status ?? 1;
 }
@@ -31736,7 +31962,7 @@ async function versionToRun(current, args, env = process.env, deps = {}) {
   }
   const latest = state.latest;
   if (!latest || !PLAIN_VERSION.test(latest) || compareVersions(latest, current) <= 0) return null;
-  if (state.ready === latest && existsSync23(versionEntry(latest))) return latest;
+  if (state.ready === latest && existsSync24(versionEntry(latest))) return latest;
   if (now - (state.triedAt ?? 0) < CHECK_EVERY_MS) return null;
   state.triedAt = now;
   if (get2(latest, env)) state.ready = latest;
