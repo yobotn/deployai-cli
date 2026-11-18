@@ -7,7 +7,7 @@ var __export = (target, all) => {
 
 // src/cli.ts
 import { existsSync as existsSync22 } from "fs";
-import { join as join25, resolve as resolve9 } from "path";
+import { join as join25, resolve as resolve10 } from "path";
 import { Command, CommanderError } from "commander";
 
 // ../shared/src/plans.ts
@@ -6516,7 +6516,7 @@ var recursive = /* @__PURE__ */ new WeakMap();
 var NONE = 0;
 var ASSUMED = 1;
 var PROVEN = 2;
-function isRecursive(inst, stack, resolve10) {
+function isRecursive(inst, stack, resolve11) {
   const cached2 = recursive.get(inst);
   if (cached2 !== void 0)
     return cached2 ? PROVEN : NONE;
@@ -6526,7 +6526,7 @@ function isRecursive(inst, stack, resolve10) {
   let result = NONE;
   const check2 = (child) => {
     if (result !== PROVEN && child?._zod) {
-      const answer = isRecursive(child, stack, resolve10);
+      const answer = isRecursive(child, stack, resolve11);
       if (answer > result)
         result = answer;
     }
@@ -6537,7 +6537,7 @@ function isRecursive(inst, stack, resolve10) {
       const desc = Object.getOwnPropertyDescriptor(sh, key2);
       if (spread && !desc.enumerable)
         continue;
-      const child = desc.get ? ASSUMED : desc.value?._zod ? isRecursive(desc.value, stack, resolve10) : NONE;
+      const child = desc.get ? ASSUMED : desc.value?._zod ? isRecursive(desc.value, stack, resolve11) : NONE;
       if (child > answer)
         answer = child;
     }
@@ -6601,7 +6601,7 @@ function isRecursive(inst, stack, resolve10) {
       break;
     // `$ZodLazy` caches its inner on the def, so a resolved edge is followed exactly
     case "lazy": {
-      const inner = def._cachedInner ?? (resolve10 ? inst._zod.innerType : void 0);
+      const inner = def._cachedInner ?? (resolve11 ? inst._zod.innerType : void 0);
       merge2(inner ? isRecursive(inner, stack, false) : ASSUMED);
       break;
     }
@@ -21199,12 +21199,12 @@ function findSecretLine(text2, re) {
   return null;
 }
 var PRIVATE_DIRS = /* @__PURE__ */ new Set([".deployai", ".claude", ".cursor", ".vscode", ".idea", ".git", ".github", ".husky"]);
-var PRIVATE_FILES = /* @__PURE__ */ new Set(["DEPLOYAI.md", "CLAUDE.md", "AGENTS.md", ".cursorrules", ".windsurfrules"]);
+var PRIVATE_FILES = /* @__PURE__ */ new Set(["deployai.md", "claude.md", "agents.md", ".cursorrules", ".windsurfrules"]);
 var SERVED_DOT_DIR = ".well-known";
 var BUILD_DOTFILES = /* @__PURE__ */ new Set([".babelrc", ".babelrc.json", ".browserslistrc", ".postcssrc", ".postcssrc.json", ".postcssrc.js", ".postcssrc.cjs", ".postcssrc.mjs", ".swcrc", ".nvmrc", ".node-version", ".assetsignore"]);
 var segments = (path) => path.replace(/^\/+/, "").split("/").filter(Boolean);
 function privateProjectFile(path) {
-  const parts2 = segments(path);
+  const parts2 = segments(path).map((p) => p.toLowerCase());
   const base = parts2[parts2.length - 1] ?? "";
   return PRIVATE_FILES.has(base) || parts2.slice(0, -1).some((p) => PRIVATE_DIRS.has(p)) || PRIVATE_DIRS.has(base);
 }
@@ -21324,6 +21324,10 @@ var AgentFeedback = external_exports.object({
   tried: external_exports.string().trim().max(FEEDBACK_TEXT_MAX).nullable(),
   suggest: external_exports.string().trim().max(FEEDBACK_TEXT_MAX).nullable()
 });
+var UPLOAD_PART_BYTES = 4 * 1024 * 1024;
+var MAX_DEPLOY_BYTES = 50 * 1024 * 1024;
+var MAX_UPLOAD_PARTS = Math.ceil(MAX_DEPLOY_BYTES / UPLOAD_PART_BYTES);
+var UploadPartResponse = external_exports.object({ ok: external_exports.literal(true) });
 var DeployResponse = external_exports.object({
   versionId: external_exports.string(),
   number: external_exports.number(),
@@ -24917,6 +24921,7 @@ var M = {
     deployTitle: "DeployAI deploy",
     guestTitle: "DeployAI deploy (no account)",
     uploading: "Uploading...",
+    uploadingPart: "Uploading part {n} of {total}...",
     project: "Project",
     message: "Message",
     version: "Version",
@@ -25218,6 +25223,7 @@ var M = {
     deployTitle: "DeployAI deploy",
     guestTitle: "DeployAI deploy (\u05D1\u05DC\u05D9 \u05D7\u05E9\u05D1\u05D5\u05DF)",
     uploading: "\u05DE\u05E2\u05DC\u05D9\u05DD...",
+    uploadingPart: "\u05DE\u05E2\u05DC\u05D9\u05DD \u05D7\u05DC\u05E7 {n} \u05DE\u05EA\u05D5\u05DA {total}...",
     project: "\u05D0\u05EA\u05E8",
     message: "\u05D4\u05D5\u05D3\u05E2\u05D4",
     version: "\u05D2\u05E8\u05E1\u05D4",
@@ -25513,7 +25519,7 @@ function formatBytes(n2) {
 }
 
 // src/version.ts
-var CLI_VERSION = "0.1.0-beta.47";
+var CLI_VERSION = "0.1.0-beta.48";
 
 // src/api.ts
 function apiContext(apiFlag, root) {
@@ -25546,9 +25552,10 @@ function errorCode(e3) {
   const cause = e3?.cause;
   return cause?.code ?? e3?.code;
 }
-function shouldRetry(method, failure2) {
-  const get2 = method === "GET";
-  if (typeof failure2 === "number") return get2 && (failure2 === 502 || failure2 === 503 || failure2 === 504);
+var EDGE_TIMEOUT = /* @__PURE__ */ new Set([520, 521, 522, 523, 524]);
+function shouldRetry(method, failure2, idempotent = false) {
+  const get2 = method === "GET" || idempotent;
+  if (typeof failure2 === "number") return get2 && (failure2 === 502 || failure2 === 503 || failure2 === 504 || EDGE_TIMEOUT.has(failure2));
   const code = errorCode(failure2);
   if (code && NEVER_SENT.has(code)) return true;
   if (!get2) return false;
@@ -25586,7 +25593,7 @@ async function apiRequest(ctx, path, schema, opts = {}) {
     } catch (e3) {
       failure2 = e3;
     }
-    const again = attempt < waits.length && shouldRetry(method, res ? res.status : failure2);
+    const again = attempt < waits.length && shouldRetry(method, res ? res.status : failure2, opts.idempotent);
     if (!again) {
       if (!res) throw await networkError(failure2, ctx.apiUrl);
       break;
@@ -25603,6 +25610,7 @@ async function apiRequest(ctx, path, schema, opts = {}) {
   }
   const t = messages(process.cwd());
   if (res.status === 401) throw new CliError(t("sessionExpired"), 1, "auth");
+  if (EDGE_TIMEOUT.has(res.status)) throw new CliError(t("timeout", { url: ctx.apiUrl }), 1, "network");
   if (!res.ok) {
     const parsed2 = ApiError.safeParse(data);
     if (parsed2.success && parsed2.data.error === "site_deleted") {
@@ -25767,6 +25775,8 @@ function buildTelemetryEvent(installId, command, result, errorCategory, extra = 
   if ((result === "error" || result === "blocked") && extra.errorLine) ev.errorLine = scrubText(extra.errorLine, ERROR_LINE_MAX);
   return ev;
 }
+var TELEMETRY_WAIT_MS = 2e3;
+var TELEMETRY_ERROR_WAIT_MS = 8e3;
 async function sendTelemetryEvent(ctx, event) {
   if (!telemetryEnabled(ctx.config)) return;
   try {
@@ -25777,7 +25787,7 @@ async function sendTelemetryEvent(ctx, event) {
       method: "POST",
       headers,
       body: JSON.stringify(event),
-      signal: AbortSignal.timeout(2e3)
+      signal: AbortSignal.timeout(event.result === "error" ? TELEMETRY_ERROR_WAIT_MS : TELEMETRY_WAIT_MS)
     });
     await res.body?.cancel().catch(() => {
     });
@@ -28484,6 +28494,9 @@ async function linkCommand(root, ctx, target, opts) {
   out(t("runLinkPick"));
 }
 
+// src/commands/deploy.ts
+import { randomUUID as randomUUID2 } from "crypto";
+
 // src/ask.ts
 import { createInterface as createInterface2 } from "readline/promises";
 var isInteractive = () => Boolean(process.stdin.isTTY && process.stdout.isTTY);
@@ -28529,7 +28542,7 @@ function changedUnderSameName(root, files) {
 import { spawnSync as spawnSync3 } from "child_process";
 import { existsSync as existsSync15, mkdirSync as mkdirSync9, mkdtempSync, readFileSync as readFileSync13, rmSync as rmSync3, unlinkSync, writeFileSync as writeFileSync13 } from "fs";
 import { tmpdir } from "os";
-import { dirname as dirname5, join as join17 } from "path";
+import { dirname as dirname5, join as join17, resolve as resolve4, sep as sep3 } from "path";
 import { gunzipSync as gunzipSync2 } from "zlib";
 
 // src/tar.ts
@@ -28642,7 +28655,7 @@ function readTar(tar) {
     const data = tar.subarray(offset + BLOCK, offset + BLOCK + size);
     offset += BLOCK + Math.ceil(size / BLOCK) * BLOCK;
     if (type === "x") {
-      const m = /\d+ path=([^\n]*)\n/.exec(data.toString("utf8"));
+      const m = /(?:^|\n)\d+ path=([^\n]*)\n/.exec(data.toString("utf8"));
       paxPath = m ? m[1] : null;
       continue;
     }
@@ -28899,10 +28912,18 @@ var git2 = (cwd, args) => spawnSync3("git", args, { cwd, encoding: "utf8" });
 function filesOf(gz) {
   const map2 = /* @__PURE__ */ new Map();
   for (const e3 of readTar(gunzipSync2(gz, { maxOutputLength: 200 * 1024 * 1024 }))) {
-    const name = e3.name.replace(/^\.\//, "");
-    if (e3.type === "0" || e3.type === "" || e3.type === "\0") map2.set(name, e3.data);
+    if (e3.type !== "0" && e3.type !== "" && e3.type !== "\0") continue;
+    const name = safeSourceName(e3.name);
+    if (name) map2.set(name, e3.data);
   }
   return map2;
+}
+function safeSourceName(raw) {
+  const name = raw.replace(/\\/g, "/").replace(/^(\.\/)+/, "");
+  if (!name || name.startsWith("/") || /^[a-zA-Z]:/.test(name) || name.includes("\0")) return null;
+  if (name.split("/").some((p) => p === ".." || p === ".")) return null;
+  if (privateProjectFile(name)) return null;
+  return name;
 }
 var same2 = (a, b) => a === void 0 && b === void 0 || a !== void 0 && b !== void 0 && a.equals(b);
 var isBinary = (b) => !!b && b.subarray(0, 8e3).includes(0);
@@ -28949,8 +28970,10 @@ async function bringIn(root, ctx, projectId, behind) {
   const state = { live, base: behind.base, conflicts: [], clashes: migrationClashes(baseFiles, liveFiles, ourFiles) };
   let taken = 0;
   let merged = 0;
+  const folder = resolve4(root);
   const write = (path, data) => {
-    const abs = join17(root, path);
+    const abs = resolve4(folder, path);
+    if (!abs.startsWith(folder + sep3)) return;
     if (data === void 0) {
       if (existsSync15(abs)) unlinkSync(abs);
       return;
@@ -29445,6 +29468,27 @@ function addTool(form, ctx, model) {
   const m = toDeployModel(model) ?? deployModelFromEnv(process.env);
   if (m) form.append("model", m);
 }
+async function attachArchive(ctx, form, projectId, archive, root) {
+  if (archive.length <= UPLOAD_PART_BYTES) {
+    form.append("archive", new Blob([new Uint8Array(archive)], { type: "application/gzip" }), "source.tar.gz");
+    return;
+  }
+  const t = messages(root);
+  const uploadId = randomUUID2();
+  const parts2 = Math.ceil(archive.length / UPLOAD_PART_BYTES);
+  for (let n2 = 0; n2 < parts2; n2++) {
+    out(t("uploadingPart", { n: n2 + 1, total: parts2 }));
+    const part = new FormData();
+    part.append("projectId", projectId);
+    part.append("uploadId", uploadId);
+    part.append("part", String(n2));
+    part.append("parts", String(parts2));
+    part.append("data", new Blob([new Uint8Array(archive.subarray(n2 * UPLOAD_PART_BYTES, (n2 + 1) * UPLOAD_PART_BYTES))], { type: "application/octet-stream" }), `part-${n2}`);
+    await apiRequest(ctx, "/api/cli/deploy/parts", UploadPartResponse, { method: "POST", form: part, idempotent: true, timeoutMs: 2 * 6e4 });
+  }
+  form.append("uploadId", uploadId);
+  form.append("parts", String(parts2));
+}
 async function catchUp(root, ctx, projectId, builtOn) {
   const t = messages(root);
   const work = await checkWork(ctx, root, projectId, builtOn);
@@ -29492,7 +29536,7 @@ async function deployVersion(root, ctx, opts, guest) {
   addTool(form, ctx, opts.model);
   if (wait && soundWanted(ctx.config)) form.append("soundHere", live ? "live" : "preview");
   if (hold) form.append("hold", "1");
-  form.append("archive", new Blob([new Uint8Array(archive)], { type: "application/gzip" }), "source.tar.gz");
+  await attachArchive(ctx, form, project.projectId, archive, root);
   const res = await apiRequest(ctx, "/api/cli/deploy", DeployResponse, { method: "POST", form, timeoutMs: 5 * 6e4 });
   if (!guest) {
     updateProject(root, { builtOn: res.number });
@@ -29875,7 +29919,7 @@ async function requestsOpenCommand(root, ctx, path, open2) {
 // src/commands/start.ts
 import { spawnSync as spawnSync4 } from "child_process";
 import { existsSync as existsSync16, writeFileSync as writeFileSync15 } from "fs";
-import { join as join19, relative as relative3, resolve as resolve4 } from "path";
+import { join as join19, relative as relative3, resolve as resolve5 } from "path";
 
 // src/commands/starter.ts
 import { writeFileSync as writeFileSync14 } from "fs";
@@ -29999,7 +30043,7 @@ async function startCommand(cwd, ctx, id, opts = {}) {
   out(START_WAIT_LINE);
   out();
   const fresh = kind === "new" || kind === "migrate" || kind === "guest" && sample;
-  const here = resolve4(cwd);
+  const here = resolve5(cwd);
   const sameSite = Boolean(choices.projectId && readProject(here)?.projectId === choices.projectId);
   const update = kind === "update" && Boolean(choices.projectId);
   const root = (fresh || update) && filesIn(here).length && !opts.here && !sameSite ? freeFolder(here, choices.slug ?? sample?.key ?? "site") : here;
@@ -30125,7 +30169,7 @@ ${choices.brief}
 }
 
 // src/commands/addon.ts
-import { dirname as dirname6, join as join20, resolve as resolve5 } from "path";
+import { dirname as dirname6, join as join20, resolve as resolve6 } from "path";
 import { mkdirSync as mkdirSync10, existsSync as existsSync17, writeFileSync as writeFileSync16 } from "fs";
 function linkedProjectId2(root) {
   const id = readProject(root)?.projectId;
@@ -30282,7 +30326,7 @@ async function addonDoneCommand(root, ctx, runId, opts) {
   let report2;
   if (opts.report) {
     try {
-      report2 = readJson(resolve5(root, opts.report));
+      report2 = readJson(resolve6(root, opts.report));
     } catch {
       throw new CliError(`Cannot read the report file ${opts.report} as JSON.`, 1, "usage");
     }
@@ -30454,7 +30498,7 @@ async function local(page3, strategy, deps, dir, now) {
 import { spawn as spawn4 } from "child_process";
 import { existsSync as existsSync18, mkdirSync as mkdirSync12, readFileSync as readFileSync15, rmSync as rmSync5, writeFileSync as writeFileSync18 } from "fs";
 import { tmpdir as tmpdir3 } from "os";
-import { join as join22, resolve as resolve6 } from "path";
+import { join as join22, resolve as resolve7 } from "path";
 var SHOT_SIZES = [{ name: "phone", size: "390,844" }, { name: "desktop", size: "1440,900" }];
 var PLAYWRIGHT = "playwright@1.56";
 var WAIT_MS3 = 18e4;
@@ -30518,7 +30562,7 @@ async function shotCommand(root, address, opts = {}, run = runNpx) {
   const browser = opts.webkit ? null : findBrowser();
   if (!opts.webkit && !browser) throw new CliError("No Chrome or Edge was found on this computer. Install Chrome, set CHROME_PATH to its path, or run shot again with --webkit (it downloads Safari's engine first).", 1, "no_browser");
   if (opts.webkit && await run(["--yes", PLAYWRIGHT, "install", "webkit"]) !== 0) throw new CliError("Safari's engine could not be installed. Run shot without --webkit to use Chrome or Edge.", 1, "shot_failed");
-  const dir = resolve6(root, opts.out ?? join22(".deployai", "shots"));
+  const dir = resolve7(root, opts.out ?? join22(".deployai", "shots"));
   mkdirSync12(dir, { recursive: true });
   const taker = join22(tmpdir3(), "deployai-shot.cjs");
   writeFileSync18(taker, TAKER);
@@ -30545,7 +30589,7 @@ import { spawnSync as spawnSync5 } from "child_process";
 import { existsSync as existsSync19, mkdirSync as mkdirSync13, readdirSync as readdirSync6, statSync as statSync3, writeFileSync as writeFileSync19 } from "fs";
 import { createRequire } from "module";
 import { homedir as homedir3 } from "os";
-import { extname, join as join23, relative as relative4, resolve as resolve7 } from "path";
+import { extname, join as join23, relative as relative4, resolve as resolve8 } from "path";
 var PHONE_WIDTH = 640;
 var SHARP = "sharp@0.34";
 var SKIP_DIRS2 = /* @__PURE__ */ new Set(["node_modules", ".git", ".deployai", "dist", ".astro", ".next"]);
@@ -30581,7 +30625,7 @@ function loadSharp() {
   return createRequire(join23(dir, "package.json"))("sharp");
 }
 async function imagesCommand(root, folder, sharp = loadSharp) {
-  const dir = resolve7(root, folder ?? "public");
+  const dir = resolve8(root, folder ?? "public");
   const files = imagesIn(dir);
   if (!files.length) {
     out(`No JPG or PNG images under ${relative4(root, dir) || "."}.`);
@@ -30616,7 +30660,7 @@ async function imagesCommand(root, folder, sharp = loadSharp) {
 // src/commands/blocks.ts
 import { createHash as createHash5 } from "crypto";
 import { existsSync as existsSync20, mkdirSync as mkdirSync14, readFileSync as readFileSync16, writeFileSync as writeFileSync20 } from "fs";
-import { dirname as dirname7, resolve as resolve8, sep as sep3 } from "path";
+import { dirname as dirname7, resolve as resolve9, sep as sep4 } from "path";
 import { gunzipSync as gunzipSync3 } from "zlib";
 var BLOCKS = [
   { key: "dashboard", title: "The site's own dashboard: messages, pages, blog, shop, images, accessibility, documents. Add --update to get a newer version" },
@@ -30626,7 +30670,7 @@ var BLOCKS = [
 ];
 var MAX_BYTES3 = 5 * 1024 * 1024;
 var sha = (data) => createHash5("sha256").update(data).digest("hex");
-var lockPath = (base, key2) => resolve8(base, ".deployai", "blocks", `${key2}.lock.json`);
+var lockPath = (base, key2) => resolve9(base, ".deployai", "blocks", `${key2}.lock.json`);
 function readLock(base, key2) {
   try {
     return readJson(lockPath(base, key2));
@@ -30660,15 +30704,15 @@ async function blocksCommand(root, ctx, name, opts = {}) {
   } catch {
     throw new CliError("The block download is damaged. Try again.", 1, "api");
   }
-  const base = resolve8(root);
+  const base = resolve9(root);
   const written = [];
   const kept = [];
   const updated = [];
   const lock = readLock(base, block.key);
   for (const e3 of entries) {
     if (e3.type !== "0" && e3.type !== "\0") continue;
-    const target = resolve8(base, e3.name);
-    if (target === base || !target.startsWith(base + sep3)) continue;
+    const target = resolve9(base, e3.name);
+    if (target === base || !target.startsWith(base + sep4)) continue;
     if (existsSync20(target)) {
       const now = sha(readFileSync16(target));
       if (now === sha(e3.data)) {
@@ -30678,8 +30722,8 @@ async function blocksCommand(root, ctx, name, opts = {}) {
         lock[e3.name] = sha(e3.data);
         updated.push(e3.name);
       } else {
-        const upstream = resolve8(base, ".deployai", "blocks", `${block.key}-upstream`, e3.name);
-        if (upstream.startsWith(base + sep3)) {
+        const upstream = resolve9(base, ".deployai", "blocks", `${block.key}-upstream`, e3.name);
+        if (upstream.startsWith(base + sep4)) {
           mkdirSync14(dirname7(upstream), { recursive: true });
           writeFileSync20(upstream, e3.data);
         }
@@ -30758,7 +30802,7 @@ import { spawn as spawn5 } from "child_process";
 import { copyFileSync, existsSync as existsSync21, mkdirSync as mkdirSync15, mkdtempSync as mkdtempSync3, readdirSync as readdirSync7, readFileSync as readFileSync17, rmSync as rmSync6, statSync as statSync4, writeFileSync as writeFileSync21 } from "fs";
 import { createServer } from "http";
 import { tmpdir as tmpdir4 } from "os";
-import { basename as basename2, dirname as dirname8, extname as extname2, join as join24, relative as relative5, sep as sep4 } from "path";
+import { basename as basename2, dirname as dirname8, extname as extname2, join as join24, relative as relative5, sep as sep5 } from "path";
 import { randomBytes } from "crypto";
 
 // src/commands/brand-page.ts
@@ -30877,14 +30921,14 @@ function walk(dir, found = []) {
 }
 function existingFavicon(root) {
   const web = webRoot(root);
-  for (const f of ["favicon.ico", "favicon.svg", "favicon.png", "icon.svg", "icon.png"]) if (existsSync21(join24(web, f))) return relative5(root, join24(web, f)).split(sep4).join("/");
+  for (const f of ["favicon.ico", "favicon.svg", "favicon.png", "icon.svg", "icon.png"]) if (existsSync21(join24(web, f))) return relative5(root, join24(web, f)).split(sep5).join("/");
   for (const d of ["app", "src/app"]) for (const f of ["favicon.ico", "icon.svg", "icon.png", "icon.tsx", "icon.jpg"]) if (existsSync21(join24(root, d, f))) return `${d}/${f}`;
   for (const f of walk(root).filter((p) => /\.(html|astro|tsx|jsx|vue|svelte)$/.test(p)).slice(0, 400)) {
     try {
       const m = readFileSync17(f, "utf8").match(/<link\b[^>]*\brel=["'](?:shortcut )?icon["'][^>]*>/i);
       if (!m) continue;
       const href = m[0].match(/\shref=["']([^"']+)/i)?.[1] ?? "";
-      if (href.startsWith("data:") || /^https?:/.test(href) || existsSync21(join24(web, href.split("?")[0]))) return relative5(root, f).split(sep4).join("/");
+      if (href.startsWith("data:") || /^https?:/.test(href) || existsSync21(join24(web, href.split("?")[0]))) return relative5(root, f).split(sep5).join("/");
     } catch {
     }
   }
@@ -30914,7 +30958,7 @@ function findSource(root) {
   const sharp = icons.find((i) => i.kind === "icon" && i.big);
   if (sharp) return { path: sharp.path, from: "old-icon" };
   const dirs = ["public", "static", "src/assets", "assets", "images", "img"].map((d) => join24(root, d));
-  const logos = dirs.flatMap((d) => walk(d)).filter((p) => looksLikeLogo(relative5(root, p).split(sep4).join("/")));
+  const logos = dirs.flatMap((d) => walk(d)).filter((p) => looksLikeLogo(relative5(root, p).split(sep5).join("/")));
   const logo = logos.find((p) => /\.svg$/i.test(p)) ?? logos[0];
   if (logo) return { path: logo, from: "logo" };
   const oldLogo = icons.find((i) => i.kind === "logo");
@@ -31115,7 +31159,7 @@ function sourceBytes(path) {
   return { bytes: readFileSync17(path), type: TYPES[extname2(path).toLowerCase()] ?? "application/octet-stream" };
 }
 function report(root, r) {
-  const where = relative5(root, webRoot(root)).split(sep4).join("/") || "the site root";
+  const where = relative5(root, webRoot(root)).split(sep5).join("/") || "the site root";
   out(`Written in ${where}: ${r.written.join(", ")}`);
   if (r.skipped.length) out(`Left out, the picture is too small to stay sharp: ${r.skipped.join(", ")}. A larger logo makes them.`);
   const tags2 = brandHeadTags(r.written);
@@ -31254,7 +31298,7 @@ function imageFiles(root) {
   const dirs = [webRoot(root) === root ? null : webRoot(root), join24(root, "src"), join24(root, MIGRATION_DIR)].filter((d) => !!d);
   const files = dirs.flatMap((d) => walkAll(d));
   if (webRoot(root) === root) files.push(...walk(root));
-  return [...new Set(files)].filter((p) => IMAGE_EXT.test(p) && !p.split(sep4).includes("icons") && !BRAND_FILES.includes(basename2(p)));
+  return [...new Set(files)].filter((p) => IMAGE_EXT.test(p) && !p.split(sep5).includes("icons") && !BRAND_FILES.includes(basename2(p)));
 }
 function walkAll(dir) {
   const found = [];
@@ -31294,7 +31338,7 @@ function judgeFiles(root) {
     if (!size) continue;
     total++;
     const verdict = judgeImage({ width: size.width, height: size.height, bytes: bytes.length, format: size.format });
-    if (verdict !== "ok") findings.push({ where: relative5(root, f).split(sep4).join("/"), width: size.width, height: size.height, verdict });
+    if (verdict !== "ok") findings.push({ where: relative5(root, f).split(sep5).join("/"), width: size.width, height: size.height, verdict });
   }
   return { findings, total };
 }
@@ -31402,7 +31446,7 @@ function buildProgram() {
     if (lang === "he" || lang === "en") process.env.DEPLOYAI_LANG = lang;
   }).showHelpAfterError();
   const g = (cmd) => cmd.optsWithGlobals();
-  const root = (cmd) => resolve9(g(cmd).dir ?? process.cwd());
+  const root = (cmd) => resolve10(g(cmd).dir ?? process.cwd());
   const ctx = (cmd) => apiContext(g(cmd).api, root(cmd));
   program.hook("preAction", async (_p, action) => {
     if (["init", "start", "rules"].includes(action.name()) || !existsSync22(join25(root(action), "DEPLOYAI.md"))) return;
