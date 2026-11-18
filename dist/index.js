@@ -21619,7 +21619,7 @@ var ARCH_NODES = [
   { id: "local-scripts", kind: "actor", zone: "outside", label: "Local scripts", summary: "\u05E4\u05E7\u05D5\u05D3\u05D5\u05EA \u05E9\u05D4\u05E6\u05D5\u05D5\u05EA \u05DE\u05E8\u05D9\u05E5 \u05DE\u05D4\u05DE\u05D7\u05E9\u05D1: prompts:pull \u05D5\u05BEprompts:push (\u05E7\u05D5\u05D1\u05E5 \u05E4\u05E8\u05D5\u05DE\u05E4\u05D8 \u05DE\u05D5\u05DC \u05D4\u05D8\u05E7\u05E1\u05D8 \u05D4\u05D7\u05D9), costs:push (\u05DE\u05D7\u05D9\u05E8\u05D9 Cloudflare), content:push \u05D5\u05BEcontent:pull (\u05D4\u05EA\u05D5\u05DB\u05DF \u05D1\u05D9\u05DF \u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05E9\u05DC \u05D4\u05DE\u05D7\u05E9\u05D1 \u05DC\u05D6\u05D4 \u05E9\u05DC \u05D4\u05E9\u05E8\u05EA, \u05D3\u05E8\u05DA SSH). LOCAL_SCRIPTS_TOKEN \u05E4\u05D5\u05EA\u05D7 \u05D0\u05EA \u05D4\u05BEAPI \u05E9\u05DC \u05D4\u05E4\u05E7\u05D5\u05D3\u05D5\u05EA \u05D4\u05D0\u05DC\u05D4 \u05D5\u05E9\u05DC \u05D4\u05BEBoard watcher, \u05D5\u05D9\u05DB\u05D5\u05DC \u05DC\u05E9\u05E0\u05D5\u05EA \u05E4\u05E8\u05D5\u05DE\u05E4\u05D8\u05D9\u05DD \u05D5\u05DE\u05D7\u05D9\u05E8\u05D9\u05DD \u05D7\u05D9\u05D9\u05DD.", summaryEn: "Commands the team runs from the computer: prompts:pull and prompts:push (a prompt file against the live text), costs:push (Cloudflare prices), content:push and content:pull (content between the computer's database and the server's, over SSH). LOCAL_SCRIPTS_TOKEN opens the API of these commands and of the Board watcher, and can change live prompts and prices.", code: ["scripts/prompts-sync.ts", "scripts/costs-push.ts", "scripts/content-sync.ts"], env: ["LOCAL_SCRIPTS_TOKEN", "BOARD_URL"], docs: ["docs/13-run-locally.md"], decisions: ["D-204", "D-471", "D-677", "D-696"] },
   { id: "visitor", kind: "actor", zone: "outside", label: "\u05DE\u05D1\u05E7\u05E8 \u05D1\u05D0\u05EA\u05E8", labelEn: "Site visitor", summary: "\u05DE\u05D1\u05E7\u05E8 \u05D1\u05D0\u05EA\u05E8 \u05E9\u05DC \u05DC\u05E7\u05D5\u05D7 \u05D1\u05DB\u05EA\u05D5\u05D1\u05EA <slug>.<\u05D3\u05D5\u05DE\u05D9\u05D9\u05DF \u05D0\u05EA\u05E8\u05D9\u05DD> (\u05DB\u05DE\u05D5 deploy-net.com \u05D0\u05D5 freesite.click) \u05D0\u05D5 \u05D1\u05D3\u05D5\u05DE\u05D9\u05D9\u05DF \u05DE\u05E9\u05DC\u05D5.", summaryEn: "A visitor on a customer site at <slug>.<a sites domain> (like deploy-net.com or freesite.click) or on their own domain." },
   // Platform
-  { id: "web", kind: "app", zone: "platform", label: "Web app (Next.js)", summary: "\u05D0\u05EA\u05E8 \u05D4\u05E9\u05D9\u05D5\u05D5\u05E7, \u05DC\u05D5\u05D7 \u05D4\u05D1\u05E7\u05E8\u05D4, \u05D4\u05D0\u05D3\u05DE\u05D9\u05DF \u05D5\u05D4\u05BEAPI \u05E9\u05DC \u05D4\u05BECLI. \u05DE\u05DB\u05E0\u05D9\u05E1 \u05E2\u05D1\u05D5\u05D3\u05D5\u05EA \u05DC\u05EA\u05D5\u05E8.", summaryEn: "The marketing site, the dashboard, the admin and the CLI API. Puts jobs in the queue.", code: ["apps/web/src/app", "apps/web/src/server"], env: ["DEPLOYAI_SPACE", "BETTER_AUTH_SECRET", "NEXT_PUBLIC_SUPPORT_WHATSAPP", "DEV_SUPERADMIN_PASSWORD", "OPENAI_APPS_CHALLENGE"], portability: "Our app (site, dashboard, API, builds)", docs: ["docs/04-architecture.md"], decisions: ["D-020", "D-057", "D-104", "D-149", "D-238", "D-293"] },
+  { id: "web", kind: "app", zone: "platform", label: "Web app (Next.js)", summary: "\u05D0\u05EA\u05E8 \u05D4\u05E9\u05D9\u05D5\u05D5\u05E7, \u05DC\u05D5\u05D7 \u05D4\u05D1\u05E7\u05E8\u05D4, \u05D4\u05D0\u05D3\u05DE\u05D9\u05DF \u05D5\u05D4\u05BEAPI \u05E9\u05DC \u05D4\u05BECLI. \u05DE\u05DB\u05E0\u05D9\u05E1 \u05E2\u05D1\u05D5\u05D3\u05D5\u05EA \u05DC\u05EA\u05D5\u05E8.", summaryEn: "The marketing site, the dashboard, the admin and the CLI API. Puts jobs in the queue.", code: ["apps/web/src/app", "apps/web/src/server"], env: ["DEPLOYAI_SPACE", "BETTER_AUTH_SECRET", "NEXT_PUBLIC_SUPPORT_WHATSAPP", "DEV_SUPERADMIN_PASSWORD", "OPENAI_APPS_CHALLENGE", "POSTHOG_PROJECT_KEY"], portability: "Our app (site, dashboard, API, builds)", docs: ["docs/04-architecture.md"], decisions: ["D-020", "D-057", "D-104", "D-149", "D-238", "D-293"] },
   { id: "queue", kind: "db", zone: "platform", label: "pg-boss queue", summary: "\u05DB\u05DC \u05DE\u05D4 \u05E9\u05D0\u05D9\u05D8\u05D9 \u05D0\u05D5 \u05E0\u05D5\u05D2\u05E2 \u05D1\u05BECloudflare \u05E8\u05E5 \u05DB\u05E2\u05D1\u05D5\u05D3\u05D4 \u05D1\u05EA\u05D5\u05E8.", summaryEn: "Everything slow or that touches Cloudflare runs as a job in the queue.", code: ["apps/web/src/server/queue.ts"], portability: "Job queue", decisions: ["D-058"] },
   { id: "worker", kind: "app", zone: "platform", label: "Job worker", summary: "\u05EA\u05D4\u05DC\u05D9\u05DA \u05E0\u05E4\u05E8\u05D3 \u05E9\u05DE\u05E8\u05D9\u05E5 \u05D0\u05EA \u05D4\u05E2\u05D1\u05D5\u05D3\u05D5\u05EA \u05DE\u05D4\u05EA\u05D5\u05E8: \u05D1\u05E0\u05D9\u05D9\u05D4, \u05D4\u05E2\u05DC\u05D0\u05D4, \u05E0\u05D9\u05EA\u05D5\u05D1, \u05D1\u05D9\u05E7\u05D5\u05E8\u05D9\u05DD, \u05E2\u05DC\u05D5\u05D9\u05D5\u05EA \u05D5\u05DE\u05D9\u05D9\u05DC\u05D9\u05DD \u05DC\u05DE\u05E9\u05E4\u05DA (pnpm worker, \u05D0\u05D5 pnpm worker:public \u05DE\u05D0\u05D7\u05D5\u05E8\u05D9 \u05D4\u05BEtunnel).", summaryEn: "A separate process that runs the queued jobs: build, upload, routing, visits, costs and lifecycle emails (pnpm worker, or pnpm worker:public behind the tunnel).", code: ["apps/web/src/server/worker.ts", "apps/web/src/server/jobs.ts", "apps/web/src/server/site-data.ts", "apps/web/src/server/lifecycle", "apps/web/src/server/host-report.ts"], env: ["BUILD_SLOTS", "LIFECYCLE_NOW", "A11Y_RENDER", "DOCKER_HOST", "HOST_REPORT_PATH", "APP_SHOTS_SITES"], decisions: ["D-058", "D-148", "D-180", "D-340"] },
   { id: "build", kind: "app", zone: "platform", label: "Build service (Docker)", summary: "\u05E7\u05D5\u05E0\u05D8\u05D9\u05D9\u05E0\u05E8 \u05D7\u05D3\u05E9 \u05DC\u05DB\u05DC \u05E9\u05DC\u05D1, \u05D1\u05DC\u05D9 \u05E1\u05D5\u05D3\u05D5\u05EA. \u05D1\u05D5\u05E0\u05D4 \u05D0\u05EA \u05D4\u05E7\u05D5\u05D3 \u05E9\u05DC \u05D4\u05DC\u05E7\u05D5\u05D7 \u05DC\u05E7\u05D5\u05D1\u05E5 Worker.", summaryEn: "A fresh container for every step, with no secrets. Builds the customer's code into a Worker file.", code: ["apps/web/src/server/build.ts"], env: ["BUILD_MODE"] },
@@ -23670,7 +23670,7 @@ var ENV_KEYS = {
   CARDCOM_DEPARTMENT_ID: { scope: "same", section: "payments", about: "Optional. The Cardcom department number put on every invoice and credit invoice, for reports on a shared terminal (D-371)." },
   CARDCOM_CSS_URL: { scope: "own", section: "payments", about: "Our stylesheet for Cardcom's card page, https only, test terminals only (D-699). Leave unset: the app address is used, the tunnel in dev." },
   CARDCOM_TOKEN_KEY: { scope: "server", section: "payments", required: ["server"], about: "32 bytes in base64 that seal saved card tokens (openssl rand -base64 32). Back it up offline; without it no saved card works." },
-  BUILD_MODE: { scope: "own", section: "builds", sample: { server: "docker" }, about: "docker = a fresh container per build. Default local." },
+  BUILD_MODE: { scope: "own", section: "builds", sample: { server: "docker" }, about: "docker = a fresh container per build. Production only: empty on this computer, so only static sites build and Docker Desktop can stay closed. Set docker here only to test builds or run cli:e2e (D-1009)." },
   BUILD_SLOTS: { scope: "own", section: "builds", about: "Builds running at the same time in the queue worker. Default 2." },
   DOCKER_HOST: { scope: "server", section: "builds", sample: { server: "unix:///run/user/<uid of deploy>/docker.sock" }, about: "Rootless Docker of the deploy user (D-340). Read by docker itself." },
   STORAGE_DIR: { scope: "local", section: "builds", about: "Folder for files when a space stores them on disk (tests). Default apps/web/.deployai-uploads." },
@@ -23877,146 +23877,6 @@ function blockedLine(codes) {
   return BLOCKED_REASONS.filter((c) => set2.has(c)).join(" ");
 }
 
-// ../shared/src/deployai-md.ts
-var DEPLOYAI_MD = `# DeployAI rules
-
-This project is published with DeployAI.
-
-${FOLDER_READY_RULE}
-
-Always explain to the owner in simple words, in the language they write to you in. The owner may not read English.
-
-${START_FAIL_LINE}
-
-${OWNER_TEXT_RULE}
-
-When you install or set something up, say what it does for the site, not the package name. Say "installing the site runtime" or "setting up a local test database", not "installing the Cloudflare adapter" or "installing wrangler".
-
-Before you write code or change the plan, compare it with these rules. If something in it does not fit, say what and propose the change.
-
-## Build with
-
-${BUILD_WITH.map((l) => `- ${l}`).join("\n")}
-
-Only when this folder has no site yet and the owner asks to start from working code: npx deployai@latest samples
-When the owner wants an outside service, such as card payments, invoices or sending email, start here and read the provider's current docs, not your memory: npx deployai@latest integrations
-
-## Do not add
-
-- local file system writes
-- database drivers DeployAI does not support (see: npx deployai@latest inspect)
-- long-running processes or background servers in the site's code (the local preview while you build is fine)
-- Durable Objects (not supported yet; keep state in D1)
-- native binary modules
-- DeployAI or any cloud credentials in source code
-
-## Do not run
-
-- wrangler commands that need a Cloudflare account (login, deploy, d1 create, r2 bucket create). Wrangler is installed only for local development. The owner does not need a Cloudflare account: DeployAI creates the database and storage and publishes the site, with: npx deployai@latest deploy
-
-## Keep existing data
-
-${KEEP_DATA_RULES.join("\n")}
-
-## Running DeployAI commands
-
-${runCommandsRule()}
-
-## Asking the owner
-
-${ASK_OWNER_RULE}
-
-Never stop building for an account, a plan or a limit. Build what the owner asks; say once, in one plain line, what going live will need, and ask about it only at the deploy step.
-
-## Words on the site
-
-${SITE_COPY_RULE}
-
-## A site's first version
-
-${FIRST_SITE_RULE}
-
-## While you build
-
-${LOCAL_PREVIEW_RULE}
-
-${GIT_HISTORY_RULE}
-
-## When to deploy
-
-${DEPLOY_ASK_RULE}
-
-## When DeployAI gets in your way
-
-${AGENT_FEEDBACK_RULES.join("\n\n")}
-
-## Check
-
-Before adding a dependency or a new server feature, run: npx deployai@latest check
-Ask the owner before removing any existing functionality.
-
-Files:
-- .deployai/project.json: project id and settings (safe to commit)
-- .deployai/last-check.json: latest check result (not committed)
-- .deployai/rules.json: which rules this file has. Every DeployAI command updates this file to the current rules unless it was edited. The current rules: npx deployai@latest rules
-`;
-var DEPLOYAI_LATER_RULES = [
-  { has: "iPhone:", text: IPHONE_RULE },
-  { has: "set up and ready", text: FOLDER_READY_RULE },
-  { has: "one or two short sentences", text: START_FAIL_LINE },
-  { has: "direction marks", text: OWNER_TEXT_RULE },
-  { has: "deployai@latest feedback", text: AGENT_FEEDBACK_RULES.join(" ") },
-  { has: "never been live", text: FIRST_SITE_RULE },
-  { has: "local preview", text: LOCAL_PREVIEW_RULE },
-  { has: "git history", text: GIT_HISTORY_RULE },
-  { has: "never word for word", text: SITE_COPY_RULE }
-];
-function parseLaterRules(json2) {
-  try {
-    const v = JSON.parse(json2 ?? "");
-    const list = Array.isArray(v) ? v.filter((r) => r && typeof r.has === "string" && r.has.trim() && typeof r.text === "string" && r.text.trim() && r.text.length < 8e3) : [];
-    return list.length ? list.map((r) => ({ has: r.has, text: r.text })) : DEPLOYAI_LATER_RULES;
-  } catch {
-    return DEPLOYAI_LATER_RULES;
-  }
-}
-
-// ../shared/src/stack.ts
-var SITE_LANG_INFO = {
-  he: { name: "Hebrew", dir: "rtl", font: "Heebo" },
-  ar: { name: "Arabic", dir: "rtl", font: "Tajawal" },
-  en: { name: "English", dir: "ltr", font: "Inter" }
-};
-var STACK_FRAMEWORKS = SUPPORTED_FRAMEWORKS.map((f) => f.id);
-var frameworkName = (id) => FRAMEWORKS.find((f) => f.id === id)?.name ?? id;
-var NEED_TEXT = {
-  form: "a contact form whose messages are saved to D1, with an owner inbox behind a key from env",
-  login: "an owner login (the account is created on the first visit, passwords with bcryptjs or Web Crypto)",
-  data: "data the owner adds and edits, saved to D1",
-  files: "photos and files the owner uploads, saved to R2"
-};
-function stackBlock(s) {
-  const langs = s.langs.map((l, i) => `${SITE_LANG_INFO[l].name} (${SITE_LANG_INFO[l].dir === "rtl" ? "right to left" : "left to right"}${i === 0 ? ", the main language at the root" : `, under /${l}/`})`);
-  const fonts = s.fonts.map((f) => `${f} (${s.langs.filter((l) => l === "en" && f === "Heebo" || SITE_LANG_INFO[l].font === f).map((l) => SITE_LANG_INFO[l].name).join(" and ")})`);
-  const lines = [
-    "# The stack",
-    "",
-    "The owner chose this on DeployAI. Build with exactly this stack: do not add a server, a database, a storage service, a CSS framework or a font outside it.",
-    "",
-    `- Framework: ${frameworkName(s.framework)}${s.framework === "static" ? " (HTML, CSS and a little JavaScript, no build step)" : ""}`,
-    `- Languages: ${langs.join(", ")}.${s.langs.length > 1 ? " Every page and every string in each language, a language switch to the same page, and hreflang." : ""}`,
-    `- Fonts: ${fonts.join(", ")}, from Google Fonts.`,
-    `- CSS: ${s.css === "tailwind" ? "Tailwind CSS" : "plain CSS"}.`,
-    `- Database: ${s.bindings.includes("d1") ? "Cloudflare D1 (SQLite) through Drizzle with drizzle-orm/d1." : "none."}`,
-    `- Files: ${s.bindings.includes("r2") ? "Cloudflare R2 for the files the owner uploads, never the local disk. Images and files that ship with the site stay in its own files." : "none. Images and files that ship with the site stay in its own files; do not add R2."}`
-  ];
-  if (s.needs.length) lines.push(`- The site has: ${s.needs.map((n2) => NEED_TEXT[n2]).join("; ")}.`);
-  return lines.join("\n") + "\n";
-}
-function stackSummary(s) {
-  return [frameworkName(s.framework), ...s.bindings.map((b) => b.toUpperCase()), s.css === "tailwind" ? "Tailwind" : null, s.fonts.join(", "), s.dir.toUpperCase()].filter(Boolean).join(" \xB7 ");
-}
-
 // ../shared/src/ui-sources.ts
 var UI_SOURCES = [
   { key: "shadcn", name: "shadcn/ui", url: "https://ui.shadcn.com", install: "npx shadcn@latest add <component>", license: "MIT", terms: "Free for any use; keep the license notice.", use: "Forms, dialogs, menus, tabs, tables: the plain building blocks.", frameworks: "React (Astro with the React integration)", react: true, fits: ["business", "shop", "blog", "portfolio", "restaurant", "clinic"], licenseUrl: "https://github.com/shadcn-ui/ui/blob/main/LICENSE.md", checkedOn: "2026-10-30" },
@@ -24091,6 +23951,158 @@ function uiPartsText() {
       return `- ${k}: ${list}${prompt ? `. Build it yourself instead when it falls short: ${prompt}` : ""}`;
     })
   ].join("\n");
+}
+var SKILLS = "npx skills@1.9.0 add";
+var KEEP = "Free for any use; keep the license notice. Never copy its files into the site.";
+var LAYOUT_KITS = [
+  { key: "hallmark", name: "Hallmark", url: "https://github.com/nutlope/hallmark", install: `${SKILLS} nutlope/hallmark`, license: "MIT", role: "look", fits: ["business", "shop", "restaurant", "clinic"], use: "Builds each page around what the visitor came to do (book, buy, call) in one of fifty themes, then checks it in a browser at eight widths. Redesign keeps the content and wiring. It runs its own scripts.", terms: `${KEEP} No tags upstream, so it installs from main. Never its image generation (a paid key); fonts and photos are saved into the site, each photo with its credit; no Tailwind from a CDN.`, licenseUrl: "https://github.com/nutlope/hallmark/blob/main/LICENSE", checkedOn: "2026-11-17" },
+  { key: "taste", name: "Taste Skill", url: "https://github.com/Leonxlnx/taste-skill", install: `${SKILLS} https://github.com/Leonxlnx/taste-skill/tree/v2.5.1`, license: "MIT", role: "look", fits: ["portfolio", "blog"], use: "Picks one art direction for the whole site from curated references, then checks it in the browser. It runs its own scripts.", terms: KEEP, licenseUrl: "https://github.com/Leonxlnx/taste-skill/blob/main/LICENSE", checkedOn: "2026-11-17" },
+  { key: "interfaces", name: "Interfaces (Jakub Krehel)", url: "https://github.com/jakubkrehel/skills", install: `${SKILLS} jakubkrehel/skills --skill better-interface better-layout better-typography`, license: "MIT", role: "review", use: "Reviews and polishes what was built: better-interface, better-layout, better-typography. Text only, no scripts.", terms: `${KEEP} No tags upstream, so it installs from main.`, licenseUrl: "https://github.com/jakubkrehel/skills/blob/main/LICENSE", checkedOn: "2026-11-17" },
+  { key: "humanizer", name: "Humanizer", url: "https://github.com/blader/humanizer", install: `${SKILLS} https://github.com/blader/humanizer/tree/v4.0.0`, license: "MIT", role: "copy", use: "Takes the signs of AI writing out of English text on the site. Text only.", terms: KEEP, licenseUrl: "https://github.com/blader/humanizer/blob/main/LICENSE", checkedOn: "2026-11-17" },
+  { key: "marketingskills", name: "Marketing Skills", url: "https://github.com/coreyhaines31/marketingskills", install: `${SKILLS} https://github.com/coreyhaines31/marketingskills/tree/v2.14.12 --skill copywriting cro seo-audit schema`, license: "MIT", role: "copy", use: "Four skills only: copywriting and cro for words that sell, seo-audit and schema for search. Text only.", terms: `${KEEP} Only these four skills; never its tools/ command lines.`, licenseUrl: "https://github.com/coreyhaines31/marketingskills/blob/main/LICENSE", checkedOn: "2026-11-17" },
+  { key: "aislop", name: "aislop", url: "https://github.com/scanaislop/aislop", install: "npx aislop@0.22.1 scan", license: "MIT", role: "code", use: "Scans the code for what agents leave behind (dead code, swallowed errors, unsafe casts, copies) and scores it 0 to 100. No AI, nothing installed.", terms: "Free for any use. Scan only: never its hook, its global install or its tools download.", licenseUrl: "https://github.com/scanaislop/aislop/blob/main/LICENSE", checkedOn: "2026-11-17" }
+];
+var QUALITY_KITS_LINE = "Read https://deployai.co.il/kits.md before you build or redesign a site.";
+
+// ../shared/src/deployai-md.ts
+var DEPLOYAI_MD = `# DeployAI rules
+
+This project is published with DeployAI.
+
+${FOLDER_READY_RULE}
+
+Always explain to the owner in simple words, in the language they write to you in. The owner may not read English.
+
+${START_FAIL_LINE}
+
+${OWNER_TEXT_RULE}
+
+When you install or set something up, say what it does for the site, not the package name. Say "installing the site runtime" or "setting up a local test database", not "installing the Cloudflare adapter" or "installing wrangler".
+
+Before you write code or change the plan, compare it with these rules. If something in it does not fit, say what and propose the change.
+
+## Build with
+
+${BUILD_WITH.map((l) => `- ${l}`).join("\n")}
+
+Only when this folder has no site yet and the owner asks to start from working code: npx deployai@latest samples
+When the owner wants an outside service, such as card payments, invoices or sending email, start here and read the provider's current docs, not your memory: npx deployai@latest integrations
+
+## Do not add
+
+- local file system writes
+- database drivers DeployAI does not support (see: npx deployai@latest inspect)
+- long-running processes or background servers in the site's code (the local preview while you build is fine)
+- Durable Objects (not supported yet; keep state in D1)
+- native binary modules
+- DeployAI or any cloud credentials in source code
+
+## Do not run
+
+- wrangler commands that need a Cloudflare account (login, deploy, d1 create, r2 bucket create). Wrangler is installed only for local development. The owner does not need a Cloudflare account: DeployAI creates the database and storage and publishes the site, with: npx deployai@latest deploy
+
+## Keep existing data
+
+${KEEP_DATA_RULES.join("\n")}
+
+## Running DeployAI commands
+
+${runCommandsRule()}
+
+## Asking the owner
+
+${ASK_OWNER_RULE}
+
+Never stop building for an account, a plan or a limit. Build what the owner asks; say once, in one plain line, what going live will need, and ask about it only at the deploy step.
+
+## Words on the site
+
+${SITE_COPY_RULE}
+
+## A site's first version
+
+${FIRST_SITE_RULE} ${QUALITY_KITS_LINE}
+
+## While you build
+
+${LOCAL_PREVIEW_RULE}
+
+${GIT_HISTORY_RULE}
+
+## When to deploy
+
+${DEPLOY_ASK_RULE}
+
+## When DeployAI gets in your way
+
+${AGENT_FEEDBACK_RULES.join("\n\n")}
+
+## Check
+
+Before adding a dependency or a new server feature, run: npx deployai@latest check
+Ask the owner before removing any existing functionality.
+
+Files:
+- .deployai/project.json: project id and settings (safe to commit)
+- .deployai/last-check.json: latest check result (not committed)
+- .deployai/rules.json: which rules this file has. Every DeployAI command updates this file to the current rules unless it was edited. The current rules: npx deployai@latest rules
+`;
+var DEPLOYAI_LATER_RULES = [
+  { has: "iPhone:", text: IPHONE_RULE },
+  { has: "set up and ready", text: FOLDER_READY_RULE },
+  { has: "one or two short sentences", text: START_FAIL_LINE },
+  { has: "direction marks", text: OWNER_TEXT_RULE },
+  { has: "deployai@latest feedback", text: AGENT_FEEDBACK_RULES.join(" ") },
+  { has: "never been live", text: FIRST_SITE_RULE },
+  { has: "local preview", text: LOCAL_PREVIEW_RULE },
+  { has: "git history", text: GIT_HISTORY_RULE },
+  { has: "never word for word", text: SITE_COPY_RULE },
+  { has: "kits.md", text: QUALITY_KITS_LINE }
+];
+function parseLaterRules(json2) {
+  try {
+    const v = JSON.parse(json2 ?? "");
+    const list = Array.isArray(v) ? v.filter((r) => r && typeof r.has === "string" && r.has.trim() && typeof r.text === "string" && r.text.trim() && r.text.length < 8e3) : [];
+    return list.length ? list.map((r) => ({ has: r.has, text: r.text })) : DEPLOYAI_LATER_RULES;
+  } catch {
+    return DEPLOYAI_LATER_RULES;
+  }
+}
+
+// ../shared/src/stack.ts
+var SITE_LANG_INFO = {
+  he: { name: "Hebrew", dir: "rtl", font: "Heebo" },
+  ar: { name: "Arabic", dir: "rtl", font: "Tajawal" },
+  en: { name: "English", dir: "ltr", font: "Inter" }
+};
+var STACK_FRAMEWORKS = SUPPORTED_FRAMEWORKS.map((f) => f.id);
+var frameworkName = (id) => FRAMEWORKS.find((f) => f.id === id)?.name ?? id;
+var NEED_TEXT = {
+  form: "a contact form whose messages are saved to D1, with an owner inbox behind a key from env",
+  login: "an owner login (the account is created on the first visit, passwords with bcryptjs or Web Crypto)",
+  data: "data the owner adds and edits, saved to D1",
+  files: "photos and files the owner uploads, saved to R2"
+};
+function stackBlock(s) {
+  const langs = s.langs.map((l, i) => `${SITE_LANG_INFO[l].name} (${SITE_LANG_INFO[l].dir === "rtl" ? "right to left" : "left to right"}${i === 0 ? ", the main language at the root" : `, under /${l}/`})`);
+  const fonts = s.fonts.map((f) => `${f} (${s.langs.filter((l) => l === "en" && f === "Heebo" || SITE_LANG_INFO[l].font === f).map((l) => SITE_LANG_INFO[l].name).join(" and ")})`);
+  const lines = [
+    "# The stack",
+    "",
+    "The owner chose this on DeployAI. Build with exactly this stack: do not add a server, a database, a storage service, a CSS framework or a font outside it.",
+    "",
+    `- Framework: ${frameworkName(s.framework)}${s.framework === "static" ? " (HTML, CSS and a little JavaScript, no build step)" : ""}`,
+    `- Languages: ${langs.join(", ")}.${s.langs.length > 1 ? " Every page and every string in each language, a language switch to the same page, and hreflang." : ""}`,
+    `- Fonts: ${fonts.join(", ")}, from Google Fonts.`,
+    `- CSS: ${s.css === "tailwind" ? "Tailwind CSS" : "plain CSS"}.`,
+    `- Database: ${s.bindings.includes("d1") ? "Cloudflare D1 (SQLite) through Drizzle with drizzle-orm/d1." : "none."}`,
+    `- Files: ${s.bindings.includes("r2") ? "Cloudflare R2 for the files the owner uploads, never the local disk. Images and files that ship with the site stay in its own files." : "none. Images and files that ship with the site stay in its own files; do not add R2."}`
+  ];
+  if (s.needs.length) lines.push(`- The site has: ${s.needs.map((n2) => NEED_TEXT[n2]).join("; ")}.`);
+  return lines.join("\n") + "\n";
+}
+function stackSummary(s) {
+  return [frameworkName(s.framework), ...s.bindings.map((b) => b.toUpperCase()), s.css === "tailwind" ? "Tailwind" : null, s.fonts.join(", "), s.dir.toUpperCase()].filter(Boolean).join(" \xB7 ");
 }
 
 // ../shared/src/migration.ts
@@ -25501,7 +25513,7 @@ function formatBytes(n2) {
 }
 
 // src/version.ts
-var CLI_VERSION = "0.1.0-beta.46";
+var CLI_VERSION = "0.1.0-beta.47";
 
 // src/api.ts
 function apiContext(apiFlag, root) {
@@ -26566,7 +26578,7 @@ function cleanRules(v) {
   const o = v && typeof v === "object" ? v : {};
   const rules = {};
   if (o.rules && typeof o.rules === "object") {
-    for (const [k, t] of Object.entries(o.rules)) if (typeof t === "string" && t.trim() && t.length < 2e4) rules[k] = t;
+    for (const [k, t] of Object.entries(o.rules)) if (typeof t === "string" && t.trim() && t.length < 4e4) rules[k] = t;
   }
   const extra = Array.isArray(o.extra) ? o.extra.filter((t) => typeof t === "string" && t.trim().length > 0 && t.length < 4e3).slice(0, 20) : [];
   return { rules, extra };
@@ -30114,8 +30126,7 @@ ${choices.brief}
 
 // src/commands/addon.ts
 import { dirname as dirname6, join as join20, resolve as resolve5 } from "path";
-import { mkdirSync as mkdirSync10 } from "fs";
-import { existsSync as existsSync17, writeFileSync as writeFileSync16 } from "fs";
+import { mkdirSync as mkdirSync10, existsSync as existsSync17, writeFileSync as writeFileSync16 } from "fs";
 function linkedProjectId2(root) {
   const id = readProject(root)?.projectId;
   if (!id) throw new CliError("This folder is not linked to a DeployAI site. Run: npx deployai@latest login, then npx deployai@latest link", 1, "not_linked");
