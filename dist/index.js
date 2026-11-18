@@ -25519,7 +25519,7 @@ function formatBytes(n2) {
 }
 
 // src/version.ts
-var CLI_VERSION = "0.1.0-beta.48";
+var CLI_VERSION = "0.1.0-beta.49";
 
 // src/api.ts
 function apiContext(apiFlag, root) {
@@ -28649,7 +28649,10 @@ function readTar(tar) {
     const h = tar.subarray(offset, offset + BLOCK);
     if (h.every((b) => b === 0)) break;
     const name = readString(h, 0, 100);
-    const size = parseInt(readString(h, 124, 12).trim() || "0", 8);
+    const sizeField = readString(h, 124, 12).trim() || "0";
+    if (!/^[0-7]{1,12}$/.test(sizeField)) throw new Error("Archive header is damaged");
+    const size = parseInt(sizeField, 8);
+    if (offset + BLOCK + size > tar.length) throw new Error("Archive header is damaged");
     const type = String.fromCharCode(h[156] || 48);
     const prefix = readString(h, 345, 155);
     const data = tar.subarray(offset + BLOCK, offset + BLOCK + size);
@@ -28923,6 +28926,7 @@ function safeSourceName(raw) {
   if (!name || name.startsWith("/") || /^[a-zA-Z]:/.test(name) || name.includes("\0")) return null;
   if (name.split("/").some((p) => p === ".." || p === ".")) return null;
   if (privateProjectFile(name)) return null;
+  if (name.split("/").some((p) => /^[^.]{1,8}~\d+(\.[^.]{0,3})?$/.test(p) || /[. ]$/.test(p))) return null;
   return name;
 }
 var same2 = (a, b) => a === void 0 && b === void 0 || a !== void 0 && b !== void 0 && a.equals(b);
