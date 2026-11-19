@@ -62,7 +62,8 @@ It stays up to date by itself. `npx deployai@latest` always runs the newest vers
 | `deployai migrate pages` | Lists every page the move keeps in the dashboard's Pages, at its old address, with the old menu. |
 | `deployai migrate legal` | Starts the dashboard's Documents and Accessibility pages from the scan: what to look at, never marked done. Asks nothing. |
 | `deployai migrate redirects` | Writes `public/_redirects` only for old addresses that cannot stay. |
-| `deployai migrate verify <preview>` | Checks every old address on the preview: moved, missing, an error, or a lost title or description. Also checks each feature the scan found: the store's add to cart, the booking form, the sign in form, the forms, and that a members only page shows nothing to a visitor who is not signed in. |
+| `deployai migrate verify <preview>` | Checks every old address on the preview: moved, missing, an error, or a lost title or description. Also checks each feature the scan found: the store's add to cart, the booking form, the sign in form, the forms, and that a members only page shows nothing to a visitor who is not signed in. Then it measures each page shot into `.deployai/migration/before`, as `migrate compare` does. |
+| `deployai migrate compare <preview>` | Shoots each page of `.deployai/migration/before` on the preview and compares it pixel by pixel at both widths, leaving out what moves by itself: the share changed, pass or fail (past 1%, or `--max-diff <percent>`), and a diff picture. `--json` prints the result. |
 | `deployai migrate status <stage> [note]` | For a managed move: reports the stage (and a note like the preview address) to the request, so the board and the owner's status page update. |
 | `deployai brand favicon\|icons\|images` | The site's icons and share image, made by code from the site's own name, colors and logo: `favicon` gives a site with none its old icon, its logo or a letter in its color; `icons` makes every size; `images` measures every image against where it shows and changes nothing. |
 | `deployai blocks [inbox\|blog]` | Adds one of DeployAI's building blocks to an existing site, never over a file, with a guide in `.deployai/blocks/<key>.md`. With no key it lists them. |
@@ -70,7 +71,7 @@ It stays up to date by itself. `npx deployai@latest` always runs the newest vers
 | `deployai samples [name] [folder]` | Lists the six sample sites, or downloads one. More below. |
 | `deployai start <id>` | The one line copied on the DeployAI site. Prepares this folder, then prints the steps for your agent. A site's line logs in first; a temporary site needs no login. More below. |
 | `deployai speed <url>` | Google PageSpeed test of a page: lab results, real visitor data when Google has it and the biggest opportunities. `--desktop` tests a desktop load. |
-| `deployai shot <url>` | Phone (390) and desktop (1440) pictures of a page, full page, with the Chrome or Edge already on the computer. `--webkit` uses Safari's engine. |
+| `deployai shot <url>` | Phone (390) and desktop (1440) pictures of a page, full page, with the Chrome or Edge already on the computer. `--webkit` uses Safari's engine. `--again` takes each picture twice, 4 seconds apart, for `migrate compare`. |
 | `deployai optimize [folder]` | AVIF and WebP next to every JPG and PNG under public/, plus a phone width for wide images. Originals never change. |
 | `deployai addons` | The marketplace add-ons of the linked site: which it has, which are done and which is next. The server checks that the site has each add-on. It runs what the site has even before the marketplace opens. |
 | `deployai addon next` | Prints the next add-on of the site for your agent. `deployai addon run <name>` prints one by name. |

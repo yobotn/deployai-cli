@@ -1,6 +1,6 @@
 {
   "name": "deployai",
-  "version": "0.1.0-beta.51",
+  "version": "0.1.0-beta.52",
   "description": "Check a site built with an AI editor, see what has to change, and publish it to DeployAI. Hebrew first.",
   "keywords": [
     "deployai",
@@ -38,6 +38,8 @@
     "node": ">=22.12.0"
   },
   "dependencies": {
-    "commander": "15.0.0"
+    "commander": "15.0.0",
+    "pixelmatch": "7.1.0",
+    "pngjs": "7.0.0"
   }
 }
