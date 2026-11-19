@@ -57,12 +57,12 @@ It stays up to date by itself. `npx deployai@latest` always runs the newest vers
 | `deployai deploy --guest` | No login needed: puts the site live as a temporary site with a claim link. More below. |
 | `deployai pull` | Downloads the code of the linked site's live version into this empty folder. Needs login. |
 | `deployai pull --history` | The same, with the site's history as git commits, one per version up to the live one, oldest first. |
-| `deployai migrate scan <url>` | Scans the old site you are moving: every page's address, title and description, the platform, and on WordPress its posts as Markdown. Up to 300 pages, `--max <n>` up to 1,000. Writes into `.deployai/migration/<host>/` only. |
+| `deployai migrate scan <url>` | Scans the old site you are moving: every page's address, title and description, the platform, and on WordPress its posts as Markdown. Also the kind of site (content, store, bookings, members) and its features, with what the owner must connect before going live. Up to 300 pages, `--max <n>` up to 1,000. Writes into `.deployai/migration/<host>/` only. |
 | `deployai migrate media` | Downloads the old site's files at their old paths, resumable (25 MB a file, 1 GB a move). |
 | `deployai migrate pages` | Lists every page the move keeps in the dashboard's Pages, at its old address, with the old menu. |
 | `deployai migrate legal` | Starts the dashboard's Documents and Accessibility pages from the scan: what to look at, never marked done. Asks nothing. |
 | `deployai migrate redirects` | Writes `public/_redirects` only for old addresses that cannot stay. |
-| `deployai migrate verify <preview>` | Checks every old address on the preview: moved, missing, an error, or a lost title or description. |
+| `deployai migrate verify <preview>` | Checks every old address on the preview: moved, missing, an error, or a lost title or description. Also checks each feature the scan found: the store's add to cart, the booking form, the sign in form, the forms, and that a members only page shows nothing to a visitor who is not signed in. |
 | `deployai migrate status <stage> [note]` | For a managed move: reports the stage (and a note like the preview address) to the request, so the board and the owner's status page update. |
 | `deployai brand favicon\|icons\|images` | The site's icons and share image, made by code from the site's own name, colors and logo: `favicon` gives a site with none its old icon, its logo or a letter in its color; `icons` makes every size; `images` measures every image against where it shows and changes nothing. |
 | `deployai blocks [inbox\|blog]` | Adds one of DeployAI's building blocks to an existing site, never over a file, with a guide in `.deployai/blocks/<key>.md`. With no key it lists them. |
@@ -74,7 +74,7 @@ It stays up to date by itself. `npx deployai@latest` always runs the newest vers
 | `deployai optimize [folder]` | AVIF and WebP next to every JPG and PNG under public/, plus a phone width for wide images. Originals never change. |
 | `deployai addons` | The marketplace add-ons of the linked site: which it has, which are done and which is next. The server checks that the site has each add-on. It runs what the site has even before the marketplace opens. |
 | `deployai addon next` | Prints the next add-on of the site for your agent. `deployai addon run <name>` prints one by name. |
-| `deployai addons run` | Runs the add-ons picked for the site one after another, with no question between them and one publish at the end. With more than one picked and no order yet, prints what is known of each, and the agent comes back with `--order`. `--parallel` (On my own only) runs them in waves, each lane in its own git worktree next to the folder. |
+| `deployai addons run` | Runs the add-ons picked for the site one after another, with no question between them and one publish at the end. With more than one picked and no order yet, prints what is known of each, and the agent comes back with `--order`. `--parallel` (On my own only) runs them in waves, each lane in its own git worktree next to the folder. `--end preview`, `--end live` or `--end none` answers the question at the end ahead, for a run nobody watches; with `CI` set and no `--end`, it ends with a preview. |
 | `deployai addons merge` | Brings the lanes of a wave back into the folder, in order, and removes the lane folders. Stops on a conflict and lists the files. |
 | `deployai addon done <runId>` | Saves the report of a finished add-on (`--status done\|failed\|skipped`, `--report .deployai/addon-report.json`) and prints the next one. |
 | `deployai telemetry status\|on\|off` | Shows exactly what is sent, or turns it on or off. |
@@ -126,6 +126,8 @@ Each page says what the finding means, why it blocks or warns, how to fix it, an
 ## API address
 
 The default is `https://deployai.co.il`. The order is: `--api <url>`, then env `DEPLOYAI_API_URL`, then the address saved at login, then the default. For local development of DeployAI itself, use `--api http://localhost:3000` or `DEPLOYAI_API_URL=http://localhost:3000`.
+
+With env `DEPLOYAI_TOKEN` set, every command uses that token instead of the login saved on this computer, with no browser login and no question at the terminal. It is never saved, and it is sent only to `DEPLOYAI_API_URL` or the default address, never to a `--api` address.
 
 ## What deploy uploads
 

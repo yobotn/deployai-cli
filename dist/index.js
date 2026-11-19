@@ -16,7 +16,7 @@ var ADDON_WAVES = [
   [["redesign", "code-quality"]],
   [["dashboard", "legal", "sso"], ["ux", "responsive", "graphics"]],
   [["language"]],
-  [["security"], ["accessibility"], ["exposure"], ["performance"]]
+  [["security"], ["accessibility"], ["store", "bookings", "members", "exposure"], ["performance"]]
 ];
 var addonWave = (key2) => {
   const i = ADDON_WAVES.findIndex((w) => w.some((lane) => lane.includes(key2)));
@@ -658,8 +658,8 @@ function majorVersion(range) {
   const m = /(\d+)(?:\.\d+)?/.exec(range);
   return m ? m[1] : null;
 }
-function firstConfig(p, names) {
-  for (const n2 of names) {
+function firstConfig(p, names2) {
+  for (const n2 of names2) {
     const t = p.read(n2);
     if (t != null) return t;
   }
@@ -3198,18 +3198,18 @@ function treeifyError(error62, mapper = (issue2) => issue2.message) {
 }
 function toDotPath(_path) {
   const segs = [];
-  const path = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
-  for (const seg of path) {
-    if (typeof seg === "number")
-      segs.push(`[${seg}]`);
-    else if (typeof seg === "symbol")
-      segs.push(`[${JSON.stringify(String(seg))}]`);
-    else if (/[^\w$]/.test(seg))
-      segs.push(`[${JSON.stringify(seg)}]`);
+  const path = _path.map((seg2) => typeof seg2 === "object" ? seg2.key : seg2);
+  for (const seg2 of path) {
+    if (typeof seg2 === "number")
+      segs.push(`[${seg2}]`);
+    else if (typeof seg2 === "symbol")
+      segs.push(`[${JSON.stringify(String(seg2))}]`);
+    else if (/[^\w$]/.test(seg2))
+      segs.push(`[${JSON.stringify(seg2)}]`);
     else {
       if (segs.length)
         segs.push(".");
-      segs.push(seg);
+      segs.push(seg2);
     }
   }
   return segs.join("");
@@ -18130,12 +18130,12 @@ function rewriteKeyNames(ctx) {
   const rewrites = /* @__PURE__ */ new Map();
   for (const record3 of pendingRecords.get(ctx) ?? []) {
     const seen = ctx.seen.get(record3);
-    const names = (seen?.def ?? seen?.schema)?.propertyNames;
-    if (!names || names === true || rewrites.has(names))
+    const names2 = (seen?.def ?? seen?.schema)?.propertyNames;
+    if (!names2 || names2 === true || rewrites.has(names2))
       continue;
-    const rewritten = stringifyKeyNames(bySchema, names, /* @__PURE__ */ new Set());
-    if (rewritten !== names)
-      rewrites.set(names, rewritten);
+    const rewritten = stringifyKeyNames(bySchema, names2, /* @__PURE__ */ new Set());
+    if (rewritten !== names2)
+      rewrites.set(names2, rewritten);
   }
   if (!rewrites.size)
     return;
@@ -22130,6 +22130,284 @@ var KNOWN_BOT_RULES = [
   { description: "known-bot no", expression: "not cf.client.bot", value: "0" }
 ].map((r) => ({ description: r.description, expression: r.expression, action: "rewrite", action_parameters: { headers: { "x-deployai-known-bot": { operation: "set", value: r.value } } }, enabled: true }));
 
+// ../shared/src/safe-url.ts
+var UnsafeUrlError = class extends Error {
+  constructor(code, message = code) {
+    super(message);
+    this.code = code;
+  }
+  code;
+};
+var PRIVATE_SUFFIXES = [".localhost", ".local", ".internal", ".intranet", ".lan", ".home", ".home.arpa", ".corp", ".test", ".invalid", ".example", ".onion"];
+function parseToolUrl(raw) {
+  const text3 = raw.trim();
+  if (!text3 || text3.length > 2e3) throw new UnsafeUrlError("invalid");
+  let u;
+  try {
+    u = new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(text3) ? text3 : `https://${text3}`);
+  } catch {
+    throw new UnsafeUrlError("invalid");
+  }
+  if (u.protocol !== "https:" && u.protocol !== "http:") throw new UnsafeUrlError("scheme");
+  if (u.username || u.password) throw new UnsafeUrlError("credentials");
+  if (u.port && u.port !== "80" && u.port !== "443") throw new UnsafeUrlError("port");
+  const host = u.hostname.toLowerCase().replace(/\.$/, "");
+  if (isIpLiteral(host)) throw new UnsafeUrlError("ip");
+  if (!host.includes(".") || host === "localhost" || PRIVATE_SUFFIXES.some((s) => host.endsWith(s))) throw new UnsafeUrlError("private_host");
+  if (!/^[a-z0-9.-]+$/.test(host) || host.split(".").some((l) => !l || l.length > 63 || l.startsWith("-") || l.endsWith("-"))) throw new UnsafeUrlError("invalid");
+  u.hash = "";
+  u.hostname = host;
+  const path = u.pathname.replace(/\/+$/, "") || "/";
+  return { url: u.toString(), key: `${host.replace(/^www\./, "")}${path === "/" ? "" : path}${u.search}`, host };
+}
+function isIpLiteral(host) {
+  const h = host.replace(/^\[|\]$/g, "");
+  if (h.includes(":")) return true;
+  return /^(0x[0-9a-f]+|\d+)(\.(0x[0-9a-f]+|\d+)){0,3}$/i.test(h);
+}
+function ipv4ToInt(ip) {
+  const parts2 = ip.split(".");
+  if (parts2.length !== 4) return null;
+  let n2 = 0;
+  for (const p of parts2) {
+    if (!/^\d{1,3}$/.test(p) || Number(p) > 255) return null;
+    n2 = n2 * 256 + Number(p);
+  }
+  return n2;
+}
+var V4_BLOCKS = [
+  ["0.0.0.0", 8],
+  ["10.0.0.0", 8],
+  ["100.64.0.0", 10],
+  ["127.0.0.0", 8],
+  ["169.254.0.0", 16],
+  ["172.16.0.0", 12],
+  ["192.0.0.0", 24],
+  ["192.0.2.0", 24],
+  ["192.88.99.0", 24],
+  ["192.168.0.0", 16],
+  ["198.18.0.0", 15],
+  ["198.51.100.0", 24],
+  ["203.0.113.0", 24],
+  ["224.0.0.0", 4],
+  ["240.0.0.0", 4]
+];
+function inV4Block(n2, base, bits) {
+  const b = ipv4ToInt(base);
+  const mask = bits === 0 ? 0 : 4294967295 << 32 - bits >>> 0;
+  return (n2 & mask) >>> 0 === (b & mask) >>> 0;
+}
+function ipv6Groups(ip) {
+  let s = ip.toLowerCase().replace(/^\[|\]$/g, "").split("%")[0];
+  const v4 = /(\d+\.\d+\.\d+\.\d+)$/.exec(s);
+  if (v4) {
+    const n2 = ipv4ToInt(v4[1]);
+    if (n2 === null) return null;
+    s = s.slice(0, -v4[1].length) + `${(n2 >>> 16).toString(16)}:${(n2 & 65535).toString(16)}`;
+  }
+  const halves = s.split("::");
+  if (halves.length > 2) return null;
+  const head = halves[0] ? halves[0].split(":") : [];
+  const tail = halves.length === 2 && halves[1] ? halves[1].split(":") : [];
+  const fill = halves.length === 2 ? 8 - head.length - tail.length : 0;
+  const all = [...head, ...Array(Math.max(0, fill)).fill("0"), ...tail];
+  if (all.length !== 8 || all.some((g) => !/^[0-9a-f]{1,4}$/.test(g))) return null;
+  return all.map((g) => parseInt(g, 16));
+}
+function isPrivateIp(ip) {
+  const v4 = ipv4ToInt(ip);
+  if (v4 !== null) return V4_BLOCKS.some(([b, bits]) => inV4Block(v4, b, bits)) || v4 === 4294967295;
+  const g = ipv6Groups(ip);
+  if (!g) return true;
+  const embedded = (hi, lo) => `${hi >>> 8}.${hi & 255}.${lo >>> 8}.${lo & 255}`;
+  if (g.every((x) => x === 0)) return true;
+  if (g.slice(0, 7).every((x) => x === 0) && g[7] === 1) return true;
+  if (g.slice(0, 5).every((x) => x === 0) && g[5] === 65535) return isPrivateIp(embedded(g[6], g[7]));
+  if (g[0] === 100 && g[1] === 65435) return isPrivateIp(embedded(g[6], g[7]));
+  if (g[0] === 8194) return isPrivateIp(embedded(g[1], g[2]));
+  if ((g[0] & 65024) === 64512) return true;
+  if ((g[0] & 65472) === 65152) return true;
+  if ((g[0] & 65280) === 65280) return true;
+  if (g[0] === 8193 && g[1] === 3512) return true;
+  if (g[0] === 8193 && g[1] < 512) return true;
+  return false;
+}
+async function resolveHost(host, fetchImpl = fetch) {
+  const out2 = [];
+  for (const type of ["A", "AAAA"]) {
+    try {
+      out2.push(...await resolveDns(host, type, { fetchImpl, strict: true }));
+    } catch {
+      throw new UnsafeUrlError("dns");
+    }
+  }
+  return out2;
+}
+var KEEP_HEADERS = ["location", "x-powered-by", "content-type", "content-length", "cache-control", "server", "x-robots-tag", "last-modified", "etag", "content-security-policy", "strict-transport-security", "x-frame-options", "x-content-type-options", "referrer-policy", "permissions-policy"];
+var TOOLS_USER_AGENT = "Mozilla/5.0 (compatible; DeployAI-Tools/1.0; +https://deployai.co.il/tools)";
+async function safeFetch(rawUrl, opts = {}) {
+  const fetchImpl = opts.fetchImpl ?? fetch;
+  const resolve12 = opts.resolve ?? ((h) => resolveHost(h, fetchImpl));
+  const maxBytes = opts.maxBytes ?? 2 * 1024 * 1024;
+  const maxRedirects = opts.maxRedirects ?? 5;
+  const deadline = Date.now() + (opts.timeoutMs ?? 1e4);
+  const redirects = [];
+  let current = parseToolUrl(rawUrl).url;
+  for (let hop = 0; ; hop++) {
+    const { host } = parseToolUrl(current);
+    const ips = await resolve12(host);
+    if (!ips.length) throw new UnsafeUrlError("dns");
+    if (ips.some(isPrivateIp)) throw new UnsafeUrlError("private_ip");
+    const left = deadline - Date.now();
+    if (left <= 0) throw new UnsafeUrlError("timeout");
+    let res;
+    try {
+      res = await fetchImpl(current, {
+        method: opts.method ?? "GET",
+        redirect: "manual",
+        signal: AbortSignal.timeout(left),
+        headers: { "user-agent": opts.userAgent ?? TOOLS_USER_AGENT, accept: "text/html,application/xhtml+xml,image/*;q=0.8,*/*;q=0.5", "accept-language": "he,en;q=0.8", ...opts.headers }
+      });
+    } catch (e3) {
+      throw new UnsafeUrlError(e3?.name === "TimeoutError" || e3?.name === "AbortError" ? "timeout" : "unreachable");
+    }
+    const location = res.headers.get("location");
+    if (res.status >= 300 && res.status < 400 && location && !opts.noFollow) {
+      if (hop >= maxRedirects) throw new UnsafeUrlError("redirects");
+      await res.body?.cancel().catch(() => void 0);
+      let next;
+      try {
+        next = new URL(location, current).toString();
+      } catch {
+        throw new UnsafeUrlError("invalid");
+      }
+      redirects.push(next);
+      current = next;
+      continue;
+    }
+    const headers = {};
+    for (const k of KEEP_HEADERS) {
+      const v = res.headers.get(k);
+      if (v) headers[k] = v.slice(0, 500);
+    }
+    const cookies = res.headers.getSetCookie?.() ?? [];
+    if (cookies.length) headers["set-cookie"] = cookies.slice(0, 20).map((c) => c.slice(0, 500)).join("\n");
+    const lengthHeader = Number(res.headers.get("content-length"));
+    const length = Number.isFinite(lengthHeader) && lengthHeader > 0 ? lengthHeader : null;
+    const limit = opts.headBytes ?? maxBytes;
+    if (!opts.headBytes && length !== null && length > maxBytes) {
+      await res.body?.cancel().catch(() => void 0);
+      throw new UnsafeUrlError("too_big");
+    }
+    const body = opts.method === "HEAD" ? new Uint8Array() : await readCapped(res, limit, !opts.headBytes, deadline);
+    return { finalUrl: current, status: res.status, contentType: (res.headers.get("content-type") ?? "").toLowerCase(), length, headers, body, redirects };
+  }
+}
+async function readCapped(res, limit, failOver, deadline) {
+  if (!res.body) return new Uint8Array();
+  const reader = res.body.getReader();
+  const chunks = [];
+  let size = 0;
+  try {
+    for (; ; ) {
+      if (Date.now() > deadline) throw new UnsafeUrlError("timeout");
+      const { done, value: value2 } = await reader.read();
+      if (done) break;
+      size += value2.byteLength;
+      if (size > limit) {
+        if (failOver) throw new UnsafeUrlError("too_big");
+        chunks.push(value2.subarray(0, value2.byteLength - (size - limit)));
+        size = limit;
+        break;
+      }
+      chunks.push(value2);
+    }
+  } finally {
+    reader.cancel().catch(() => void 0);
+  }
+  const out2 = new Uint8Array(size);
+  let at = 0;
+  for (const c of chunks) {
+    out2.set(c, at);
+    at += c.byteLength;
+  }
+  return out2;
+}
+
+// ../shared/src/state/machine.ts
+function defineMachine(m) {
+  for (const [event, move] of Object.entries(m.events)) {
+    for (const s of [...move.from, move.to]) if (!m.states.includes(s)) throw new Error(`${m.name}.${event}: unknown state ${s}`);
+  }
+  return m;
+}
+
+// ../shared/src/state/payments.ts
+var PAYMENT_MACHINE = defineMachine({
+  name: "payment",
+  states: ["paid", "refunding", "refunded"],
+  events: {
+    refund_claim: { from: ["paid"], to: "refunding" },
+    refund_failed: { from: ["refunding"], to: "paid" },
+    refund_done: { from: ["refunding"], to: "refunded" }
+  }
+});
+
+// ../shared/src/state/domain-orders.ts
+var OPEN = ["paid", "uncertain", "registering", "action_required"];
+var DOMAIN_ORDER_MACHINE = defineMachine({
+  name: "domain_order",
+  states: ["paid", "uncertain", "registering", "action_required", "succeeded", "failed"],
+  events: {
+    unclear: { from: ["paid", "registering", "action_required"], to: "uncertain" },
+    registering: { from: ["paid", "uncertain", "action_required"], to: "registering" },
+    action_required: { from: ["paid", "uncertain", "registering"], to: "action_required" },
+    resend: { from: ["uncertain"], to: "paid" },
+    succeeded: { from: OPEN, to: "succeeded" },
+    failed: { from: OPEN, to: "failed" }
+  }
+});
+
+// ../shared/src/state/app-purchases.ts
+var APP_PURCHASE_MACHINE = defineMachine({
+  name: "app_purchase",
+  states: ["open", "charging", "paid", "uncertain", "declined", "finalized", "released", "refunding", "refunded", "refund_uncertain"],
+  events: {
+    charge: { from: ["open", "declined"], to: "charging" },
+    charged: { from: ["charging", "uncertain"], to: "paid" },
+    no_answer: { from: ["charging"], to: "uncertain" },
+    declined: { from: ["charging", "uncertain"], to: "declined" },
+    not_charged: { from: ["charging", "uncertain"], to: "open" },
+    finalize: { from: ["paid"], to: "finalized" },
+    release: { from: ["open", "declined"], to: "released" },
+    refund_claim: { from: ["paid", "finalized"], to: "refunding" },
+    refund_unclear: { from: ["refunding"], to: "refund_uncertain" },
+    refund_done: { from: ["refunding", "refund_uncertain"], to: "refunded" },
+    refund_back_finalized: { from: ["refunding", "refund_uncertain"], to: "finalized" },
+    refund_back_paid: { from: ["refunding", "refund_uncertain"], to: "paid" }
+  }
+});
+
+// ../shared/src/state/site.ts
+var ANY = ["new", "online", "off", "paused"];
+var SITE_MACHINE = defineMachine({
+  name: "site",
+  states: ANY,
+  events: {
+    owner_on: { from: ANY, to: "online" },
+    owner_off: { from: ANY, to: "off" },
+    team_pause: { from: ANY, to: "paused" },
+    team_resume_online: { from: ["paused"], to: "online" },
+    team_resume_new: { from: ["paused"], to: "new" },
+    go_live: { from: ["new", "online"], to: "online" },
+    delete: { from: ANY, to: "off" },
+    restore_new: { from: ["off"], to: "new" },
+    restore_online: { from: ["off"], to: "online" },
+    restore_off: { from: ["off"], to: "off" },
+    restore_paused: { from: ["off"], to: "paused" }
+  }
+});
+
 // ../shared/src/share-meta.ts
 function linkHref(html, rel) {
   for (const t of tags(html, "link")) {
@@ -22372,14 +22650,14 @@ function isPageWhite(color) {
 }
 function pickBrandColor(sources) {
   const score = /* @__PURE__ */ new Map();
-  const add = (raw, by, onPurpose) => {
+  const add2 = (raw, by, onPurpose) => {
     const hex3 = toHexColor(raw);
     if (hex3 && (onPurpose ? !isPageWhite(hex3) : isBrandColor(hex3))) score.set(hex3, (score.get(hex3) ?? 0) + by);
   };
   for (const s of sources) {
-    if (s.themeColor) add(s.themeColor, THEME_WEIGHT, true);
-    for (const m of s.text.matchAll(COLOR_RE)) add(m[0], 1, false);
-    for (const m of s.text.matchAll(NAMED_RE)) add(m[2], NAMED_WEIGHT, true);
+    if (s.themeColor) add2(s.themeColor, THEME_WEIGHT, true);
+    for (const m of s.text.matchAll(COLOR_RE)) add2(m[0], 1, false);
+    for (const m of s.text.matchAll(NAMED_RE)) add2(m[2], NAMED_WEIGHT, true);
   }
   return [...score.entries()].filter(([, n2]) => n2 >= MIN_USES).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] ?? null;
 }
@@ -22453,7 +22731,7 @@ function oldHostAssets(html, pageUrl, oldHosts) {
   const old = new Set(oldHosts.map(bare));
   const meta3 = parseShareMeta(html);
   const found = [];
-  const add = (kind, href) => {
+  const add2 = (kind, href) => {
     if (!href) return;
     try {
       const url2 = new URL(href, pageUrl);
@@ -22461,9 +22739,9 @@ function oldHostAssets(html, pageUrl, oldHosts) {
     } catch {
     }
   };
-  add("share", meta3.og.image);
-  add("x", meta3.twitter.image);
-  for (const href of iconLinks(html)) add("icon", href);
+  add2("share", meta3.og.image);
+  add2("x", meta3.twitter.image);
+  for (const href of iconLinks(html)) add2("icon", href);
   return found;
 }
 
@@ -22772,7 +23050,7 @@ var FAVICON = { cmd: "npx deployai@latest brand favicon", say: "Gives the site a
 var LOGIN = { cmd: "npx deployai@latest login", say: "The owner approves it in the browser window it opens." };
 var PROMOTE = { cmd: "npx deployai@latest promote v<N>", say: "Only when deploy ran without --live, and only after the owner approves the preview. N is the version number deploy printed. Then give the owner the live address." };
 var DEPLOY_SAY = "Add --live only if the owner chose to put it live right away. It waits for the build: with --live it ends with the live address, else with the preview address to send the owner. When it prints database changes, a yes to going live does not cover them (D-541): show the owner the changes and ask the question it prints, and only after a yes run the promote --approve-sql command it printed; changes it says remove data only the owner approves, never you. Write the -m message in a few words in the language of the owner, about what they see changed.";
-var BUILD = { say: "This folder had no site, so start wrote a starter page. Do not ask where the site comes from or which way to start: build a first version of the owner's site in its place now. Use what you know (the instructions above, .deployai/brief.md if it exists, the folder name) and choose the layout, colors and wording yourself. Besides the question about going live, ask at most one short question, and only if you cannot tell what the site is for. Leave out what you do not know (phone, prices, hours) instead of asking for it. The steps below show it to the owner as the first look: offer to add those details then. Run check only after you built it." };
+var BUILD = { say: "This folder had no site, so start wrote a starter page. Do not ask where the site comes from or which way to start: build a first version of the owner's site in its place now. Use what you know (the instructions above, .deployai/brief.md if it exists, the folder name) and choose the layout, colors and wording yourself, with the look kit that https://deployai.co.il/kits.md picks for the site's kind. Besides the question about going live, ask at most one short question, and only if you cannot tell what the site is for. Leave out what you do not know (phone, prices, hours) instead of asking for it. The steps below show it to the owner as the first look: offer to add those details then. Run check only after you built it." };
 var OFFER_DASHBOARD = { cmd: "npx deployai@latest addon run dashboard", say: "Only after the site is live, and only if the owner says yes: in one sentence, offer the site's own free dashboard, to read form messages, hide and edit pages and manage a blog or a shop without an agent." };
 var ADDONS_RUN = { cmd: "npx deployai@latest addons run", say: "With more than one add-on picked, it prints what you know about each and asks you to decide the order for this site. Run the command it prints for your order, work through each step it prints, and report each add-on as it says. Nothing is asked between add-ons, and one publish comes at the end." };
 var TAGS_SEEN = { cmd: "npx deployai@latest migrate tags --requests <file>", say: "While you look at the old site, save the outside addresses your browser asks for to a file, one a line, and run this: Tag Manager loads tags that are not in the page. Never send a form on the old site. If the old site shows a security check (Cloudflare, a captcha) or blocks a command but opens in a browser (D-916): open it in your browser tool, tell the owner in one line that a check may show in that window and to pass it there, wait up to three minutes, and read the pages in that browser. Offer this first, as the recommended answer, when you ask the owner; turning the check off for the move or sending an export are the other answers." };
@@ -22925,14 +23203,14 @@ var CLI_MAP_NODES = [
   n("page-move", "site", "/dashboard", "\u05D9\u05E9 \u05DC\u05D9 \u05DB\u05D1\u05E8 \u05D0\u05EA\u05E8: \u05E9\u05D5\u05E8\u05D4 \u05DC\u05D4\u05E2\u05D1\u05E8\u05EA \u05D4\u05D0\u05EA\u05E8 \u05E9\u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4.", "I already have a site: a line to move the site in the folder."),
   // The CLI: every command (packages/cli/src/cli.ts).
   n("cmd-start", "cli", "start <id>", "\u05DE\u05DB\u05D9\u05DF \u05D0\u05EA \u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05DC\u05E4\u05D9 \u05DB\u05DC \u05D4\u05D1\u05D7\u05D9\u05E8\u05D5\u05EA: \u05EA\u05D9\u05E7\u05D9\u05D9\u05D4, \u05D3\u05D5\u05D2\u05DE\u05D4 \u05D5\u05D4\u05EA\u05E7\u05E0\u05D4, \u05E7\u05D5\u05D1\u05E5 \u05D4\u05E4\u05E8\u05D8\u05D9\u05DD \u05D5\u05D7\u05D9\u05D1\u05D5\u05E8 \u05DC\u05D0\u05EA\u05E8. \u05DE\u05D3\u05E4\u05D9\u05E1 \u05DC\u05E1\u05D5\u05DB\u05DF \u05D0\u05EA \u05D4\u05D8\u05E7\u05E1\u05D8 \u05D5\u05D0\u05EA \u05D4\u05E4\u05E7\u05D5\u05D3\u05D5\u05EA.", "Prepares the folder with every choice: folder, sample and install, the details file and the site link. Prints the text and the commands for the agent."),
-  n("cmd-migrate", "cli", "migrate scan / media / pages / posts / legal / redirects / verify / tags / report / status", "\u05D4\u05D0\u05EA\u05E8 \u05D4\u05D9\u05E9\u05DF: \u05E1\u05E8\u05D9\u05E7\u05EA \u05D4\u05DB\u05EA\u05D5\u05D1\u05D5\u05EA \u05D5\u05D4\u05EA\u05D5\u05DB\u05DF, \u05D4\u05D5\u05E8\u05D3\u05EA \u05D4\u05E7\u05D1\u05E6\u05D9\u05DD, \u05D4\u05E4\u05E0\u05D9\u05D5\u05EA 301 \u05DC\u05DB\u05EA\u05D5\u05D1\u05D5\u05EA \u05E9\u05DC\u05D0 \u05E0\u05E9\u05D0\u05E8\u05D5, \u05D5\u05D1\u05D3\u05D9\u05E7\u05D4 \u05E9\u05DB\u05DC \u05DB\u05EA\u05D5\u05D1\u05EA \u05D9\u05E9\u05E0\u05D4 \u05E0\u05E4\u05EA\u05D7\u05EA \u05D1\u05EA\u05E6\u05D5\u05D2\u05D4 \u05D4\u05DE\u05E7\u05D3\u05D9\u05DE\u05D4.", "The old site: scan its addresses and content, download its files, 301s for addresses that could not stay, and a check that every old address opens on the preview."),
+  n("cmd-migrate", "cli", "migrate scan / media / pages / posts / legal / redirects / verify / tags / report / status", "\u05D4\u05D0\u05EA\u05E8 \u05D4\u05D9\u05E9\u05DF: \u05E1\u05E8\u05D9\u05E7\u05EA \u05D4\u05DB\u05EA\u05D5\u05D1\u05D5\u05EA \u05D5\u05D4\u05EA\u05D5\u05DB\u05DF, \u05E1\u05D5\u05D2 \u05D4\u05D0\u05EA\u05E8 (\u05EA\u05D5\u05DB\u05DF, \u05D7\u05E0\u05D5\u05EA, \u05D4\u05D6\u05DE\u05E0\u05EA \u05EA\u05D5\u05E8\u05D9\u05DD, \u05D0\u05D6\u05D5\u05E8 \u05D7\u05D1\u05E8\u05D9\u05DD) \u05D5\u05D4\u05D9\u05DB\u05D5\u05DC\u05D5\u05EA \u05E9\u05DC\u05D5, \u05D4\u05D5\u05E8\u05D3\u05EA \u05D4\u05E7\u05D1\u05E6\u05D9\u05DD, \u05D4\u05E4\u05E0\u05D9\u05D5\u05EA 301 \u05DC\u05DB\u05EA\u05D5\u05D1\u05D5\u05EA \u05E9\u05DC\u05D0 \u05E0\u05E9\u05D0\u05E8\u05D5, \u05D5\u05D1\u05D3\u05D9\u05E7\u05D4 \u05E9\u05DB\u05DC \u05DB\u05EA\u05D5\u05D1\u05EA \u05D9\u05E9\u05E0\u05D4 \u05D5\u05DB\u05DC \u05D9\u05DB\u05D5\u05DC\u05EA \u05E2\u05D5\u05D1\u05D3\u05D5\u05EA \u05D1\u05EA\u05E6\u05D5\u05D2\u05D4 \u05D4\u05DE\u05E7\u05D3\u05D9\u05DE\u05D4.", "The old site: scan its addresses and content, its kind (content, store, bookings, members) and features, download its files, 301s for addresses that could not stay, and a check that every old address and every feature works on the preview."),
   n("cmd-blocks", "cli", "blocks [name]", "\u05D0\u05D1\u05E0\u05D9 \u05D1\u05E0\u05D9\u05D9\u05DF \u05E9\u05DC\u05E0\u05D5 \u05DC\u05D0\u05EA\u05E8 \u05E7\u05D9\u05D9\u05DD: dashboard (\u05DE\u05E2\u05E8\u05DB\u05EA \u05E0\u05D9\u05D4\u05D5\u05DC \u05E2\u05DD AI), inbox (\u05D8\u05D5\u05E4\u05E1 \u05D5\u05E2\u05DE\u05D5\u05D3 \u05D4\u05D5\u05D3\u05E2\u05D5\u05EA \u05DC\u05D1\u05E2\u05DC\u05D9\u05DD), blog, late-tags (\u05EA\u05D2\u05D9 \u05DE\u05E2\u05E7\u05D1 \u05E9\u05E0\u05D8\u05E2\u05E0\u05D9\u05DD \u05E8\u05D2\u05E2 \u05D0\u05D7\u05E8\u05D9 \u05E9\u05D4\u05E2\u05DE\u05D5\u05D3 \u05DE\u05D5\u05E4\u05D9\u05E2). \u05DC\u05D0 \u05D3\u05D5\u05E8\u05E1 \u05E7\u05D1\u05E6\u05D9\u05DD \u05E9\u05E9\u05D9\u05E0\u05D9\u05EA\u05DD.", "Our building blocks for an existing site: dashboard (the site's own back office), inbox (form and owner messages page), blog, late-tags (tracking tags that load a moment after the page shows). Never writes over files you changed."),
   n("cmd-brand", "cli", "brand favicon / icons / images", "\u05D4\u05D0\u05D9\u05D9\u05E7\u05D5\u05E0\u05D9\u05DD \u05D5\u05EA\u05DE\u05D5\u05E0\u05EA \u05D4\u05E9\u05D9\u05EA\u05D5\u05E3 \u05E0\u05D5\u05E6\u05E8\u05D9\u05DD \u05D1\u05E7\u05D5\u05D3 \u05DE\u05D4\u05D0\u05EA\u05E8 \u05E2\u05E6\u05DE\u05D5: \u05D4\u05E9\u05DD, \u05D4\u05E6\u05D1\u05E2\u05D9\u05DD \u05D5\u05D4\u05DC\u05D5\u05D2\u05D5. favicon \u05D7\u05D9\u05E0\u05DD \u05DC\u05DB\u05DC \u05D0\u05EA\u05E8, \u05E1\u05D8 \u05DE\u05DC\u05D0, \u05D5\u05D3\u05D5\u05D7 \u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05D7\u05DC\u05E9\u05D5\u05EA \u05DC\u05E4\u05D9 \u05DE\u05D3\u05D9\u05D3\u05D4. \u05DC\u05D0 \u05DE\u05D7\u05DC\u05D9\u05E3 \u05EA\u05DE\u05D5\u05E0\u05D4 \u05DC\u05D1\u05D3.", "The site's icons and share image, made by code from the site itself: its name, colors and logo. A free favicon for every site, the full set, and a measured report of weak images. Never replaces an image by itself."),
   n("cmd-samples", "cli", "samples [key]", "\u05E8\u05E9\u05D9\u05DE\u05EA \u05D4\u05D3\u05D5\u05D2\u05DE\u05D0\u05D5\u05EA, \u05D0\u05D5 \u05D4\u05D5\u05E8\u05D3\u05D4 \u05E9\u05DC \u05D0\u05D7\u05EA.", "Lists the samples, or downloads one."),
   n("cmd-check", "cli", "check", "\u05D4\u05D0\u05DD \u05D4\u05E4\u05E8\u05D5\u05D9\u05E7\u05D8 \u05D9\u05DB\u05D5\u05DC \u05DC\u05E8\u05D5\u05E5 \u05D0\u05E6\u05DC\u05E0\u05D5: \u05D7\u05D5\u05E1\u05DE\u05D9\u05DD \u05D5\u05D0\u05D6\u05D4\u05E8\u05D5\u05EA, \u05E2\u05DD \u05E4\u05E8\u05D5\u05DE\u05E4\u05D8 \u05EA\u05D9\u05E7\u05D5\u05DF.", "Can the project run on our hosting: blockers and warnings, with a fix prompt."),
   n("cmd-init", "cli", "init", "\u05D9\u05D5\u05E6\u05E8 DEPLOYAI.md \u05E2\u05DD \u05D4\u05DB\u05DC\u05DC\u05D9\u05DD \u05DC\u05E1\u05D5\u05DB\u05DF, \u05E9\u05D5\u05E8\u05D4 \u05D0\u05DC\u05D9\u05D5 \u05D1 AGENTS.md \u05D5 CLAUDE.md, \u05D5 .deployai/project.json. \u05E8\u05D0\u05E9\u05D5\u05DF \u05D1\u05E4\u05E8\u05D5\u05D9\u05E7\u05D8 \u05D7\u05D3\u05E9.", "Creates DEPLOYAI.md with the agent rules, a line to it in AGENTS.md and CLAUDE.md, and .deployai/project.json. First in a new project."),
   n("cmd-inspect", "cli", "inspect", "\u05DE\u05D4 \u05D6\u05D5\u05D4\u05D4 \u05D1\u05E4\u05E8\u05D5\u05D9\u05E7\u05D8: \u05DE\u05E1\u05D2\u05E8\u05EA, \u05E9\u05E4\u05D4, \u05DE\u05E1\u05D3 \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD.", "What the project is: framework, language, database."),
-  n("cmd-login", "cli", "login", "\u05DB\u05E0\u05D9\u05E1\u05D4 \u05D1\u05D3\u05E4\u05D3\u05E4\u05DF, \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05DE\u05D0\u05E9\u05E8. \u05E2\u05DD --force \u05E0\u05DB\u05E0\u05E1\u05D9\u05DD \u05E2\u05DD \u05D7\u05E9\u05D1\u05D5\u05DF \u05E0\u05D5\u05E1\u05E3, \u05D5\u05D4\u05D7\u05E9\u05D1\u05D5\u05E0\u05D5\u05EA \u05E9\u05DB\u05D1\u05E8 \u05DB\u05D0\u05DF \u05E0\u05E9\u05D0\u05E8\u05D9\u05DD (D-905).", "Login in the browser, the owner approves. With --force, another account joins and the ones here stay (D-905)."),
+  n("cmd-login", "cli", "login", "\u05DB\u05E0\u05D9\u05E1\u05D4 \u05D1\u05D3\u05E4\u05D3\u05E4\u05DF, \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05DE\u05D0\u05E9\u05E8. \u05E2\u05DD --force \u05E0\u05DB\u05E0\u05E1\u05D9\u05DD \u05E2\u05DD \u05D7\u05E9\u05D1\u05D5\u05DF \u05E0\u05D5\u05E1\u05E3, \u05D5\u05D4\u05D7\u05E9\u05D1\u05D5\u05E0\u05D5\u05EA \u05E9\u05DB\u05D1\u05E8 \u05DB\u05D0\u05DF \u05E0\u05E9\u05D0\u05E8\u05D9\u05DD (D-905). \u05DB\u05E9\u05DE\u05D5\u05D2\u05D3\u05E8 DEPLOYAI_TOKEN (\u05DE\u05E9\u05D9\u05DE\u05D4 \u05E9\u05DC \u05D4\u05E6\u05D9, CI), \u05DB\u05DC \u05E4\u05E7\u05D5\u05D3\u05D4 \u05E2\u05D5\u05D1\u05D3\u05EA \u05D0\u05D9\u05EA\u05D5, \u05D1\u05DC\u05D9 \u05D3\u05E4\u05D3\u05E4\u05DF \u05D5\u05D1\u05DC\u05D9 \u05D4\u05DE\u05EA\u05E0\u05D4.", "Login in the browser, the owner approves. With --force, another account joins and the ones here stay (D-905). With DEPLOYAI_TOKEN set (a fleet job, CI) every command uses it, with no browser and no wait."),
   n("cmd-logout", "cli", "logout [email]", "\u05DE\u05D1\u05D8\u05DC \u05D0\u05EA \u05D4\u05D8\u05D5\u05E7\u05DF \u05E9\u05DC \u05D7\u05E9\u05D1\u05D5\u05DF \u05D0\u05D7\u05D3 \u05D5\u05D9\u05D5\u05E6\u05D0 \u05DE\u05DE\u05E0\u05D5 \u05D1\u05DE\u05D7\u05E9\u05D1 \u05D4\u05D6\u05D4, \u05D0\u05D5 \u05DE\u05DB\u05D5\u05DC\u05DD \u05E2\u05DD --all.", "Cancels the token of one account and logs it out on this computer, or every account with --all."),
   n("cmd-whoami", "cli", "whoami", "\u05E2\u05DD \u05D0\u05D9\u05D6\u05D4 \u05D7\u05E9\u05D1\u05D5\u05DF \u05DE\u05D7\u05D5\u05D1\u05E8\u05D9\u05DD, \u05D5\u05D0\u05D9\u05DC\u05D5 \u05D7\u05E9\u05D1\u05D5\u05E0\u05D5\u05EA \u05E0\u05D5\u05E1\u05E4\u05D9\u05DD \u05D1\u05DE\u05D7\u05E9\u05D1.", "Which account is logged in, and the other accounts on this computer."),
   n("cmd-link", "cli", "link [site]", "\u05DE\u05D7\u05D1\u05E8 \u05D0\u05EA \u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05DC\u05D0\u05EA\u05E8, \u05D0\u05D5 \u05D9\u05D5\u05E6\u05E8 \u05D0\u05EA\u05E8 \u05E2\u05DD --create.", "Links the folder to a site, or makes one with --create."),
@@ -22951,7 +23229,7 @@ var CLI_MAP_NODES = [
   n("api-logs", "server", "/api/cli/logs", "\u05D6\u05E8\u05DD \u05D0\u05D9\u05E8\u05D5\u05E2\u05D9\u05DD \u05DE\u05D4\u05BEtail \u05E9\u05DC \u05D4\u05BEdispatch Worker, \u05DE\u05E1\u05D5\u05E0\u05DF \u05DC\u05E1\u05E7\u05E8\u05D9\u05E4\u05D8 \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D1\u05DC\u05D1\u05D3. \u05D1\u05DC\u05D9 \u05DB\u05D5\u05EA\u05E8\u05D5\u05EA \u05D5\u05D1\u05DC\u05D9 IP.", "An event stream from the dispatch Worker's tail, filtered to the site's own script. No headers and no IP."),
   n("api-requests", "server", "/api/cli/requests", "\u05D4\u05E8\u05E9\u05D9\u05DE\u05D4 \u05D1\u05DC\u05D9 IP \u05D5\u05D1\u05DC\u05D9 \u05EA\u05D5\u05DB\u05DF, \u05D5\u05E4\u05EA\u05D9\u05D7\u05D4 \u05D0\u05D5 \u05E1\u05D2\u05D9\u05E8\u05D4 \u05E9\u05DC \u05DB\u05EA\u05D5\u05D1\u05EA.", "The list with no IP and no content, and opening or closing an address."),
   n("cmd-rollback", "cli", "rollback v<N>", "\u05D7\u05D5\u05D6\u05E8 \u05DC\u05D2\u05E8\u05E1\u05D4 \u05E7\u05D5\u05D3\u05DE\u05EA.", "Goes back to an earlier version."),
-  n("cmd-addons", "cli", "addons / addon next / addon buy", "\u05D4\u05EA\u05D5\u05E1\u05E4\u05D9\u05DD \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8, \u05D4\u05E8\u05E6\u05D4 \u05E9\u05DC \u05DB\u05D5\u05DC\u05DD \u05D1\u05DC\u05D9 \u05E2\u05E6\u05D9\u05E8\u05D5\u05EA (\u05D2\u05DD \u05D1\u05DE\u05E7\u05D1\u05D9\u05DC, \u05D1\u05D2\u05DC\u05D9\u05DD), \u05D4\u05E9\u05DC\u05D1 \u05D4\u05D1\u05D0 \u05E9\u05DC \u05EA\u05D5\u05E1\u05E3 \u05E9\u05E0\u05E7\u05E0\u05D4, \u05D5\u05E7\u05D9\u05E9\u05D5\u05E8 \u05E7\u05E0\u05D9\u05D9\u05D4 \u05DC\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8.", "The site's add-ons, a run of all of them with no stops (also side by side, in waves), the next step of one it bought, and a buy link for the owner."),
+  n("cmd-addons", "cli", "addons / addon next / addon buy", "\u05D4\u05EA\u05D5\u05E1\u05E4\u05D9\u05DD \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8, \u05D4\u05E8\u05E6\u05D4 \u05E9\u05DC \u05DB\u05D5\u05DC\u05DD \u05D1\u05DC\u05D9 \u05E2\u05E6\u05D9\u05E8\u05D5\u05EA (\u05D2\u05DD \u05D1\u05DE\u05E7\u05D1\u05D9\u05DC, \u05D1\u05D2\u05DC\u05D9\u05DD), \u05D4\u05E9\u05DC\u05D1 \u05D4\u05D1\u05D0 \u05E9\u05DC \u05EA\u05D5\u05E1\u05E3 \u05E9\u05E0\u05E7\u05E0\u05D4, \u05D5\u05E7\u05D9\u05E9\u05D5\u05E8 \u05E7\u05E0\u05D9\u05D9\u05D4 \u05DC\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8. \u05E2\u05DD --end \u05D4\u05EA\u05E9\u05D5\u05D1\u05D4 \u05DC\u05E9\u05D0\u05DC\u05D4 \u05E9\u05D1\u05E1\u05D5\u05E3 \u05E0\u05D9\u05EA\u05E0\u05EA \u05DE\u05E8\u05D0\u05E9 (\u05D1\u05D4\u05E2\u05D1\u05E8\u05D4 \u05E9\u05DC \u05D4\u05E6\u05D9: \u05EA\u05E6\u05D5\u05D2\u05D4 \u05DE\u05E7\u05D3\u05D9\u05DE\u05D4).", "The site's add-ons, a run of all of them with no stops (also side by side, in waves), the next step of one it bought, and a buy link for the owner. With --end the question at the end is answered ahead (a fleet move: preview)."),
   n("cmd-addon-run", "cli", "addon run / done", "\u05EA\u05D5\u05E1\u05E3 \u05D0\u05D7\u05D3 \u05DC\u05E4\u05D9 \u05E9\u05DD, \u05D5\u05D3\u05D9\u05D5\u05D5\u05D7 \u05E9\u05D4\u05E9\u05DC\u05D1 \u05D4\u05E1\u05EA\u05D9\u05D9\u05DD.", "One add-on by name, and the report that a step is done."),
   n("cmd-env", "cli", "env list / set / remove", "\u05DE\u05E9\u05EA\u05E0\u05D9 \u05D4\u05E1\u05D1\u05D9\u05D1\u05D4 \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8. \u05E1\u05D5\u05D3 \u05DB\u05D1\u05E8\u05D9\u05E8\u05EA \u05DE\u05D7\u05D3\u05DC, \u05D5\u05DC\u05D0 \u05DE\u05D5\u05E6\u05D2 \u05E9\u05D5\u05D1.", "The site's environment variables. A secret by default, never shown again."),
   n("cmd-speed", "cli", "speed <url>", "\u05D1\u05D3\u05D9\u05E7\u05EA \u05DE\u05D4\u05D9\u05E8\u05D5\u05EA \u05E9\u05DC \u05DB\u05EA\u05D5\u05D1\u05EA \u05D7\u05D9\u05D4.", "A speed test of a live address."),
@@ -23472,6 +23750,196 @@ function dnsServices(records) {
 var PAUSED_TAG_KINDS = ["tagmanager", "analytics", "ads", "recording"];
 var PAUSED = TAG_CATALOG.filter((t) => PAUSED_TAG_KINDS.includes(t.kind));
 
+// ../shared/src/site-kind.ts
+var SITE_KINDS = ["content", "store", "bookings", "members"];
+var SITE_FEATURE_KEYS = ["cart", "checkout", "booking", "login", "protected", "forms", "payments"];
+var CONNECT_FEATURES = ["payments", "booking", "login"];
+var MAX_PAGES = 10;
+var decodePath = (p) => {
+  try {
+    return decodeURIComponent(p);
+  } catch {
+    return p;
+  }
+};
+var pathOnly = (p) => decodePath(p.split(/[?#]/)[0] ?? p).toLowerCase();
+var seg = (words) => new RegExp(`(^|/)(${words})(/|$)`, "i");
+var CART_PATH = seg("cart|basket|shopping-cart|\u05E1\u05DC|\u05E1\u05DC-\u05E7\u05E0\u05D9\u05D5\u05EA|\u05E1\u05DC-\u05D4\u05E7\u05E0\u05D9\u05D5\u05EA|\u05E2\u05D2\u05DC\u05D4|\u05E2\u05D2\u05DC\u05EA-\u05E7\u05E0\u05D9\u05D5\u05EA");
+var CHECKOUT_PATH = seg("checkout|\u05EA\u05E9\u05DC\u05D5\u05DD|\u05E7\u05D5\u05E4\u05D4");
+var BOOKING_PATH = seg("book|book-now|booking|bookings|appointment|appointments|schedule|reserve|reservation|reservations|\u05EA\u05D5\u05E8|\u05EA\u05D5\u05E8\u05D9\u05DD|\u05E7\u05D1\u05D9\u05E2\u05EA-\u05EA\u05D5\u05E8|\u05D4\u05D6\u05DE\u05E0\u05EA-\u05EA\u05D5\u05E8|\u05D4\u05D6\u05DE\u05E0\u05EA-\u05E9\u05D5\u05DC\u05D7\u05DF|\u05D4\u05D6\u05DE\u05E0\u05EA-\u05DE\u05E7\u05D5\u05DD");
+var LOGIN_PATH = seg("login|log-in|signin|sign-in|wp-login\\.php|my-account|\u05D4\u05EA\u05D7\u05D1\u05E8\u05D5\u05EA|\u05DB\u05E0\u05D9\u05E1\u05D4|\u05DB\u05E0\u05D9\u05E1\u05D4-\u05DC\u05DE\u05E0\u05D5\u05D9\u05D9\u05DD");
+var MEMBERS_PATH = seg("members|member|member-area|members-area|portal|courses|course|lessons|\u05D0\u05D6\u05D5\u05E8-\u05D7\u05D1\u05E8\u05D9\u05DD|\u05D0\u05D9\u05D6\u05D5\u05E8-\u05D7\u05D1\u05E8\u05D9\u05DD|\u05D0\u05D6\u05D5\u05E8-\u05D0\u05D9\u05E9\u05D9|\u05D0\u05D9\u05D6\u05D5\u05E8-\u05D0\u05D9\u05E9\u05D9|\u05D4\u05D0\u05D6\u05D5\u05E8-\u05D4\u05D0\u05D9\u05E9\u05D9|\u05DE\u05E0\u05D5\u05D9\u05D9\u05DD");
+var ADD_TO_CART = /add[_-]?to[_-]?cart|addtocart|\/cart\/add|single_add_to_cart_button|snipcart-add-item|data-product[_-]id|data-cta=["'][^"']*cart|"@type"\s*:\s*"Product"|הוספה\s+לסל|הוסיפו\s+לסל|הוסף\s+לסל|הוספה\s+לעגלה|הוסיפו\s+לעגלה|add\s+to\s+(cart|bag|basket)/i;
+var CHECKOUT_MARKUP = /woocommerce-checkout|<form\b[^>]*action=["'][^"']*checkout/i;
+var STORE_PLATFORM = /plugins\/woocommerce\/|cdn\.shopify\.com|Shopify\.theme|wix-ecommerce|ecwid\.com/i;
+var BOOKING_EXTRA = [
+  [/simplybook\.(me|it|asia)/i, "SimplyBook.me"],
+  [/setmore\.com/i, "Setmore"],
+  [/booksy\.com/i, "Booksy"],
+  [/fresha\.com/i, "Fresha"],
+  [/squareup\.com\/appointments/i, "Square Appointments"],
+  [/plugins\/bookly/i, "Bookly"],
+  [/ameliabooking|plugins\/ameliabooking/i, "Amelia"],
+  [/opentable\.(com|co\.il)/i, "OpenTable"],
+  [/tabit\.cloud|tabitisrael/i, "Tabit"],
+  [/ontopo\.(com|co\.il)/i, "Ontopo"],
+  [/wix-bookings|bookings-service/i, "Wix Bookings"]
+];
+var PAYMENT_EXTRA = [
+  [/zcredit\.co\.il/i, "Z-Credit"],
+  [/pay\.hyp\.co\.il|yaadpay|icom\.yaad\.net/i, "Hyp (YaadPay)"],
+  [/icredit\.rivhit\.co\.il/i, "iCredit"],
+  [/squareup\.com\/(?!appointments)|square\.site/i, "Square"]
+];
+var LOGIN_PROVIDERS = [
+  [/accounts\.google\.com\/gsi|g_id_onload|apis\.google\.com\/js\/platform\.js/i, "Google sign in"],
+  [/fb-login-button|facebook\.com\/[^"']*oauth/i, "Facebook login"],
+  [/appleid\.cdn-apple\.com/i, "Sign in with Apple"],
+  [/cdn\.auth0\.com|\.auth0\.com\/authorize/i, "Auth0"],
+  [/clerk\.accounts\.dev|js\.clerk\.|@clerk\//i, "Clerk"],
+  [/firebaseapp\.com\/__\/auth|firebase-auth/i, "Firebase"],
+  [/supabase\.co\/auth/i, "Supabase"],
+  [/memberstack/i, "Memberstack"],
+  [/outseta\.com/i, "Outseta"]
+];
+var MEMBER_PLUGINS = /memberpress|restrict-content-pro|ultimate-member|paid-memberships-pro|pmpro_|learndash|woocommerce-memberships|wishlist-member|s2member|memberstack|outseta|wix-members|members-area/i;
+var PASSWORD_FIELD = /<input\b[^>]*type\s*=\s*["']?password/i;
+var EMAIL_FIELD = /<input\b[^>]*type\s*=\s*["']?email/i;
+var DATE_FIELD = /<input\b[^>]*type\s*=\s*["']?(date|time|datetime-local)\b/i;
+var FORM_EMBEDS = TAG_CATALOG.filter((c) => c.kind === "forms");
+var BOOKING_TAGS = TAG_CATALOG.filter((c) => c.kind === "booking");
+var PAYMENT_TAGS = TAG_CATALOG.filter((c) => c.kind === "payments" && c.key !== "woocommerce");
+var names = (html, catalog, extra) => [...catalog.filter((c) => c.match.some((re) => re.test(html))).map((c) => c.name), ...extra.filter(([re]) => re.test(html)).map(([, n2]) => n2)];
+function contactForms(html) {
+  let n2 = 0;
+  for (const m of html.matchAll(/(<form\b[^>]*>)([\s\S]*?)<\/form>/gi)) {
+    const open2 = m[1];
+    const body = m[2];
+    if (/role\s*=\s*["']?search|\bsearch/i.test(open2) || /<input\b[^>]*name\s*=\s*["']?(s|q|search)["'\s>]/i.test(body)) continue;
+    if (PASSWORD_FIELD.test(body)) continue;
+    if (/action\s*=\s*["'][^"']*(cart|checkout)/i.test(open2) || ADD_TO_CART.test(open2 + body)) continue;
+    if (!/<(input|textarea|select)\b/i.test(body)) continue;
+    n2++;
+  }
+  return n2 + FORM_EMBEDS.filter((c) => c.match.some((re) => re.test(html))).length;
+}
+function linkedPaths(html) {
+  const out2 = [];
+  for (const m of html.matchAll(/<a\b[^>]*href\s*=\s*["']([^"'#]+)["']/gi)) {
+    const href = m[1];
+    let path;
+    try {
+      const u = new URL(href, "https://x.invalid");
+      if (u.host !== "x.invalid" && !/^\//.test(href)) continue;
+      path = u.pathname;
+    } catch {
+      continue;
+    }
+    const p = pathOnly(path);
+    if (CART_PATH.test(p) || CHECKOUT_PATH.test(p) || BOOKING_PATH.test(p) || LOGIN_PATH.test(p)) out2.push(path);
+  }
+  return [...new Set(out2)];
+}
+var emptyProfileScan = () => ({ pages: /* @__PURE__ */ new Map(), providers: /* @__PURE__ */ new Map(), storeSigns: 0, memberSigns: 0, closed: /* @__PURE__ */ new Set(), linked: /* @__PURE__ */ new Set(), plainPages: 0 });
+function add(scan, key2, path, providers = []) {
+  if (!scan.pages.has(key2)) scan.pages.set(key2, /* @__PURE__ */ new Set());
+  if (!scan.providers.has(key2)) scan.providers.set(key2, /* @__PURE__ */ new Set());
+  if (path && scan.pages.get(key2).size < MAX_PAGES) scan.pages.get(key2).add(path);
+  for (const p of providers) scan.providers.get(key2).add(p);
+}
+function addPageProfile(scan, html, path) {
+  const p = pathOnly(path);
+  const before = [...scan.pages.values()].reduce((n2, s) => n2 + s.size, 0) + scan.memberSigns + scan.storeSigns;
+  if (STORE_PLATFORM.test(html)) scan.storeSigns++;
+  if (CART_PATH.test(p)) add(scan, "cart", path);
+  else if (ADD_TO_CART.test(html)) add(scan, "cart", path);
+  if (CHECKOUT_PATH.test(p) || CHECKOUT_MARKUP.test(html)) add(scan, "checkout", path);
+  const pay = names(html, PAYMENT_TAGS, PAYMENT_EXTRA);
+  if (pay.length) add(scan, "payments", path, pay);
+  const booking = names(html, BOOKING_TAGS, BOOKING_EXTRA);
+  if (booking.length || BOOKING_PATH.test(p) && (/<form\b/i.test(html) || DATE_FIELD.test(html))) add(scan, "booking", path, booking);
+  const login = names(html, [], LOGIN_PROVIDERS);
+  if (LOGIN_PATH.test(p) && (PASSWORD_FIELD.test(html) || EMAIL_FIELD.test(html) || login.length)) add(scan, "login", path, login);
+  else if (PASSWORD_FIELD.test(html) || login.length) {
+    add(scan, "login", null, login);
+    if (!scan.loginElsewhere && PASSWORD_FIELD.test(html)) scan.loginElsewhere = path;
+  }
+  if (MEMBER_PLUGINS.test(html)) scan.memberSigns++;
+  if (MEMBERS_PATH.test(p) && PASSWORD_FIELD.test(html)) add(scan, "protected", path);
+  if (contactForms(html)) add(scan, "forms", path);
+  for (const l of linkedPaths(html)) scan.linked.add(l);
+  if ([...scan.pages.values()].reduce((n2, s) => n2 + s.size, 0) + scan.memberSigns + scan.storeSigns === before) scan.plainPages++;
+}
+function addClosedPage(scan, path, status, location) {
+  const toLogin = location ? LOGIN_PATH.test(pathOnly(new URL(location, "https://x.invalid").pathname)) || /wp-login\.php|[?&]redirect_to=/i.test(location) : false;
+  if (status === 401 || status === 403 || status >= 300 && status < 400 && toLogin) scan.closed.add(path);
+}
+function siteProfile(scan, opts = {}) {
+  for (const l of scan.linked) {
+    const p = pathOnly(l);
+    if (CART_PATH.test(p) && !scan.pages.has("cart")) add(scan, "cart", l);
+    if (CHECKOUT_PATH.test(p) && !scan.pages.has("checkout") && (scan.pages.has("cart") || scan.storeSigns)) add(scan, "checkout", l);
+    if (LOGIN_PATH.test(p) && !scan.pages.get("login")?.size) add(scan, "login", l);
+  }
+  if (scan.loginElsewhere && !scan.pages.get("login")?.size && !scan.pages.get("protected")?.has(scan.loginElsewhere)) add(scan, "login", scan.loginElsewhere);
+  for (const c of scan.closed) add(scan, "protected", c);
+  const features = SITE_FEATURE_KEYS.filter((k) => scan.pages.has(k)).map((key2) => ({ key: key2, pages: [...scan.pages.get(key2)].slice(0, MAX_PAGES), providers: [...scan.providers.get(key2) ?? []].slice(0, 10) }));
+  const has = (k) => features.some((f) => f.key === k);
+  const kinds = [];
+  const store = has("checkout") || has("cart") && (scan.storeSigns > 0 || has("payments")) || ["shopify", "woocommerce"].includes(opts.platform ?? "") || has("cart") && (scan.pages.get("cart")?.size ?? 0) > 1;
+  const members2 = has("protected") || has("login") && scan.memberSigns > 0;
+  if (scan.plainPages > 0 || !(store || has("booking") || members2)) kinds.push("content");
+  if (store) kinds.push("store");
+  if (has("booking")) kinds.push("bookings");
+  if (members2) kinds.push("members");
+  const connectFirst = [];
+  const pay = features.find((f) => f.key === "payments")?.providers ?? [];
+  for (const p of pay) connectFirst.push({ feature: "payments", provider: p });
+  if (!pay.length && (has("checkout") || store)) connectFirst.push({ feature: "payments", provider: null });
+  for (const p of features.find((f) => f.key === "booking")?.providers ?? []) connectFirst.push({ feature: "booking", provider: p });
+  for (const p of features.find((f) => f.key === "login")?.providers ?? []) connectFirst.push({ feature: "login", provider: p });
+  return { kinds, features, connectFirst: connectFirst.slice(0, 20) };
+}
+function profileLines(profile) {
+  const label = { cart: "cart", checkout: "checkout", booking: "booking", login: "sign in", protected: "members only pages", forms: "forms", payments: "payments" };
+  const lines = [`Site kind: ${profile.kinds.join(", ")}.`];
+  if (profile.features.length) lines.push(`Features: ${profile.features.map((f) => `${label[f.key]}${f.providers.length ? ` (${f.providers.join(", ")})` : ""}${f.pages.length ? ` on ${f.pages.slice(0, 3).join(", ")}${f.pages.length > 3 ? ` and ${f.pages.length - 3} more` : ""}` : ""}`).join("; ")}. Move every one of them as it works today.`);
+  if (profile.connectFirst.length) {
+    const what = { payments: "payments", booking: "booking calendar", login: "sign in" };
+    lines.push(`Connect before going live, with the owner's own account: ${profile.connectFirst.map((c) => `${what[c.feature]}${c.provider ? ` (${c.provider})` : ""}`).join(", ")}. Build each one, write it in the plan under "Connect before going live", and go on: it never stops the move.`);
+  }
+  return lines;
+}
+var FEATURE_PROBLEMS = ["page_missing", "no_add_to_cart", "no_booking", "no_login_form", "leaks", "no_form"];
+var BOOKING_ON_PAGE = (html) => /<form\b/i.test(html) || DATE_FIELD.test(html) || names(html, BOOKING_TAGS, BOOKING_EXTRA).length > 0 || /<iframe\b[^>]*(calendar|booking|schedul)/i.test(html);
+var SIGN_IN_ON_PAGE = (html) => PASSWORD_FIELD.test(html) || /<form\b/i.test(html) && EMAIL_FIELD.test(html) || names(html, [], LOGIN_PROVIDERS).length > 0 || /data-cta=["'][^"']*(sign-?in|login)/i.test(html);
+var FORM_ON_PAGE = (html) => /<form\b/i.test(html) || FORM_EMBEDS.some((c) => c.match.some((re) => re.test(html)));
+function checkFeaturePage(key2, page3, answer) {
+  if (key2 === "payments") return null;
+  const status = answer?.status ?? 0;
+  const html = answer?.html ?? "";
+  const fail = (problem) => ({ key: key2, page: page3, ok: false, problem });
+  if (key2 === "protected") {
+    if (status === 401 || status === 403 || status >= 300 && status < 400) return { key: key2, page: page3, ok: true };
+    if (status === 200) return SIGN_IN_ON_PAGE(html) ? { key: key2, page: page3, ok: true } : fail("leaks");
+    return fail("page_missing");
+  }
+  if (key2 === "checkout") return status === 200 || status >= 300 && status < 400 ? { key: key2, page: page3, ok: true } : fail("page_missing");
+  if (status !== 200) return fail("page_missing");
+  if (key2 === "cart") return CART_PATH.test(pathOnly(page3)) || ADD_TO_CART.test(html) ? { key: key2, page: page3, ok: true } : fail("no_add_to_cart");
+  if (key2 === "booking") return BOOKING_ON_PAGE(html) ? { key: key2, page: page3, ok: true } : fail("no_booking");
+  if (key2 === "login") return SIGN_IN_ON_PAGE(html) ? { key: key2, page: page3, ok: true } : fail("no_login_form");
+  return FORM_ON_PAGE(html) ? { key: key2, page: page3, ok: true } : fail("no_form");
+}
+var FEATURE_PROBLEM_WORDS = {
+  page_missing: "does not open on the preview",
+  no_add_to_cart: "has no product with an add to cart button on the preview",
+  no_booking: "has no booking form or calendar on the preview",
+  no_login_form: "has no sign in form on the preview",
+  leaks: "opens for a visitor who is not signed in: it must ask to sign in first",
+  no_form: "lost its form on the preview"
+};
+
 // ../shared/src/move-report.ts
 var text = (max) => external_exports.string().max(max);
 var page = text(300);
@@ -23499,6 +23967,12 @@ var moveReportSchema = external_exports.object({
   thanksPages: external_exports.array(page).max(20).optional(),
   dns: external_exports.object({ records: external_exports.array(record2).max(600), unread: external_exports.array(text(255)).max(300), services: external_exports.array(text(60)).max(40) }).nullable(),
   features: external_exports.array(external_exports.object({ name: text(200), status: text(60), note: text(300).optional() })).max(100),
+  /** The site kinds the scan saw (Move Fleet piece 11): more than one may apply. Older reports have none. */
+  siteKinds: external_exports.array(external_exports.enum(SITE_KINDS)).max(4).optional(),
+  /** What the old site does, read by the scan, with where it saw each and the outside services behind it. */
+  siteFeatures: external_exports.array(external_exports.object({ key: external_exports.enum(SITE_FEATURE_KEYS), pages: external_exports.array(page).max(10), providers: external_exports.array(text(60)).max(10) })).max(10).optional(),
+  /** Connect before going live: each feature that needs the owner's own account. A null provider means the scan saw no name. */
+  connectFirst: external_exports.array(external_exports.object({ feature: external_exports.enum(CONNECT_FEATURES), provider: text(60).nullable() })).max(20).optional(),
   answers: external_exports.partialRecord(external_exports.enum(QUESTION_KEYS), external_exports.enum(ANSWERS)).optional(),
   /**
    * Where things went in the new site (D-830): the dashboard's pages, posts and documents, and each named form with its
@@ -23524,7 +23998,9 @@ var moveReportSchema = external_exports.object({
     fired: external_exports.array(external_exports.object({ key: external_exports.enum(tagKeys), id: text(80).nullable() })).max(300).optional(),
     removed: external_exports.array(text(120)).max(100),
     /** Old platform files the preview still loads, like plugins/elementor-pro (D-773). Empty means none was found. */
-    vendors: external_exports.array(text(80)).max(40).optional()
+    vendors: external_exports.array(text(80)).max(40).optional(),
+    /** Each feature the scan found, checked on the preview (Move Fleet piece 11). Older reports have none. */
+    featureChecks: external_exports.array(external_exports.object({ key: external_exports.enum(SITE_FEATURE_KEYS), page, ok: external_exports.boolean(), problem: external_exports.enum(FEATURE_PROBLEMS).optional() })).max(60).optional()
   }).nullable()
 });
 var MOVE_REPORT_MAX_BYTES = 1024 * 1024;
@@ -23597,8 +24073,8 @@ function moveWaiting(r, answers) {
   return { questions, todo, count: questions.filter((q) => !q.answer).length + todo.length, groups };
 }
 var same = (a) => (b) => a.key === b.key && sameTagId(a.key, a.id, b.id);
-function planLineFor(features, names) {
-  const want = names.filter((n2) => n2 && n2.length > 2).map((n2) => n2.toLowerCase());
+function planLineFor(features, names2) {
+  const want = names2.filter((n2) => n2 && n2.length > 2).map((n2) => n2.toLowerCase());
   for (const f of features ?? []) {
     const name = f.name.toLowerCase();
     if (!want.some((w) => name.includes(w))) continue;
@@ -23633,24 +24109,24 @@ function pageOpened(v, path) {
 function selfChecks(r, opts = {}) {
   const confirmed = opts.confirmed ?? {};
   const out2 = [];
-  const add = (c) => {
+  const add2 = (c) => {
     if (!out2.some((x) => x.key === c.key)) out2.push({ ...c, done: confirmed[c.key] ?? null });
   };
   if (!r.verify) return out2;
   const rows2 = tagRows(r, opts);
   const kept = (t) => ["preview", "fired", "live", "confirmed"].includes(t.status);
   for (const t of rows2) {
-    if (t.status === "replaced") add({ key: `self|replaced|${tagRowKey(t)}`, kind: "replaced", name: t.name, detail: t.replacedBy ?? null, checkUrl: null });
-    else if (kept(t) && t.checkUrl && t.key !== "ua") add({ key: tagRowKey(t), kind: "arrive", name: t.name, detail: t.id, checkUrl: t.checkUrl });
-    else if (kept(t) && (t.kind === "chat" || t.kind === "calls")) add({ key: `self|tap|${tagRowKey(t)}`, kind: "tap", name: t.name, detail: t.id, checkUrl: null });
+    if (t.status === "replaced") add2({ key: `self|replaced|${tagRowKey(t)}`, kind: "replaced", name: t.name, detail: t.replacedBy ?? null, checkUrl: null });
+    else if (kept(t) && t.checkUrl && t.key !== "ua") add2({ key: tagRowKey(t), kind: "arrive", name: t.name, detail: t.id, checkUrl: t.checkUrl });
+    else if (kept(t) && (t.kind === "chat" || t.kind === "calls")) add2({ key: `self|tap|${tagRowKey(t)}`, kind: "tap", name: t.name, detail: t.id, checkUrl: null });
   }
-  if (r.forms.some((f) => f.id !== "commentform") || (r.kit?.forms.length ?? 0) > 0) add({ key: "self|form", kind: "form", name: r.kit?.forms[0]?.label ?? "", detail: null, checkUrl: null });
+  if (r.forms.some((f) => f.id !== "commentform") || (r.kit?.forms.length ?? 0) > 0) add2({ key: "self|form", kind: "form", name: r.kit?.forms[0]?.label ?? "", detail: null, checkUrl: null });
   for (const o of r.outside) {
     if (outsideService(o.host)) continue;
     const plan = planLineFor(r.features, [o.host]);
-    add({ key: `self|outside|${o.host}`, kind: "outside", name: o.host, detail: plan ? [plan.detail, plan.note].filter(Boolean).join(". ") || null : null, checkUrl: null });
+    add2({ key: `self|outside|${o.host}`, kind: "outside", name: o.host, detail: plan ? [plan.detail, plan.note].filter(Boolean).join(". ") || null : null, checkUrl: null });
   }
-  for (const p of r.kit?.pages ?? []) if (pageOpened(r.verify, p.path) === null) add({ key: `self|page|${p.path}`, kind: "page", name: p.path, detail: p.title, checkUrl: null });
+  for (const p of r.kit?.pages ?? []) if (pageOpened(r.verify, p.path) === null) add2({ key: `self|page|${p.path}`, kind: "page", name: p.path, detail: p.title, checkUrl: null });
   return out2;
 }
 
@@ -23691,6 +24167,7 @@ var ENV_KEYS = {
   GITHUB_WEBHOOK_SECRET: { scope: "own", section: "github", about: "The App webhook secret: GitHub signs every push and pull request with it, and /api/github/webhook refuses anything else. openssl rand -hex 32" },
   GITHUB_APP_CLIENT_ID: { scope: "own", section: "github", about: "The App Client ID: signing in to the App shows which GitHub accounts and repos a person may connect." },
   GITHUB_APP_CLIENT_SECRET: { scope: "own", section: "github", about: "A client secret of the App (Generate a new client secret)." },
+  FLEET_GITHUB_TOKEN: { scope: "server", section: "github", about: "Move Fleet releases (D-1032): a fine-grained GitHub token, read only, Contents: read on yobotn/deployai and nothing else. The server reads the Fleet client and job image releases with it and hands each machine a short-lived signed link; machines never hold it. Unset: the Settings tab of /admin/moves/fleet says so, and machines keep the client and image they have. Never logged." },
   BILLING_PROVIDER: { scope: "local", section: "payments", about: "mock overrides the admin setting with the simulated provider (the tests set it). Ignored in production (D-335)." },
   BILLING_MOCK_FAIL: { scope: "local", section: "payments", about: "1 makes the simulated provider decline every charge, to try the failed payment flow (D-175)." },
   CARDCOM_TERMINAL: { scope: "same", section: "payments", sample: { local: "1000", server: "1000" }, about: "Cardcom terminal: 1000 or 1001 is test mode, any other live (D-324). The live terminal is set only here, never in the admin (D-371). Test terminal on both during closed testing; the real one before launch." },
@@ -23889,6 +24366,8 @@ var BLOCKED_REASONS = [
   "builder_credit",
   "vendor_files",
   "old_host_assets",
+  // migrate verify: a feature of the old site (cart, booking, sign in, members only pages, forms) does not work on the preview
+  "feature_broken",
   // migrate scan
   "source_closed",
   // deploy
@@ -23992,7 +24471,7 @@ var LAYOUT_KITS = [
   { key: "marketingskills", name: "Marketing Skills", url: "https://github.com/coreyhaines31/marketingskills", install: `${SKILLS} https://github.com/coreyhaines31/marketingskills/tree/v2.14.12 --skill copywriting cro seo-audit schema`, license: "MIT", role: "copy", use: "Four skills only: copywriting and cro for words that sell, seo-audit and schema for search. Text only.", terms: `${KEEP} Only these four skills; never its tools/ command lines.`, licenseUrl: "https://github.com/coreyhaines31/marketingskills/blob/main/LICENSE", checkedOn: "2026-11-17" },
   { key: "aislop", name: "aislop", url: "https://github.com/scanaislop/aislop", install: "npx aislop@0.22.1 scan", license: "MIT", role: "code", use: "Scans the code for what agents leave behind (dead code, swallowed errors, unsafe casts, copies) and scores it 0 to 100. No AI, nothing installed.", terms: "Free for any use. Scan only: never its hook, its global install or its tools download.", licenseUrl: "https://github.com/scanaislop/aislop/blob/main/LICENSE", checkedOn: "2026-11-17" }
 ];
-var QUALITY_KITS_LINE = "Read https://deployai.co.il/kits.md before you build or redesign a site.";
+var QUALITY_KITS_LINE = "Read https://deployai.co.il/kits.md before you build or change a site.";
 
 // ../shared/src/deployai-md.ts
 var DEPLOYAI_MD = `# DeployAI rules
@@ -24239,7 +24718,8 @@ function comparePage(old, next, allowedRedirect) {
   if (old.description && !next.description) return { path: old.path, problem: "description_lost" };
   return null;
 }
-var plain = (html) => decode3((html ?? "").replace(/<[^>]*>/g, " ")).replace(/\s+/g, " ").trim();
+var stripTags = (s) => s.replace(/<[^>]*>/g, " ");
+var plain = (html) => stripTags(decode3(stripTags(html ?? ""))).replace(/\s+/g, " ").trim();
 var yamlStr = (s) => JSON.stringify(s);
 var safeSlug = (s) => {
   try {
@@ -24430,16 +24910,16 @@ function movedLegalFromScan(scan) {
   const sells = named("payments").length > 0 || pages.some((p) => p.type === "product");
   const privacy = oldPage(pages, OLD_PAGES.privacy);
   const duties = [];
-  const add = (key2, state, items = [], old = null) => duties.push({ key: key2, state, items: items.slice(0, SHOWN), old });
-  if (forms.length) add("notice", "open", forms);
-  if (forms.length || services.length) add("privacy", privacy ? "confirm" : "details", [], privacy);
-  if (forms.length) add("requests", "open");
-  if (forms.length) add("suppliers", "expert");
-  add("accessibility", "open", [], oldPage(pages, OLD_PAGES.accessibility));
-  if (overlays.length) add("overlay", "confirm", overlays);
-  if (sells) add("selling", "open", [], oldPage(pages, OLD_PAGES.cancellation));
-  if (marketing.length) add("marketing", "confirm", marketing);
-  if (trackers.length) add("trackers", "expert", trackers);
+  const add2 = (key2, state, items = [], old = null) => duties.push({ key: key2, state, items: items.slice(0, SHOWN), old });
+  if (forms.length) add2("notice", "open", forms);
+  if (forms.length || services.length) add2("privacy", privacy ? "confirm" : "details", [], privacy);
+  if (forms.length) add2("requests", "open");
+  if (forms.length) add2("suppliers", "expert");
+  add2("accessibility", "open", [], oldPage(pages, OLD_PAGES.accessibility));
+  if (overlays.length) add2("overlay", "confirm", overlays);
+  if (sells) add2("selling", "open", [], oldPage(pages, OLD_PAGES.cancellation));
+  if (marketing.length) add2("marketing", "confirm", marketing);
+  if (trackers.length) add2("trackers", "expert", trackers);
   return { duties, forms, services, embeds: named("chat", "booking", "payments", "forms", "calls", "widget").filter((n2) => !/whatsapp/i.test(n2)), docs: [] };
 }
 
@@ -24447,8 +24927,8 @@ function movedLegalFromScan(scan) {
 var MOVED_PAGES_FILE = "src/kit/moved-pages.json";
 var NOT_A_PAGE = /\/(feed|attachment|page\/\d+|wp-json|wp-content|wp-admin|wp-login\.php|xmlrpc\.php|cart|checkout|my-account)(\/|$)|\.(xml|txt|pdf|jpe?g|png|webp|gif|svg|zip)$/i;
 var SKIPPED_TYPES = /* @__PURE__ */ new Set(["post", "category", "tag", "product", "attachment"]);
-var MAX_PAGES = 150;
-var pathOnly = (p) => p.split(/[?#]/)[0];
+var MAX_PAGES2 = 150;
+var pathOnly2 = (p) => p.split(/[?#]/)[0];
 var samePath = (a, b) => a.replace(/\/+$/, "") === b.replace(/\/+$/, "");
 function menuPaths(html, origin) {
   const block = html.match(/<nav\b[\s\S]*?<\/nav>/i)?.[0] ?? html.match(/<header\b[\s\S]*?<\/header>/i)?.[0] ?? "";
@@ -24463,17 +24943,17 @@ function menuPaths(html, origin) {
   }
   return [...new Set(out2)];
 }
-var pageTitle = (p) => (p.h1?.trim() || p.title?.split(/\s[|–—-]\s/)[0]?.trim() || pathOnly(p.path)).slice(0, 80);
+var pageTitle = (p) => (p.h1?.trim() || p.title?.split(/\s[|–—-]\s/)[0]?.trim() || pathOnly2(p.path)).slice(0, 80);
 function movedPagesFromScan(scan) {
   const menu = scan.homeHtml ? menuPaths(scan.homeHtml, scan.origin) : [];
   const seen = /* @__PURE__ */ new Set();
   const out2 = [];
   for (const p of scan.pages) {
-    const path = pathOnly(p.path);
+    const path = pathOnly2(p.path);
     if (p.status >= 400 || p.path.includes("?") || p.type && SKIPPED_TYPES.has(p.type) || NOT_A_PAGE.test(path) || seen.has(path)) continue;
     seen.add(path);
     out2.push({ path, title: pageTitle(p), inNav: path === "/" || menu.some((m) => samePath(m, path)) });
-    if (out2.length >= MAX_PAGES) break;
+    if (out2.length >= MAX_PAGES2) break;
   }
   const rank = (m) => m.path === "/" ? -1 : m.inNav ? menu.findIndex((x) => samePath(x, m.path)) : menu.length + out2.indexOf(m);
   return out2.sort((a, b) => rank(a) - rank(b));
@@ -24501,12 +24981,12 @@ var enc3 = new TextEncoder();
 var SITE_SCHEDULE_MIN_MINUTES = 5;
 var MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
 var DAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
-function value(token, min, max, names) {
-  const named = names ? names.indexOf(token.toUpperCase()) : -1;
+function value(token, min, max, names2) {
+  const named = names2 ? names2.indexOf(token.toUpperCase()) : -1;
   const n2 = named >= 0 ? named + min : /^\d{1,2}$/.test(token) ? Number(token) : NaN;
   return Number.isInteger(n2) && n2 >= min && n2 <= max ? n2 : null;
 }
-function field(text3, min, max, names) {
+function field(text3, min, max, names2) {
   const out2 = /* @__PURE__ */ new Set();
   for (const part of text3.split(",")) {
     const m = /^(\*|\?|[A-Za-z0-9]+(?:-[A-Za-z0-9]+)?)(?:\/(\d{1,2}))?$/.exec(part);
@@ -24517,8 +24997,8 @@ function field(text3, min, max, names) {
     let hi = max;
     if (m[1] !== "*" && m[1] !== "?") {
       const [a, b] = m[1].split("-");
-      const x = value(a, min, max, names);
-      const y = b === void 0 ? m[2] ? max : x : value(b, min, max, names);
+      const x = value(a, min, max, names2);
+      const y = b === void 0 ? m[2] ? max : x : value(b, min, max, names2);
       if (x === null || y === null || y < x) return null;
       lo = x;
       hi = y;
@@ -24788,6 +25268,19 @@ function telemetryDisabledReason(cfg) {
 function telemetryEnabled(cfg) {
   return telemetryDisabledReason(cfg) === null;
 }
+function envToken() {
+  const t = process.env.DEPLOYAI_TOKEN?.trim();
+  return t ? t : void 0;
+}
+function envTokenApi() {
+  return (process.env.DEPLOYAI_API_URL || API_BASE_DEFAULT).replace(/\/+$/, "");
+}
+function withEnvToken(cfg) {
+  const token = envToken();
+  if (!token) return cfg;
+  const { apiUrl: _saved, email: _email2, ...rest } = cfg;
+  return { ...rest, token, tokenApiUrl: envTokenApi() };
+}
 function resolveApiUrl(flag, cfg) {
   const url2 = flag || process.env.DEPLOYAI_API_URL || cfg?.apiUrl || API_BASE_DEFAULT;
   return url2.replace(/\/+$/, "");
@@ -24880,6 +25373,7 @@ function updateProject(root, patch) {
   writeProject(root, cfg);
   return cfg;
 }
+var ADDON_RUN_ENDS = ["preview", "live", "none"];
 var runFile = (root) => join2(root, DEPLOYAI_DIR, "run.json");
 function readRun(root) {
   try {
@@ -24893,8 +25387,9 @@ function writeRun(root, state) {
     if (existsSync2(runFile(root))) rmSync(runFile(root));
     return;
   }
+  const end = state.end ?? readRun(root)?.end;
   ensureDeployaiDir(root);
-  writeFileSync2(runFile(root), JSON.stringify(state, null, 2) + "\n");
+  writeFileSync2(runFile(root), JSON.stringify(end ? { ...state, end } : state, null, 2) + "\n");
 }
 function ownerMode(root) {
   try {
@@ -25208,6 +25703,11 @@ var M = {
     sqlBeforeUpload: "This upload has SQL files. New database changes run only after a yes, once the build is done.",
     sqlWaiting: "This version has database changes (SQL) that have not run yet. Approve them in the dashboard first, then promote again: {url}",
     tokenOtherApi: "The login on this computer is for {saved}, not {url}. Run: npx deployai@latest login --api {url}, or drop --api and DEPLOYAI_API_URL.",
+    envTokenRefused: "The token in DEPLOYAI_TOKEN was refused: it ended or was canceled. Get a new one, or unset DEPLOYAI_TOKEN and run: npx deployai@latest login",
+    envTokenOtherApi: "The token in DEPLOYAI_TOKEN goes only to DEPLOYAI_API_URL or the default address, never to {url}. Drop --api, or set DEPLOYAI_API_URL={url}.",
+    envTokenInUse: "Using the token in DEPLOYAI_TOKEN, so no login is needed.",
+    envTokenNotOnSite: "The token in DEPLOYAI_TOKEN does not reach this site. Use the token made for this site.",
+    envTokenLogout: "This run uses the token in DEPLOYAI_TOKEN, which is not saved on this computer. To stop using it, unset DEPLOYAI_TOKEN.",
     linkConfirm: "Link this folder to {name} ({address})? (y/N) ",
     linkOnlyOne: "You have one site: {name} ({address}). To link it, or a new site, run:",
     linkCancelled: "Not linked. Nothing changed.",
@@ -25511,6 +26011,11 @@ var M = {
     sqlBeforeUpload: "\u05D1\u05D4\u05E2\u05DC\u05D0\u05D4 \u05D4\u05D6\u05D5 \u05D9\u05E9 \u05E7\u05D5\u05D1\u05E6\u05D9 SQL. \u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D7\u05D3\u05E9\u05D9\u05DD \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05E8\u05E6\u05D9\u05DD \u05E8\u05E7 \u05D0\u05D7\u05E8\u05D9 \u05D0\u05D9\u05E9\u05D5\u05E8, \u05DB\u05E9\u05D4\u05D1\u05E0\u05D9\u05D9\u05D4 \u05DE\u05E1\u05EA\u05D9\u05D9\u05DE\u05EA.",
     sqlWaiting: "\u05D1\u05D2\u05E8\u05E1\u05D4 \u05D4\u05D6\u05D5 \u05D9\u05E9 \u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D1\u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD (SQL) \u05E9\u05E2\u05D5\u05D3 \u05DC\u05D0 \u05E8\u05E6\u05D5. \u05D0\u05E9\u05E8\u05D5 \u05D0\u05D5\u05EA\u05DD \u05E7\u05D5\u05D3\u05DD \u05D1\u05DC\u05D5\u05D7 \u05D4\u05D1\u05E7\u05E8\u05D4, \u05D5\u05D0\u05D6 \u05D4\u05E2\u05DC\u05D5 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8 \u05E9\u05D5\u05D1: {url}",
     tokenOtherApi: "\u05D4\u05DB\u05E0\u05D9\u05E1\u05D4 \u05D1\u05DE\u05D7\u05E9\u05D1 \u05D4\u05D6\u05D4 \u05D4\u05D9\u05D0 \u05DC\u05BE{saved}, \u05DC\u05D0 \u05DC\u05BE{url}. \u05D4\u05E8\u05D9\u05E6\u05D5: npx deployai@latest login --api {url}, \u05D0\u05D5 \u05D4\u05D5\u05E8\u05D9\u05D3\u05D5 \u05D0\u05EA --api \u05D5\u05D0\u05EA DEPLOYAI_API_URL.",
+    envTokenRefused: "\u05D4\u05D8\u05D5\u05E7\u05DF \u05E9\u05D1\u05BEDEPLOYAI_TOKEN \u05E0\u05D3\u05D7\u05D4: \u05D4\u05EA\u05D5\u05E7\u05E3 \u05E9\u05DC\u05D5 \u05E0\u05D2\u05DE\u05E8 \u05D0\u05D5 \u05E9\u05D4\u05D5\u05D0 \u05D1\u05D5\u05D8\u05DC. \u05E7\u05D1\u05DC\u05D5 \u05D8\u05D5\u05E7\u05DF \u05D7\u05D3\u05E9, \u05D0\u05D5 \u05D4\u05E1\u05D9\u05E8\u05D5 \u05D0\u05EA DEPLOYAI_TOKEN \u05D5\u05D4\u05E8\u05D9\u05E6\u05D5: npx deployai@latest login",
+    envTokenOtherApi: "\u05D4\u05D8\u05D5\u05E7\u05DF \u05E9\u05D1\u05BEDEPLOYAI_TOKEN \u05E0\u05E9\u05DC\u05D7 \u05E8\u05E7 \u05DC\u05DB\u05EA\u05D5\u05D1\u05EA \u05E9\u05D1\u05BEDEPLOYAI_API_URL \u05D0\u05D5 \u05DC\u05DB\u05EA\u05D5\u05D1\u05EA \u05D4\u05E8\u05D2\u05D9\u05DC\u05D4, \u05D0\u05E3 \u05E4\u05E2\u05DD \u05DC\u05D0 \u05DC\u05BE{url}. \u05D4\u05D5\u05E8\u05D9\u05D3\u05D5 \u05D0\u05EA --api, \u05D0\u05D5 \u05D4\u05D2\u05D3\u05D9\u05E8\u05D5 DEPLOYAI_API_URL={url}.",
+    envTokenInUse: "\u05E2\u05D5\u05D1\u05D3\u05D9\u05DD \u05E2\u05DD \u05D4\u05D8\u05D5\u05E7\u05DF \u05E9\u05D1\u05BEDEPLOYAI_TOKEN, \u05DB\u05DA \u05E9\u05D0\u05D9\u05DF \u05E6\u05D5\u05E8\u05DA \u05DC\u05D4\u05EA\u05D7\u05D1\u05E8.",
+    envTokenNotOnSite: "\u05DC\u05D8\u05D5\u05E7\u05DF \u05E9\u05D1\u05BEDEPLOYAI_TOKEN \u05D0\u05D9\u05DF \u05D2\u05D9\u05E9\u05D4 \u05DC\u05D0\u05EA\u05E8 \u05D4\u05D6\u05D4. \u05D4\u05E9\u05EA\u05DE\u05E9\u05D5 \u05D1\u05D8\u05D5\u05E7\u05DF \u05E9\u05E0\u05D5\u05E6\u05E8 \u05D1\u05E9\u05D1\u05D9\u05DC\u05D5.",
+    envTokenLogout: "\u05D4\u05D4\u05E8\u05E6\u05D4 \u05D4\u05D6\u05D0\u05EA \u05E2\u05D5\u05D1\u05D3\u05EA \u05E2\u05DD \u05D4\u05D8\u05D5\u05E7\u05DF \u05E9\u05D1\u05BEDEPLOYAI_TOKEN, \u05D5\u05D4\u05D5\u05D0 \u05DC\u05D0 \u05E9\u05DE\u05D5\u05E8 \u05D1\u05DE\u05D7\u05E9\u05D1. \u05DB\u05D3\u05D9 \u05DC\u05D4\u05E4\u05E1\u05D9\u05E7 \u05DC\u05E2\u05D1\u05D5\u05D3 \u05D0\u05D9\u05EA\u05D5, \u05D4\u05E1\u05D9\u05E8\u05D5 \u05D0\u05EA DEPLOYAI_TOKEN.",
     linkConfirm: "\u05DC\u05D7\u05D1\u05E8 \u05D0\u05EA \u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5 \u05DC\u05BE{name} ({address})? (y/N) ",
     linkOnlyOne: "\u05D9\u05E9 \u05DC\u05DB\u05DD \u05D0\u05EA\u05E8 \u05D0\u05D7\u05D3: {name} ({address}). \u05DB\u05D3\u05D9 \u05DC\u05D7\u05D1\u05E8 \u05D0\u05D5\u05EA\u05D5, \u05D0\u05D5 \u05D0\u05EA\u05E8 \u05D7\u05D3\u05E9, \u05D4\u05E8\u05D9\u05E6\u05D5:",
     linkCancelled: "\u05DC\u05D0 \u05D7\u05D5\u05D1\u05E8. \u05E9\u05D5\u05DD \u05D3\u05D1\u05E8 \u05DC\u05D0 \u05D4\u05E9\u05EA\u05E0\u05D4.",
@@ -25540,8 +26045,8 @@ var M = {
   }
 };
 function stateName(state, root) {
-  const names = M[cliLang(root)].states;
-  return names[state] ?? state;
+  const names2 = M[cliLang(root)].states;
+  return names2[state] ?? state;
 }
 function messages(root) {
   const lang = cliLang(root);
@@ -25573,12 +26078,12 @@ function formatBytes(n2) {
 }
 
 // src/version.ts
-var CLI_VERSION = "0.1.0-beta.50";
+var CLI_VERSION = "0.1.0-beta.51";
 
 // src/api.ts
 function apiContext(apiFlag, root) {
   const saved = loadConfig();
-  const config2 = root ? configForSite(saved, readProject(root)?.projectId) : saved;
+  const config2 = withEnvToken(root ? configForSite(saved, readProject(root)?.projectId) : saved);
   return { apiUrl: resolveApiUrl(apiFlag, config2), config: config2 };
 }
 function userAgent(cfg) {
@@ -25586,6 +26091,7 @@ function userAgent(cfg) {
 }
 function requireToken(ctx) {
   if (!ctx.config.token) throw new CliError(messages(process.cwd())("notLoggedIn"), 1, "auth");
+  if (envToken() && ctx.config.token === envToken() && ctx.config.tokenApiUrl?.replace(/\/+$/, "") !== ctx.apiUrl.replace(/\/+$/, "")) throw new CliError(messages(process.cwd())("envTokenOtherApi", { url: ctx.apiUrl }), 1, "auth");
   const saved = ctx.config.tokenApiUrl?.replace(/\/+$/, "");
   if (saved && saved !== ctx.apiUrl.replace(/\/+$/, "")) throw new CliError(messages(process.cwd())("tokenOtherApi", { saved, url: ctx.apiUrl }), 1, "auth");
   return ctx.config.token;
@@ -25663,7 +26169,7 @@ async function apiRequest(ctx, path, schema, opts = {}) {
     data = null;
   }
   const t = messages(process.cwd());
-  if (res.status === 401) throw new CliError(t("sessionExpired"), 1, "auth");
+  if (res.status === 401) throw new CliError(t(envToken() && opts.auth !== false ? "envTokenRefused" : "sessionExpired"), 1, "auth");
   if (EDGE_TIMEOUT.has(res.status)) throw new CliError(t("timeout", { url: ctx.apiUrl }), 1, "network");
   if (!res.ok) {
     const parsed2 = ApiError.safeParse(data);
@@ -25884,10 +26390,10 @@ function editDistance(a, b) {
   }
   return prev[b.length];
 }
-function closestCommand(word, names) {
+function closestCommand(word, names2) {
   const w = word.toLowerCase();
   let best = null;
-  for (const name of names) {
+  for (const name of names2) {
     const d = name.startsWith(w) && w.length >= 3 ? 0.5 : editDistance(w, name);
     if (!best || d < best.d) best = { name, d };
   }
@@ -26088,13 +26594,13 @@ function walkFiles(root, opts = {}) {
   const rules = opts.ignore ?? [];
   const skipRootBuild = opts.skipRootBuild ?? rootBuilds(root);
   const visit2 = (dirAbs, dirRel) => {
-    let names;
+    let names2;
     try {
-      names = readdirSync(dirAbs).sort();
+      names2 = readdirSync(dirAbs).sort();
     } catch {
       return;
     }
-    for (const name of names) {
+    for (const name of names2) {
       if (result.length >= maxFiles) return;
       const abs = join3(dirAbs, name);
       const rel = dirRel ? `${dirRel}/${name}` : name;
@@ -26306,7 +26812,7 @@ function analyzeProject(root) {
   const runtimeDeps = pkg?.dependencies ?? {};
   const findings = [];
   const databases = [];
-  const add = (f) => {
+  const add2 = (f) => {
     const exists = findings.some((x) => x.code === f.code && x.file === f.file && x.line === f.line);
     if (!exists) findings.push(f);
   };
@@ -26328,7 +26834,7 @@ function analyzeProject(root) {
     filesScanned++;
     for (const p of SECRET_PATTERNS) {
       const line = findSecretLine(raw, p.re);
-      if (line) add({ code: "secrets_in_source", severity: "blocker", file: f.rel, line, detail: ` (${p.kind})` });
+      if (line) add2({ code: "secrets_in_source", severity: "blocker", file: f.rel, line, detail: ` (${p.kind})` });
     }
     if (isCode) sources.push({ rel: f.rel, raw, code: stripComments(raw) });
   }
@@ -26358,22 +26864,22 @@ function analyzeProject(root) {
     const code = s.code;
     if (FS_IMPORT.test(code)) {
       const line = firstMatchLine(code, FS_WRITE);
-      if (line) add({ code: "fs_write", severity: "blocker", file: s.rel, line });
+      if (line) add2({ code: "fs_write", severity: "blocker", file: s.rel, line });
     }
     const brokenRegex = brokenRegexLine(code);
-    if (brokenRegex) add({ code: "broken_regex", severity: "warning", file: s.rel, line: brokenRegex });
+    if (brokenRegex) add2({ code: "broken_regex", severity: "warning", file: s.rel, line: brokenRegex });
     const multer = /\bdiskStorage\s*\(|\bmulter\s*\(\s*\{[^}]*\bdest\s*:/.exec(code);
     if (multer && importRe("multer").test(code)) {
-      add({ code: "fs_write", severity: "blocker", file: s.rel, line: lineAt3(code, multer.index), detail: " (multer uploads)" });
+      add2({ code: "fs_write", severity: "blocker", file: s.rel, line: lineAt3(code, multer.index), detail: " (multer uploads)" });
     }
     if (CHILD_IMPORT.test(code)) {
-      add({ code: "child_process", severity: "blocker", file: s.rel, line: firstMatchLine(code, CHILD_IMPORT) });
+      add2({ code: "child_process", severity: "blocker", file: s.rel, line: firstMatchLine(code, CHILD_IMPORT) });
     }
     let isServer = false;
     for (const [mod, label] of SERVER_LIBS) {
       if (importRe(mod).test(code)) {
         isServer = true;
-        add({
+        add2({
           code: "express_server",
           severity: "blocker",
           file: s.rel,
@@ -26385,25 +26891,25 @@ function analyzeProject(root) {
     const createServer2 = /\b(?:http|https|net|http2)\.createServer\s*\(|\bcreateServer\s*\([^)]*\)\s*\.listen\s*\(/.exec(code);
     if (createServer2 && /['"`](?:node:)?(?:http|https|net|http2)['"`]/.test(code)) {
       isServer = true;
-      add({ code: "long_running_process", severity: "blocker", file: s.rel, line: lineAt3(code, createServer2.index), detail: " (Node http server)" });
+      add2({ code: "long_running_process", severity: "blocker", file: s.rel, line: lineAt3(code, createServer2.index), detail: " (Node http server)" });
     }
     for (const mod of JOB_LIBS) {
       const re = importRe(mod);
       if (re.test(code)) {
-        add({ code: "long_running_process", severity: "blocker", file: s.rel, line: firstMatchLine(code, re), detail: ` (${mod})` });
+        add2({ code: "long_running_process", severity: "blocker", file: s.rel, line: firstMatchLine(code, re), detail: ` (${mod})` });
       }
     }
     if (isServer) {
       const interval = firstMatchLine(code, /\bsetInterval\s*\(/);
-      if (interval) add({ code: "long_running_process", severity: "blocker", file: s.rel, line: interval, detail: " (setInterval timer)" });
+      if (interval) add2({ code: "long_running_process", severity: "blocker", file: s.rel, line: interval, detail: " (setInterval timer)" });
     }
     const wsImport = importRe("ws");
     if (wsImport.test(code) && /\bWebSocketServer\b|\.Server\s*\(/.test(code)) {
-      add({ code: "websocket_server", severity: "blocker", file: s.rel, line: firstMatchLine(code, wsImport), detail: " (ws)" });
+      add2({ code: "websocket_server", severity: "blocker", file: s.rel, line: firstMatchLine(code, wsImport), detail: " (ws)" });
     }
     const io = importRe("socket.io");
     if (io.test(code)) {
-      add({ code: "websocket_server", severity: "blocker", file: s.rel, line: firstMatchLine(code, io), detail: " (socket.io)" });
+      add2({ code: "websocket_server", severity: "blocker", file: s.rel, line: firstMatchLine(code, io), detail: " (socket.io)" });
     }
   }
   for (const f of files) {
@@ -26468,7 +26974,7 @@ function analyzeProject(root) {
     const text3 = readFileSync5(join4(root, name), "utf8");
     if (!parseWranglerConfig(name, text3).durableObjects.some((o) => o.script || !o.name || !o.className)) break;
     const at = text3.search(/script_name/) >= 0 ? text3.search(/script_name/) : text3.search(/durable_objects/);
-    add({ code: "durable_objects", severity: "blocker", file: name, line: at < 0 ? 1 : text3.slice(0, at).split("\n").length, detail: "" });
+    add2({ code: "durable_objects", severity: "blocker", file: name, line: at < 0 ? 1 : text3.slice(0, at).split("\n").length, detail: "" });
     break;
   }
   for (const name of ["wrangler.toml", "wrangler.json", "wrangler.jsonc"]) {
@@ -26481,7 +26987,7 @@ function analyzeProject(root) {
       if (!why) continue;
       const quoted = Math.max(text3.indexOf(`"${cron}"`), text3.indexOf(`'${cron}'`));
       const at = quoted >= 0 ? quoted : text3.indexOf(cron);
-      add({ code: "schedule_not_run", severity: "warning", file: name, line: at < 0 ? 1 : text3.slice(0, at).split("\n").length, detail: ` ("${cron}", ${why})` });
+      add2({ code: "schedule_not_run", severity: "warning", file: name, line: at < 0 ? 1 : text3.slice(0, at).split("\n").length, detail: ` ("${cron}", ${why})` });
     }
     break;
   }
@@ -26493,26 +26999,26 @@ function analyzeProject(root) {
   };
   for (const db of databases) {
     const code = DB_CODE[db.kind];
-    if (code) add({ code, severity: "blocker", file: db.file, line: db.line, detail: ` through ${db.via}` });
+    if (code) add2({ code, severity: "blocker", file: db.file, line: db.line, detail: ` through ${db.via}` });
   }
   const sharp = importedIn("sharp");
-  for (const h of sharp) add({ code: "native_module_sharp", severity: "blocker", file: h.file, line: h.line });
+  for (const h of sharp) add2({ code: "native_module_sharp", severity: "blocker", file: h.file, line: h.line });
   const bcrypt = importedIn("bcrypt");
-  for (const h of bcrypt) add({ code: "native_module_bcrypt", severity: "blocker", file: h.file, line: h.line });
+  for (const h of bcrypt) add2({ code: "native_module_bcrypt", severity: "blocker", file: h.file, line: h.line });
   if (!bcrypt.length && runtimeDeps.bcrypt) {
-    add({ code: "native_module_bcrypt", severity: "blocker", file: "package.json", line: depLine(pkgText, "bcrypt") });
+    add2({ code: "native_module_bcrypt", severity: "blocker", file: "package.json", line: depLine(pkgText, "bcrypt") });
   }
   for (const mod of ["canvas", "argon2", "puppeteer", "playwright", "node-gyp", "sodium-native", "cpu-features"]) {
     const hits = importedIn(mod);
-    for (const h of hits) add({ code: "native_module_other", severity: "blocker", file: h.file, line: h.line, detail: ` (${mod})` });
+    for (const h of hits) add2({ code: "native_module_other", severity: "blocker", file: h.file, line: h.line, detail: ` (${mod})` });
     if (!hits.length && runtimeDeps[mod]) {
-      add({ code: "native_module_other", severity: "blocker", file: "package.json", line: depLine(pkgText, mod), detail: ` (${mod})` });
+      add2({ code: "native_module_other", severity: "blocker", file: "package.json", line: depLine(pkgText, mod), detail: ` (${mod})` });
     }
   }
   const def = framework.id === "unknown" ? void 0 : frameworkById(framework.id);
   if (def && framework.adapterStatus === "missing" && def.adapter?.missingCode) {
     const depName = def.deps.find((dep) => deps[dep]);
-    add({
+    add2({
       code: def.adapter.missingCode,
       severity: "blocker",
       file: depName ? "package.json" : void 0,
@@ -26521,14 +27027,14 @@ function analyzeProject(root) {
     });
   }
   if (def?.id === "hono" && framework.adapterStatus === "missing") {
-    add({ code: "adapter_missing_hono", severity: "blocker", file: "package.json", line: depLine(pkgText, "@hono/node-server") });
+    add2({ code: "adapter_missing_hono", severity: "blocker", file: "package.json", line: depLine(pkgText, "@hono/node-server") });
   }
   if (def?.tier === "beta") {
     const depName = def.deps.find((dep) => deps[dep]);
-    add({ code: "framework_beta", severity: "warning", file: "package.json", line: depName ? depLine(pkgText, depName) : void 0, detail: `${def.name}${framework.version ? " " + framework.version : ""}` });
+    add2({ code: "framework_beta", severity: "warning", file: "package.json", line: depName ? depLine(pkgText, depName) : void 0, detail: `${def.name}${framework.version ? " " + framework.version : ""}` });
   }
   if (framework.id === "astro" && framework.adapterStatus === "other" && framework.adapter) {
-    add({
+    add2({
       code: "astro_adapter_unsupported",
       severity: "warning",
       file: "package.json",
@@ -26537,22 +27043,22 @@ function analyzeProject(root) {
     });
   }
   const otherStack = detectOtherStack(files.map((f) => f.rel));
-  if (otherStack) add({ code: "other_stack", severity: "blocker", detail: ` ${otherStack.name}` });
+  if (otherStack) add2({ code: "other_stack", severity: "blocker", detail: ` ${otherStack.name}` });
   const empty = !files.some((f) => !f.rel.startsWith(".deployai/") && !INIT_FILES.has(f.rel) && !isEnvFile(f.rel.split("/").pop() ?? ""));
-  if (empty) add({ code: "no_files", severity: "blocker" });
+  if (empty) add2({ code: "no_files", severity: "blocker" });
   if (framework.id === "unknown" && !otherStack && !empty) {
-    add({ code: "unknown_framework", severity: "warning", detail: framework.flavor ? ` (looks like ${framework.flavor})` : "" });
+    add2({ code: "unknown_framework", severity: "warning", detail: framework.flavor ? ` (looks like ${framework.flavor})` : "" });
   }
   const smtp = ["nodemailer", "emailjs", "smtp-client"].find((d) => deps[d]);
-  if (smtp) add({ code: "email_smtp", severity: "warning", file: "package.json", detail: ` ${smtp}` });
+  if (smtp) add2({ code: "email_smtp", severity: "warning", file: "package.json", detail: ` ${smtp}` });
   const hasBuildScript = Boolean(pkg?.scripts?.build);
   if (pkg && !hasBuildScript && framework.id !== "static" && framework.id !== "hono") {
-    add({ code: "no_build_script", severity: "warning", file: "package.json" });
+    add2({ code: "no_build_script", severity: "warning", file: "package.json" });
   }
-  for (const env of trackedEnvFiles(root)) add({ code: "env_file_committed", severity: "blocker", file: env });
+  for (const env of trackedEnvFiles(root)) add2({ code: "env_file_committed", severity: "blocker", file: env });
   const plan = planUpload(root);
   if (plan.totalBytes > MAX_TOTAL_BYTES) {
-    add({
+    add2({
       code: "bundle_too_large",
       severity: "blocker",
       detail: ` (${formatBytes(plan.totalBytes)}, max ${formatBytes(MAX_TOTAL_BYTES)})`
@@ -26902,8 +27408,15 @@ function findBrowser() {
   const places = process.platform === "win32" ? windowsBrowserDirs().flatMap((d) => d ? [join8(d, "Google/Chrome/Application/chrome.exe"), join8(d, "Microsoft/Edge/Application/msedge.exe")] : []) : process.platform === "darwin" ? ["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge", "/Applications/Chromium.app/Contents/MacOS/Chromium"] : ["/usr/bin/google-chrome", "/usr/bin/google-chrome-stable", "/usr/bin/chromium", "/usr/bin/chromium-browser", "/usr/bin/microsoft-edge", "/snap/bin/chromium"];
   return places.find((p) => existsSync7(p)) ?? null;
 }
+function isCi(env = process.env) {
+  const v = env.CI?.trim().toLowerCase();
+  return Boolean(v) && v !== "0" && v !== "false";
+}
+function noBrowser(env = process.env) {
+  return Boolean(env.DEPLOYAI_NO_BROWSER) || isCi(env) || Boolean(env.DEPLOYAI_TOKEN?.trim());
+}
 function openBrowser(url2) {
-  if (process.env.DEPLOYAI_NO_BROWSER || process.env.CI) return false;
+  if (noBrowser()) return false;
   if (!/^https?:\/\//.test(url2)) return false;
   try {
     const [cmd, args] = process.platform === "win32" ? ["rundll32", ["url.dll,FileProtocolHandler", url2]] : process.platform === "darwin" ? ["open", [url2]] : ["xdg-open", [url2]];
@@ -27084,6 +27597,16 @@ import { hostname as hostname3 } from "os";
 import { basename } from "path";
 var sleep = (ms2) => new Promise((r) => setTimeout(r, ms2));
 async function loginCommand(ctx, opts = {}) {
+  if (envToken()) {
+    const t0 = messages(opts.root);
+    if (opts.force && opts.quiet) throw new CliError(t0("envTokenNotOnSite"), 1, "not_found");
+    const me = await apiRequest(ctx, "/api/cli/me", MeResponse).catch((e3) => {
+      if (e3 instanceof CliError && e3.category === "auth") throw e3;
+      return null;
+    });
+    out(me ? t0("loggedInAs", { email: me.email }) : t0("envTokenInUse"));
+    return;
+  }
   if (!opts.force && ctx.config.token) {
     const me = await apiRequest(ctx, "/api/cli/me", MeResponse).catch(() => null);
     if (me) {
@@ -27144,6 +27667,10 @@ async function revoke(ctx, token, tokenApiUrl) {
 }
 async function logoutCommand(ctx, opts = {}) {
   const t = messages();
+  if (envToken()) {
+    out(t("envTokenLogout"));
+    return;
+  }
   const saved = ctx.config.accounts ?? {};
   if (opts.all) {
     let revoked2 = true;
@@ -27584,14 +28111,28 @@ async function refreshRules(root, apiUrl) {
   }
 }
 
-// src/commands/link.ts
+// src/ask.ts
 import { createInterface } from "readline/promises";
+var isInteractive = () => Boolean(process.stdin.isTTY && process.stdout.isTTY) && !isCi() && !envToken();
+async function askLine(question) {
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  try {
+    return (await rl.question(question)).trim();
+  } finally {
+    rl.close();
+  }
+}
+async function askYes(question) {
+  const answer = (await askLine(question)).toLowerCase();
+  return answer === "y" || answer === "yes";
+}
+
+// src/commands/link.ts
+import { createInterface as createInterface2 } from "readline/promises";
 
 // src/commands/migrate.ts
-import { createWriteStream, existsSync as existsSync12, mkdirSync as mkdirSync6, readdirSync as readdirSync3, readFileSync as readFileSync10, statSync as statSync2, writeFileSync as writeFileSync10 } from "fs";
+import { existsSync as existsSync12, mkdirSync as mkdirSync6, readdirSync as readdirSync3, readFileSync as readFileSync10, writeFileSync as writeFileSync10 } from "fs";
 import { dirname as dirname2, join as join13, posix, relative, resolve, sep } from "path";
-import { Readable } from "stream";
-import { pipeline } from "stream/promises";
 var UA = `deployai-migrate/${CLI_VERSION} (+https://deployai.co.il/move)`;
 var PAGE_CAP = 1e3;
 var WP_PAGE_CAP = 50;
@@ -27738,7 +28279,7 @@ async function wordpressContent(base, dir) {
 }
 function pageAssets(html, base) {
   const found = /* @__PURE__ */ new Set();
-  const add = (u) => {
+  const add2 = (u) => {
     if (!u || u.startsWith("data:")) return;
     try {
       found.add(new URL(u.trim(), base).toString());
@@ -27746,16 +28287,16 @@ function pageAssets(html, base) {
     }
   };
   for (const m of html.matchAll(/<img\b[^>]*>/gi)) {
-    add(m[0].match(/\ssrc=["']([^"']+)/i)?.[1]);
+    add2(m[0].match(/\ssrc=["']([^"']+)/i)?.[1]);
     const set2 = m[0].match(/\ssrcset=["']([^"']+)/i)?.[1];
-    if (set2) add(set2.split(",").map((s) => s.trim().split(/\s+/)[0]).pop());
+    if (set2) add2(set2.split(",").map((s) => s.trim().split(/\s+/)[0]).pop());
   }
-  add(html.match(/<meta[^>]+property=["']og:image["'][^>]*content=["']([^"']+)/i)?.[1]);
-  for (const m of html.matchAll(/url\(["']?([^"')]+\.(?:jpe?g|png|gif|webp|svg|avif))/gi)) add(m[1]);
+  add2(html.match(/<meta[^>]+property=["']og:image["'][^>]*content=["']([^"']+)/i)?.[1]);
+  for (const m of html.matchAll(/url\(["']?([^"')]+\.(?:jpe?g|png|gif|webp|svg|avif))/gi)) add2(m[1]);
   const own2 = (u) => {
     if (!u) return;
     try {
-      if (new URL(u.trim(), base).hostname.replace(/^www\./, "") === new URL(base).hostname.replace(/^www\./, "")) add(u);
+      if (new URL(u.trim(), base).hostname.replace(/^www\./, "") === new URL(base).hostname.replace(/^www\./, "")) add2(u);
     } catch {
     }
   };
@@ -27790,7 +28331,7 @@ async function addStylesheetAssets(assets) {
 var ICON_MAX_BYTES = 2 * 1024 * 1024;
 async function saveOldIcons(html, pageUrl, origin, dir) {
   const wanted = [];
-  const add = (href, kind) => {
+  const add2 = (href, kind) => {
     if (!href) return;
     try {
       const url2 = new URL(href, pageUrl).toString();
@@ -27798,9 +28339,9 @@ async function saveOldIcons(html, pageUrl, origin, dir) {
     } catch {
     }
   };
-  iconLinks(html).forEach((h) => add(h, "icon"));
-  add(`${origin}/favicon.ico`, "icon");
-  add(logoInPage(html), "logo");
+  iconLinks(html).forEach((h) => add2(h, "icon"));
+  add2(`${origin}/favicon.ico`, "icon");
+  add2(logoInPage(html), "logo");
   const saved = [];
   const icons = join13(dir, "icons");
   for (const w of wanted.slice(0, 6)) {
@@ -27873,6 +28414,15 @@ function kitMap(root) {
   }));
   return { kit: { pages, posts: posts.slice(0, 300).map((p) => ({ path: cut(p.path || `/blog/${p.slug}`, 300), title: cut(p.title, 200) })), postsTotal: posts.length, docs, forms } };
 }
+function profileOfReport(inv) {
+  if (!inv.profile) return {};
+  const p = inv.profile;
+  return {
+    siteKinds: p.kinds.slice(0, 4),
+    siteFeatures: p.features.slice(0, 10).map((f) => ({ key: f.key, pages: f.pages.slice(0, 10).map((x) => x.slice(0, 300)), providers: f.providers.slice(0, 10).map((x) => x.slice(0, 60)) })),
+    connectFirst: p.connectFirst.slice(0, 20).map((c) => ({ feature: c.feature, provider: c.provider ? c.provider.slice(0, 60) : null }))
+  };
+}
 async function sendReport(root, ctx, host, open2, verify) {
   const dir = hostDir(root, host);
   const inv = readJson3(join13(dir, "inventory.json"));
@@ -27922,6 +28472,7 @@ async function sendReport(root, ctx, host, open2, verify) {
     ...thanksPages.length ? { thanksPages } : {},
     dns: dns ?? null,
     features: parsePlanFeatures(plan),
+    ...profileOfReport(inv),
     ...state.answers ? { answers: state.answers } : {},
     ...kitMap(root),
     verify: saved ? { ...saved, removed: state.removed ?? saved.removed, ...state.fired?.length ? { fired: state.fired } : {} } : null
@@ -28010,6 +28561,7 @@ async function migrateScanCommand(root, raw, opts = {}) {
   const site = emptySiteTags();
   const containerTriggers = await readContainers(html, site);
   const inUse = /* @__PURE__ */ new Set();
+  const profileScan = emptyProfileScan();
   let next = 0;
   let read = 0;
   const worker = async () => {
@@ -28020,11 +28572,13 @@ async function migrateScanCommand(root, raw, opts = {}) {
       const moved = res && res.status >= 300 && res.status < 400 ? res.headers.get("location") : null;
       if (moved && sameAddress(url2, moved)) res = await get(new URL(moved, url2).href);
       const status = i === 0 ? home.status : res?.status ?? 0;
+      if (i && res) addClosedPage(profileScan, pathOf(url2), status, res.headers.get("location"));
       const body = i === 0 ? html : res && res.ok ? await res.text() : "";
       const seo = body ? readPageSeo(body) : null;
       pages[i] = { path: pathOf(url2), status, title: seo?.title ?? null, description: seo?.description ?? null, canonical: seo?.canonical ?? null, h1: seo?.h1[0] ?? null, lang: seo?.lang ?? null };
       if (body) pageAssets(body, url2).forEach((a) => assets.add(a));
       if (body) {
+        addPageProfile(profileScan, body, pathOf(url2));
         addPageTags(site, scanPageTags(body, url2), pathOf(url2));
         for (const t of containerTriggers) {
           if (inUse.has(t) || t.type === "page") continue;
@@ -28054,6 +28608,7 @@ async function migrateScanCommand(root, raw, opts = {}) {
     const seo = readPageSeo(body);
     pages.push({ path: t.value, status: res.status, title: seo.title ?? null, description: seo.description ?? null, canonical: seo.canonical ?? null, h1: seo.h1[0] ?? null, lang: seo.lang ?? null });
     known.add(t.value);
+    addPageProfile(profileScan, body, t.value);
     addPageTags(site, scanPageTags(body, res.url), t.value);
     inUse.add(t);
     await sleep2(PAUSE_MS);
@@ -28067,7 +28622,8 @@ async function migrateScanCommand(root, raw, opts = {}) {
     writeJson(join13(dir, "dns.json"), { records: records.slice(0, 600), unread: unread.slice(0, 300), services: dnsServices(records).slice(0, 40) });
   } catch {
   }
-  const inventory = { source: base, platform: platform3, scannedAt: (/* @__PURE__ */ new Date()).toISOString(), sitemaps: fromSitemaps.sitemaps, pages, wordpressApi, skipped: Math.max(0, all.length - list.length) };
+  const profile = siteProfile(profileScan, { platform: platform3 });
+  const inventory = { source: base, platform: platform3, scannedAt: (/* @__PURE__ */ new Date()).toISOString(), sitemaps: fromSitemaps.sitemaps, pages, wordpressApi, skipped: Math.max(0, all.length - list.length), profile };
   writeJson(join13(dir, "inventory.json"), inventory);
   writeJson(join13(dir, "assets.json"), [...assets].sort());
   writeFileSync10(join13(dir, "home.html"), html);
@@ -28086,6 +28642,8 @@ async function migrateScanCommand(root, raw, opts = {}) {
     out("  content/        the WordPress pages, posts, categories, tags, media and authors as JSON");
     if (existsSync12(join13(dir, "posts"))) out("  posts/          the posts as Markdown for the blog block, each with its old address");
   } else if (platform3 === "wordpress") out("  The WordPress API is closed on this site: work from the pages, or ask the owner for an export (Tools > Export).");
+  out();
+  for (const line of profileLines(profile)) out(line);
   out();
   out("Keep every path in inventory.json exactly as it is: same address, same title and description.");
   await sendReport(root, opts.ctx, host, "scan");
@@ -28116,17 +28674,16 @@ async function migrateMediaCommand(root) {
         break;
       }
       const target = mediaTarget(dir, url2);
-      const res = target ? await get(url2, "*/*") : null;
-      const size = Number(res?.headers.get("content-length") ?? 0);
-      const pageForFile = !/\.html?$/i.test(new URL(url2).pathname) && /text\/html/i.test(res?.headers.get("content-type") ?? "");
-      if (!target || !res?.ok || !res.body || size > MEDIA_FILE_CAP || pageForFile) {
+      const res = target ? await safeFetch(url2, { maxBytes: MEDIA_FILE_CAP, timeoutMs: 6e4, userAgent: UA }).catch(() => null) : null;
+      const pageForFile = !!res && !/\.html?$/i.test(new URL(res.finalUrl).pathname) && /text\/html/i.test(res.contentType);
+      if (!target || !res || res.status < 200 || res.status > 299 || pageForFile) {
         if (!state.failed.includes(url2)) state.failed.push(url2);
         done.add(url2);
         continue;
       }
       mkdirSync6(dirname2(target), { recursive: true });
-      await pipeline(Readable.fromWeb(res.body), createWriteStream(target));
-      const bytes = statSync2(target).size;
+      writeFileSync10(target, res.body);
+      const bytes = res.body.byteLength;
       state.bytes += bytes;
       done.add(url2);
       state.done = [...done];
@@ -28289,8 +28846,8 @@ async function migrateTagsCommand(root, ctx, opts) {
     }
     if (opts.removed?.length) {
       state.removed = [.../* @__PURE__ */ new Set([...state.removed ?? [], ...opts.removed])];
-      const names = removableNames(site);
-      const known = opts.removed.filter((r) => names.some((n2) => n2.toLowerCase() === r.toLowerCase()));
+      const names2 = removableNames(site);
+      const known = opts.removed.filter((r) => names2.some((n2) => n2.toLowerCase() === r.toLowerCase()));
       const unknown2 = opts.removed.filter((r) => !known.includes(r));
       if (known.length) out(`Marked as left out on purpose: ${known.join(", ")}. Verify will not ask for these. The report shows what took its place from the plan row "Replaced with ...".`);
       if (unknown2.length) out(`Not found in what the old site has: ${unknown2.join(", ")}. Use the name verify prints, exactly as it prints it.`);
@@ -28323,6 +28880,26 @@ function previewPage(preview, path) {
   if (token) u.searchParams.set("deployai_preview", token);
   return u.toString();
 }
+var FEATURE_WORDS = { cart: "the store page", checkout: "the checkout", booking: "the booking page", login: "the sign in page", protected: "the members only page", forms: "the form page", payments: "payments" };
+var FEATURE_PAGES = 5;
+async function checkFeatures(inv, fetchPage) {
+  const checks = [];
+  for (const f of inv.profile?.features ?? []) {
+    if (f.key === "payments") continue;
+    for (const path of f.pages.slice(0, FEATURE_PAGES)) {
+      const manual = f.key === "protected" || f.key === "checkout";
+      const res = await fetchPage(path, manual);
+      let html = "";
+      if (res?.status === 200) html = await res.text().catch(() => "");
+      else await res?.body?.cancel().catch(() => {
+      });
+      const c = checkFeaturePage(f.key, path, res ? { status: res.status, location: res.headers.get("location"), html } : null);
+      if (c) checks.push(c);
+      await sleep2(PAUSE_MS / 3);
+    }
+  }
+  return checks;
+}
 async function migrateVerifyCommand(root, previewRaw, ctx, retryMs = PREVIEW_RETRY_MS) {
   let preview;
   try {
@@ -28342,6 +28919,7 @@ async function migrateVerifyCommand(root, previewRaw, ctx, retryMs = PREVIEW_RET
   const tagFindings = [];
   const leftOnOld = [];
   const perHost = [];
+  const featureChecks = [];
   for (const host of hosts) {
     const inv = readJson3(join13(hostDir(root, host), "inventory.json"));
     const oldSite = readJson3(tagsFile(hostDir(root, host)));
@@ -28395,12 +28973,22 @@ async function migrateVerifyCommand(root, previewRaw, ctx, retryMs = PREVIEW_RET
       for (const t of oldSite.triggers.filter((x) => x.type === "page")) pageOnPreview[t.value] = Boolean((await page3(t.value))?.ok);
       const found = compareTags(oldSite, nextSite, { removed: state.removed ?? [], csp, fileOnPreview, triggerFound, pageOnPreview, formIdFound });
       tagFindings.push(...found);
-      perHost.push({ host, checked: checked - checkedBefore, problems: findings.length - findingsBefore, pages: findings.slice(findingsBefore), seen: nextSite.tags.map((t) => ({ key: t.key, id: t.id })), found, removed: state.removed ?? [] });
+      const features = inv ? await checkFeatures(inv, (path, manual) => get(cookie ? new URL(path, preview.origin).toString() : previewPage(preview, path), void 0, manual ? "manual" : "follow", cookie)) : [];
+      featureChecks.push(...features);
+      perHost.push({ host, checked: checked - checkedBefore, problems: findings.length - findingsBefore, pages: findings.slice(findingsBefore), seen: nextSite.tags.map((t) => ({ key: t.key, id: t.id })), found, removed: state.removed ?? [], features });
     }
   }
   const words = { missing: "not found on the preview", moved: "moved to", error: "answers", title_lost: "lost its title", description_lost: "lost its description" };
   const report2 = join13(root, MIGRATION_DIR, "verify.json");
-  writeJson(report2, { checkedAt: (/* @__PURE__ */ new Date()).toISOString(), preview: preview.origin, checked, findings, credits: [...credits.keys()], vendors: [...vendors.keys()], tags: tagFindings, leftOnOld });
+  writeJson(report2, { checkedAt: (/* @__PURE__ */ new Date()).toISOString(), preview: preview.origin, checked, findings, credits: [...credits.keys()], vendors: [...vendors.keys()], tags: tagFindings, leftOnOld, features: featureChecks });
+  const brokenFeatures = featureChecks.filter((c) => !c.ok);
+  if (brokenFeatures.length) {
+    out(`${brokenFeatures.length} ${brokenFeatures.length === 1 ? "feature of the old site does" : "features of the old site do"} not work on the preview:`);
+    for (const c of brokenFeatures.slice(0, 40)) out(`  ${c.page}  ${FEATURE_WORDS[c.key]} ${FEATURE_PROBLEM_WORDS[c.problem]}`);
+    out(`Make each one work as it does on the old site, deploy again, and run verify again: npx deployai@latest migrate verify ${previewRaw}`);
+    blockedBy("feature_broken");
+    process.exitCode = 1;
+  }
   if (credits.size) {
     out(`A builder's credit is still on the preview:`);
     for (const [text3, path] of credits) out(`  ${path}  ${text3}`);
@@ -28431,10 +29019,10 @@ async function migrateVerifyCommand(root, previewRaw, ctx, retryMs = PREVIEW_RET
     blockedBy(...tagFindings.map((f) => f.problem));
     process.exitCode = 1;
   }
-  const clean3 = !findings.length && !tagFindings.length && !credits.size && !vendors.size && !leftOnOld.length;
+  const clean3 = !findings.length && !tagFindings.length && !credits.size && !vendors.size && !leftOnOld.length && !brokenFeatures.length;
   for (const h of perHost) {
     const dir = hostDir(root, h.host);
-    const verify = { checkedAt: (/* @__PURE__ */ new Date()).toISOString(), pagesChecked: h.checked, pageProblems: h.problems, pageFindings: h.pages.map((f) => ({ path: f.path.slice(0, 300), problem: f.problem })).slice(0, 150), findings: h.found.map((f) => ({ problem: f.problem, what: f.what.slice(0, 240), ...f.detail ? { detail: f.detail.slice(0, 300) } : {}, ...f.page ? { page: f.page.slice(0, 300) } : {} })).slice(0, 300), seen: h.seen.slice(0, 300), removed: h.removed, vendors: [...vendors.keys()].map((v) => v.slice(0, 80)).slice(0, 40) };
+    const verify = { checkedAt: (/* @__PURE__ */ new Date()).toISOString(), pagesChecked: h.checked, pageProblems: h.problems, pageFindings: h.pages.map((f) => ({ path: f.path.slice(0, 300), problem: f.problem })).slice(0, 150), findings: h.found.map((f) => ({ problem: f.problem, what: f.what.slice(0, 240), ...f.detail ? { detail: f.detail.slice(0, 300) } : {}, ...f.page ? { page: f.page.slice(0, 300) } : {} })).slice(0, 300), seen: h.seen.slice(0, 300), removed: h.removed, vendors: [...vendors.keys()].map((v) => v.slice(0, 80)).slice(0, 40), ...h.features.length ? { featureChecks: h.features.slice(0, 60).map((c) => ({ ...c, page: c.page.slice(0, 300) })) } : {} };
     writeJson(join13(dir, "verify-report.json"), { report: verify });
     await sendReport(root, ctx, h.host, clean3 ? "verify" : null, verify);
   }
@@ -28501,8 +29089,8 @@ async function linkCommand(root, ctx, target, opts) {
   }
   if (!projects.length) {
     out(t("noProjects"));
-    if (process.stdin.isTTY && process.stdout.isTTY) {
-      const rl = createInterface({ input: process.stdin, output: process.stdout });
+    if (isInteractive()) {
+      const rl = createInterface2({ input: process.stdin, output: process.stdout });
       let name;
       try {
         name = (await rl.question("Name for a new site: ")).trim();
@@ -28519,8 +29107,8 @@ async function linkCommand(root, ctx, target, opts) {
   if (projects.length === 1) {
     const p = projects[0];
     const address = p.url ?? p.slug;
-    if (process.stdin.isTTY && process.stdout.isTTY) {
-      const rl = createInterface({ input: process.stdin, output: process.stdout });
+    if (isInteractive()) {
+      const rl = createInterface2({ input: process.stdin, output: process.stdout });
       let answer;
       try {
         answer = (await rl.question(t("linkConfirm", { name: p.name, address }))).trim().toLowerCase();
@@ -28537,8 +29125,8 @@ async function linkCommand(root, ctx, target, opts) {
   out(t("projects"));
   projects.forEach((p, i) => out(projectLine(p, i) + (p.id === current ? t("linkedMark") : "")));
   out();
-  if (process.stdin.isTTY && process.stdout.isTTY) {
-    const rl = createInterface({ input: process.stdin, output: process.stdout });
+  if (isInteractive()) {
+    const rl = createInterface2({ input: process.stdin, output: process.stdout });
     try {
       const answer = (await rl.question("Number to link: ")).trim();
       const p = projects[Number(answer) - 1];
@@ -28555,22 +29143,6 @@ async function linkCommand(root, ctx, target, opts) {
 
 // src/commands/deploy.ts
 import { randomUUID as randomUUID2 } from "crypto";
-
-// src/ask.ts
-import { createInterface as createInterface2 } from "readline/promises";
-var isInteractive = () => Boolean(process.stdin.isTTY && process.stdout.isTTY);
-async function askLine(question) {
-  const rl = createInterface2({ input: process.stdin, output: process.stdout });
-  try {
-    return (await rl.question(question)).trim();
-  } finally {
-    rl.close();
-  }
-}
-async function askYes(question) {
-  const answer = (await askLine(question)).toLowerCase();
-  return answer === "y" || answer === "yes";
-}
 
 // src/same-name.ts
 import { createHash as createHash2 } from "crypto";
@@ -28761,14 +29333,14 @@ async function touchWork(ctx, root, projectId, builtOn) {
   return (await checkWork(ctx, root, projectId, builtOn)).others;
 }
 function behindNames(behind) {
-  const names = [...new Set(behind.newer.map((v) => v.by).filter((x) => !!x))];
-  return (names.length ? names : behind.by ? [behind.by] : []).join(", ");
+  const names2 = [...new Set(behind.newer.map((v) => v.by).filter((x) => !!x))];
+  return (names2.length ? names2 : behind.by ? [behind.by] : []).join(", ");
 }
 function othersLine(root, others) {
   if (!others.length) return null;
   const t = messages(root);
-  const names = others.map((o) => (o.you ? t("workYouElsewhere") : o.name) + ` (${t("workMinutesAgo", { n: o.minutesAgo })})`).join(", ");
-  return t("workOthers", { names });
+  const names2 = others.map((o) => (o.you ? t("workYouElsewhere") : o.name) + ` (${t("workMinutesAgo", { n: o.minutesAgo })})`).join(", ");
+  return t("workOthers", { names: names2 });
 }
 
 // src/commands/pull.ts
@@ -28876,7 +29448,7 @@ async function samplesCommand(cwd, ctx, key2, opts = {}) {
   } else {
     const here = filesIn(cwd);
     if (!here.length || opts.force) root = cwd;
-    else if (process.stdin.isTTY && process.stdout.isTTY) {
+    else if (isInteractive()) {
       const picked = await askWhere(cwd, sample.key, here.length);
       if (!picked) return out("Cancelled. Nothing was downloaded.");
       root = picked;
@@ -29090,8 +29662,8 @@ async function bringIn(root, ctx, projectId, behind) {
     git2(root, ["add", "-A"]);
     const tree = git2(root, ["write-tree"]).stdout.trim();
     const head = git2(root, ["rev-parse", "HEAD"]).stdout.trim();
-    const names = behindNames(behind);
-    const c = spawnSync3("git", ["commit-tree", tree, "-p", head, "-p", tip.sha, "-m", `Brought in live v${live}${names ? ` (${names})` : ""}`], { cwd: root, encoding: "utf8", env: { ...process.env, ...botEnv() } });
+    const names2 = behindNames(behind);
+    const c = spawnSync3("git", ["commit-tree", tree, "-p", head, "-p", tip.sha, "-m", `Brought in live v${live}${names2 ? ` (${names2})` : ""}`], { cwd: root, encoding: "utf8", env: { ...process.env, ...botEnv() } });
     if (c.status === 0 && c.stdout.trim()) git2(root, ["update-ref", "HEAD", c.stdout.trim()]);
   }
   return { live, taken, merged, conflicts: state.conflicts, clashes: state.clashes, history: tip?.added ?? 0 };
@@ -29142,8 +29714,8 @@ async function recordHistory(root, ctx, projectId, behind) {
 }
 function printBroughtIn(root, r, behind) {
   const t = messages(root);
-  const names = behindNames(behind);
-  out(names ? t("caughtUp", { v: r.live, names, taken: r.taken, merged: r.merged }) : t("syncDone", { v: r.live, taken: r.taken, merged: r.merged }));
+  const names2 = behindNames(behind);
+  out(names2 ? t("caughtUp", { v: r.live, names: names2, taken: r.taken, merged: r.merged }) : t("syncDone", { v: r.live, taken: r.taken, merged: r.merged }));
   if (r.history) out(t("historyAdded", { n: r.history }));
   if (r.conflicts.length) {
     out();
@@ -29293,8 +29865,8 @@ function printClosedHere(root, s) {
   if (!s.closedHere) return;
   const { country, countries, settingsUrl } = s.closedHere;
   const t = messages(root);
-  const names = new Intl.DisplayNames([cliLang(root)], { type: "region" });
-  const name = (code) => names.of(code) ?? code;
+  const names2 = new Intl.DisplayNames([cliLang(root)], { type: "region" });
+  const name = (code) => names2.of(code) ?? code;
   out();
   out(t("closedHere", { countries: countries.map(name).join(", "), country: name(country) }));
   out(settingsUrl ? t("closedHereOpen", { country: name(country), url: settingsUrl }) : t("closedHereAsk", { country: name(country) }));
@@ -29522,8 +30094,8 @@ async function prepare(root, ctx, maxBytes) {
   if (archive.length > maxBytes) throw new CliError(t("uploadTooLargeGuest", { size: formatBytes(archive.length), max: formatBytes(maxBytes) }), 1, "too_large");
   const info = [[t("files"), `${plan.files.length} (${formatBytes(plan.totalBytes)}, packed ${formatBytes(archive.length)})`]];
   if (plan.skippedLarge.length) {
-    const names = plan.skippedLarge.slice(0, 3).map((f) => f.rel).join(", ");
-    info.push([t("skipped"), t("skippedLarge", { n: plan.skippedLarge.length, max: formatBytes(MAX_FILE_BYTES), names })]);
+    const names2 = plan.skippedLarge.slice(0, 3).map((f) => f.rel).join(", ");
+    info.push([t("skipped"), t("skippedLarge", { n: plan.skippedLarge.length, max: formatBytes(MAX_FILE_BYTES), names: names2 })]);
   }
   return { archive, info, hasSql: plan.files.some((f) => SQL_FILE.test(f.rel) && !f.rel.includes("node_modules/")) };
 }
@@ -30081,7 +30653,7 @@ async function startCommand(cwd, ctx, id, opts = {}) {
       if (e3 instanceof CliError && e3.category === "auth_expired") throw new CliError(messages(process.cwd())("startLoginExpired", { id: key2 }), 1, "auth_expired");
       throw e3;
     });
-    ctxNow = { ...ctxNow, config: loadConfig() };
+    ctxNow = { ...ctxNow, config: withEnvToken(loadConfig()) };
     start2 = await fetchStart(ctxNow, key2);
     if (start2 === "login_required") throw new CliError(messages(process.cwd())("sessionExpired"), 1, "auth");
   }
@@ -30096,7 +30668,7 @@ async function startCommand(cwd, ctx, id, opts = {}) {
       if (e3 instanceof CliError && e3.category === "auth_expired") throw new CliError(t0("startLoginExpired", { id: key2 }), 1, "auth_expired");
       throw e3;
     });
-    ctxNow = { ...ctxNow, config: loadConfig() };
+    ctxNow = { ...ctxNow, config: withEnvToken(loadConfig()) };
     start2 = await fetchStart(ctxNow, key2);
     if (start2 === "login_required") throw new CliError(t0("sessionExpired"), 1, "auth");
     if ("notOnSite" in start2) throw new CliError(t0("startStillOtherAccount", { email: ctxNow.config.email ?? "?", maker, id: key2 }), 1, "not_found");
@@ -30240,7 +30812,7 @@ import { mkdirSync as mkdirSync11, existsSync as existsSync18, writeFileSync as 
 
 // src/commands/addon-lanes.ts
 import { spawnSync as spawnSync5 } from "child_process";
-import { copyFileSync, existsSync as existsSync17, lstatSync as lstatSync2, mkdirSync as mkdirSync10, readdirSync as readdirSync6, rmdirSync, statSync as statSync3, unlinkSync as unlinkSync2, writeFileSync as writeFileSync16 } from "fs";
+import { copyFileSync, existsSync as existsSync17, lstatSync as lstatSync2, mkdirSync as mkdirSync10, readdirSync as readdirSync6, rmdirSync, statSync as statSync2, unlinkSync as unlinkSync2, writeFileSync as writeFileSync16 } from "fs";
 import { basename as basename2, dirname as dirname6, join as join20, resolve as resolve6 } from "path";
 var git3 = (cwd, args) => spawnSync5("git", args, { cwd, encoding: "utf8" });
 var ok = (cwd, args) => git3(cwd, args).status === 0;
@@ -30296,7 +30868,7 @@ function startWave(root, keys) {
 }
 function copyLocalFiles(from, to) {
   const dir = join20(from, DEPLOYAI_DIR);
-  const files = existsSync17(dir) ? readdirSync6(dir).map((f) => join20(DEPLOYAI_DIR, f)).filter((f) => statSync3(join20(from, f)).isFile()) : [];
+  const files = existsSync17(dir) ? readdirSync6(dir).map((f) => join20(DEPLOYAI_DIR, f)).filter((f) => statSync2(join20(from, f)).isFile()) : [];
   for (const f of [...files, ...LOCAL_FILES]) {
     if (f === join20(DEPLOYAI_DIR, "run.json")) continue;
     if (!existsSync17(join20(from, f)) || existsSync17(join20(to, f))) continue;
@@ -30415,8 +30987,26 @@ async function addonsCommand(root, ctx) {
   out(`Next: ${r.next}. To run what is waiting: npx deployai@latest addons run (or one: npx deployai@latest addon run <name>)`);
 }
 var FINAL_PUBLISH = 'Now the one publish. Run npx deployai@latest check, then ask the owner once, naming the site and its address: "See a preview first, put it live, or not yet?" Preview first is the recommended answer. If a check waits for a preview, offer only a preview or not yet. Then run once: npx deployai@latest deploy -m "<the add-ons, in a few words>", with --live only if they chose to put it live. Run the checks that waited on that preview and fix what they find; deploy again only if a fix was needed.';
+function finalPublish(end) {
+  if (end === "preview") return 'Now the one publish, as a preview: this run was started with --end preview, so do not ask the owner. Run npx deployai@latest check, then once: npx deployai@latest deploy -m "<the add-ons, in a few words>", without --live. Run the checks that waited on that preview and fix what they find; deploy again, still without --live, only if a fix was needed.';
+  if (end === "live") return 'Now the one publish, live: this run was started with --end live, so do not ask the owner. Run npx deployai@latest check. If a check waits for a preview, first run once: npx deployai@latest deploy -m "<the add-ons, in a few words>", run those checks on it and fix what they find. Then run once: npx deployai@latest deploy -m "<the add-ons, in a few words>" --live';
+  if (end === "none") return "Do not deploy: this run was started with --end none, so do not ask the owner either. Run npx deployai@latest check until it shows no blockers, and commit. The changes go up with the next deploy.";
+  return FINAL_PUBLISH;
+}
+function runEnd(given, saved, say) {
+  if (given !== void 0) {
+    const end = given.trim().toLowerCase();
+    if (!ADDON_RUN_ENDS.includes(end)) throw new CliError(`Not an end: ${given}. Use --end preview, --end live or --end none, for example: npx deployai@latest addons run --end preview`, 1, "usage");
+    return end;
+  }
+  if (saved) return saved;
+  if (!isCi()) return void 0;
+  if (say) out("CI is set and no --end was given, so this run ends with a preview and asks nobody. To choose: npx deployai@latest addons run --end preview, --end live or --end none");
+  return "preview";
+}
 async function addonsRunCommand(root, ctx, opts = {}) {
   requireToken(ctx);
+  if (opts.end !== void 0) runEnd(opts.end, void 0, false);
   if (laneOf(root)) throw new CliError("This is a lane folder of an add-on run. Here, run only the add-ons of this lane with npx deployai@latest addon run <name>.", 1, "in_lane");
   const projectId = linkedProjectId2(root);
   const r = await apiRequest(ctx, `/api/cli/addons?projectId=${encodeURIComponent(projectId)}`, AddonsResponse);
@@ -30425,6 +31015,7 @@ async function addonsRunCommand(root, ctx, opts = {}) {
     return;
   }
   const running = readRun(root);
+  const end = runEnd(opts.end, running?.end, true);
   if (running?.wave) {
     out(`Wave ${running.wave.number + 1} is still running in ${running.wave.lanes.length} lanes:`);
     running.wave.lanes.forEach((l) => out(`- Lane ${l.name} (${l.keys.join(", ")}): ${l.dir}`));
@@ -30443,7 +31034,7 @@ async function addonsRunCommand(root, ctx, opts = {}) {
     writeRun(root, null);
     if (running) {
       out("The add-ons of this run are done or skipped.");
-      out(FINAL_PUBLISH);
+      out(finalPublish(end));
       return;
     }
     out(r.addons.some((a) => a.owned) ? "Every add-on of this site is done or skipped. To run one again: npx deployai@latest addon run <name>" : "This site has no add-ons yet. See them: npx deployai@latest addons");
@@ -30455,11 +31046,13 @@ async function addonsRunCommand(root, ctx, opts = {}) {
     const stamps = readStamps(root);
     const items = todo.map((a) => ({ ...a, trace: addonTrace(a.key, (path) => existsSync18(join21(root, path)), stamps) }));
     addonOrderBrief(items, Boolean(opts.parallel) && !checkWithMe).forEach((line) => out(line));
+    if (opts.end !== void 0 && end) out(`Add --end ${end} to that command, so the run still ends as chosen.`);
     return;
   }
   const parallel = Boolean(opts.parallel || running?.mode === "parallel") && todo.length > 1;
   if (parallel && checkWithMe) out("Check with me runs the add-ons one after another, so the owner can approve each plan.");
   if (parallel && !checkWithMe) {
+    if (end && running?.end !== end) writeRun(root, { mode: "parallel", end });
     const here = startWave(root, todo.map((a) => a.key));
     if (here) {
       out();
@@ -30467,7 +31060,7 @@ async function addonsRunCommand(root, ctx, opts = {}) {
     }
     return;
   }
-  writeRun(root, { mode: running?.mode === "parallel" && !checkWithMe ? "parallel" : "sequence" });
+  writeRun(root, { mode: running?.mode === "parallel" && !checkWithMe ? "parallel" : "sequence", ...end ? { end } : {} });
   if (todo.length > 1) {
     out(`Running the add-ons of this site one after another: ${todo.map((a) => a.key).join(", ")}.`);
     out(`Do each one fully, build the site, run npx deployai@latest check after it, commit, and report it with addon done as it says; the next one starts right after, without asking. Do not deploy between add-ons: tell the owner once, "I will publish once, after all the add-ons are done."${checkWithMe ? " The owner approves each plan before you change any file." : ""} Tell the owner in one line which add-on you are on.`);
@@ -30576,7 +31169,7 @@ async function addonDoneCommand(root, ctx, runId, opts) {
   else {
     writeRun(root, null);
     out("The add-ons of this run are done or skipped.");
-    if (run) out(FINAL_PUBLISH);
+    if (run) out(finalPublish(run.end ?? (isCi() ? "preview" : void 0)));
   }
 }
 
@@ -30815,7 +31408,7 @@ async function shotCommand(root, address, opts = {}, run = runNpx) {
 
 // src/commands/images.ts
 import { spawnSync as spawnSync6 } from "child_process";
-import { existsSync as existsSync20, mkdirSync as mkdirSync14, readdirSync as readdirSync7, statSync as statSync4, writeFileSync as writeFileSync20 } from "fs";
+import { existsSync as existsSync20, mkdirSync as mkdirSync14, readdirSync as readdirSync7, statSync as statSync3, writeFileSync as writeFileSync20 } from "fs";
 import { createRequire } from "module";
 import { homedir as homedir3 } from "os";
 import { extname, join as join24, relative as relative4, resolve as resolve9 } from "path";
@@ -30827,7 +31420,7 @@ function imagesIn(dir) {
   const walk2 = (d) => {
     for (const name of readdirSync7(d)) {
       const p = join24(d, name);
-      const st = statSync4(p);
+      const st = statSync3(p);
       if (st.isDirectory()) {
         if (!SKIP_DIRS2.has(name)) walk2(p);
       } else if (/\.(jpe?g|png)$/i.test(name)) found.push(p);
@@ -30865,10 +31458,10 @@ async function imagesCommand(root, folder, sharp = loadSharp) {
   let skipped = 0;
   let saved = 0;
   for (const file2 of files) {
-    const size = statSync4(file2).size;
+    const size = statSync3(file2).size;
     const meta3 = await make(file2).metadata();
     const outputs = outputsFor(file2, meta3.width);
-    if (outputs.every((o) => existsSync20(o.file) && statSync4(o.file).mtimeMs >= statSync4(file2).mtimeMs)) {
+    if (outputs.every((o) => existsSync20(o.file) && statSync3(o.file).mtimeMs >= statSync3(file2).mtimeMs)) {
       skipped++;
       continue;
     }
@@ -31028,7 +31621,7 @@ async function integrationsCommand(ctx, name, opts = {}) {
 
 // src/commands/brand.ts
 import { spawn as spawn5 } from "child_process";
-import { copyFileSync as copyFileSync2, existsSync as existsSync22, mkdirSync as mkdirSync16, mkdtempSync as mkdtempSync3, readdirSync as readdirSync8, readFileSync as readFileSync17, rmSync as rmSync7, statSync as statSync5, writeFileSync as writeFileSync22 } from "fs";
+import { copyFileSync as copyFileSync2, existsSync as existsSync22, mkdirSync as mkdirSync16, mkdtempSync as mkdtempSync3, readdirSync as readdirSync8, readFileSync as readFileSync17, rmSync as rmSync7, statSync as statSync4, writeFileSync as writeFileSync22 } from "fs";
 import { createServer } from "http";
 import { tmpdir as tmpdir4 } from "os";
 import { basename as basename3, dirname as dirname9, extname as extname2, join as join25, relative as relative5, sep as sep5 } from "path";
@@ -31127,18 +31720,18 @@ function webRoot(root) {
   return root;
 }
 function walk(dir, found = []) {
-  let names;
+  let names2;
   try {
-    names = readdirSync8(dir);
+    names2 = readdirSync8(dir);
   } catch {
     return found;
   }
-  for (const n2 of names) {
+  for (const n2 of names2) {
     if (found.length >= WALK_CAP) break;
     const p = join25(dir, n2);
     let isDir = false;
     try {
-      isDir = statSync5(p).isDirectory();
+      isDir = statSync4(p).isDirectory();
     } catch {
       continue;
     }
@@ -31532,17 +32125,17 @@ function imageFiles(root) {
 function walkAll(dir) {
   const found = [];
   const go = (d) => {
-    let names = [];
+    let names2 = [];
     try {
-      names = readdirSync8(d);
+      names2 = readdirSync8(d);
     } catch {
       return;
     }
-    for (const n2 of names) {
+    for (const n2 of names2) {
       if (found.length >= WALK_CAP) return;
       const p = join25(d, n2);
       try {
-        if (statSync5(p).isDirectory()) {
+        if (statSync4(p).isDirectory()) {
           if (!SKIP_DIRS3.has(n2) || n2 === ".deployai") go(p);
         } else found.push(p);
       } catch {
@@ -31736,7 +32329,7 @@ ${AGENT_FEEDBACK_RULES.join("\n\n")}
   brand.command("favicon").description("gives the site an icon if it has none: the old site's, else its logo, else a letter").option("--from <file>", "the logo or picture to use").option("--name <name>", "the site's name, for the letter").option("--color <#rrggbb>", "the background color").option("--force", "replace the icon the site has").option("--check", "only say whether the site has an icon").action((opts, cmd) => brandFaviconCommand(root(cmd), opts));
   brand.command("icons").description("makes every icon size and the 1200 by 630 share image from the site itself").option("--from <file>", "use this picture instead of the logo it finds").option("--name <name>", "correct the name it reads").option("--line <text>", "correct the line it reads").option("--color <#rrggbb>", "correct the color it reads").option("--check", "only list what is missing").option("--force", "redraw the site's own tab icon and share image too").action((opts, cmd) => brandIconsCommand(root(cmd), opts));
   brand.command("images").description("reports images too weak for where they show, by measuring them; never changes one").argument("[pages...]", "up to 10 page addresses to measure in a browser").option("--json", "print the result as JSON").action((pages, opts, cmd) => brandImagesCommand(root(cmd), pages, opts));
-  program.command("addons").description("the add-ons of this site: which it has, which are done and which is next; addons run prints what to agree with the owner before they run").argument("[action]", "run: the add-ons picked for this site, one after another with one publish at the end; merge: bring the lanes of a wave back in").option("--parallel", "run in waves, the lanes of each wave side by side in their own git worktrees (On my own only)").option("--order <keys>", "the add-ons to run, in the order the agent chose, separated by commas").action((action, opts, cmd) => {
+  program.command("addons").description("the add-ons of this site: which it has, which are done and which is next; addons run prints what to agree with the owner before they run").argument("[action]", "run: the add-ons picked for this site, one after another with one publish at the end; merge: bring the lanes of a wave back in").option("--parallel", "run in waves, the lanes of each wave side by side in their own git worktrees (On my own only)").option("--order <keys>", "the add-ons to run, in the order the agent chose, separated by commas").option("--end <end>", "answer the one question at the end ahead, so nobody is asked: preview, live or none (with CI and no --end: preview)").action((action, opts, cmd) => {
     if (!action) return addonsCommand(root(cmd), ctx(cmd));
     if (action === "run") return addonsRunCommand(root(cmd), ctx(cmd), opts);
     if (action === "merge") return addonsMergeCommand(root(cmd));
@@ -31761,9 +32354,9 @@ ${AGENT_FEEDBACK_RULES.join("\n\n")}
   return program;
 }
 function commandPath(cmd) {
-  const names = [];
-  for (let c = cmd; c?.parent; c = c.parent) names.unshift(c.name());
-  return names.join(" ");
+  const names2 = [];
+  for (let c = cmd; c?.parent; c = c.parent) names2.unshift(c.name());
+  return names2.join(" ");
 }
 var NO_FEEDBACK_HINT = /* @__PURE__ */ new Set(["auth", "not_linked", "network"]);
 var PARSER_NOT_AN_ERROR = /* @__PURE__ */ new Set(["commander.help", "commander.helpDisplayed", "commander.version"]);
