@@ -255,6 +255,15 @@ var ISSUES = [
     fixForAgent: 'DeployAI runs each line of triggers.crons at its times in UTC, at most once every 5 minutes. A line that runs more often, or that is not a five part cron line (minute, hour, day of month, month, day of week), does not run at all. Change it, for example "*/5 * * * *" for every 5 minutes or "0 3 * * *" for 03:00 UTC each day.'
   },
   {
+    // D-984: our shared queue hands each message to the site's own queue export. D-1073: warn when the entry has none.
+    code: "queue_no_handler",
+    severity: "warning",
+    titleEn: "Queues with no queue handler",
+    titleHe: "\u05EA\u05D5\u05E8\u05D9\u05DD \u05D1\u05DC\u05D9 \u05E7\u05D5\u05D3 \u05E9\u05DE\u05D8\u05E4\u05DC \u05D1\u05D4\u05D5\u05D3\u05E2\u05D5\u05EA",
+    agentLine: "The wrangler config declares queues, but the entry{detail} exports no queue handler ({loc}), so messages sent to them never run.",
+    fixForAgent: "Export a queue handler next to fetch in the entry: export default { fetch, async queue(batch, env, ctx) { for (const message of batch.messages) { /* the work */ message.ack(); } } }. If the site sends no background jobs, remove queues from the wrangler config."
+  },
+  {
     code: "no_build_script",
     severity: "warning",
     titleEn: "No build script in package.json",
@@ -318,6 +327,26 @@ var ISSUES = [
     titleHe: "\u05D4\u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05E9\u05DC Astro \u05DE\u05D5\u05D2\u05D3\u05E8\u05D5\u05EA \u05DC\u05E9\u05D9\u05E8\u05D5\u05EA \u05D4\u05E7\u05D8\u05E0\u05D4 \u05E9\u05D0\u05D9\u05DF \u05DC\u05D0\u05EA\u05E8\u05D9\u05DD \u05D0\u05E6\u05DC\u05E0\u05D5",
     agentLine: "Astro's imageService is 'cloudflare' ({loc}), which needs Cloudflare Image Resizing. Sites on DeployAI do not get it, so the build serves every image at its original size.",
     fixForAgent: "Remove the imageService line so the adapter's default runs, or set imageService: 'compile'. Either way images on prerendered pages are resized at build; images on pages rendered on demand show at their original size, since sites here get no Images binding."
+  },
+  {
+    // D-1064: the build installs from the npm registry only, with git off, so a git dependency fails there. D-1072 says it here.
+    code: "git_dependency",
+    severity: "blocker",
+    titleEn: "A dependency comes from git",
+    titleHe: "\u05D7\u05D1\u05D9\u05DC\u05D4 \u05E9\u05D4\u05D0\u05EA\u05E8 \u05E6\u05E8\u05D9\u05DA \u05DE\u05D2\u05D9\u05E2\u05D4 \u05DE\u05BEgit",
+    agentLine: "A dependency comes from git:{detail} ({loc}). The build installs packages from the npm registry only, with git turned off.",
+    fixForAgent: 'Replace it with the same package from the npm registry (a version like "^1.2.0"). If it is not on npm, copy its code into the project and import it from there. Then run the check again.'
+  },
+  {
+    // D-1066: OpenNext runs Next.js middleware on Node.js (proxy.ts, or runtime 'nodejs') only as an experiment on Cloudflare.
+    // Built and run in Miniflare: every request that carried a cookie answered 500, on every page, while the go live check
+    // (no cookie) passed.
+    code: "nextjs_node_middleware",
+    severity: "blocker",
+    titleEn: "Next.js middleware runs on Node.js",
+    titleHe: "\u05D4\u05BEmiddleware \u05E9\u05DC Next.js \u05E8\u05E5 \u05E2\u05DC Node.js",
+    agentLine: "Next.js middleware runs on the Node.js runtime ({loc}). On Cloudflare, OpenNext supports this only as an experiment: every request that carries a cookie answers 500, on every page.",
+    fixForAgent: 'Keep the same logic on the edge runtime: rename proxy.ts to middleware.ts (in the same folder), rename the exported proxy function to middleware, keep its config and matcher, and remove any runtime: "nodejs" from that config. Next.js 16 still runs middleware.ts. Do not use Node.js only APIs (fs, child_process) inside it.'
   },
   // Accessibility warnings, found by the free accessibility tool on the website (/tools/accessibility, D-261: not by the CLI).
   {
@@ -456,7 +485,11 @@ var FRAMEWORKS = [
       package: "@opennextjs/cloudflare",
       setup: "add @opennextjs/cloudflare as a dependency and an open-next.config.ts with export default defineCloudflareConfig()",
       deps: ["@opennextjs/cloudflare"],
-      configFiles: [],
+      // OpenNext stops without this file (D-1066), so the check asks for it with the package.
+      configFiles: ["open-next.config.ts"],
+      // We bundle with our own Wrangler config (D-528), so a project needs no wrangler file of its own; telemetry has no
+      // network to reach in the build anyway.
+      buildEnv: { SKIP_WRANGLER_CONFIG_CHECK: "yes", NEXT_TELEMETRY_DISABLED: "1" },
       missingCode: "adapter_missing_nextjs"
     },
     buildCommand: "npx --no-install opennextjs-cloudflare build",
@@ -765,6 +798,9 @@ function frameworkDisplay(d) {
   if (notes.length) s += ` (${notes.join(", ")})`;
   return s;
 }
+function normalizeRel(p) {
+  return p.replace(/\\/g, "/").replace(/^(\.\/)+/, "").replace(/^\/+/, "").replace(/\/+$/, "");
+}
 function jsoncToJson(src) {
   let out2 = "";
   let i = 0;
@@ -792,10 +828,10 @@ function jsoncToJson(src) {
 function durableObjectsOf(v) {
   const list = v && typeof v === "object" ? v.bindings : null;
   if (!Array.isArray(list)) return [];
-  const str2 = (x) => typeof x === "string" ? x : "";
+  const str3 = (x) => typeof x === "string" ? x : "";
   return list.map((x) => {
     const o = x && typeof x === "object" ? x : {};
-    return { name: str2(o.name), className: str2(o.class_name), script: str2(o.script_name) || null };
+    return { name: str3(o.name), className: str3(o.class_name), script: str3(o.script_name) || null };
   });
 }
 function tomlDurableObjects(value2) {
@@ -815,11 +851,11 @@ function cronsOf(triggers) {
 }
 function queuesOf(v) {
   const o = v && typeof v === "object" ? v : {};
-  const str2 = (x) => typeof x === "string" ? x : "";
+  const str3 = (x) => typeof x === "string" ? x : "";
   const rows2 = (x) => Array.isArray(x) ? x.map((r) => r && typeof r === "object" ? r : {}) : [];
   return {
-    producers: rows2(o.producers).map((r) => ({ binding: str2(r.binding), queue: str2(r.queue) })).filter((r) => r.binding || r.queue),
-    consumers: rows2(o.consumers).map((r) => ({ queue: str2(r.queue) })).filter((r) => r.queue)
+    producers: rows2(o.producers).map((r) => ({ binding: str3(r.binding), queue: str3(r.queue) })).filter((r) => r.binding || r.queue),
+    consumers: rows2(o.consumers).map((r) => ({ queue: str3(r.queue) })).filter((r) => r.queue)
   };
 }
 function bindingsOf(list) {
@@ -1304,6 +1340,45 @@ var ISSUE_HELP = {
       what: "The site is built with Astro, and its images are set to be resized by a service that sites here do not get.",
       why: "This is only a warning, and the site goes live. Images show at their original size, so pages with large images load slower.",
       fix: ["Ask your agent to remove that setting, so images are resized when the site is built.", "Run the check again."]
+    }
+  },
+  queue_no_handler: {
+    he: {
+      what: "\u05D4\u05D0\u05EA\u05E8 \u05DE\u05D2\u05D3\u05D9\u05E8 \u05EA\u05D5\u05E8\u05D9\u05DD \u05DC\u05DE\u05E9\u05D9\u05DE\u05D5\u05EA \u05D1\u05E8\u05E7\u05E2, \u05D0\u05D1\u05DC \u05D1\u05E7\u05D5\u05D3 \u05D4\u05E8\u05D0\u05E9\u05D9 \u05E9\u05DC\u05D5 \u05D0\u05D9\u05DF \u05E4\u05D5\u05E0\u05E7\u05E6\u05D9\u05D4 \u05E9\u05DE\u05D8\u05E4\u05DC\u05EA \u05D1\u05D4\u05D5\u05D3\u05E2\u05D5\u05EA \u05E9\u05DE\u05D2\u05D9\u05E2\u05D5\u05EA \u05D0\u05DC\u05D9\u05D4\u05DD.",
+      why: "\u05D6\u05D5 \u05E8\u05E7 \u05D0\u05D6\u05D4\u05E8\u05D4, \u05D5\u05D4\u05D0\u05EA\u05E8 \u05E2\u05D5\u05DC\u05D4. \u05D0\u05D1\u05DC \u05DB\u05DC \u05DE\u05E9\u05D9\u05DE\u05D4 \u05E9\u05D4\u05D0\u05EA\u05E8 \u05E9\u05D5\u05DC\u05D7 \u05DC\u05EA\u05D5\u05E8 \u05DC\u05D0 \u05EA\u05E8\u05D5\u05E5 \u05D0\u05E3 \u05E4\u05E2\u05DD.",
+      fix: ["\u05D4\u05E1\u05D5\u05DB\u05DF \u05DE\u05D5\u05E1\u05D9\u05E3 \u05DC\u05E7\u05D5\u05D3 \u05D4\u05E8\u05D0\u05E9\u05D9 \u05E4\u05D5\u05E0\u05E7\u05E6\u05D9\u05D9\u05EA queue \u05E9\u05DE\u05D8\u05E4\u05DC\u05EA \u05D1\u05D4\u05D5\u05D3\u05E2\u05D5\u05EA, \u05D0\u05D5 \u05DE\u05D5\u05D7\u05E7 \u05D0\u05EA \u05D4\u05EA\u05D5\u05E8\u05D9\u05DD \u05D0\u05DD \u05D4\u05D0\u05EA\u05E8 \u05DC\u05D0 \u05E6\u05E8\u05D9\u05DA \u05D0\u05D5\u05EA\u05DD.", "\u05DE\u05E8\u05D9\u05E6\u05D9\u05DD \u05E9\u05D5\u05D1 \u05D0\u05EA \u05D4\u05D1\u05D3\u05D9\u05E7\u05D4."],
+      prompt: "\u05D1\u05BEwrangler \u05DE\u05D5\u05D2\u05D3\u05E8\u05D9\u05DD queues, \u05D0\u05D1\u05DC \u05E7\u05D5\u05D1\u05E5 \u05D4\u05BEmain \u05DC\u05D0 \u05DE\u05D9\u05D9\u05E6\u05D0 \u05E4\u05D5\u05E0\u05E7\u05E6\u05D9\u05D9\u05EA queue. \u05D4\u05D5\u05E1\u05E3 \u05DC\u05BEexport default, \u05DC\u05D9\u05D3 fetch, \u05E4\u05D5\u05E0\u05E7\u05E6\u05D9\u05D4 async queue(batch, env, ctx) \u05E9\u05E2\u05D5\u05D1\u05E8\u05EA \u05E2\u05DC batch.messages, \u05E2\u05D5\u05E9\u05D4 \u05D0\u05EA \u05D4\u05E2\u05D1\u05D5\u05D3\u05D4 \u05D5\u05E7\u05D5\u05E8\u05D0\u05EA \u05DC\u05BEmessage.ack() \u05D1\u05DB\u05DC \u05D4\u05D5\u05D3\u05E2\u05D4. \u05D0\u05DD \u05D4\u05D0\u05EA\u05E8 \u05DC\u05D0 \u05E9\u05D5\u05DC\u05D7 \u05DE\u05E9\u05D9\u05DE\u05D5\u05EA \u05D1\u05E8\u05E7\u05E2, \u05DE\u05D7\u05E7 \u05D0\u05EA queues \u05DE\u05E7\u05D5\u05D1\u05E5 \u05D4\u05BEwrangler. \u05D0\u05D7\u05E8 \u05DB\u05DA \u05D4\u05E8\u05E5 \u05E9\u05D5\u05D1 npx deployai@latest check."
+    },
+    en: {
+      what: "The site declares queues for background jobs, but its main code has no function that handles the messages sent to them.",
+      why: "This is only a warning, and the site goes live. But every job the site sends to a queue will never run.",
+      fix: ["Your agent adds a queue function to the main code that handles the messages, or removes the queues if the site does not need them.", "Run the check again."]
+    }
+  },
+  git_dependency: {
+    he: {
+      what: "\u05D0\u05D7\u05EA \u05D4\u05D7\u05D1\u05D9\u05DC\u05D5\u05EA \u05E9\u05D4\u05D0\u05EA\u05E8 \u05E6\u05E8\u05D9\u05DA \u05DE\u05D2\u05D9\u05E2\u05D4 \u05D9\u05E9\u05D9\u05E8\u05D5\u05EA \u05DE\u05DE\u05D0\u05D2\u05E8 git, \u05D5\u05DC\u05D0 \u05DE\u05BEnpm.",
+      why: "\u05D1\u05D1\u05E0\u05D9\u05D9\u05D4 \u05D0\u05E6\u05DC\u05E0\u05D5 \u05DE\u05EA\u05E7\u05D9\u05E0\u05D9\u05DD \u05D7\u05D1\u05D9\u05DC\u05D5\u05EA \u05E8\u05E7 \u05DE\u05BEnpm, \u05D5\u05BEgit \u05E1\u05D2\u05D5\u05E8, \u05DB\u05D3\u05D9 \u05E9\u05E7\u05D5\u05D3 \u05D6\u05E8 \u05DC\u05D0 \u05D9\u05E8\u05D5\u05E5 \u05D1\u05D6\u05DE\u05DF \u05D4\u05D4\u05EA\u05E7\u05E0\u05D4. \u05DC\u05DB\u05DF \u05D4\u05D1\u05E0\u05D9\u05D9\u05D4 \u05EA\u05D9\u05DB\u05E9\u05DC \u05E2\u05DC \u05D4\u05D7\u05D1\u05D9\u05DC\u05D4 \u05D4\u05D6\u05D5.",
+      fix: ["\u05D4\u05E1\u05D5\u05DB\u05DF \u05DE\u05D7\u05DC\u05D9\u05E3 \u05D0\u05D5\u05EA\u05D4 \u05D1\u05D0\u05D5\u05EA\u05D4 \u05D7\u05D1\u05D9\u05DC\u05D4 \u05DE\u05BEnpm, \u05D0\u05D5 \u05DE\u05E2\u05EA\u05D9\u05E7 \u05D0\u05EA \u05D4\u05E7\u05D5\u05D3 \u05E9\u05DC\u05D4 \u05DC\u05EA\u05D5\u05DA \u05D4\u05E4\u05E8\u05D5\u05D9\u05E7\u05D8.", "\u05DE\u05E8\u05D9\u05E6\u05D9\u05DD \u05E9\u05D5\u05D1 \u05D0\u05EA \u05D4\u05D1\u05D3\u05D9\u05E7\u05D4."],
+      prompt: '\u05D1\u05BEpackage.json \u05D9\u05E9 \u05D7\u05D1\u05D9\u05DC\u05D4 \u05E9\u05DE\u05D2\u05D9\u05E2\u05D4 \u05DE\u05BEgit (github:, git+ \u05D0\u05D5 \u05DB\u05EA\u05D5\u05D1\u05EA \u05E9\u05DC \u05DE\u05D0\u05D2\u05E8). \u05D4\u05D7\u05DC\u05E3 \u05D0\u05D5\u05EA\u05D4 \u05D1\u05D0\u05D5\u05EA\u05D4 \u05D7\u05D1\u05D9\u05DC\u05D4 \u05DE\u05BEnpm, \u05E2\u05DD \u05D2\u05E8\u05E1\u05D4 \u05DB\u05DE\u05D5 "^1.2.0". \u05D0\u05DD \u05D4\u05D9\u05D0 \u05DC\u05D0 \u05E7\u05D9\u05D9\u05DE\u05EA \u05D1\u05BEnpm, \u05D4\u05E2\u05EA\u05E7 \u05D0\u05EA \u05D4\u05E7\u05D5\u05D3 \u05E9\u05DC\u05D4 \u05DC\u05EA\u05D5\u05DA \u05D4\u05E4\u05E8\u05D5\u05D9\u05E7\u05D8 \u05D5\u05D9\u05D9\u05D1\u05D0 \u05D0\u05D5\u05EA\u05D5 \u05DE\u05E9\u05DD. \u05D0\u05D7\u05E8 \u05DB\u05DA \u05D4\u05E8\u05E5 \u05E9\u05D5\u05D1 npx deployai@latest check.'
+    },
+    en: {
+      what: "One of the packages the site needs comes straight from a git repository, not from npm.",
+      why: "Builds here install packages from npm only, with git closed, so no outside code runs during the install. The build would fail on this package.",
+      fix: ["Your agent swaps it for the same package from npm, or copies its code into the project.", "Run the check again."]
+    }
+  },
+  nextjs_node_middleware: {
+    he: {
+      what: "\u05D4\u05D0\u05EA\u05E8 \u05D1\u05E0\u05D5\u05D9 \u05D1\u05BENext.js, \u05D5\u05D4\u05E7\u05D5\u05D3 \u05E9\u05E8\u05E5 \u05DC\u05E4\u05E0\u05D9 \u05DB\u05DC \u05E2\u05DE\u05D5\u05D3 (middleware) \u05DE\u05D5\u05D2\u05D3\u05E8 \u05DC\u05E8\u05D5\u05E5 \u05E2\u05DC Node.js.",
+      why: "\u05D0\u05E6\u05DC\u05E0\u05D5 \u05D4\u05E6\u05D5\u05E8\u05D4 \u05D4\u05D6\u05D5 \u05E2\u05D3\u05D9\u05D9\u05DF \u05E0\u05D9\u05E1\u05D9\u05D5\u05E0\u05D9\u05EA: \u05DB\u05DC \u05DE\u05D1\u05E7\u05E8 \u05E9\u05D9\u05E9 \u05DC\u05D5 \u05E2\u05D5\u05D2\u05D9\u05D9\u05D4 \u05D1\u05D3\u05E4\u05D3\u05E4\u05DF \u05D9\u05E7\u05D1\u05DC \u05E9\u05D2\u05D9\u05D0\u05D4 \u05D1\u05DE\u05E7\u05D5\u05DD \u05D4\u05E2\u05DE\u05D5\u05D3, \u05D1\u05DB\u05DC \u05E2\u05DE\u05D5\u05D3 \u05D1\u05D0\u05EA\u05E8.",
+      fix: ["\u05D4\u05E1\u05D5\u05DB\u05DF \u05DE\u05E2\u05D1\u05D9\u05E8 \u05D0\u05EA \u05D0\u05D5\u05EA\u05D5 \u05E7\u05D5\u05D3 \u05DC\u05E7\u05D5\u05D1\u05E5 middleware.ts, \u05E9\u05E8\u05E5 \u05D0\u05E6\u05DC\u05E0\u05D5 \u05D1\u05DC\u05D9 \u05D1\u05E2\u05D9\u05D4.", "\u05DE\u05E8\u05D9\u05E6\u05D9\u05DD \u05E9\u05D5\u05D1 \u05D0\u05EA \u05D4\u05D1\u05D3\u05D9\u05E7\u05D4."],
+      prompt: '\u05D4\u05E9\u05D0\u05E8 \u05D0\u05EA \u05D0\u05D5\u05EA\u05D4 \u05DC\u05D5\u05D2\u05D9\u05E7\u05D4, \u05D0\u05D1\u05DC \u05E2\u05DC \u05D4\u05BEedge runtime: \u05E9\u05E0\u05D4 \u05D0\u05EA \u05E9\u05DD \u05D4\u05E7\u05D5\u05D1\u05E5 proxy.ts \u05DC\u05BEmiddleware.ts (\u05D1\u05D0\u05D5\u05EA\u05D4 \u05EA\u05D9\u05E7\u05D9\u05D9\u05D4), \u05E9\u05E0\u05D4 \u05D0\u05EA \u05E9\u05DD \u05D4\u05E4\u05D5\u05E0\u05E7\u05E6\u05D9\u05D4 \u05D4\u05DE\u05D9\u05D5\u05E6\u05D0\u05EA proxy \u05DC\u05BEmiddleware, \u05D4\u05E9\u05D0\u05E8 \u05D0\u05EA \u05D4\u05BEconfig \u05D5\u05D4\u05BEmatcher, \u05D5\u05D4\u05E1\u05E8 runtime: "nodejs" \u05DE\u05D4\u05BEconfig \u05D0\u05DD \u05D9\u05E9. Next.js 16 \u05E2\u05D3\u05D9\u05D9\u05DF \u05DE\u05E8\u05D9\u05E5 middleware.ts. \u05D0\u05DC \u05EA\u05E9\u05EA\u05DE\u05E9 \u05D1\u05EA\u05D5\u05DB\u05D5 \u05D1\u05D9\u05DB\u05D5\u05DC\u05D5\u05EA \u05E9\u05DC Node.js \u05D1\u05DC\u05D1\u05D3 (fs, child_process).'
+    },
+    en: {
+      what: "The site is built with Next.js, and the code that runs before every page (middleware) is set to run on Node.js.",
+      why: "On DeployAI that setup is still experimental: every visitor whose browser holds a cookie gets an error instead of the page, on every page of the site.",
+      fix: ["Your agent moves the same code to middleware.ts, which runs here without a problem.", "Run the check again."]
     }
   },
   a11y_missing_lang: {
@@ -2332,14 +2407,14 @@ function promiseAllObject(promisesObj) {
 }
 function randomString(length = 10) {
   const chars = "abcdefghijklmnopqrstuvwxyz";
-  let str2 = "";
+  let str3 = "";
   for (let i = 0; i < length; i++) {
-    str2 += chars[Math.floor(Math.random() * chars.length)];
+    str3 += chars[Math.floor(Math.random() * chars.length)];
   }
-  return str2;
+  return str3;
 }
-function esc(str2) {
-  return JSON.stringify(str2);
+function esc(str3) {
+  return JSON.stringify(str3);
 }
 function slugify(input2) {
   return input2.toLowerCase().trim().replace(/[^\w\s-]/g, "").replace(/[\s_-]+/g, "-").replace(/^-+|-+$/g, "");
@@ -2453,8 +2528,8 @@ var primitiveTypes = /* @__PURE__ */ new Set([
   "symbol",
   "undefined"
 ]);
-function escapeRegex(str2) {
-  return str2.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function escapeRegex(str3) {
+  return str3.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 function clone(inst, def, params) {
   const cl = new inst._zod.constr(def ?? inst._zod.def);
@@ -2720,13 +2795,13 @@ function getSizableOrigin(input2) {
   return "unknown";
 }
 var highSurrogate = /[\uD800-\uDBFF]/;
-function codePointLength(str2) {
-  const units = str2.length;
-  if (!highSurrogate.test(str2))
+function codePointLength(str3) {
+  const units = str3.length;
+  if (!highSurrogate.test(str3))
     return units;
   let count = units;
   for (let i = 0; i < units - 1; i++) {
-    if ((str2.charCodeAt(i) & 64512) === 55296 && (str2.charCodeAt(i + 1) & 64512) === 56320) {
+    if ((str3.charCodeAt(i) & 64512) === 55296 && (str3.charCodeAt(i + 1) & 64512) === 56320) {
       count--;
       i++;
     }
@@ -21376,6 +21451,9 @@ var UPLOAD_PART_BYTES = 4 * 1024 * 1024;
 var MAX_DEPLOY_BYTES = 50 * 1024 * 1024;
 var MAX_UPLOAD_PARTS = Math.ceil(MAX_DEPLOY_BYTES / UPLOAD_PART_BYTES);
 var UploadPartResponse = external_exports.object({ ok: external_exports.literal(true) });
+var VoiceLang = external_exports.enum(["he", "en"]);
+var SoundVoice = external_exports.object({ sound: external_exports.boolean().nullable(), voice: external_exports.boolean().nullable(), voiceLang: VoiceLang.nullable() });
+var SoundVoicePatch = external_exports.object({ sound: external_exports.boolean().optional(), voice: external_exports.boolean().optional(), voiceLang: VoiceLang.nullable().optional() }).strict();
 var DeployResponse = external_exports.object({
   versionId: external_exports.string(),
   number: external_exports.number(),
@@ -21384,7 +21462,9 @@ var DeployResponse = external_exports.object({
   /** Only for a heavy home page (D-420): the files it loads from the site and whether it prefetches links. */
   page: external_exports.object({ files: external_exports.number(), prefetches: external_exports.boolean() }).optional(),
   /** The site goes live by itself once built (D-916), the owner's setting. Missing on older servers. */
-  autoLive: external_exports.boolean().optional()
+  autoLive: external_exports.boolean().optional(),
+  /** The account's sound and voice (D-1093), so a switch flipped on /account reaches this computer at the next deploy. */
+  prefs: SoundVoice.optional()
 });
 var VersionStatus = external_exports.enum(["queued", "building", "ready", "failed", "replaced"]);
 var MigrationStatus = external_exports.enum(["waiting", "queued", "running", "done", "failed"]);
@@ -21554,7 +21634,7 @@ var DEFAULT_SLUG_RULES = [
     "demo"
   ], "Platform"),
   // The demo sites on <label>.<a sites domain> (packages/shared/src/demos.ts). The platform may use generic names.
-  ...exact("system", "platform", ["landing", "business", "form", "crud", "shop", "admin-demo", "dashboard-demo"], "Demo site"),
+  ...exact("system", "platform", ["landing", "business", "form", "crud", "shop", "admin-demo", "blog", "dashboard-demo"], "Demo site"),
   ...contains("system", "brand", ["deployai", "deployme"], "Our brand"),
   { pattern: "^v[0-9]+-", match: "regex", kind: "system", category: "platform", note: "Version preview addresses (v3-mysite)" },
   // Adult.
@@ -21772,7 +21852,7 @@ var ARCH_FLOWS = [
       { edge: "web-queue", text: "\u05E0\u05D5\u05E6\u05E8\u05EA \u05E2\u05D1\u05D5\u05D3\u05EA build \u05D1\u05EA\u05D5\u05E8.", textEn: "A build job is added to the queue." },
       { edge: "queue-worker", text: "\u05D4\u05BEworker \u05DC\u05D5\u05E7\u05D7 \u05D0\u05EA \u05D4\u05E2\u05D1\u05D5\u05D3\u05D4 \u05DB\u05E9\u05D9\u05E9 \u05D7\u05E8\u05D9\u05E5 \u05D1\u05E0\u05D9\u05D9\u05D4 \u05E4\u05E0\u05D5\u05D9.", textEn: "The worker takes the job when a build slot is free." },
       { edge: "worker-build", text: "\u05D4\u05D1\u05E0\u05D9\u05D9\u05D4 \u05E8\u05E6\u05D4 \u05D1\u05E7\u05D5\u05E0\u05D8\u05D9\u05D9\u05E0\u05E8 \u05E0\u05E7\u05D9.", textEn: "The build runs in a clean container." },
-      { edge: "build-npm", text: "\u05D4\u05EA\u05DC\u05D5\u05D9\u05D5\u05EA \u05DE\u05D5\u05EA\u05E7\u05E0\u05D5\u05EA \u05DE\u05BEnpm.", textEn: "Dependencies are installed from npm." },
+      { edge: "build-npm", text: "\u05D4\u05EA\u05DC\u05D5\u05D9\u05D5\u05EA \u05DE\u05D5\u05EA\u05E7\u05E0\u05D5\u05EA \u05DE\u05BEnpm, \u05D3\u05E8\u05DA \u05E4\u05E8\u05D5\u05E7\u05E1\u05D9 \u05E9\u05DE\u05D0\u05E4\u05E9\u05E8 \u05E8\u05E7 \u05D0\u05EA registry.npmjs.org.", textEn: "Dependencies are installed from npm, through a proxy that allows only registry.npmjs.org." },
       { edge: "worker-files", text: "\u05EA\u05D5\u05E6\u05E8 \u05D4\u05D1\u05E0\u05D9\u05D9\u05D4 \u05E0\u05E9\u05DE\u05E8.", textEn: "The build output is saved." },
       { edge: "worker-cfapi", text: "\u05E2\u05D1\u05D5\u05D3\u05EA deploy \u05E4\u05D5\u05E0\u05D4 \u05DC\u05BECloudflare API.", textEn: "A deploy job calls the Cloudflare API." },
       { edge: "cfapi-d1", text: "D1 \u05E0\u05D5\u05E6\u05E8 \u05D1\u05E4\u05E2\u05DD \u05D4\u05E8\u05D0\u05E9\u05D5\u05E0\u05D4, \u05D5\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9 \u05DE\u05E1\u05D3 \u05DE\u05DE\u05EA\u05D9\u05E0\u05D9\u05DD \u05DC\u05D0\u05D9\u05E9\u05D5\u05E8.", textEn: "D1 is created the first time, and database changes wait for approval." },
@@ -22430,6 +22510,88 @@ var SITE_MACHINE = defineMachine({
   }
 });
 
+// ../shared/src/state/account.ts
+var ACCOUNT_MACHINE = defineMachine({
+  name: "account",
+  states: ["active", "blocked", "erased"],
+  events: {
+    block: { from: ["active", "blocked"], to: "blocked" },
+    unblock: { from: ["active", "blocked"], to: "active" },
+    erase: { from: ["active", "blocked"], to: "erased" }
+  }
+});
+
+// ../shared/src/app-lifecycle.ts
+var APP_STATES = ["reserved", "provisioning", "internal", "trial", "active", "paused", "purging", "purged"];
+var APP_HOLD_MS = 30 * 6e4;
+var APP_RENEW_GRACE_MS = 8 * 864e5;
+
+// ../shared/src/state/app.ts
+var APP_MACHINE = defineMachine({
+  name: "app",
+  states: APP_STATES,
+  events: {
+    provisioned_trial: { from: ["provisioning"], to: "trial" },
+    provisioned_active: { from: ["provisioning"], to: "active" },
+    provisioned_internal: { from: ["provisioning"], to: "internal" },
+    buy: { from: ["trial", "paused"], to: "active" },
+    renew: { from: ["active"], to: "active" },
+    lapse: { from: ["active"], to: "paused" },
+    trial_end: { from: ["trial"], to: "paused" },
+    suspend: { from: ["trial", "active"], to: "paused" },
+    unsuspend_trial: { from: ["paused"], to: "trial" },
+    unsuspend_active: { from: ["paused"], to: "active" },
+    extend: { from: ["trial", "paused"], to: "trial" },
+    grant_internal: { from: ["provisioning", "trial", "active", "paused"], to: "internal" },
+    revoke_internal: { from: ["internal"], to: "paused" },
+    purge: { from: ["paused"], to: "purging" }
+  }
+});
+
+// ../shared/src/state/versions.ts
+var VERSION_MACHINE = defineMachine({
+  name: "version",
+  states: ["queued", "building", "ready", "failed", "replaced"],
+  events: {
+    build_claim: { from: ["queued"], to: "building" },
+    build_failed: { from: ["building"], to: "failed" },
+    build_done: { from: ["building"], to: "ready" },
+    requeue: { from: ["building"], to: "queued" },
+    replace: { from: ["queued"], to: "replaced" },
+    code_refused: { from: ["ready"], to: "failed" }
+  }
+});
+var MIGRATION_MACHINE = defineMachine({
+  name: "version_migration",
+  states: ["none", "queued", "running", "done", "failed"],
+  events: {
+    approve: { from: ["none", "done", "failed"], to: "queued" },
+    auto_queue: { from: ["none", "failed"], to: "queued" },
+    start: { from: ["none", "queued", "failed", "running"], to: "running" },
+    done: { from: ["running"], to: "done" },
+    fail: { from: ["queued", "running"], to: "failed" }
+  }
+});
+
+// ../shared/src/state/billing.ts
+var SERVICE_MACHINE = defineMachine({
+  name: "service",
+  states: ["active", "past_due", "ended"],
+  events: {
+    renew_failed: { from: ["active", "past_due"], to: "past_due" },
+    renewed: { from: ["active", "past_due"], to: "active" },
+    end: { from: ["active", "past_due"], to: "ended" }
+  }
+});
+var SUBSCRIPTION_MACHINE = defineMachine({
+  name: "subscription",
+  states: ["active", "past_due"],
+  events: {
+    charge_failed: { from: ["active", "past_due"], to: "past_due" },
+    paid: { from: ["active", "past_due"], to: "active" }
+  }
+});
+
 // ../shared/src/share-meta.ts
 function linkHref(html, rel2) {
   for (const t of tags(html, "link")) {
@@ -22971,10 +23133,6 @@ var PLAN_FEATURES = [
 ];
 var KEYS = new Set(PLAN_FEATURES.map((f) => f.key));
 
-// ../shared/src/app-lifecycle.ts
-var APP_HOLD_MS = 30 * 6e4;
-var APP_RENEW_GRACE_MS = 8 * 864e5;
-
 // ../shared/src/let-through.ts
 var LET_THROUGH_BOTS = {
   grok: { name: "Grok", tokens: ["GrokBot", "xAI-Grok", "Grok-DeepSearch", "xAI-SearchBot"] }
@@ -23064,6 +23222,11 @@ var DEPLOY_ASK_RULE = 'Once a site has been live, never deploy on your own, and 
 var LOCAL_PREVIEW_RULE = "While you build, show the site on this computer, never a deploy after each change. Start the site's own dev command (the dev script in package.json, for example npm run dev) yourself, in the background, so it keeps running while you work: in Claude Code as a background command, in another tool with its own way to run a command in the background or in a terminal of its own. Never ask the owner to open a terminal or type a command. If a local preview of this folder is already running, use it instead of starting a second one. Send the owner the local address it prints once, as a link, and say in one line that it updates by itself while you work and opens only on this computer. Check every change there yourself. To see a page at phone width, run npx deployai@latest shot <address> and look at the phone picture it saves: resizing a browser window often keeps the page at desktop width, so never judge the phone layout from the code alone (D-916). The local preview is not the hosting: it has a local test database that starts empty, and the built-in email to the owner, visitor countries, 301 redirects and the DeployAI badge work only on a deployed preview, so test those there, and the owner checks a phone there. When to deploy does not change. When the work is done, stop the local preview you started.";
 var GIT_HISTORY_RULE = "Keep the site's history with git in this folder: run git init if there is none, commit before you start and after each part that works, with a short message in the owner's language about what they see changed. Never commit .env files or secrets. When the owner asks to undo a change, or to bring back or remove a feature, do it from the git history yourself and tell them in one line what changed; never ask them to run git. Git brings back code, not data: rows, files and tables that were deleted stay deleted, so ask the owner before a change that removes data. This git history is on this computer only; the team's shared history is the site's versions. When others work on the site too, deploy and start bring their newer live work into this folder by themselves and add their versions to git, so never copy their files in by hand.";
 var ASK_OWNER_RULE = `When a question to the owner has set answers, use your tool's own question feature with clickable choices if it has one, for example AskUserQuestion in Claude Code, AskQuestion in Cursor, askQuestions in Copilot in VS Code, request_user_input in Codex, or ask_user_question in Grok Build. Use the owner's language, with each answer as its own choice. If your tool has no such feature, or it is refused or fails, ask the same question once in plain text and go on. Never change a mode or a setting to get it. A yes or no question has set answers too. This holds for every question, also one you think of yourself in the middle of the work: say what you have to say, then ask through the feature, never as the last line of your message. A question about going live names the site and its address when you know it, and says anyone will be able to see it, so the owner's answer is about this exact site (D-691). Open details, like a phone number or hours, stay in plain text, in one short list. How the owner wants you to work is saved in .deployai/owner-mode (D-865): on-my-own or check-with-me. If the file is missing, ask once, "How should I work?", with "On my own (recommended)": I build and choose the recommended option at every step, I stop only for money, deleting your content or your real domain, and I leave you a short list at the end; and "Check with me". Save the answer there, and change it when the owner says so. On my own: take the recommended option without asking, install the tools you need, and stop only for money, deleting the owner's content, a real domain going live or a fact you would have to invent, which you leave out and list. Every question opens with a short tag naming who asks, like "Search add-on \xB7 1 of 2" or "Move \xB7 forms", and a question with several items offers "Approve all (recommended)" first. Never ask the owner about a package, library, framework, tool, file path or size: ask about the outcome in plain words.`;
+function oneSiteRule(site, others) {
+  const name = site.name ? `"${site.name}"${site.slug ? ` (${site.slug})` : ""}` : "the site this line was made for";
+  const near = others.length ? ` These folders belong to other sites and are not part of this line: ${others.join(", ")}. Do not open, change, check or deploy them.` : "";
+  return `This line is for one site only: ${name}. Work on it alone, in the folder named here. Never ask the owner which site to work on, never offer another site or "both" or "all", and never run add-ons, deploys or changes for any other site, even when you see other sites in this folder, in your chat or in the owner's account.${near} If the owner asks for another site too, tell them in one line to copy that site's own line from its page and paste it in a new chat.`;
+}
 var QUESTION_FEATURE = { claudeCode: "AskUserQuestion", cursor: "AskQuestion", copilot: "askQuestions", codex: "request_user_input", grok: "ask_user_question" };
 function toolAskLine(tool) {
   const feature = tool && QUESTION_FEATURE[tool];
@@ -23264,6 +23427,7 @@ var CLI_MAP_NODES = [
   n("cmd-allow", "cli", "allow [tool]", "\u05D0\u05D7\u05E8\u05D9 \u05E9\u05D4\u05D1\u05E2\u05DC\u05D9\u05DD \u05D0\u05D9\u05E9\u05E8: \u05DB\u05DC\u05D9 \u05D4\u05E7\u05D5\u05D3 \u05DE\u05E4\u05E1\u05D9\u05E7 \u05DC\u05E9\u05D0\u05D5\u05DC \u05DC\u05E4\u05E0\u05D9 \u05DB\u05DC \u05E4\u05E7\u05D5\u05D3\u05EA DeployAI, \u05E8\u05E7 \u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5.", "After the owner says yes: the coding tool stops asking before every DeployAI command, in this folder only."),
   n("cmd-rules", "cli", "rules", "\u05DE\u05D3\u05E4\u05D9\u05E1 \u05D0\u05EA \u05D4\u05DB\u05DC\u05DC\u05D9\u05DD \u05D4\u05E2\u05D3\u05DB\u05E0\u05D9\u05D9\u05DD \u05DC\u05E1\u05D5\u05DB\u05DF \u05DE\u05D4\u05E9\u05E8\u05EA \u05D5\u05DE\u05E2\u05D3\u05DB\u05DF \u05D0\u05DC\u05D9\u05D4\u05DD \u05D0\u05EA DEPLOYAI.md. \u05DB\u05DC \u05E4\u05E7\u05D5\u05D3\u05D4 \u05D0\u05D7\u05E8\u05EA \u05DE\u05E2\u05D3\u05DB\u05E0\u05EA \u05D0\u05EA DEPLOYAI.md \u05D1\u05E2\u05E6\u05DE\u05D4, \u05D0\u05DD \u05DC\u05D0 \u05E0\u05E2\u05E8\u05DA.", "Prints the current agent rules from the server and brings DEPLOYAI.md up to them. Every other command updates DEPLOYAI.md too, unless it was edited."),
   n("cmd-sound", "cli", "sound", "\u05E6\u05DC\u05D9\u05DC \u05D1\u05DE\u05D7\u05E9\u05D1 \u05DB\u05E9\u05D4\u05D0\u05EA\u05E8 \u05DE\u05D5\u05DB\u05DF, \u05D0\u05D7\u05E8\u05D9 \u05E9\u05D4\u05D1\u05E2\u05DC\u05D9\u05DD \u05D0\u05D9\u05E9\u05E8. \u05D1-Claude Code \u05D4\u05D0\u05D9\u05E9\u05D5\u05E8 \u05D4\u05D6\u05D4 \u05DE\u05D5\u05E1\u05D9\u05E3 \u05D2\u05DD \u05E6\u05DC\u05D9\u05DC \u05D5\u05E0\u05E7\u05D5\u05D3\u05D4 \u05D1\u05DC\u05E9\u05D5\u05E0\u05D9\u05EA \u05E9\u05DC \u05D4\u05D8\u05E8\u05DE\u05D9\u05E0\u05DC.", "A sound on this computer when the site is ready, after the owner says yes. In Claude Code that yes also adds a sound and a tab dot in the terminal."),
+  n("cmd-voice", "cli", "voice", "\u05D4\u05E7\u05E8\u05D0\u05D4 \u05D1\u05E7\u05D5\u05DC \u05D5\u05E9\u05E4\u05EA \u05D4\u05E7\u05D5\u05DC, \u05E9\u05E0\u05E9\u05DE\u05E8\u05D5\u05EA \u05D1\u05D7\u05E9\u05D1\u05D5\u05DF \u05DB\u05DE\u05D5 \u05D4\u05E6\u05DC\u05D9\u05DC. \u05D4\u05D2\u05E8\u05E1\u05D4 \u05D4\u05D6\u05D5 \u05E2\u05D5\u05D3 \u05DC\u05D0 \u05DE\u05E7\u05E8\u05D9\u05D0\u05D4 \u05D3\u05D1\u05E8.", "Say it out loud and its language, kept on the account like the sound. This version speaks nothing yet."),
   n("cmd-telemetry", "cli", "telemetry", "\u05D4\u05E4\u05E2\u05DC\u05D4 \u05D0\u05D5 \u05DB\u05D9\u05D1\u05D5\u05D9 \u05E9\u05DC \u05E0\u05EA\u05D5\u05E0\u05D9 \u05E9\u05D9\u05DE\u05D5\u05E9 \u05D0\u05E0\u05D5\u05E0\u05D9\u05DE\u05D9\u05D9\u05DD.", "Turns anonymous usage data on or off."),
   n("cmd-feedback", "cli", "feedback", "\u05D4\u05E1\u05D5\u05DB\u05DF \u05DE\u05E1\u05E4\u05E8 \u05DC\u05E0\u05D5 \u05DE\u05D4 \u05D4\u05E4\u05E8\u05D9\u05E2 \u05DC\u05D5 \u05D5\u05DE\u05D4 \u05D4\u05D9\u05D4 \u05E2\u05D5\u05D6\u05E8, \u05D1\u05DC\u05D9 \u05E7\u05D5\u05D3, \u05E9\u05DE\u05D5\u05EA \u05D0\u05D5 \u05DB\u05EA\u05D5\u05D1\u05D5\u05EA.", "The agent tells us what got in its way and what would help, with no code, names or addresses."),
   // The server routes the CLI calls.
@@ -25166,6 +25330,179 @@ function deployModelFromEnv(env) {
 }
 var MODEL_FLAG_RULE = 'Add --model "<your exact model id, for example claude-opus-5-5 or gpt-5.1-codex>" to every npx deployai@latest deploy command. If you do not know it, leave the flag out rather than guess.';
 
+// ../shared/src/git-commit.ts
+var FULL_HASH = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/;
+function toGitCommit(v) {
+  if (typeof v !== "string") return null;
+  const sha2 = v.trim().toLowerCase();
+  return FULL_HASH.test(sha2) ? sha2 : null;
+}
+
+// ../shared/src/markdown-posts.ts
+var unquote = (v) => {
+  const s = v.trim();
+  if (!s) return "";
+  if (s.startsWith('"')) {
+    try {
+      return JSON.parse(s);
+    } catch {
+      return s.slice(1, -1);
+    }
+  }
+  if (s.startsWith("'") && s.endsWith("'")) return s.slice(1, -1).replace(/''/g, "'");
+  if (s === "true" || s === "false") return s === "true";
+  if (s === "[]") return [];
+  if (s === "null" || s === "~") return null;
+  if (s.startsWith("[") && s.endsWith("]")) return s.slice(1, -1).split(",").map((x) => unquote(x)).filter((x) => x !== "");
+  return s;
+};
+var flowMap = (s) => {
+  const out2 = {};
+  for (const m of s.replace(/^\{|\}$/g, "").matchAll(/([A-Za-z_][\w-]*)\s*:\s*("(?:[^"\\]|\\.)*"|'[^']*'|[^,]*)/g)) out2[m[1]] = String(unquote(m[2]) ?? "");
+  return out2;
+};
+function parseFrontMatter(text3) {
+  const m = text3.replace(/^\uFEFF/, "").match(/^---\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/);
+  if (!m) return { data: {}, body: text3 };
+  const data = {};
+  let list = null;
+  for (const line of m[1].split(/\r?\n/)) {
+    const item = line.match(/^\s+-\s+(.*)$/) ?? line.match(/^-\s+(.*)$/);
+    if (item && list) {
+      const v = item[1].trim();
+      list.push(v.startsWith("{") ? flowMap(v) : unquote(v));
+      continue;
+    }
+    const kv = line.match(/^([A-Za-z_][\w-]*)\s*:\s*(.*)$/);
+    if (!kv) continue;
+    if (kv[2].trim() === "") {
+      list = [];
+      data[kv[1]] = list;
+    } else {
+      list = null;
+      data[kv[1]] = unquote(kv[2]);
+    }
+  }
+  return { data, body: text3.slice(m[0].length).replace(/^\s+/, "") };
+}
+var escHtml = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+var SAFE_LINK = /^(\/(?![/\\])|#|https?:\/\/|mailto:|tel:)/i;
+function inline(md) {
+  let s = escHtml(md);
+  s = s.replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+&quot;[^&]*&quot;)?\)/g, (_m, alt, src) => SAFE_LINK.test(src) ? `<img src="${src}" alt="${alt}">` : "");
+  s = s.replace(/\[([^\]]+)\]\(([^)\s]+)(?:\s+&quot;[^&]*&quot;)?\)/g, (_m, text3, href) => SAFE_LINK.test(href) ? `<a href="${href}">${text3}</a>` : text3);
+  s = s.replace(/`([^`]+)`/g, "$1");
+  s = s.replace(/(\*\*|__)(?=\S)([\s\S]*?\S)\1/g, "<strong>$2</strong>");
+  s = s.replace(/(^|[^\w*])[*_](?=\S)([^*_]*?\S)[*_](?![\w*])/g, "$1<em>$2</em>");
+  return s;
+}
+function markdownToHtml(md) {
+  const lost = /* @__PURE__ */ new Set();
+  const out2 = [];
+  let para = [];
+  let listTag = null;
+  let items = [];
+  const flushPara = () => {
+    if (para.length) out2.push(`<p>${inline(para.join(" "))}</p>`);
+    para = [];
+  };
+  const flushList = () => {
+    if (listTag && items.length) out2.push(`<${listTag}>${items.map((i) => `<li>${inline(i)}</li>`).join("")}</${listTag}>`);
+    listTag = null;
+    items = [];
+  };
+  const lines = md.replace(/\r\n?/g, "\n").split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (/^\s*(```|~~~)/.test(line)) {
+      flushPara();
+      flushList();
+      lost.add("code");
+      const fence = line.trim().slice(0, 3);
+      while (i + 1 < lines.length && !lines[i + 1].trim().startsWith(fence)) i++;
+      i++;
+      continue;
+    }
+    if (/^\s*\|.*\|\s*$/.test(line)) {
+      flushPara();
+      flushList();
+      lost.add("table");
+      continue;
+    }
+    if (!line.trim()) {
+      flushPara();
+      flushList();
+      continue;
+    }
+    const h = line.match(/^(#{1,6})\s+(.*?)\s*#*\s*$/);
+    if (h) {
+      flushPara();
+      flushList();
+      out2.push(`<h${h[1].length}>${inline(h[2])}</h${h[1].length}>`);
+      continue;
+    }
+    const li = line.match(/^\s*([-*+]|\d+[.)])\s+(.*)$/);
+    if (li) {
+      flushPara();
+      const tag = /\d/.test(li[1]) ? "ol" : "ul";
+      if (listTag && listTag !== tag) flushList();
+      listTag = tag;
+      items.push(li[2]);
+      continue;
+    }
+    if (/^\s*</.test(line)) {
+      flushPara();
+      flushList();
+      out2.push(line);
+      continue;
+    }
+    flushList();
+    para.push(line.replace(/^>\s?/, "").trim());
+  }
+  flushPara();
+  flushList();
+  return { html: out2.join("\n"), lost: [...lost] };
+}
+var slugOf = (file2) => (file2.split("/").pop() ?? "").replace(/\.(md|mdx|markdown)$/i, "").replace(/^\d{4}-\d{2}-\d{2}-/, "").replace(/^index$/i, "");
+var str = (v) => typeof v === "string" ? v : typeof v === "number" ? String(v) : "";
+var withSlashes = (p) => `/${p.replace(/^\/+|\/+$/g, "")}/`.replace(/^\/\/$/, "/");
+var dateOf = (v, file2) => {
+  const d = v || file2.match(/(?:^|\/)(\d{4}-\d{2}-\d{2})-/)?.[1] || "";
+  return d ? d.replace("T", " ").replace(/(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/, "") : null;
+};
+var safeInlines = (c) => c.map(({ h, ...rest }) => h && SAFE_LINK.test(h) ? { ...rest, h } : rest);
+var safeBlocks = (body) => body.map((b) => "c" in b ? { ...b, c: safeInlines(b.c) } : "items" in b ? { ...b, items: b.items.map(safeInlines) } : b).filter((b) => b.t !== "img" || SAFE_LINK.test(b.s));
+function markdownPostsToKit(files) {
+  const used = /* @__PURE__ */ new Set();
+  const posts = [];
+  for (const f of files) {
+    const { data, body } = parseFrontMatter(f.text);
+    const title = str(data.title).replace(/\s+/g, " ").trim().slice(0, 200);
+    if (!title || data.draft === true || data.published === false) continue;
+    let slug = (str(data.slug) || slugOf(f.file) || "post").replace(/[^\p{L}\p{N}-]+/gu, "-").replace(/^-+|-+$/g, "").slice(0, 100) || "post";
+    for (let n2 = 2; used.has(slug); n2++) slug = `${slug.replace(/-\d+$/, "")}-${n2}`;
+    used.add(slug);
+    const path = str(data.path) || str(data.permalink) ? withSlashes(str(data.path) || str(data.permalink)) : `/blog/${slug}/`;
+    const md = markdownToHtml(body);
+    const rich = wpHtmlToRich(md.html, "https://moved.invalid");
+    const terms = Array.isArray(data.categories) ? data.categories : [];
+    const first = terms.map((t) => typeof t === "string" ? t : t && typeof t === "object" && !Array.isArray(t) ? t.name || t.slug : "").find(Boolean) ?? "";
+    posts.push({
+      slug,
+      path,
+      lost: [.../* @__PURE__ */ new Set([...md.lost, ...rich.lost])],
+      body: safeBlocks(rich.body),
+      title,
+      excerpt: (str(data.description) || str(data.excerpt) || str(data.summary)).replace(/\s+/g, " ").trim().slice(0, 300),
+      image: SAFE_LINK.test(str(data.image)) ? str(data.image) : "",
+      image_alt: (str(data.imageAlt) || str(data.image_alt)).slice(0, 200),
+      category: String(first).slice(0, 60),
+      published_at: dateOf(str(data.date), f.file)
+    });
+  }
+  return posts;
+}
+
 // ../shared/src/addon-signs.ts
 var ADDON_STAMP_FILE = ".deployai/addons.json";
 var ADDON_SIGNS = {
@@ -25208,6 +25545,32 @@ function addonTraceLine(key2, runId, trace) {
   const found = [...trace.files.length ? [`${trace.files.join(", ")}`] : [], ...trace.doneAt ? [`it ran here on ${trace.doneAt.slice(0, 10)}`] : []].join("; ");
   const update = key2 === "dashboard" ? " To bring it up to date run npx deployai@latest blocks dashboard --update, never a second install." : "";
   return `This site already has this: ${found}. Do not add it again. Check that it still works and fix only what is broken.${update} If nothing is needed, run npx deployai@latest addon done ${runId} --status skipped.`;
+}
+
+// ../shared/src/git-deps.ts
+var DEP_FIELDS = ["dependencies", "devDependencies", "optionalDependencies", "peerDependencies", "overrides", "resolutions"];
+var GIT_SPEC = /^(git(\+[a-z]+)?:|github:|gitlab:|bitbucket:|gist:|https?:\/\/(www\.)?(github\.com|gitlab\.com|bitbucket\.org)\/|[A-Za-z0-9][\w.-]*\/[\w.-]+(#.*)?$)|\.git(#.*)?$/i;
+function isGitSpec(spec) {
+  return !spec.startsWith("npm:") && GIT_SPEC.test(spec.trim());
+}
+function gitDependencyIn(pkg) {
+  if (!pkg || typeof pkg !== "object") return null;
+  const p = pkg;
+  const maps = [...DEP_FIELDS.map((f) => p[f]), p.pnpm?.overrides];
+  const walk2 = (m) => {
+    if (!m || typeof m !== "object") return null;
+    for (const [name, spec] of Object.entries(m)) {
+      if (typeof spec === "string" && isGitSpec(spec)) return { name, spec };
+      const inner = walk2(spec);
+      if (inner) return inner;
+    }
+    return null;
+  };
+  for (const m of maps) {
+    const hit = walk2(m);
+    if (hit) return hit;
+  }
+  return null;
 }
 
 // src/api.ts
@@ -25254,6 +25617,8 @@ function loadConfig() {
   if (typeof raw.tokenApiUrl === "string") cfg.tokenApiUrl = raw.tokenApiUrl;
   if (typeof raw.email === "string") cfg.email = raw.email;
   if (typeof raw.sound === "boolean") cfg.sound = raw.sound;
+  if (typeof raw.voice === "boolean") cfg.voice = raw.voice;
+  if (raw.voiceLang === "he" || raw.voiceLang === "en") cfg.voiceLang = raw.voiceLang;
   if (raw.guestClaims && typeof raw.guestClaims === "object") {
     const links = Object.fromEntries(Object.entries(raw.guestClaims).filter(([, v]) => typeof v === "string"));
     if (Object.keys(links).length) cfg.guestClaims = links;
@@ -25525,7 +25890,8 @@ var M = {
     pulledHistory: "Downloaded the history: {n} versions as git commits, up to the live version v{v}.",
     pullNoGit: "The history needs git on this computer. Install it from https://git-scm.com, or run pull without --history.",
     pullNotLinked: "This folder is not linked to a site. Copy the line again from the site page on DeployAI.",
-    pullNotEmpty: "This folder already has files, so nothing was downloaded. Use an empty folder.",
+    pullNotEmpty: "The history needs an empty folder. This one already has files, so nothing was downloaded.",
+    pullKept: "{n} file(s) were already in this folder, so they were kept as they are: {files}",
     pullNoSource: "This site has no version to download yet.",
     pullTooLarge: "The code of this version is over 50 MB, too large to download.",
     pullDamaged: "The download is damaged. Try again.",
@@ -25568,6 +25934,12 @@ var M = {
     soundOn: "Sound on: this computer plays a sound when the site is ready. To stop it: npx deployai@latest sound off.",
     soundAgentOn: "In this terminal too: a soft note when the agent finishes, another when it needs you. The colored dot in the tab shows once Claude Code starts again.",
     soundOff: "Sound off. To turn it on: npx deployai@latest sound on.",
+    voiceOn: "Say it out loud is on. This version of the CLI does not speak yet, so nothing is heard for now.",
+    voiceOff: "Say it out loud is off. To turn it on: npx deployai@latest voice on.",
+    voiceLang: "The voice language is {lang}.",
+    prefsSavedAccount: "Saved on your account, so the Account page in the dashboard shows the same.",
+    prefsSavedHere: "Saved on this computer only. Logging in moves it to your account.",
+    prefsSaveFailed: "Saved on this computer. Your account did not answer, so run the same command again later.",
     soundTest: "Played the sound. If nothing was heard, check the speakers: the printed result always says the same thing.",
     closedHere: "This site opens only to visitors from {countries}. From here ({country}) it shows a blocked page.",
     closedHereOpen: "  Open it to {country}: {url}",
@@ -25833,7 +26205,8 @@ var M = {
     pulledHistory: "\u05D4\u05D5\u05E8\u05D3\u05E0\u05D5 \u05D0\u05EA \u05D4\u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D4: {n} \u05D2\u05E8\u05E1\u05D0\u05D5\u05EA \u05DB\u05BEcommits \u05D1\u05BEgit, \u05E2\u05D3 \u05D4\u05D2\u05E8\u05E1\u05D4 \u05E9\u05D1\u05D0\u05D5\u05D5\u05D9\u05E8 v{v}.",
     pullNoGit: "\u05DB\u05D3\u05D9 \u05DC\u05D4\u05D5\u05E8\u05D9\u05D3 \u05D0\u05EA \u05D4\u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D4 \u05E6\u05E8\u05D9\u05DA git \u05D1\u05DE\u05D7\u05E9\u05D1. \u05D4\u05EA\u05E7\u05D9\u05E0\u05D5 \u05D0\u05D5\u05EA\u05D5 \u05DE\u05BEhttps://git-scm.com, \u05D0\u05D5 \u05D4\u05E8\u05D9\u05E6\u05D5 pull \u05D1\u05DC\u05D9 \u200E--history.",
     pullNotLinked: "\u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5 \u05DC\u05D0 \u05DE\u05D7\u05D5\u05D1\u05E8\u05EA \u05DC\u05D0\u05EA\u05E8. \u05D4\u05E2\u05EA\u05D9\u05E7\u05D5 \u05E9\u05D5\u05D1 \u05D0\u05EA \u05D4\u05E9\u05D5\u05E8\u05D4 \u05DE\u05D3\u05E3 \u05D4\u05D0\u05EA\u05E8 \u05D1\u05BEDeployAI.",
-    pullNotEmpty: "\u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5 \u05DB\u05D1\u05E8 \u05D9\u05E9 \u05E7\u05D1\u05E6\u05D9\u05DD, \u05D0\u05D6 \u05DC\u05D0 \u05D4\u05D5\u05E8\u05D3\u05E0\u05D5 \u05DB\u05DC\u05D5\u05DD. \u05D4\u05E9\u05EA\u05DE\u05E9\u05D5 \u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05E8\u05D9\u05E7\u05D4.",
+    pullNotEmpty: "\u05DB\u05D3\u05D9 \u05DC\u05D4\u05D5\u05E8\u05D9\u05D3 \u05D0\u05EA \u05D4\u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D4 \u05E6\u05E8\u05D9\u05DA \u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05E8\u05D9\u05E7\u05D4. \u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5 \u05DB\u05D1\u05E8 \u05D9\u05E9 \u05E7\u05D1\u05E6\u05D9\u05DD, \u05D0\u05D6 \u05DC\u05D0 \u05D4\u05D5\u05E8\u05D3\u05E0\u05D5 \u05DB\u05DC\u05D5\u05DD.",
+    pullKept: "{n} \u05E7\u05D1\u05E6\u05D9\u05DD \u05DB\u05D1\u05E8 \u05D4\u05D9\u05D5 \u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4, \u05D5\u05D4\u05E9\u05D0\u05E8\u05E0\u05D5 \u05D0\u05D5\u05EA\u05DD \u05DB\u05DE\u05D5 \u05E9\u05D4\u05DD: {files}",
     pullNoSource: "\u05DC\u05D0\u05EA\u05E8 \u05D4\u05D6\u05D4 \u05E2\u05D5\u05D3 \u05D0\u05D9\u05DF \u05D2\u05E8\u05E1\u05D4 \u05DC\u05D4\u05D5\u05E8\u05D9\u05D3.",
     pullTooLarge: "\u05D4\u05E7\u05D5\u05D3 \u05E9\u05DC \u05D4\u05D2\u05E8\u05E1\u05D4 \u05D4\u05D6\u05D5 \u05D2\u05D3\u05D5\u05DC \u05DE\u05BE50MB, \u05D2\u05D3\u05D5\u05DC \u05DE\u05D3\u05D9 \u05DC\u05D4\u05D5\u05E8\u05D3\u05D4.",
     pullDamaged: "\u05D4\u05D4\u05D5\u05E8\u05D3\u05D4 \u05E4\u05D2\u05D5\u05DE\u05D4. \u05E0\u05E1\u05D5 \u05E9\u05D5\u05D1.",
@@ -25876,6 +26249,12 @@ var M = {
     soundOn: "\u05D4\u05E6\u05DC\u05D9\u05DC \u05E4\u05D5\u05E2\u05DC: \u05D4\u05DE\u05D7\u05E9\u05D1 \u05D4\u05D6\u05D4 \u05D9\u05E9\u05DE\u05D9\u05E2 \u05E6\u05DC\u05D9\u05DC \u05DB\u05E9\u05D4\u05D0\u05EA\u05E8 \u05DE\u05D5\u05DB\u05DF. \u05DB\u05D3\u05D9 \u05DC\u05D4\u05E4\u05E1\u05D9\u05E7: npx deployai@latest sound off.",
     soundAgentOn: "\u05D2\u05DD \u05D1\u05D8\u05E8\u05DE\u05D9\u05E0\u05DC \u05D4\u05D6\u05D4: \u05E6\u05DC\u05D9\u05DC \u05E8\u05DA \u05DB\u05E9\u05D4\u05E1\u05D5\u05DB\u05DF \u05DE\u05E1\u05D9\u05D9\u05DD, \u05D5\u05E6\u05DC\u05D9\u05DC \u05E0\u05D5\u05E1\u05E3 \u05DB\u05E9\u05D4\u05D5\u05D0 \u05E6\u05E8\u05D9\u05DA \u05D0\u05EA\u05DB\u05DD. \u05D4\u05E0\u05E7\u05D5\u05D3\u05D4 \u05D4\u05E6\u05D1\u05E2\u05D5\u05E0\u05D9\u05EA \u05D1\u05DC\u05E9\u05D5\u05E0\u05D9\u05EA \u05EA\u05D5\u05E4\u05D9\u05E2 \u05D1\u05E4\u05E2\u05DD \u05D4\u05D1\u05D0\u05D4 \u05E9\u05BEClaude Code \u05E0\u05E4\u05EA\u05D7.",
     soundOff: "\u05D4\u05E6\u05DC\u05D9\u05DC \u05DB\u05D1\u05D5\u05D9. \u05DB\u05D3\u05D9 \u05DC\u05D4\u05E4\u05E2\u05D9\u05DC: npx deployai@latest sound on.",
+    voiceOn: "\u05D4\u05D4\u05E7\u05E8\u05D0\u05D4 \u05D1\u05E7\u05D5\u05DC \u05E4\u05D5\u05E2\u05DC\u05EA. \u05D4\u05D2\u05E8\u05E1\u05D4 \u05D4\u05D6\u05D5 \u05E9\u05DC \u05D4\u05BECLI \u05E2\u05D5\u05D3 \u05DC\u05D0 \u05DE\u05D3\u05D1\u05E8\u05EA, \u05D0\u05D6 \u05D1\u05D9\u05E0\u05EA\u05D9\u05D9\u05DD \u05DC\u05D0 \u05D9\u05D9\u05E9\u05DE\u05E2 \u05DB\u05DC\u05D5\u05DD.",
+    voiceOff: "\u05D4\u05D4\u05E7\u05E8\u05D0\u05D4 \u05D1\u05E7\u05D5\u05DC \u05DB\u05D1\u05D5\u05D9\u05D4. \u05DB\u05D3\u05D9 \u05DC\u05D4\u05E4\u05E2\u05D9\u05DC: npx deployai@latest voice on.",
+    voiceLang: "\u05E9\u05E4\u05EA \u05D4\u05E7\u05D5\u05DC: {lang}.",
+    prefsSavedAccount: "\u05E0\u05E9\u05DE\u05E8 \u05D1\u05D7\u05E9\u05D1\u05D5\u05DF \u05E9\u05DC\u05DB\u05DD, \u05D0\u05D6 \u05D2\u05DD \u05E2\u05DE\u05D5\u05D3 \u05D4\u05D7\u05E9\u05D1\u05D5\u05DF \u05D1\u05DC\u05D5\u05D7 \u05D4\u05D1\u05E7\u05E8\u05D4 \u05DE\u05E8\u05D0\u05D4 \u05D0\u05EA \u05D6\u05D4.",
+    prefsSavedHere: "\u05E0\u05E9\u05DE\u05E8 \u05E8\u05E7 \u05D1\u05DE\u05D7\u05E9\u05D1 \u05D4\u05D6\u05D4. \u05D0\u05D7\u05E8\u05D9 \u05DB\u05E0\u05D9\u05E1\u05D4 \u05DC\u05D7\u05E9\u05D1\u05D5\u05DF \u05D6\u05D4 \u05D9\u05E2\u05D1\u05D5\u05E8 \u05D0\u05DC\u05D9\u05D5.",
+    prefsSaveFailed: "\u05E0\u05E9\u05DE\u05E8 \u05D1\u05DE\u05D7\u05E9\u05D1 \u05D4\u05D6\u05D4. \u05D4\u05D7\u05E9\u05D1\u05D5\u05DF \u05DC\u05D0 \u05E2\u05E0\u05D4, \u05D0\u05D6 \u05D4\u05E8\u05D9\u05E6\u05D5 \u05D0\u05EA \u05D0\u05D5\u05EA\u05D4 \u05E4\u05E7\u05D5\u05D3\u05D4 \u05E9\u05D5\u05D1 \u05D0\u05D7\u05E8 \u05DB\u05DA.",
     soundTest: "\u05D4\u05E9\u05DE\u05E2\u05E0\u05D5 \u05D0\u05EA \u05D4\u05E6\u05DC\u05D9\u05DC. \u05DC\u05D0 \u05E9\u05DE\u05E2\u05EA\u05DD? \u05D1\u05D3\u05E7\u05D5 \u05D0\u05EA \u05D4\u05E8\u05DE\u05E7\u05D5\u05DC\u05D9\u05DD: \u05DE\u05D4 \u05E9\u05DE\u05D5\u05D3\u05E4\u05E1 \u05DB\u05D0\u05DF \u05EA\u05DE\u05D9\u05D3 \u05D0\u05D5\u05DE\u05E8 \u05D0\u05EA \u05D0\u05D5\u05EA\u05D5 \u05D4\u05D3\u05D1\u05E8.",
     closedHere: "\u05D4\u05D0\u05EA\u05E8 \u05E4\u05EA\u05D5\u05D7 \u05E8\u05E7 \u05DC\u05DE\u05D1\u05E7\u05E8\u05D9\u05DD \u05DE\u05D4\u05DE\u05D3\u05D9\u05E0\u05D5\u05EA \u05D4\u05D0\u05DC\u05D4: {countries}. \u05DE\u05DB\u05D0\u05DF ({country}) \u05DE\u05D5\u05E6\u05D2 \u05D3\u05E3 \u05D7\u05E1\u05D5\u05DD.",
     closedHereOpen: "  \u05E4\u05EA\u05D7\u05D5 \u05D0\u05D5\u05EA\u05D5 \u05D2\u05DD \u05DC\u05BE{country}: {url}",
@@ -26107,7 +26486,7 @@ function formatBytes(n2) {
 }
 
 // src/version.ts
-var CLI_VERSION = "0.1.0-beta.52";
+var CLI_VERSION = "0.1.0-beta.53";
 
 // src/api.ts
 function apiContext(apiFlag, root) {
@@ -27020,6 +27399,19 @@ function analyzeProject(root) {
     }
     break;
   }
+  for (const name of ["wrangler.toml", "wrangler.json", "wrangler.jsonc"]) {
+    if (!existsSync4(join4(root, name))) continue;
+    const text3 = readFileSync5(join4(root, name), "utf8");
+    const decl = parseWranglerConfig(name, text3);
+    if (!decl.queues.producers.length && !decl.queues.consumers.length) break;
+    const main2 = decl.main ? normalizeRel(decl.main) : null;
+    if (!main2 || !existsSync4(join4(root, main2))) break;
+    const entry = stripComments(readFileSync5(join4(root, main2), "utf8"));
+    if (/\bqueue\s*(\(|:|=)|function\s+queue\b/.test(entry)) break;
+    const at = text3.search(/queues/);
+    add2({ code: "queue_no_handler", severity: "warning", file: name, line: at < 0 ? 1 : text3.slice(0, at).split("\n").length, detail: ` (${main2})` });
+    break;
+  }
   const DB_CODE = {
     postgres: "unsupported_db_postgres",
     mysql: "unsupported_db_mysql",
@@ -27079,6 +27471,36 @@ function analyzeProject(root) {
       if (at >= 0) add2({ code: "astro_image_resizing", severity: "warning", file: name, line: text3.slice(0, at).split("\n").length });
       break;
     }
+  }
+  if (framework.id === "nextjs") {
+    for (const dir of ["", "src/"]) {
+      for (const ext of ["ts", "js", "mjs"]) {
+        const proxy = `${dir}proxy.${ext}`;
+        if (existsSync4(join4(root, proxy))) add2({ code: "nextjs_node_middleware", severity: "blocker", file: proxy, line: 1 });
+        const mw = `${dir}middleware.${ext}`;
+        if (!existsSync4(join4(root, mw))) continue;
+        const text3 = readFileSync5(join4(root, mw), "utf8");
+        const at = text3.search(/\bruntime\s*:\s*['"`]nodejs['"`]/);
+        if (at >= 0) add2({ code: "nextjs_node_middleware", severity: "blocker", file: mw, line: text3.slice(0, at).split("\n").length });
+      }
+    }
+  }
+  for (const f of files) {
+    if (f.rel !== "package.json" && !f.rel.endsWith("/package.json")) continue;
+    let text3 = "";
+    try {
+      text3 = readFileSync5(f.abs, "utf8");
+    } catch {
+      continue;
+    }
+    let parsed;
+    try {
+      parsed = JSON.parse(text3);
+    } catch {
+      continue;
+    }
+    const hit = gitDependencyIn(parsed);
+    if (hit) add2({ code: "git_dependency", severity: "blocker", file: f.rel, line: depLine(text3, hit.name), detail: ` ${hit.name} (${hit.spec})` });
   }
   const otherStack = detectOtherStack(files.map((f) => f.rel));
   if (otherStack) add2({ code: "other_stack", severity: "blocker", detail: ` ${otherStack.name}` });
@@ -27633,6 +28055,43 @@ function inspectCommand(root, opts) {
 // src/commands/auth.ts
 import { hostname as hostname3 } from "os";
 import { basename } from "path";
+
+// src/prefs.ts
+var PATH = "/api/cli/preferences";
+function applyAccountPrefs(p) {
+  if (!p) return;
+  const patch = {};
+  if (p.sound !== null) patch.sound = p.sound;
+  if (p.voice !== null) patch.voice = p.voice;
+  if (p.voiceLang !== null) patch.voiceLang = p.voiceLang;
+  if (Object.keys(patch).length) updateConfig(patch);
+}
+async function saveAccountPrefs(ctx, patch) {
+  updateConfig({ ...patch.sound !== void 0 ? { sound: patch.sound } : {}, ...patch.voice !== void 0 ? { voice: patch.voice } : {}, ...patch.voiceLang !== void 0 ? { voiceLang: patch.voiceLang ?? void 0 } : {} });
+  if (!ctx.config.token) return "computer";
+  try {
+    applyAccountPrefs(await apiRequest(ctx, PATH, SoundVoice, { method: "POST", body: patch }));
+    return "account";
+  } catch {
+    return "failed";
+  }
+}
+async function accountPrefs(ctx) {
+  if (!ctx.config.token) return null;
+  return apiRequest(ctx, PATH, SoundVoice).catch(() => null);
+}
+async function moveGuestPrefs(ctx) {
+  const account = await accountPrefs(ctx);
+  if (!account) return;
+  const local2 = loadConfig();
+  const patch = {};
+  if (account.sound === null && typeof local2.sound === "boolean") patch.sound = local2.sound;
+  if (account.voice === null && typeof local2.voice === "boolean") patch.voice = local2.voice;
+  if (account.voiceLang === null && local2.voiceLang) patch.voiceLang = local2.voiceLang;
+  applyAccountPrefs(Object.keys(patch).length ? await apiRequest(ctx, PATH, SoundVoice, { method: "POST", body: patch }) : account);
+}
+
+// src/commands/auth.ts
 var sleep = (ms2) => new Promise((r) => setTimeout(r, ms2));
 async function loginCommand(ctx, opts = {}) {
   if (envToken()) {
@@ -27679,6 +28138,7 @@ async function loginCommand(ctx, opts = {}) {
     if (poll2.status === "approved") {
       if (!poll2.token) throw new CliError(messages()("loginNoToken"), 1, "protocol");
       saveLogin(poll2.token, poll2.email, ctx.apiUrl);
+      await moveGuestPrefs(apiContext(ctx.apiUrl)).catch(() => void 0);
       const site = opts.root && readProject(opts.root)?.projectId || null;
       if (site && !opts.quiet) rememberSite(site, poll2.email);
       out();
@@ -28085,13 +28545,16 @@ function agentFollows(folders, env = process.env) {
   return on;
 }
 var terminalFolders = (root) => [.../* @__PURE__ */ new Set([root, readProject(root)?.startedFrom ?? root])];
-function soundCommand(root, action, state, tool, opts = {}) {
+var savedLine = (t, where) => t(where === "account" ? "prefsSavedAccount" : where === "computer" ? "prefsSavedHere" : "prefsSaveFailed");
+async function soundCommand(root, action, state, tool, opts = {}, ctx) {
   const act = (action ?? "status").toLowerCase();
   if (act === "agent") return agentCommand(root, state?.toLowerCase(), tool, opts);
   const t = messages(root);
   if (act === "on" || act === "off") {
-    const cfg2 = updateConfig({ sound: act === "on" });
+    const where = ctx ? await saveAccountPrefs(ctx, { sound: act === "on" }) : (updateConfig({ sound: act === "on" }), "computer");
+    const cfg2 = loadConfig();
     out(t(act === "on" ? "soundOn" : "soundOff"));
+    out(savedLine(t, where));
     if (act === "on") {
       if (agentFollows(terminalFolders(root))) out(t("soundAgentOn"));
       playSound("live", cfg2);
@@ -28105,6 +28568,8 @@ function soundCommand(root, action, state, tool, opts = {}) {
     }
     return;
   }
+  const account = ctx ? await accountPrefs(ctx) : null;
+  applyAccountPrefs(account);
   const cfg = loadConfig();
   if (act === "test") {
     if (!soundWanted(cfg)) return out(t("soundOff"));
@@ -28113,6 +28578,29 @@ function soundCommand(root, action, state, tool, opts = {}) {
   }
   if (act !== "status") throw new CliError("Usage: npx deployai@latest sound on|off|status|test, or sound agent on|off", 1, "usage");
   out(t(soundWanted(cfg) ? "soundOn" : "soundOff"));
+}
+async function voiceCommand(root, action, value2, ctx) {
+  const act = (action ?? "status").toLowerCase();
+  const t = messages(root);
+  const save2 = async (patch) => ctx ? saveAccountPrefs(ctx, patch) : (updateConfig({ ...patch.voice !== void 0 ? { voice: patch.voice } : {}, ...patch.voiceLang ? { voiceLang: patch.voiceLang } : {} }), "computer");
+  if (act === "on" || act === "off") {
+    const where = await save2({ voice: act === "on" });
+    out(t(act === "on" ? "voiceOn" : "voiceOff"));
+    out(savedLine(t, where));
+    return;
+  }
+  if (act === "lang") {
+    const lang = (value2 ?? "").toLowerCase();
+    if (lang !== "he" && lang !== "en") throw new CliError("Usage: npx deployai@latest voice lang he|en", 1, "usage");
+    const where = await save2({ voiceLang: lang });
+    out(t("voiceLang", { lang: lang === "he" ? "\u05E2\u05D1\u05E8\u05D9\u05EA" : "English" }));
+    out(savedLine(t, where));
+    return;
+  }
+  if (act !== "status") throw new CliError("Usage: npx deployai@latest voice on|off|status, or voice lang he|en", 1, "usage");
+  const account = ctx ? await accountPrefs(ctx) : null;
+  applyAccountPrefs(account);
+  out(t(loadConfig().voice === true ? "voiceOn" : "voiceOff"));
 }
 function refreshAgentScript(root) {
   const script = join12(root, AGENT_SCRIPT);
@@ -28169,7 +28657,7 @@ async function askYes(question) {
 import { createInterface as createInterface2 } from "readline/promises";
 
 // src/commands/migrate.ts
-import { existsSync as existsSync14, mkdirSync as mkdirSync8, readdirSync as readdirSync3, readFileSync as readFileSync12, writeFileSync as writeFileSync13 } from "fs";
+import { existsSync as existsSync14, mkdirSync as mkdirSync8, readdirSync as readdirSync3, readFileSync as readFileSync12, statSync as statSync2, writeFileSync as writeFileSync13 } from "fs";
 import { dirname as dirname2, join as join15, posix, relative as relative2, resolve as resolve2, sep as sep2 } from "path";
 
 // src/commands/look.ts
@@ -29038,9 +29526,25 @@ function redirectLines(inv, rss = "/rss.xml") {
   }
   return [...lines];
 }
+var MARKDOWN_POST_DIRS = ["src/content/posts", "src/content/blog", "content/posts", "content/blog", "content/post", "_posts"];
+function markdownPostFiles(root) {
+  const files = [];
+  const walk2 = (rel2, depth) => {
+    const abs = join15(root, rel2);
+    if (!existsSync14(abs) || depth > 4 || files.length >= 2e3) return;
+    for (const e3 of readdirSync3(abs, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+      const child = posix.join(rel2, e3.name);
+      if (e3.isDirectory()) walk2(child, depth + 1);
+      else if (e3.isFile() && /\.(md|mdx|markdown)$/i.test(e3.name) && statSync2(join15(root, child)).size <= 1024 * 1024) files.push({ file: child, text: readFileSync12(join15(root, child), "utf8") });
+    }
+  };
+  for (const d of MARKDOWN_POST_DIRS) walk2(d, 0);
+  return files;
+}
 function migratePostsCommand(root) {
   const hosts = scannedHosts(root);
-  if (!hosts.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
+  const markdown = markdownPostFiles(root);
+  if (!hosts.length && !markdown.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
   if (!existsSync14(join15(root, "src/kit/schema.ts"))) throw new CliError("The dashboard is not in this folder yet. Run: npx deployai@latest blocks dashboard", 1, "usage");
   const posts = [];
   for (const host of hosts) {
@@ -29049,13 +29553,28 @@ function migratePostsCommand(root) {
     const list = readJson3(join15(dir, "content", "posts.json"));
     if (inv && list?.length) posts.push(...wpPostsToKit({ origin: new URL(inv.source).origin, posts: list, categories: readJson3(join15(dir, "content", "categories.json")) ?? [], media: readJson3(join15(dir, "content", "media.json")) ?? [] }));
   }
-  if (!posts.length) {
-    out("No posts in the scan. If the old site has posts, write src/kit/moved-posts.json yourself: .deployai/blocks/dashboard.md says how.");
+  posts.push(...markdownPostsToKit(markdown));
+  const file2 = join15(root, "src/kit/moved-posts.json");
+  const had = readJson3(file2) ?? [];
+  if (!posts.length && !had.length) {
+    out("No posts in the scan or in this folder. If the old site has posts, write src/kit/moved-posts.json yourself: .deployai/blocks/dashboard.md says how.");
     return;
   }
-  writeFileSync13(join15(root, "src/kit/moved-posts.json"), JSON.stringify(posts.map(({ lost: _lost, ...p }) => p), null, 1));
-  out(`Wrote ${posts.length} posts to src/kit/moved-posts.json. Turn on blog in src/kit/site.config.ts.`);
-  const short = posts.filter((p) => p.lost.length);
+  const paths = new Set(had.map((p) => p.path || `/blog/${p.slug}/`));
+  const slugs = new Set(had.map((p) => p.slug));
+  const added = posts.filter((p) => {
+    if (paths.has(p.path) || slugs.has(p.slug)) return false;
+    paths.add(p.path);
+    slugs.add(p.slug);
+    return true;
+  });
+  if (!added.length) {
+    out(`All ${had.length} posts are already in src/kit/moved-posts.json, so nothing was added.`);
+    return;
+  }
+  writeFileSync13(file2, JSON.stringify([...had, ...added.map(({ lost: _lost, ...p }) => p)], null, 1));
+  out(had.length ? `Added ${added.length} posts to src/kit/moved-posts.json, beside the ${had.length} it had. Turn on blog in src/kit/site.config.ts.` : `Wrote ${added.length} posts to src/kit/moved-posts.json. Turn on blog in src/kit/site.config.ts.`);
+  const short = added.filter((p) => p.lost.length);
   if (short.length) {
     out("These lost a part the dashboard has no shape for. Add each to the page by hand, and say Partly moved in the plan:");
     short.forEach((p) => out(`  ${p.path}: ${p.lost.join(", ")}`));
@@ -29513,8 +30032,8 @@ function writeString(buf, offset, length, value2) {
   buf.write(value2, offset, Math.min(length, Buffer.byteLength(value2)), "utf8");
 }
 function writeOctal(buf, offset, length, value2) {
-  const str2 = Math.floor(value2).toString(8).padStart(length - 1, "0");
-  buf.write(str2.slice(-(length - 1)), offset, length - 1, "ascii");
+  const str3 = Math.floor(value2).toString(8).padStart(length - 1, "0");
+  buf.write(str3.slice(-(length - 1)), offset, length - 1, "ascii");
   buf[offset + length - 1] = 0;
 }
 function header(name, size, mtimeSec, mode, type, prefix = "") {
@@ -29688,7 +30207,8 @@ var SAMPLES = [
   { key: "form", title: "Forms: sign-ups, surveys and RSVPs, with a summary and charts", stack: "Astro on Workers, D1" },
   { key: "crud", title: "App with data: studio client and membership manager", stack: "Astro on Workers, D1" },
   { key: "shop", title: "Online shop: catalog, product pages, cart and orders", stack: "Astro on Workers, D1" },
-  { key: "admin", title: "Back office with login: dashboard, orders, stock, customers", stack: "Astro on Workers, D1" }
+  { key: "admin", title: "Back office with login: dashboard, orders, stock, customers", stack: "Astro on Workers, D1" },
+  { key: "blog", title: "Blog: Markdown posts, topics, tags, RSS and a sitemap", stack: "Astro, static" }
 ];
 var MAX_BYTES = 20 * 1024 * 1024;
 var IGNORED = /* @__PURE__ */ new Set([".git", ".DS_Store", "Thumbs.db", ".deployai", "DEPLOYAI.md", "AGENTS.md", "CLAUDE.md"]);
@@ -29745,7 +30265,7 @@ async function downloadSample(ctx, key2, root) {
   if (gz.length > MAX_BYTES) throw new CliError(messages()("sampleTooLarge"), 1, "api");
   return extractInto(gz, root, "The sample download is damaged. Try again.");
 }
-function extractInto(gz, root, damaged) {
+function extractInto(gz, root, damaged, kept) {
   let entries;
   try {
     entries = readTar(gunzipSync(gz, { maxOutputLength: MAX_BYTES * 4 }));
@@ -29760,6 +30280,10 @@ function extractInto(gz, root, damaged) {
     if (privateProjectFile(e3.name.replace(/\\/g, "/")) || aliasPathPart(e3.name.replace(/\\/g, "/"))) continue;
     const target = resolve4(base, e3.name);
     if (target !== base && !target.startsWith(base + sep3)) continue;
+    if (kept && existsSync15(target)) {
+      kept.push(e3.name.replace(/\\/g, "/"));
+      continue;
+    }
     mkdirSync10(dirname4(target), { recursive: true });
     writeFileSync15(target, e3.data);
     written++;
@@ -29807,15 +30331,19 @@ async function pullCommand(root, ctx, opts = {}) {
   const t = messages(root);
   const projectId = readProject(root)?.projectId;
   if (!projectId) throw new CliError(t("pullNotLinked"), 1, "not_linked");
-  if (filesIn(root).length) throw new CliError(t("pullNotEmpty"), 1, "not_empty");
+  const hasFiles = filesIn(root).length > 0;
+  if (opts.history && hasFiles) throw new CliError(t("pullNotEmpty"), 1, "not_empty");
   requireToken(ctx);
   if (opts.history) return pullHistory(root, ctx, projectId);
-  const n2 = extractInto(await fetchSource(root, ctx, projectId), root, t("pullDamaged"));
+  const kept = [];
+  const n2 = extractInto(await fetchSource(root, ctx, projectId), root, t("pullDamaged"), hasFiles ? kept : void 0);
   const builtOn = lastVersion && Number(lastVersion) > 0 ? Number(lastVersion) : void 0;
   if (builtOn) updateProject(root, { builtOn });
   await touchWork(ctx, root, projectId, builtOn);
   out(t("pulled", { n: n2, v: lastVersion ?? "?" }));
+  if (kept.length) out(t("pullKept", { n: kept.length, files: kept.slice(0, KEPT_SHOWN).join(", ") + (kept.length > KEPT_SHOWN ? ", ..." : "") }));
 }
+var KEPT_SHOWN = 8;
 var lastVersion = null;
 async function fetchSource(root, ctx, projectId, version2) {
   const t = messages(root);
@@ -30354,17 +30882,24 @@ async function sqlCommand(root, ctx, version2) {
   else out(t("sqlAgentThen", { n: n2, hash: plan.hash }));
 }
 
+// src/git.ts
+import { spawnSync as spawnSync4 } from "child_process";
+function headCommit(root) {
+  const r = spawnSync4("git", ["rev-parse", "--verify", "-q", "HEAD"], { cwd: root, encoding: "utf8", timeout: 5e3, stdio: ["ignore", "pipe", "ignore"] });
+  return r.status === 0 ? toGitCommit(r.stdout) : null;
+}
+
 // src/commands/deploy.ts
 function queueText(position, root) {
   const t = messages(root);
   return position > 0 ? t("queueWaiting", { n: position }) : t("buildingNow");
 }
 var GUEST_MAX_BYTES = 10 * 1024 * 1024;
-var str = (v) => typeof v === "string" && v.length > 0;
+var str2 = (v) => typeof v === "string" && v.length > 0;
 var GuestResponse = {
   safeParse(data) {
     const d = data;
-    if (d && str(d.projectId) && str(d.slug) && str(d.url) && str(d.claimUrl) && str(d.token) && str(d.expiresAt)) {
+    if (d && str2(d.projectId) && str2(d.slug) && str2(d.url) && str2(d.claimUrl) && str2(d.token) && str2(d.expiresAt)) {
       return { success: true, data: d };
     }
     return { success: false };
@@ -30427,6 +30962,10 @@ async function prepare(root, ctx, maxBytes) {
     info.push([t("skipped"), t("skippedLarge", { n: plan.skippedLarge.length, max: formatBytes(MAX_FILE_BYTES), names: names2 })]);
   }
   return { archive, info, hasSql: plan.files.some((f) => SQL_FILE.test(f.rel) && !f.rel.includes("node_modules/")) };
+}
+function addGitCommit(form, root) {
+  const sha2 = headCommit(root);
+  if (sha2) form.append("gitCommit", sha2);
 }
 function addTool(form, ctx, model) {
   if (!telemetryEnabled(ctx.config)) return;
@@ -30501,10 +31040,12 @@ async function deployVersion(root, ctx, opts, guest) {
   const fixed = (opts.fixed ?? "").replace(/\s+/g, " ").trim().slice(0, 300);
   if (fixed && telemetryEnabled(ctx.config)) form.append("fixNote", fixed);
   addTool(form, ctx, opts.model);
+  addGitCommit(form, root);
   if (wait && soundWanted(ctx.config)) form.append("soundHere", live ? "live" : "preview");
   if (hold) form.append("hold", "1");
   await attachArchive(ctx, form, project.projectId, archive, root);
   const res = await apiRequest(ctx, "/api/cli/deploy", DeployResponse, { method: "POST", form, timeoutMs: 5 * 6e4 });
+  applyAccountPrefs(res.prefs);
   if (!guest) {
     updateProject(root, { builtOn: res.number });
     await touchWork(ctx, root, project.projectId, res.number);
@@ -30884,8 +31425,8 @@ async function requestsOpenCommand(root, ctx, path, open2) {
 }
 
 // src/commands/start.ts
-import { spawnSync as spawnSync4 } from "child_process";
-import { existsSync as existsSync18, writeFileSync as writeFileSync18 } from "fs";
+import { spawnSync as spawnSync5 } from "child_process";
+import { existsSync as existsSync18, readdirSync as readdirSync6, writeFileSync as writeFileSync18 } from "fs";
 import { join as join21, relative as relative4, resolve as resolve6 } from "path";
 
 // src/commands/starter.ts
@@ -30963,8 +31504,23 @@ async function fetchStart(ctx, id) {
   }
   return data;
 }
+function otherSiteFolders(here, root, projectId) {
+  const dirs = /* @__PURE__ */ new Set([here, root]);
+  for (const base of [here, root]) {
+    try {
+      for (const e3 of readdirSync6(base, { withFileTypes: true })) if (e3.isDirectory() && !e3.name.startsWith(".") && e3.name !== "node_modules") dirs.add(join21(base, e3.name));
+    } catch {
+    }
+  }
+  const found = [];
+  for (const dir of dirs) {
+    const id = readProject(dir)?.projectId;
+    if (id && id !== projectId) found.push(relative4(root, dir) || ".");
+  }
+  return found.sort();
+}
 function install(root) {
-  const r = spawnSync4("npm", ["install"], { cwd: root, stdio: "inherit", shell: process.platform === "win32" });
+  const r = spawnSync5("npm", ["install"], { cwd: root, stdio: "inherit", shell: process.platform === "win32" });
   return r.status === 0;
 }
 async function startCommand(cwd, ctx, id, opts = {}) {
@@ -31108,6 +31664,10 @@ ${choices.brief}
     say(`Work only inside the folder ${relative4(here, root)} from now on (cd ${JSON.stringify(relative4(here, root))}).`);
     say();
   }
+  if (choices.projectId) {
+    say(oneSiteRule({ name: choices.name, slug: choices.slug }, otherSiteFolders(here, root, choices.projectId)));
+    say();
+  }
   say(agent.trim());
   if (stackText) {
     say();
@@ -31140,10 +31700,10 @@ import { dirname as dirname7, join as join23, resolve as resolve8 } from "path";
 import { mkdirSync as mkdirSync13, existsSync as existsSync20, writeFileSync as writeFileSync20 } from "fs";
 
 // src/commands/addon-lanes.ts
-import { spawnSync as spawnSync5 } from "child_process";
-import { copyFileSync, existsSync as existsSync19, lstatSync as lstatSync2, mkdirSync as mkdirSync12, readdirSync as readdirSync6, rmdirSync, statSync as statSync2, unlinkSync as unlinkSync2, writeFileSync as writeFileSync19 } from "fs";
+import { spawnSync as spawnSync6 } from "child_process";
+import { copyFileSync, existsSync as existsSync19, lstatSync as lstatSync2, mkdirSync as mkdirSync12, readdirSync as readdirSync7, rmdirSync, statSync as statSync3, unlinkSync as unlinkSync2, writeFileSync as writeFileSync19 } from "fs";
 import { basename as basename3, dirname as dirname6, join as join22, resolve as resolve7 } from "path";
-var git3 = (cwd, args) => spawnSync5("git", args, { cwd, encoding: "utf8" });
+var git3 = (cwd, args) => spawnSync6("git", args, { cwd, encoding: "utf8" });
 var ok = (cwd, args) => git3(cwd, args).status === 0;
 var text2 = (cwd, args) => (git3(cwd, args).stdout ?? "").trim();
 var same3 = (a, b) => resolve7(a).replace(/\\/g, "/").toLowerCase() === resolve7(b).replace(/\\/g, "/").toLowerCase();
@@ -31197,7 +31757,7 @@ function startWave(root, keys) {
 }
 function copyLocalFiles(from, to) {
   const dir = join22(from, DEPLOYAI_DIR);
-  const files = existsSync19(dir) ? readdirSync6(dir).map((f) => join22(DEPLOYAI_DIR, f)).filter((f) => statSync2(join22(from, f)).isFile()) : [];
+  const files = existsSync19(dir) ? readdirSync7(dir).map((f) => join22(DEPLOYAI_DIR, f)).filter((f) => statSync3(join22(from, f)).isFile()) : [];
   for (const f of [...files, ...LOCAL_FILES]) {
     if (f === join22(DEPLOYAI_DIR, "run.json")) continue;
     if (!existsSync19(join22(from, f)) || existsSync19(join22(to, f))) continue;
@@ -31270,7 +31830,7 @@ function addonsMergeCommand(root) {
   for (const lane of wave.lanes) removeLane(root, lane);
   const parent = join22(dirname6(root), `${basename3(root)}-addons`);
   try {
-    if (existsSync19(parent) && !readdirSync6(parent).length) rmdirSync(parent);
+    if (existsSync19(parent) && !readdirSync7(parent).length) rmdirSync(parent);
   } catch {
   }
   writeRun(root, { mode: "parallel" });
@@ -31646,8 +32206,8 @@ async function local(page3, strategy, deps, dir, now) {
 }
 
 // src/commands/images.ts
-import { spawnSync as spawnSync6 } from "child_process";
-import { existsSync as existsSync21, mkdirSync as mkdirSync15, readdirSync as readdirSync7, statSync as statSync3, writeFileSync as writeFileSync22 } from "fs";
+import { spawnSync as spawnSync7 } from "child_process";
+import { existsSync as existsSync21, mkdirSync as mkdirSync15, readdirSync as readdirSync8, statSync as statSync4, writeFileSync as writeFileSync22 } from "fs";
 import { createRequire } from "module";
 import { homedir as homedir3 } from "os";
 import { extname, join as join25, relative as relative5, resolve as resolve9 } from "path";
@@ -31657,9 +32217,9 @@ var SKIP_DIRS2 = /* @__PURE__ */ new Set(["node_modules", ".git", ".deployai", "
 function imagesIn(dir) {
   const found = [];
   const walk2 = (d) => {
-    for (const name of readdirSync7(d)) {
+    for (const name of readdirSync8(d)) {
       const p = join25(d, name);
-      const st = statSync3(p);
+      const st = statSync4(p);
       if (st.isDirectory()) {
         if (!SKIP_DIRS2.has(name)) walk2(p);
       } else if (/\.(jpe?g|png)$/i.test(name)) found.push(p);
@@ -31680,7 +32240,7 @@ function loadSharp() {
     mkdirSync15(dir, { recursive: true });
     if (!existsSync21(join25(dir, "package.json"))) writeFileSync22(join25(dir, "package.json"), '{"private":true}');
     out("Getting the image tool once (it stays outside the site)...");
-    const r = spawnSync6(process.platform === "win32" ? "npm.cmd" : "npm", ["install", SHARP, "--no-audit", "--no-fund", "--silent"], { cwd: dir, stdio: "ignore", shell: process.platform === "win32" });
+    const r = spawnSync7(process.platform === "win32" ? "npm.cmd" : "npm", ["install", SHARP, "--no-audit", "--no-fund", "--silent"], { cwd: dir, stdio: "ignore", shell: process.platform === "win32" });
     if (r.status !== 0) throw new CliError("The image tool could not be installed. Check the internet connection and run optimize again.", 1, "images_failed");
   }
   return createRequire(join25(dir, "package.json"))("sharp");
@@ -31697,10 +32257,10 @@ async function imagesCommand(root, folder, sharp = loadSharp) {
   let skipped = 0;
   let saved = 0;
   for (const file2 of files) {
-    const size = statSync3(file2).size;
+    const size = statSync4(file2).size;
     const meta3 = await make(file2).metadata();
     const outputs = outputsFor(file2, meta3.width);
-    if (outputs.every((o) => existsSync21(o.file) && statSync3(o.file).mtimeMs >= statSync3(file2).mtimeMs)) {
+    if (outputs.every((o) => existsSync21(o.file) && statSync4(o.file).mtimeMs >= statSync4(file2).mtimeMs)) {
       skipped++;
       continue;
     }
@@ -31860,7 +32420,7 @@ async function integrationsCommand(ctx, name, opts = {}) {
 
 // src/commands/brand.ts
 import { spawn as spawn5 } from "child_process";
-import { copyFileSync as copyFileSync2, existsSync as existsSync23, mkdirSync as mkdirSync17, mkdtempSync as mkdtempSync3, readdirSync as readdirSync8, readFileSync as readFileSync18, rmSync as rmSync7, statSync as statSync4, writeFileSync as writeFileSync24 } from "fs";
+import { copyFileSync as copyFileSync2, existsSync as existsSync23, mkdirSync as mkdirSync17, mkdtempSync as mkdtempSync3, readdirSync as readdirSync9, readFileSync as readFileSync18, rmSync as rmSync7, statSync as statSync5, writeFileSync as writeFileSync24 } from "fs";
 import { createServer } from "http";
 import { tmpdir as tmpdir4 } from "os";
 import { basename as basename4, dirname as dirname9, extname as extname2, join as join26, relative as relative6, sep as sep6 } from "path";
@@ -31961,7 +32521,7 @@ function webRoot(root) {
 function walk(dir, found = []) {
   let names2;
   try {
-    names2 = readdirSync8(dir);
+    names2 = readdirSync9(dir);
   } catch {
     return found;
   }
@@ -31970,7 +32530,7 @@ function walk(dir, found = []) {
     const p = join26(dir, n2);
     let isDir = false;
     try {
-      isDir = statSync4(p).isDirectory();
+      isDir = statSync5(p).isDirectory();
     } catch {
       continue;
     }
@@ -31999,7 +32559,7 @@ function scannedIcons(root) {
   const base = join26(root, MIGRATION_DIR);
   if (!existsSync23(base)) return [];
   const found = [];
-  for (const host of readdirSync8(base)) {
+  for (const host of readdirSync9(base)) {
     const dir = join26(base, host, "icons");
     try {
       const list = readJson(join26(dir, "icons.json"));
@@ -32040,7 +32600,7 @@ function readText2(path) {
 function scanDirs(root) {
   const base = join26(root, MIGRATION_DIR);
   try {
-    return readdirSync8(base).map((h) => join26(base, h)).filter((d) => existsSync23(join26(d, "home.html")));
+    return readdirSync9(base).map((h) => join26(base, h)).filter((d) => existsSync23(join26(d, "home.html")));
   } catch {
     return [];
   }
@@ -32069,7 +32629,7 @@ function siteFacts(root, given = {}) {
   const sources = [{ text: home, themeColor: id.themeColor }];
   for (const f of ["tailwind.config.js", "tailwind.config.ts", "tailwind.config.mjs", "tailwind.config.cjs"]) sources.push({ text: readText2(join26(root, f)) });
   const code = ["src", "app", "styles", "css", "public", "static"].flatMap((d) => walk(join26(root, d))).filter((p) => CODE_EXT2.test(p));
-  const plain2 = readdirSync8(root).filter((f) => CODE_EXT2.test(f)).map((f) => join26(root, f));
+  const plain2 = readdirSync9(root).filter((f) => CODE_EXT2.test(f)).map((f) => join26(root, f));
   for (const f of [...plain2, ...code].slice(0, READ_CAP)) sources.push({ text: readText2(f) });
   const color = fromOld ?? pickBrandColor(sources);
   return { name, line: given.line ?? id.line ?? "", color: color ?? BRAND_DEFAULT_COLOR, colorFrom: color ? "site" : "default" };
@@ -32366,7 +32926,7 @@ function walkAll(dir) {
   const go = (d) => {
     let names2 = [];
     try {
-      names2 = readdirSync8(d);
+      names2 = readdirSync9(d);
     } catch {
       return;
     }
@@ -32374,7 +32934,7 @@ function walkAll(dir) {
       if (found.length >= WALK_CAP) return;
       const p = join26(d, n2);
       try {
-        if (statSync4(p).isDirectory()) {
+        if (statSync5(p).isDirectory()) {
           if (!SKIP_DIRS3.has(n2) || n2 === ".deployai") go(p);
         } else found.push(p);
       } catch {
@@ -32521,7 +33081,7 @@ function buildProgram() {
     if (!a.compatible) process.exitCode = 1;
   });
   program.command("start").description("start from the line copied on the DeployAI site: prepares this folder with every choice made there, then prints the steps").argument("<id>", "the code from the copied line").option("--here", "put a new site in this folder even when it has files").option("--no-install", "do not run npm install for the sample").action((id, opts, cmd) => startCommand(root(cmd), ctx(cmd), id, opts));
-  program.command("samples").description("list the official sample sites, or download one (into this folder when empty, else a new one)").argument("[name]", "landing, business, form, crud, shop or admin").argument("[folder]", "put the sample in this folder (default: this one when empty, else asks or makes a new one)").option("--force", "write into this folder even when it has files").action((name, folder, opts, cmd) => samplesCommand(root(cmd), ctx(cmd), name, { ...opts, folder }));
+  program.command("samples").description("list the official sample sites, or download one (into this folder when empty, else a new one)").argument("[name]", "landing, business, form, crud, shop, admin or blog").argument("[folder]", "put the sample in this folder (default: this one when empty, else asks or makes a new one)").option("--force", "write into this folder even when it has files").action((name, folder, opts, cmd) => samplesCommand(root(cmd), ctx(cmd), name, { ...opts, folder }));
   program.command("login").description("log in through the browser").option("--force", "log in again or with another account; the accounts already here stay (D-905)").action((opts, cmd) => loginCommand(ctx(cmd), { root: root(cmd), force: opts.force }));
   program.command("logout").description("cancel an account's login token and remove it from this computer; other accounts stay").argument("[email]", "the account to log out (default: the one this folder uses)").option("--all", "log out of every account on this computer").action((email3, opts, cmd) => logoutCommand(ctx(cmd), { email: email3, all: opts.all }));
   program.command("whoami").description("show the logged in user, and the other accounts on this computer").action((_opts, cmd) => whoamiCommand(ctx(cmd)));
@@ -32530,12 +33090,13 @@ function buildProgram() {
 ${AGENT_FEEDBACK_RULES.join("\n\n")}
 `).action((opts, cmd) => feedbackCommand(root(cmd), ctx(cmd), opts));
   program.command("allow").description("stop your coding tool asking before every DeployAI command, in this folder only (run it after the owner says yes)").argument("[tool]", "claude-code, cursor, copilot, codex, antigravity or grok (Claude Code and Grok Build are found by themselves)").action((tool) => allowCommand(tool));
-  program.command("sound").description("a sound on this computer when the site is ready, or while the agent works (run it after the owner says yes)").argument("[action]", "on, off, status, test or agent", "status").argument("[state]", "with agent: on or off").argument("[tool]", "with agent: claude-code (found by itself)").option("--alongside", "with agent on: add it next to sounds Claude Code already plays").action((action, state, tool, opts, cmd) => soundCommand(root(cmd), action, state, tool, opts));
+  program.command("sound").description("a sound on this computer when the site is ready, or while the agent works (run it after the owner says yes)").argument("[action]", "on, off, status, test or agent", "status").argument("[state]", "with agent: on or off").argument("[tool]", "with agent: claude-code (found by itself)").option("--alongside", "with agent on: add it next to sounds Claude Code already plays").action((action, state, tool, opts, cmd) => soundCommand(root(cmd), action, state, tool, opts, ctx(cmd)));
+  program.command("voice").description("the account's yes or no to saying it out loud, and its language (run it after the owner says yes)").argument("[action]", "on, off, status or lang", "status").argument("[lang]", "with lang: he or en").action((action, lang, cmd) => voiceCommand(root(cmd), action, lang, ctx(cmd)));
   program.command("link").description("link this folder to a DeployAI project").argument("[project]", "project slug or id").option("--create <name>", "create a new project and link it").action(
     (project, opts, cmd) => linkCommand(root(cmd), ctx(cmd), project, opts)
   );
   program.command("deploy").description("check, pack and upload the source, wait for the build, then put it live or print the preview address").option("-m, --message <message>", "version message", "update").option("--fixed <what>", "after a failed version: one sentence on what you changed to fix it, no code (helps us catch it for others)").option("--guest", "without login: deploy as a temporary site, deleted after the days we set unless claimed").option("--live", "put it live when the build is done; only after the owner said yes").option("--no-wait", "upload and return, without waiting for the build").option("--hold", "a test version: it waits for the owner even when the site goes live by itself (auto live)").option("--model <id>", "the AI model running this deploy, for example claude-opus-5-5 (sent only with telemetry on)").action((opts, cmd) => deployCommand(root(cmd), ctx(cmd), opts));
-  program.command("pull").description("download the code of the linked site's live version into this empty folder (needs login)").option("--history", "every version up to the live one as git commits, oldest first").action((opts, cmd) => pullCommand(root(cmd), ctx(cmd), opts));
+  program.command("pull").description("download the code of the linked site's live version into this folder, never over a file it has (needs login)").option("--history", "every version up to the live one as git commits, oldest first (needs an empty folder)").action((opts, cmd) => pullCommand(root(cmd), ctx(cmd), opts));
   program.command("sync").description("bring the live site's changes into this folder before deploying, when someone else put a version live (D-907)").action((_opts, cmd) => syncCommand(root(cmd), ctx(cmd)));
   program.command("claim").description("print this folder's temporary site keep link again; --email mails it, with a reminder before the delete").option("--email <address>", "the owner's email for the link and the reminder").action((opts, cmd) => claimCommand(root(cmd), ctx(cmd), opts));
   program.command("requests").argument("[action]").argument("[address]").description('incoming requests: did a webhook arrive, and what happened. "requests open <address>" opens an address to every country, "requests close <address>" closes it').option("--limit <n>", "how many, 30 by default").action((action, address, opts, cmd) => {
@@ -32694,8 +33255,8 @@ function nodeGuideUrl(lang, base = API_BASE_DEFAULT) {
 }
 
 // src/update.ts
-import { spawnSync as spawnSync7 } from "child_process";
-import { existsSync as existsSync25, mkdirSync as mkdirSync18, readdirSync as readdirSync9, readFileSync as readFileSync19, rmSync as rmSync8, writeFileSync as writeFileSync25 } from "fs";
+import { spawnSync as spawnSync8 } from "child_process";
+import { existsSync as existsSync25, mkdirSync as mkdirSync18, readdirSync as readdirSync10, readFileSync as readFileSync19, rmSync as rmSync8, writeFileSync as writeFileSync25 } from "fs";
 import { join as join28 } from "path";
 var CHECK_EVERY_MS = 60 * 60 * 1e3;
 var ASK_NPM_MS = 1500;
@@ -32772,15 +33333,15 @@ function getVersion(version2, env) {
   const dir = join28(root, version2);
   mkdirSync18(dir, { recursive: true });
   writeFileSync25(join28(dir, "package.json"), '{"private":true}\n');
-  const installed = spawnSync7(`npm install deployai@${version2} --ignore-scripts --no-audit --no-fund --silent`, { cwd: dir, env, shell: true, stdio: "ignore", windowsHide: true, timeout: GET_VERSION_MS });
+  const installed = spawnSync8(`npm install deployai@${version2} --ignore-scripts --no-audit --no-fund --silent`, { cwd: dir, env, shell: true, stdio: "ignore", windowsHide: true, timeout: GET_VERSION_MS });
   if (installed.status !== 0) return false;
-  const ran = spawnSync7(process.execPath, [versionEntry(version2), "--version"], { env: { ...env, DEPLOYAI_NO_UPDATE: "1" }, encoding: "utf8", timeout: GET_VERSION_MS });
+  const ran = spawnSync8(process.execPath, [versionEntry(version2), "--version"], { env: { ...env, DEPLOYAI_NO_UPDATE: "1" }, encoding: "utf8", timeout: GET_VERSION_MS });
   if (ran.status !== 0 || ran.stdout.trim() !== version2) return false;
-  for (const old of readdirSync9(root)) if (old !== version2) rmSync8(join28(root, old), { recursive: true, force: true });
+  for (const old of readdirSync10(root)) if (old !== version2) rmSync8(join28(root, old), { recursive: true, force: true });
   return true;
 }
 function runVersion(version2, args, env = process.env) {
-  const r = spawnSync7(process.execPath, [versionEntry(version2), ...args], { stdio: "inherit", env: { ...env, DEPLOYAI_NO_UPDATE: "1" } });
+  const r = spawnSync8(process.execPath, [versionEntry(version2), ...args], { stdio: "inherit", env: { ...env, DEPLOYAI_NO_UPDATE: "1" } });
   if (r.error) return null;
   return r.status ?? 1;
 }
