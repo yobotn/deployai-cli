@@ -178,7 +178,7 @@ var ISSUES = [
     titleEn: "Next.js needs the OpenNext adapter",
     titleHe: "\u05DC\u05BENext.js \u05D7\u05E1\u05E8 \u05D4\u05DE\u05EA\u05D0\u05DD OpenNext",
     agentLine: "Next.js{detail} is used without the OpenNext Cloudflare adapter ({loc}).",
-    fixForAgent: 'Keep Next.js. Install @opennextjs/cloudflare as a dependency and add open-next.config.ts with: import { defineCloudflareConfig } from "@opennextjs/cloudflare"; export default defineCloudflareConfig();. DeployAI then builds with opennextjs-cloudflare build. Next.js on DeployAI is in beta: tell the user, and do not convert the site.'
+    fixForAgent: 'Keep Next.js. Install @opennextjs/cloudflare as a dependency and add open-next.config.ts with: import { defineCloudflareConfig } from "@opennextjs/cloudflare"; export default defineCloudflareConfig();. DeployAI then builds with opennextjs-cloudflare build. Do not convert the site.'
   },
   {
     code: "adapter_missing_solidstart",
@@ -293,7 +293,7 @@ var ISSUES = [
     titleEn: "Framework not recognized",
     titleHe: "\u05DC\u05D0 \u05D6\u05D9\u05D4\u05D9\u05E0\u05D5 \u05D0\u05EA \u05E1\u05D5\u05D2 \u05D4\u05E4\u05E8\u05D5\u05D9\u05E7\u05D8",
     agentLine: "DeployAI could not recognize the framework{detail}.",
-    fixForAgent: "DeployAI supports static HTML, Vite single page apps, Astro, SvelteKit, Nuxt, React Router 7 and Hono, and in beta SolidStart, Qwik City, Analog, TanStack Start and Next.js through OpenNext. Explain the project structure to the user before changing anything."
+    fixForAgent: "DeployAI supports static HTML, Vite single page apps, Astro, SvelteKit, Nuxt, React Router 7, Hono and Next.js through OpenNext, and in beta SolidStart, Qwik City, Analog and TanStack Start. Explain the project structure to the user before changing anything."
   },
   {
     code: "broken_regex",
@@ -478,7 +478,8 @@ var FRAMEWORKS = [
   {
     id: "nextjs",
     name: "Next.js",
-    tier: "beta",
+    // Supported since a real deploy of the fixture answered the docs/12 list through the dispatch Worker (D-1180).
+    tier: "supported",
     deps: ["next"],
     files: [],
     adapter: {
@@ -493,6 +494,9 @@ var FRAMEWORKS = [
       missingCode: "adapter_missing_nextjs"
     },
     buildCommand: "npx --no-install opennextjs-cloudflare build",
+    // next build, then OpenNext's bundle and code patches: about 9 of the 10 minutes on one CPU for the small fixture, and
+    // a second build of it was stopped at 10 (D-1182). Real apps are bigger.
+    buildMinutes: 25,
     outputs: [{ serverEntry: ".open-next/worker.js", assetsDir: ".open-next/assets" }],
     staticOutputs: [{ serverEntry: null, assetsDir: "out" }]
   },
@@ -1182,7 +1186,7 @@ var ISSUE_HELP = {
       fix: ["Your agent removes the server start and exports the app from the entry file.", "All routes stay as they are.", "Run the check again."]
     }
   },
-  adapter_missing_nextjs: adapterMissing("Next.js", '\u05D4\u05EA\u05E7\u05DF \u05D0\u05EA @opennextjs/cloudflare \u05DB\u05EA\u05DC\u05D5\u05EA \u05D5\u05D4\u05D5\u05E1\u05E3 open-next.config.ts \u05E2\u05DD: import { defineCloudflareConfig } from "@opennextjs/cloudflare"; export default defineCloudflareConfig();. DeployAI \u05D1\u05D5\u05E0\u05D4 \u05D0\u05D6 \u05E2\u05DD opennextjs-cloudflare build. Next.js \u05D1\u05BEDeployAI \u05D1\u05E9\u05DC\u05D1 \u05D1\u05D8\u05D0: \u05E1\u05E4\u05E8 \u05E2\u05DC \u05D6\u05D4 \u05DC\u05DE\u05E9\u05EA\u05DE\u05E9, \u05D5\u05D0\u05DC \u05EA\u05DE\u05D9\u05E8 \u05D0\u05EA \u05D4\u05D0\u05EA\u05E8.', true),
+  adapter_missing_nextjs: adapterMissing("Next.js", '\u05D4\u05EA\u05E7\u05DF \u05D0\u05EA @opennextjs/cloudflare \u05DB\u05EA\u05DC\u05D5\u05EA \u05D5\u05D4\u05D5\u05E1\u05E3 open-next.config.ts \u05E2\u05DD: import { defineCloudflareConfig } from "@opennextjs/cloudflare"; export default defineCloudflareConfig();. DeployAI \u05D1\u05D5\u05E0\u05D4 \u05D0\u05D6 \u05E2\u05DD opennextjs-cloudflare build. \u05D0\u05DC \u05EA\u05DE\u05D9\u05E8 \u05D0\u05EA \u05D4\u05D0\u05EA\u05E8.'),
   adapter_missing_solidstart: adapterMissing("SolidStart", '\u05D4\u05D2\u05D3\u05E8 server: { preset: "cloudflare_module" } \u05D1\u05E7\u05D5\u05D1\u05E5 app.config.ts (\u05D1\u05BEvite.config.ts \u05D1\u05BESolidStart 2). SolidStart \u05D1\u05BEDeployAI \u05D1\u05E9\u05DC\u05D1 \u05D1\u05D8\u05D0: \u05E1\u05E4\u05E8 \u05E2\u05DC \u05D6\u05D4 \u05DC\u05DE\u05E9\u05EA\u05DE\u05E9.', true),
   adapter_missing_qwik: adapterMissing("Qwik City", "\u05D4\u05E8\u05E5 npm run qwik add cloudflare-pages, \u05E9\u05DE\u05D5\u05E1\u05D9\u05E3 \u05D0\u05EA adapters/cloudflare-pages/vite.config.ts \u05D5\u05D0\u05EA \u05D4\u05E1\u05E7\u05E8\u05D9\u05E4\u05D8 build.server. Qwik City \u05D1\u05BEDeployAI \u05D1\u05E9\u05DC\u05D1 \u05D1\u05D8\u05D0: \u05E1\u05E4\u05E8 \u05E2\u05DC \u05D6\u05D4 \u05DC\u05DE\u05E9\u05EA\u05DE\u05E9.", true),
   adapter_missing_tanstack_start: adapterMissing("TanStack Start", '\u05D4\u05EA\u05E7\u05DF \u05D0\u05EA @cloudflare/vite-plugin \u05D5\u05D0\u05EA wrangler \u05DB\u05EA\u05DC\u05D5\u05D9\u05D5\u05EA \u05E4\u05D9\u05EA\u05D5\u05D7, \u05D4\u05D5\u05E1\u05E3 cloudflare({ viteEnvironment: { name: "ssr" } }) \u05DC\u05BEplugins \u05E9\u05DC vite.config, \u05D5\u05D4\u05D5\u05E1\u05E3 wrangler.jsonc \u05E2\u05DD "main": "@tanstack/react-start/server-entry" \u05D5 "compatibility_flags": ["nodejs_compat"]. TanStack Start \u05D1\u05BEDeployAI \u05D1\u05E9\u05DC\u05D1 \u05D1\u05D8\u05D0: \u05E1\u05E4\u05E8 \u05E2\u05DC \u05D6\u05D4 \u05DC\u05DE\u05E9\u05EA\u05DE\u05E9.', true),
@@ -19354,8 +19358,8 @@ function currencyCode2(_params) {
   return _stringFormat(ZodCustomStringFormat, "currency_code", currencyCode, _params);
 }
 function hash(alg, params) {
-  const enc5 = params?.enc ?? "hex";
-  const format = `${alg}_${enc5}`;
+  const enc6 = params?.enc ?? "hex";
+  const format = `${alg}_${enc6}`;
   const regex = regexes_exports[format];
   if (!regex)
     throw new Error(`Unrecognized hash format: ${format}`);
@@ -21764,8 +21768,8 @@ var ARCH_NODES = [
   { id: "payments", kind: "external", zone: "services", label: "Payment provider (Cardcom)", summary: "\u05E7\u05D0\u05E8\u05D3\u05E7\u05D5\u05DD \u05DB\u05D1\u05E8\u05D9\u05E8\u05EA \u05DE\u05D7\u05D3\u05DC, \u05D5\u05E0\u05D1\u05D7\u05E8 \u05D1\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA \u05D4\u05D0\u05D3\u05DE\u05D9\u05DF (\u05D0\u05D5 \u05DE\u05D3\u05D5\u05DE\u05D4 \u05DC\u05D1\u05D3\u05D9\u05E7\u05D5\u05EA). \u05D4\u05DB\u05E8\u05D8\u05D9\u05E1 \u05DE\u05D5\u05E7\u05DC\u05D3 \u05D1\u05D3\u05E3 \u05D4\u05DE\u05D0\u05D5\u05D1\u05D8\u05D7 \u05E9\u05DC \u05E7\u05D0\u05E8\u05D3\u05E7\u05D5\u05DD \u05D5\u05E0\u05E9\u05DE\u05E8 \u05DB\u05D8\u05D5\u05E7\u05DF \u05DE\u05D5\u05E6\u05E4\u05DF, \u05DB\u05DC \u05D7\u05D9\u05D5\u05D1 \u05E2\u05DD \u05DE\u05E4\u05EA\u05D7 \u05D0\u05D9\u05D3\u05DE\u05E4\u05D5\u05D8\u05E0\u05D8\u05D9\u05D5\u05EA, \u05D5\u05E7\u05D0\u05E8\u05D3\u05E7\u05D5\u05DD \u05DE\u05E4\u05D9\u05E7\u05D4 \u05D7\u05E9\u05D1\u05D5\u05E0\u05D9\u05EA \u05DE\u05E1 \u05DC\u05DB\u05DC \u05D7\u05D9\u05D5\u05D1 \u05D5\u05D7\u05E9\u05D1\u05D5\u05E0\u05D9\u05EA \u05D6\u05D9\u05DB\u05D5\u05D9 \u05DC\u05DB\u05DC \u05D4\u05D7\u05D6\u05E8.", summaryEn: "Cardcom by default, chosen in admin settings (or simulated for tests). The card is typed on the secure Cardcom page and saved as a sealed token, every charge carries an idempotency key, and Cardcom issues a tax invoice per charge and a credit invoice per refund.", code: ["apps/web/src/server/billing/provider.ts", "apps/web/src/server/billing/cardcom.ts", "apps/web/src/server/billing/card-pages.ts", "apps/web/src/app/api/billing/card"], env: ["BILLING_PROVIDER", "BILLING_MOCK_FAIL", "CARDCOM_TERMINAL", "CARDCOM_API_NAME", "CARDCOM_API_PASSWORD", "CARDCOM_INVOICES", "CARDCOM_CSS_URL", "CARDCOM_TOKEN_KEY", "CARDCOM_DEPARTMENT_ID"], portability: "Payments", decisions: ["D-175", "D-292"] },
   { id: "registrar", kind: "external", zone: "services", label: "Domain registrars (Cloudflare, LiveDNS)", summary: "\u05E7\u05E0\u05D9\u05D9\u05EA \u05D3\u05D5\u05DE\u05D9\u05D9\u05E0\u05D9\u05DD \u05DC\u05D0\u05EA\u05E8: \u05DB\u05DC \u05E9\u05DD \u05D4\u05D5\u05DC\u05DA \u05DC\u05E8\u05E9\u05DD \u05D4\u05D6\u05D5\u05DC \u05D1\u05D9\u05D5\u05EA\u05E8 \u05E9\u05E4\u05D5\u05E2\u05DC, \u05DB\u05DC \u05E8\u05E9\u05DD \u05D1\u05E2\u05DC\u05D5\u05EA \u05D5\u05D1\u05E2\u05DE\u05DC\u05D4 \u05DE\u05E9\u05DC\u05D5 (Cloudflare \u05D1\u05D3\u05D5\u05DC\u05E8\u05D9\u05DD \u05DC\u05DB\u05DC \u05E9\u05DD, LiveDNS \u05DE\u05E0\u05E7\u05D5\u05D3\u05D5\u05EA \u05E7\u05E8\u05D3\u05D9\u05D8 \u05DC\u05E4\u05D9 \u05D4\u05DE\u05D7\u05D9\u05E8\u05D5\u05DF \u05E9\u05E0\u05E7\u05E8\u05D0 \u05DB\u05DC \u05D9\u05D5\u05DD, \u05D0\u05D5 \u05D9\u05D3\u05E0\u05D9 \u05DE\u05EA\u05D5\u05E8 \u05D4\u05E6\u05D5\u05D5\u05EA), \u05DE\u05D7\u05D9\u05E8 \u05DB\u05DC \u05E1\u05D9\u05D5\u05DE\u05EA \u05E0\u05D1\u05D3\u05E7 \u05DB\u05DC \u05D9\u05D5\u05DD (\u05D5\u05D0\u05E4\u05E9\u05E8 \u05DC\u05DB\u05D1\u05D5\u05EA \u05E1\u05D9\u05D5\u05DE\u05D5\u05EA), \u05E8\u05D9\u05E9\u05D5\u05DD \u05D0\u05D7\u05D3 \u05DC\u05DB\u05DC \u05D4\u05D6\u05DE\u05E0\u05D4, \u05D9\u05D5\u05DE\u05DF \u05E7\u05E8\u05D9\u05D0\u05D5\u05EA \u05DC\u05DB\u05DC \u05D4\u05D6\u05DE\u05E0\u05D4, \u05D5\u05D7\u05D9\u05D3\u05D5\u05E9 \u05E9\u05E0\u05EA\u05D9 \u05D0\u05E6\u05DC \u05D0\u05D5\u05EA\u05D5 \u05E8\u05E9\u05DD. \u05DC\u05D3\u05D5\u05DE\u05D9\u05D9\u05DF \u05E9\u05E0\u05E7\u05E0\u05D4: \u05D3\u05D5\u05D0\u05E8 \u05D3\u05E8\u05DA Cloudflare Email Routing.", summaryEn: "Buying domains for a site: each name goes to the cheapest registrar that is on, each with its own cost and fee (Cloudflare in dollars per name, LiveDNS from credit points priced by its list, read daily, or by hand from the team queue), the price of every extension checked daily (some can be turned off), one registration per order, a call log per order, yearly renewal at the same registrar. For a bought domain: email through Cloudflare Email Routing.", code: ["apps/web/src/server/registrar.ts", "apps/web/src/server/registrar-livedns.ts", "apps/web/src/server/registrar-log.ts", "apps/web/src/server/domain-sales.ts", "apps/web/src/server/domain-extensions.ts", "apps/web/src/server/domain-email.ts", "apps/web/src/server/billing/services.ts"], env: ["CF_REGISTRAR_TOKEN", "LIVEDNS_USER", "LIVEDNS_PASSWORD"], decisions: ["D-299", "D-300", "D-301", "D-458", "D-486", "D-489", "D-491"] },
   { id: "mailbox-providers", kind: "external", zone: "services", label: "Mailbox providers (Google Workspace, Zoho Mail)", summary: "\u05EA\u05D9\u05D1\u05D5\u05EA \u05D3\u05D5\u05D0\u05E8 \u05E9\u05E0\u05DE\u05DB\u05D5\u05E8 \u05E2\u05DC \u05D3\u05D5\u05DE\u05D9\u05D9\u05DF \u05E9\u05DC \u05D4\u05DC\u05E7\u05D5\u05D7: Google Workspace \u05D3\u05E8\u05DA \u05EA\u05D5\u05DB\u05E0\u05D9\u05EA \u05D4\u05DE\u05E9\u05D5\u05D5\u05E7\u05D9\u05DD \u05D5\u05BEZoho Mail \u05D3\u05E8\u05DA \u05EA\u05D5\u05DB\u05E0\u05D9\u05EA \u05D4\u05E9\u05D5\u05EA\u05E4\u05D9\u05DD, \u05D1\u05D7\u05D9\u05D5\u05D1 \u05D7\u05D5\u05D3\u05E9\u05D9 \u05DC\u05DB\u05DC \u05EA\u05D9\u05D1\u05D4. Google \u05DE\u05D7\u05D5\u05D1\u05E8 \u05D3\u05E8\u05DA Cloud Channel: \u05D4\u05E6\u05D5\u05D5\u05EA \u05DE\u05D6\u05DE\u05D9\u05DF \u05DC\u05DC\u05E7\u05D5\u05D7 \u05D1\u05D3\u05D5\u05DE\u05D9\u05D9\u05E0\u05D9\u05DD, \u05EA\u05D9\u05D1\u05D5\u05EA \u05D3\u05D5\u05D0\u05E8, \u05D5\u05D1\u05DE\u05D7\u05E9\u05D1 \u05D4\u05E4\u05D9\u05EA\u05D5\u05D7 \u05E2\u05D5\u05E0\u05D4 Google \u05DE\u05D3\u05D5\u05DE\u05D4. Zoho \u05E2\u05D5\u05D3 \u05DC\u05D0 \u05E0\u05D1\u05E0\u05D4.", summaryEn: "Mailboxes we sell on the customer domain: Google Workspace through the reseller program and Zoho Mail through the partner program, billed per mailbox per month. Google is connected through Cloud Channel: the team orders for a customer on Domains, Mailboxes, and the laptop gets a simulated Google. Zoho is not built.", code: ["apps/web/src/server/mailbox.ts", "apps/web/src/server/google-channel.ts", "apps/web/src/server/mailbox-orders.ts"], env: ["GOOGLE_RESELLER_KEY", "GOOGLE_RESELLER_ADMIN", "GOOGLE_RESELLER_ACCOUNT", "ZOHO_PARTNER_CLIENT_ID", "ZOHO_PARTNER_CLIENT_SECRET", "ZOHO_PARTNER_REFRESH_TOKEN"], decisions: ["D-547", "D-897"] },
-  { id: "mcp", kind: "external", zone: "services", label: "MCP for AI tools (/api/mcp)", summary: "ChatGPT \u05D5\u05BEClaude \u05DE\u05EA\u05D7\u05D1\u05E8\u05D9\u05DD \u05D1\u05DC\u05D9 \u05D8\u05E8\u05DE\u05D9\u05E0\u05DC: OAuth \u05E2\u05DD \u05D0\u05D9\u05E9\u05D5\u05E8 \u05D1\u05D3\u05E4\u05D3\u05E4\u05DF, \u05D5\u05D0\u05D6 \u05DB\u05DC\u05D9\u05DD \u05DC\u05E8\u05E9\u05D9\u05DE\u05EA \u05D4\u05D0\u05EA\u05E8\u05D9\u05DD, \u05D1\u05D3\u05D9\u05E7\u05D4, \u05D4\u05E2\u05DC\u05D0\u05EA \u05D2\u05E8\u05E1\u05D4 \u05DC\u05EA\u05E6\u05D5\u05D2\u05D4 \u05DE\u05E7\u05D3\u05D9\u05DE\u05D4, \u05D4\u05E8\u05E6\u05EA \u05EA\u05D5\u05E1\u05E4\u05D9\u05DD \u05E9\u05D4\u05D0\u05EA\u05E8 \u05E7\u05E0\u05D4 (\u05D4\u05E7\u05E0\u05D9\u05D9\u05D4 \u05E8\u05E7 \u05D1\u05D0\u05EA\u05E8), \u05D5\u05D4\u05E2\u05DC\u05D0\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8 \u05E8\u05E7 \u05E2\u05DD \u05D4\u05E8\u05E9\u05D0\u05D4 \u05D5\u05D0\u05D9\u05E9\u05D5\u05E8.", summaryEn: "ChatGPT and Claude connect without a terminal: OAuth with a browser consent, then tools to list sites, check, upload a version to a preview, run add-ons the site owns (buying stays on the site), and go live only with the permission and a yes.", code: ["apps/web/src/app/api/mcp/route.ts", "apps/web/src/server/mcp-tools.ts", "apps/web/src/server/auth.ts"], decisions: ["D-302"] },
-  { id: "apps-api", kind: "external", zone: "services", label: "Apps API (/api/v1/apps)", summary: "\u05E1\u05E7\u05E8\u05D9\u05E4\u05D8\u05D9\u05DD \u05D5\u05E1\u05D5\u05DB\u05E0\u05D9 AI \u05DE\u05E0\u05D4\u05DC\u05D9\u05DD \u05D0\u05EA \u05D4\u05D0\u05E4\u05DC\u05D9\u05E7\u05E6\u05D9\u05D5\u05EA \u05E9\u05DC \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05E2\u05DD \u05DE\u05E4\u05EA\u05D7 API \u05E9\u05DC \u05D4\u05D7\u05E9\u05D1\u05D5\u05DF (dak_): \u05E8\u05E7 \u05D4\u05E4\u05E2\u05D5\u05DC\u05D5\u05EA \u05E9\u05DB\u05DC \u05D0\u05E4\u05DC\u05D9\u05E7\u05E6\u05D9\u05D4 \u05DE\u05EA\u05D9\u05E8\u05D4, \u05DC\u05E4\u05D9 \u05D4\u05D4\u05E8\u05E9\u05D0\u05D4 \u05D5\u05DC\u05E4\u05D9 \u05D4\u05D0\u05E4\u05DC\u05D9\u05E7\u05E6\u05D9\u05D5\u05EA \u05E9\u05E0\u05D1\u05D7\u05E8\u05D5, 60 \u05D1\u05E7\u05E9\u05D5\u05EA \u05D1\u05D3\u05E7\u05D4 \u05DC\u05DE\u05E4\u05EA\u05D7. \u05D4\u05DE\u05E4\u05EA\u05D7 \u05DE\u05D5\u05E6\u05D2 \u05E4\u05E2\u05DD \u05D0\u05D7\u05EA \u05D5\u05E0\u05E9\u05DE\u05E8 \u05E8\u05E7 \u05DB\u05D8\u05D1\u05D9\u05E2\u05D4.", summaryEn: "Scripts and AI agents manage the apps of an owner with an account API key (dak_): only the operations each app lists, by the scope and apps of the key, 60 requests a minute per key. The key shows once and only its hash is kept.", code: ["apps/web/src/server/app-api.ts", "apps/web/src/server/api-keys.ts", "packages/shared/src/app-api.ts"], decisions: ["D-1118"] },
+  { id: "mcp", kind: "external", zone: "services", label: "MCP for AI tools (/api/mcp)", summary: "ChatGPT \u05D5\u05BEClaude \u05DE\u05EA\u05D7\u05D1\u05E8\u05D9\u05DD \u05D1\u05DC\u05D9 \u05D8\u05E8\u05DE\u05D9\u05E0\u05DC: OAuth \u05E2\u05DD \u05D0\u05D9\u05E9\u05D5\u05E8 \u05D1\u05D3\u05E4\u05D3\u05E4\u05DF, \u05D5\u05D0\u05D6 \u05DB\u05DC\u05D9\u05DD \u05DC\u05E8\u05E9\u05D9\u05DE\u05EA \u05D4\u05D0\u05EA\u05E8\u05D9\u05DD, \u05D1\u05D3\u05D9\u05E7\u05D4, \u05D4\u05E2\u05DC\u05D0\u05EA \u05D2\u05E8\u05E1\u05D4 \u05DC\u05EA\u05E6\u05D5\u05D2\u05D4 \u05DE\u05E7\u05D3\u05D9\u05DE\u05D4, \u05D4\u05E8\u05E6\u05EA \u05EA\u05D5\u05E1\u05E4\u05D9\u05DD \u05E9\u05D4\u05D0\u05EA\u05E8 \u05E7\u05E0\u05D4 (\u05D4\u05E7\u05E0\u05D9\u05D9\u05D4 \u05E8\u05E7 \u05D1\u05D0\u05EA\u05E8), \u05D5\u05D4\u05E2\u05DC\u05D0\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8 \u05E8\u05E7 \u05E2\u05DD \u05D4\u05E8\u05E9\u05D0\u05D4 \u05D5\u05D0\u05D9\u05E9\u05D5\u05E8. \u05E2\u05DD \u05D4\u05E8\u05E9\u05D0\u05D5\u05EA \u05D4\u05D0\u05E4\u05DC\u05D9\u05E7\u05E6\u05D9\u05D5\u05EA, \u05DB\u05DC\u05D9 \u05DC\u05DB\u05DC \u05E4\u05E2\u05D5\u05DC\u05D4 \u05E9\u05DC \u05D4\u05BEAPI \u05DC\u05D0\u05E4\u05DC\u05D9\u05E7\u05E6\u05D9\u05D5\u05EA.", summaryEn: "ChatGPT and Claude connect without a terminal: OAuth with a browser consent, then tools to list sites, check, upload a version to a preview, run add-ons the site owns (buying stays on the site), and go live only with the permission and a yes. With the app permissions, a tool for each Apps API operation.", code: ["apps/web/src/app/api/mcp/route.ts", "apps/web/src/server/mcp-tools.ts", "apps/web/src/server/mcp-apps.ts", "apps/web/src/server/auth.ts"], decisions: ["D-302", "D-1160"] },
+  { id: "apps-api", kind: "external", zone: "services", label: "Apps API (/api/v1/apps)", summary: "\u05E1\u05E7\u05E8\u05D9\u05E4\u05D8\u05D9\u05DD \u05D5\u05E1\u05D5\u05DB\u05E0\u05D9 AI \u05DE\u05E0\u05D4\u05DC\u05D9\u05DD \u05D0\u05EA \u05D4\u05D0\u05E4\u05DC\u05D9\u05E7\u05E6\u05D9\u05D5\u05EA \u05E9\u05DC \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05E2\u05DD \u05DE\u05E4\u05EA\u05D7 API \u05E9\u05DC \u05D4\u05D7\u05E9\u05D1\u05D5\u05DF (dak_): \u05E8\u05E7 \u05D4\u05E4\u05E2\u05D5\u05DC\u05D5\u05EA \u05E9\u05DB\u05DC \u05D0\u05E4\u05DC\u05D9\u05E7\u05E6\u05D9\u05D4 \u05DE\u05EA\u05D9\u05E8\u05D4, \u05DC\u05E4\u05D9 \u05D4\u05D4\u05E8\u05E9\u05D0\u05D4 \u05D5\u05DC\u05E4\u05D9 \u05D4\u05D0\u05E4\u05DC\u05D9\u05E7\u05E6\u05D9\u05D5\u05EA \u05E9\u05E0\u05D1\u05D7\u05E8\u05D5, 60 \u05D1\u05E7\u05E9\u05D5\u05EA \u05D1\u05D3\u05E7\u05D4 \u05DC\u05DE\u05E4\u05EA\u05D7. \u05D4\u05DE\u05E4\u05EA\u05D7 \u05DE\u05D5\u05E6\u05D2 \u05E4\u05E2\u05DD \u05D0\u05D7\u05EA \u05D5\u05E0\u05E9\u05DE\u05E8 \u05E8\u05E7 \u05DB\u05D8\u05D1\u05D9\u05E2\u05D4.", summaryEn: "Scripts and AI agents manage the apps of an owner with an account API key (dak_): only the operations each app lists, by the scope and apps of the key, 60 requests a minute per key. The key shows once and only its hash is kept.", code: ["apps/web/src/server/app-api.ts", "apps/web/src/server/api-keys.ts", "packages/shared/src/app-api.ts"], decisions: ["D-1118", "D-1160"] },
   { id: "npm", kind: "external", zone: "services", label: "npm registry", summary: "\u05DE\u05E4\u05D9\u05E5 \u05D0\u05EA \u05D4\u05BECLI, \u05D5\u05DE\u05DE\u05E0\u05D5 \u05D4\u05D1\u05E0\u05D9\u05D9\u05D4 \u05DE\u05EA\u05E7\u05D9\u05E0\u05D4 \u05EA\u05DC\u05D5\u05D9\u05D5\u05EA.", summaryEn: "Distributes the CLI, and the build installs dependencies from it." },
   { id: "pagespeed", kind: "external", zone: "services", label: "Google PageSpeed Insights", summary: "\u05D1\u05D3\u05D9\u05E7\u05D5\u05EA \u05D4\u05DE\u05D4\u05D9\u05E8\u05D5\u05EA, \u05D4\u05E0\u05D2\u05D9\u05E9\u05D5\u05EA \u05D5\u05D4\u05BESEO \u05D4\u05D7\u05D9\u05E0\u05DE\u05D9\u05D5\u05EA: Lighthouse \u05D1\u05DE\u05E2\u05D1\u05D3\u05D4 \u05E9\u05DC \u05D2\u05D5\u05D2\u05DC (\u05DB\u05D5\u05DC\u05DC \u05E1\u05D5\u05DB\u05E0\u05D9 AI) \u05D5\u05E0\u05EA\u05D5\u05E0\u05D9 \u05DE\u05D1\u05E7\u05E8\u05D9\u05DD \u05D0\u05DE\u05D9\u05EA\u05D9\u05D9\u05DD.", summaryEn: "The free speed, accessibility and SEO tests: Lighthouse run at Google (AI agents included) plus real visitor data.", env: ["PAGESPEED_API_KEY"], decisions: ["D-199", "D-222"] },
   { id: "turnstile", kind: "external", zone: "services", label: "CF Turnstile", summary: '\u05D1\u05D3\u05D9\u05E7\u05EA "\u05D4\u05D0\u05DD \u05D0\u05EA\u05DD \u05D1\u05E0\u05D9 \u05D0\u05D3\u05DD" \u05D1\u05D8\u05E4\u05E1\u05D9 \u05D4\u05DB\u05DC\u05D9\u05DD \u05D4\u05D7\u05D9\u05E0\u05DE\u05D9\u05D9\u05DD, \u05D1\u05DC\u05D9 \u05E4\u05D0\u05D6\u05DC\u05D9\u05DD \u05DC\u05E8\u05D5\u05D1 \u05D4\u05DE\u05D1\u05E7\u05E8\u05D9\u05DD.', summaryEn: 'The "are you human" check on the free tool forms, with no puzzle for most visitors.', env: ["TURNSTILE_SITE_KEY", "TURNSTILE_SECRET"], decisions: ["D-199"] },
@@ -21775,6 +21779,7 @@ var ARCH_NODES = [
   { id: "demos", kind: "worker", zone: "cloudflare", label: "deployai-demos", summary: "\u05D4\u05D3\u05DE\u05D5\u05D0\u05D9\u05DD \u05D1\u05DB\u05EA\u05D5\u05D1\u05D5\u05EA \u05DB\u05DE\u05D5 shop.deploy-net.com, \u05E2\u05DC \u05DB\u05DC \u05D3\u05D5\u05DE\u05D9\u05D9\u05DF \u05D0\u05EA\u05E8\u05D9\u05DD: \u05DE\u05D5\u05E9\u05DA \u05D0\u05EA /demo/<key> \u05DE\u05D4\u05D0\u05EA\u05E8 \u05E9\u05DC\u05E0\u05D5 \u05D5\u05DE\u05E1\u05D9\u05E8 \u05D0\u05EA \u05D4\u05E7\u05D9\u05D3\u05D5\u05DE\u05EA, noindex.", summaryEn: "The demos on hosts like shop.deploy-net.com, on every sites domain: fetches /demo/<key> from our site and strips the prefix, noindex.", code: ["workers/demos/src", "scripts/deploy-demos.ts", "packages/shared/src/demos.ts"], env: ["CHROME_PATH", "SHOTS_BASE"], docs: ["workers/demos/README.md"], decisions: ["D-112", "D-293"] },
   { id: "tools-worker", kind: "worker", zone: "cloudflare", label: "deployai-tools", summary: "\u05DE\u05D5\u05E8\u05D9\u05D3 \u05D0\u05EA \u05D4\u05E2\u05DE\u05D5\u05D3\u05D9\u05DD \u05D5\u05D4\u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05E9\u05D4\u05DB\u05DC\u05D9\u05DD \u05D4\u05D7\u05D9\u05E0\u05DE\u05D9\u05D9\u05DD \u05D1\u05D5\u05D3\u05E7\u05D9\u05DD, \u05DB\u05D3\u05D9 \u05E9\u05DB\u05EA\u05D5\u05D1\u05EA \u05E9\u05DE\u05D1\u05E7\u05E8 \u05D4\u05E7\u05DC\u05D9\u05D3 \u05DC\u05D0 \u05EA\u05D9\u05D8\u05E2\u05DF \u05DE\u05D4\u05E9\u05E8\u05EA \u05E9\u05DC\u05E0\u05D5. \u05E8\u05E7 \u05E9\u05DE\u05D5\u05EA \u05E6\u05D9\u05D1\u05D5\u05E8\u05D9\u05D9\u05DD, \u05DB\u05DC \u05EA\u05E9\u05D5\u05D1\u05EA DNS \u05D5\u05DB\u05DC \u05D4\u05E4\u05E0\u05D9\u05D4 \u05E0\u05D1\u05D3\u05E7\u05D5\u05EA.", summaryEn: "Downloads the pages and images the free tools test, so an address a visitor typed is never fetched from our server. Public names only; every DNS answer and redirect is checked.", code: ["workers/tools/src", "scripts/deploy-tools.ts", "packages/shared/src/safe-url.ts"], env: ["TOOLS_FETCH_SECRET"], decisions: ["D-199"] },
   { id: "requests-worker", kind: "worker", zone: "cloudflare", label: "deployai-requests", summary: "\u05D4\u05D1\u05E7\u05E9\u05D5\u05EA \u05D4\u05E0\u05DB\u05E0\u05E1\u05D5\u05EA \u05E9\u05DC \u05DB\u05DC \u05D0\u05EA\u05E8, \u05D1\u05BEDurable Object \u05DC\u05DB\u05DC \u05D0\u05EA\u05E8 (D-790).", summaryEn: "Each site's incoming requests, one Durable Object per site (D-790)." },
+  { id: "mail-worker", kind: "worker", zone: "cloudflare", label: "deployai-mail", summary: "\u05EA\u05D9\u05D1\u05EA \u05D4\u05D3\u05D5\u05D0\u05E8 \u05D1\u05DC\u05D5\u05D7 \u05D4\u05D1\u05E7\u05E8\u05D4 (D-1190, \u05DE\u05D0\u05D7\u05D5\u05E8\u05D9 \u05DE\u05EA\u05D2 \u05DB\u05D1\u05D5\u05D9): \u05DE\u05E7\u05D1\u05DC \u05DE\u05BEEmail Routing, \u05E9\u05D5\u05DE\u05E8 \u05D1\u05BED1 \u05DC\u05DB\u05DC \u05EA\u05D9\u05D1\u05D4 \u05D5\u05D1\u05BER2, \u05D5\u05E9\u05D5\u05DC\u05D7 \u05D3\u05E8\u05DA Email Sending.", summaryEn: "The web mailbox (D-1190, behind a switch that is off): receives from Email Routing, keeps mail in one D1 per mailbox and in R2, sends through Email Sending.", code: ["workers/mail/src", "packages/shared/src/mail-store.ts", "apps/web/src/server/web-mail-worker.ts"], env: ["MAIL_API_SECRET"], docs: ["docs/28-mailbox.md"], decisions: ["D-545", "D-1190", "D-1191", "D-1192"] },
   { id: "uptime-worker", kind: "worker", zone: "cloudflare", label: "deployai-uptime", summary: "\u05D1\u05D5\u05D3\u05E7 \u05DE\u05D1\u05D7\u05D5\u05E5 \u05DB\u05DC 2 \u05D3\u05E7\u05D5\u05EA \u05E9-/api/health \u05E2\u05D5\u05E0\u05D4, \u05DB\u05D9 \u05E9\u05E8\u05EA \u05E9\u05E0\u05E4\u05DC \u05DC\u05D0 \u05D9\u05DB\u05D5\u05DC \u05DC\u05D3\u05D5\u05D5\u05D7 \u05E2\u05DC \u05E2\u05E6\u05DE\u05D5. \u05E9\u05D5\u05DE\u05E8 \u05D0\u05EA \u05D4\u05EA\u05D5\u05E6\u05D0\u05D4 \u05D1\u05BEKV, \u05D5\u05E9\u05EA\u05D9 \u05E0\u05E4\u05D9\u05DC\u05D5\u05EA \u05D1\u05E8\u05E6\u05E3 \u05E9\u05D5\u05DC\u05D7\u05D5\u05EA \u05DE\u05D9\u05D9\u05DC \u05DC\u05E6\u05D5\u05D5\u05EA.", summaryEn: "Checks from outside every 2 minutes that /api/health answers, because a server that is down cannot report itself. Keeps the result in KV; two failures in a row email the team.", code: ["workers/uptime/src", "scripts/deploy-uptime.ts", "apps/web/src/app/api/health/route.ts"], env: ["UPTIME_ALERT_TO", "UPTIME_ALERT_TOKEN"], decisions: ["D-331"] },
   { id: "app-uptime", kind: "worker", zone: "customer", label: "Uptime app site", summary: "\u05D0\u05EA\u05E8 \u05E0\u05D9\u05D8\u05D5\u05E8 \u05D6\u05DE\u05D9\u05E0\u05D5\u05EA \u05E9\u05DC \u05DC\u05E7\u05D5\u05D7: \u05D0\u05EA\u05E8 \u05D1\u05E4\u05E0\u05D9 \u05E2\u05E6\u05DE\u05D5 (site-<slug> \u05D1\u05DE\u05E8\u05D7\u05D1 \u05D4\u05E9\u05DE\u05D5\u05EA), \u05E2\u05DD \u05D4\u05E7\u05D5\u05D3 \u05E9\u05DC\u05E0\u05D5 \u05D1\u05DC\u05D1\u05D3, \u05E9\u05DE\u05EA\u05E2\u05D3\u05DB\u05DF \u05D1\u05DB\u05DC \u05D4\u05E2\u05DC\u05D0\u05D4 \u05E9\u05DC \u05D4\u05E9\u05E8\u05EA. Durable Object \u05E2\u05DD SQLite \u05D1\u05D0\u05D5\u05EA\u05D5 Worker \u05E9\u05D5\u05DE\u05E8 \u05D0\u05EA \u05D4\u05E0\u05D9\u05D8\u05D5\u05E8\u05D9\u05DD \u05D5\u05DE\u05E8\u05D9\u05E5 \u05D0\u05EA \u05D4\u05D1\u05D3\u05D9\u05E7\u05D5\u05EA \u05DE\u05E9\u05E2\u05D5\u05DF \u05DE\u05E2\u05D5\u05E8\u05E8 \u05DE\u05E9\u05DC\u05D5, \u05DE\u05E6\u05D9\u05D2 \u05D3\u05E3 \u05E1\u05D8\u05D8\u05D5\u05E1 \u05E6\u05D9\u05D1\u05D5\u05E8\u05D9 \u05D5\u05D3\u05E3 \u05E0\u05D9\u05D4\u05D5\u05DC \u05DC\u05D1\u05E2\u05DC\u05D9\u05DD (\u05DB\u05E0\u05D9\u05E1\u05D4 \u05E2\u05DD DeployAI \u05D0\u05D5 \u05E1\u05D9\u05E1\u05DE\u05D4 \u05DE\u05E9\u05DC\u05D5), \u05D5\u05E9\u05D5\u05DC\u05D7 \u05DE\u05D9\u05D9\u05DC \u05D3\u05E8\u05DA \u05D4\u05D0\u05E4\u05DC\u05D9\u05E7\u05E6\u05D9\u05D4 \u05D5\u05BEwebhook \u05D7\u05EA\u05D5\u05DD. \u05D4\u05E4\u05DC\u05D8\u05E4\u05D5\u05E8\u05DE\u05D4 \u05E4\u05D5\u05E0\u05D4 \u05D0\u05DC\u05D9\u05D5 \u05D1\u05BE/__app/ \u05E2\u05DD \u05D0\u05E1\u05D9\u05DE\u05D5\u05DF \u05D7\u05EA\u05D5\u05DD \u05D1\u05DE\u05E4\u05EA\u05D7 \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D4\u05D6\u05D4 \u05D1\u05DC\u05D1\u05D3.", summaryEn: "A customer's Uptime site: a site of its own (site-<slug> in the namespace) that runs only our code, upgraded on every server deploy. A SQLite Durable Object in the same Worker keeps the monitors and runs the checks from its own alarm; it serves a public status page and the owner's admin (sign in with DeployAI or its own password), emails through the app and sends a signed webhook. The platform calls it on /__app/ with a token signed with this site's own key.", code: ["workers/app-uptime/src", "scripts/build-app-uptime.ts", "apps/web/src/server/apps.ts", "apps/web/src/server/apps-uptime.ts", "packages/shared/src/uptime.ts"], env: ["APPS_SIGNING_SECRET", "APP_TRIAL_KEYS"], decisions: ["D-556", "D-559"] },
   { id: "app-cron", kind: "worker", zone: "customer", label: "Cron Trigger app site", summary: "\u05D0\u05EA\u05E8 \u05EA\u05D6\u05DE\u05D5\u05DF \u05DE\u05E9\u05D9\u05DE\u05D5\u05EA \u05E9\u05DC \u05DC\u05E7\u05D5\u05D7: \u05D0\u05EA\u05E8 \u05D1\u05E4\u05E0\u05D9 \u05E2\u05E6\u05DE\u05D5 (site-<slug> \u05D1\u05DE\u05E8\u05D7\u05D1 \u05D4\u05E9\u05DE\u05D5\u05EA) \u05E2\u05DD \u05D4\u05E7\u05D5\u05D3 \u05E9\u05DC\u05E0\u05D5 \u05D1\u05DC\u05D1\u05D3. Durable Object \u05E2\u05DD SQLite \u05D1\u05D0\u05D5\u05EA\u05D5 Worker \u05E9\u05D5\u05DE\u05E8 \u05D0\u05EA \u05D4\u05DE\u05E9\u05D9\u05DE\u05D5\u05EA \u05D5\u05DE\u05E8\u05D9\u05E5 \u05D0\u05D5\u05EA\u05DF \u05DE\u05E9\u05E2\u05D5\u05DF \u05DE\u05E2\u05D5\u05E8\u05E8 \u05DE\u05E9\u05DC\u05D5 \u05DC\u05E4\u05D9 \u05DC\u05D5\u05D7 \u05D6\u05DE\u05E0\u05D9\u05DD \u05D1\u05E9\u05E2\u05D5\u05DF \u05D9\u05E9\u05E8\u05D0\u05DC, \u05E2\u05DD \u05DE\u05D2\u05D1\u05DC\u05EA \u05D6\u05DE\u05DF \u05DC\u05DB\u05DC \u05E8\u05D9\u05E6\u05D4 (10 \u05E9\u05E0\u05D9\u05D5\u05EA, 3 \u05D0\u05D7\u05E8\u05D9 \u05E1\u05E3 \u05D4\u05E8\u05D9\u05E6\u05D5\u05EA \u05D4\u05D0\u05D9\u05D8\u05D9\u05D5\u05EA \u05E9\u05DC \u05D4\u05D7\u05D5\u05D3\u05E9), \u05E9\u05D5\u05DE\u05E8 \u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D4 \u05D5\u05E9\u05D5\u05DC\u05D7 \u05DE\u05D9\u05D9\u05DC \u05D3\u05E8\u05DA \u05D4\u05D0\u05E4\u05DC\u05D9\u05E7\u05E6\u05D9\u05D4 \u05D5\u05BEwebhook \u05D7\u05EA\u05D5\u05DD \u05D1\u05BEPro.", summaryEn: "A customer's Cron Trigger site: a site of its own (site-<slug> in the namespace) that runs only our code. A SQLite Durable Object in the same Worker keeps the jobs and runs them from its own alarm on a schedule in Israel time, with a time limit per run (10 seconds, 3 after the month's slow-run threshold), keeps their history, and emails through the app and sends a signed webhook with Pro.", code: ["workers/app-cron/src", "scripts/build-app-cron.ts", "apps/web/src/server/apps.ts", "apps/web/src/server/apps-notify.ts", "packages/shared/src/cron.ts"], decisions: ["D-567", "D-568"] },
@@ -21809,6 +21814,7 @@ var ARCH_EDGES = [
   { id: "uptime-web", from: "uptime-worker", to: "web", kind: "http", label: "health check" },
   { id: "dispatch-requests", from: "dispatch", to: "requests-worker", kind: "http", label: "request lines, service binding" },
   { id: "web-requests", from: "web", to: "requests-worker", kind: "http", label: "signed reads" },
+  { id: "web-mail", from: "web", to: "mail-worker", kind: "http", label: "signed mail calls" },
   { id: "web-dispatch-tail", from: "web", to: "dispatch", kind: "http", label: "live tail for deployai logs (D-991)" },
   { id: "apps-api-web", from: "apps-api", to: "web", kind: "http", label: "Bearer dak_ key, one app operation" },
   { id: "web-app-uptime", from: "web", to: "app-uptime", kind: "http", label: "signed /__app/ calls" },
@@ -22604,6 +22610,21 @@ var DOMAIN_MACHINE = defineMachine({
     lost: { from: ["active"], to: "pending" },
     recovered: { from: ["failed"], to: "active" },
     retry: { from: ["failed"], to: "pending" }
+  }
+});
+
+// ../shared/src/state/zone.ts
+var ZONE_MACHINE = defineMachine({
+  name: "zone",
+  states: ["importing", "waiting", "active", "lost", "leaving"],
+  events: {
+    imported: { from: ["importing"], to: "waiting" },
+    activated: { from: ["waiting"], to: "active" },
+    never_switched: { from: ["waiting"], to: "leaving" },
+    lost: { from: ["active"], to: "lost" },
+    found: { from: ["lost"], to: "active" },
+    restart: { from: ["lost"], to: "importing" },
+    release: { from: ["lost"], to: "leaving" }
   }
 });
 
@@ -24369,6 +24390,7 @@ var ENV_KEYS = {
   TUNNEL_ORIGIN_CERT: { scope: "local", section: "app", about: "The cloudflared login certificate pnpm dev:public checks. Default ~/.cloudflared/cert.pem." },
   CF_API_TOKEN: { scope: "own", section: "cloudflare", required: ["server"], about: "Cloudflare token (pnpm cf:token-link): sites, KV, D1, R2, routes, custom hostnames and our emails. Each machine its own. Without it everything Cloudflare is a dry run." },
   PROBE_SECRET: { scope: "own", section: "cloudflare", about: "Signs our go live and uptime probes so the dispatch Worker lets them past a site country and bot rules (D-528), and signs the team link to a live site on the admin site page, past the country rule only (D-722); pnpm dispatch:deploy sends it to the dispatch Worker. Unset: probes from abroad see the blocked page. openssl rand -hex 32" },
+  MAIL_API_SECRET: { scope: "own", section: "cloudflare", about: "Signs the platform calls to the mail Worker (D-1190): reading, sending, export and delete of web mailboxes. Uploaded to the Worker with every mailbox change. Unset: a mailbox made with Cloudflare cannot be read or turned on; a laptop without Cloudflare does not need it. openssl rand -hex 32" },
   CF_REGISTRAR_TOKEN: { scope: "server", section: "cloudflare", about: "Buys real domains (D-300): a Cloudflare token with Registrar edit only. Server only." },
   LIVEDNS_USER: { scope: "server", section: "cloudflare", about: "Buys real Israeli domains at LiveDNS (D-458): the API user of our LiveDNS partner account. Server only: LiveDNS refuses some networks, and it spends prepaid credit." },
   LIVEDNS_PASSWORD: { scope: "server", section: "cloudflare", about: "Its password, sent in every LiveDNS call; never logged. Server only." },
@@ -24515,6 +24537,17 @@ var SPACES = {
   test: build("test", { ...CLOUDFLARE_SPACES.prod, kvNamespaceId: "", sitesZoneId: null, backupBucket: null, toolsWorkerUrl: "", requestsWorkerUrl: "" }, { ...SPACE_ADDRESSES.prod, appUrl: "http://localhost:3000", siteUrl: "http://localhost:3000", trustedOrigins: [], storage: "local" })
 };
 
+// ../shared/src/mail.ts
+var MAIL_IN_MAX_BYTES = 25 * 1024 * 1024;
+var MAIL_OUT_MAX_BYTES = 10 * 1024 * 1024;
+var MAIL_PLAN_LIMITS = {
+  basic: { addresses: 2, storageMb: 2048, sendPerDay: 100 },
+  business: { addresses: 10, storageMb: 10240, sendPerDay: 500 },
+  agency: { addresses: 20, storageMb: 20480, sendPerDay: 1e3 }
+};
+var MAIL_FALLBACK_LIMITS = MAIL_PLAN_LIMITS.basic;
+var enc = new TextEncoder();
+
 // ../shared/src/scheduled-run.ts
 var SCHEDULED_PATH = "/__deployai/scheduled";
 
@@ -24536,7 +24569,7 @@ var HUMAN_CHECK_CLAUSE = `http.request.uri.path eq "${HUMAN_CHECK_PATH}"`;
 var IPHONE_RULE = "iPhone: Safari is its own browser engine, so working in Chrome or on Android proves nothing. Full height sections use svh or dvh, never 100vh. Typing fields are at least 16px, or the page zooms. A video that plays by itself has muted and playsinline. Bars fixed to the bottom pad with env(safe-area-inset-bottom). Nothing needs a hover. Newer CSS and browser features need a working fallback.";
 var JOBS_RULE = "Background jobs (work that must not hold up a request): never create a queue of your own. Declare it in the wrangler config under queues.producers ({ binding, queue }) and queues.consumers ({ queue }), and export queue(batch, env, ctx) from the Worker entry. On DeployAI there is no env.<BINDING>: send with ctx.props.queues.<BINDING>.send(body, { delaySeconds }) or .sendBatch([{ body }]), from a request, a scheduled run or a queue run, only while that run lasts. When ctx.props.queues is missing (background jobs are off, or the plan has none), do the work in the request instead. In queue(), call ack() or retry() on each message, or throw to try the rest again; each message gets 4 tries. Keep bodies under 120 KB. The site's Data and files tab shows what was sent, done and failed.";
 var BUILD_WITH = [
-  `Frameworks: ${SUPPORTED_FRAMEWORKS.map((f) => f.name).join(", ")}. In beta: ${BETA_FRAMEWORKS.map((f) => f.name).join(", ")} (Next.js through the OpenNext Cloudflare adapter).`,
+  `Frameworks: ${SUPPORTED_FRAMEWORKS.map((f) => f.name).join(", ")}. In beta: ${BETA_FRAMEWORKS.map((f) => f.name).join(", ")}. Next.js builds through the OpenNext Cloudflare adapter.`,
   "Database: Cloudflare D1 (SQLite), through Drizzle with drizzle-orm/d1 or Prisma with the D1 adapter.",
   // D-978: R2 only for files that come in or change after the build, so a site does not get an empty bucket.
   "Files: add Cloudflare R2 (object storage) only when the site keeps files that people upload or that change after the build, and never write them to the local disk. Images and files that ship with the site stay in its own files, never in R2.",
@@ -25217,7 +25250,7 @@ function movedPagesFromScan(scan) {
 // ../shared/src/uptime.ts
 var UPTIME_MAX_BYTES = 256 * 1024;
 var APP_SESSION_TTL_S = 7 * 86400;
-var enc = new TextEncoder();
+var enc2 = new TextEncoder();
 
 // ../shared/src/app-paused.ts
 var WORDS = {
@@ -25227,10 +25260,10 @@ var WORDS = {
 var PAUSED_OWNER_LINK = { he: WORDS.he.owner, en: WORDS.en.owner };
 
 // ../shared/src/app-trials.ts
-var enc2 = new TextEncoder();
+var enc3 = new TextEncoder();
 
 // ../shared/src/app-gate.ts
-var enc3 = new TextEncoder();
+var enc4 = new TextEncoder();
 
 // ../shared/src/cron.ts
 var CRON_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD"];
@@ -25419,7 +25452,7 @@ function siteCronGapMinutes(s, from = new Date(Date.UTC(2026, 0, 1))) {
 var FILES_PART_BYTES = 20 * 1024 * 1024;
 var FILES_MIN_EXPIRY_S = 5 * 60;
 var FILES_UPLOAD_TTL_MS = 24 * 36e5;
-var enc4 = new TextEncoder();
+var enc5 = new TextEncoder();
 
 // ../shared/src/dangerous-hosts.ts
 var DANGEROUS_MAX_BYTES = 64 * 1024 * 1024;
@@ -25996,6 +26029,7 @@ var M = {
     goesLive: "The new version goes live when its build is done.",
     followBuild: "  Run: npx deployai@latest status (to follow the build)",
     thenPromote: "  Then, only after the owner approves the preview: npx deployai@latest promote v{n} (to put it live)",
+    thenPromoteLive: "  When status shows it is built: npx deployai@latest promote v{n} (the owner already said yes to going live)",
     heavyPage: "The home page loads {n} files from the site. Fewer files make it faster for visitors.",
     prefetchPage: "The home page fetches pages before anyone opens them (link prefetch). Turning it off on long link lists saves visitors data.",
     speedHint: "  Check it: npx deployai@latest speed {url}",
@@ -26313,6 +26347,7 @@ var M = {
     goesLive: "\u05D4\u05D2\u05E8\u05E1\u05D4 \u05D4\u05D7\u05D3\u05E9\u05D4 \u05E2\u05D5\u05DC\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8 \u05DB\u05E9\u05D4\u05D1\u05E0\u05D9\u05D9\u05D4 \u05E9\u05DC\u05D4 \u05DE\u05E1\u05EA\u05D9\u05D9\u05DE\u05EA.",
     followBuild: "  \u05D4\u05E8\u05D9\u05E6\u05D5: npx deployai@latest status (\u05DB\u05D3\u05D9 \u05DC\u05E2\u05E7\u05D5\u05D1 \u05D0\u05D7\u05E8\u05D9 \u05D4\u05D1\u05E0\u05D9\u05D9\u05D4)",
     thenPromote: "  \u05D5\u05E8\u05E7 \u05D0\u05D7\u05E8\u05D9 \u05E9\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D0\u05D9\u05E9\u05E8 \u05D0\u05EA \u05D4\u05EA\u05E6\u05D5\u05D2\u05D4 \u05D4\u05DE\u05E7\u05D3\u05D9\u05DE\u05D4: npx deployai@latest promote v{n} (\u05DB\u05D3\u05D9 \u05DC\u05D4\u05E2\u05DC\u05D5\u05EA \u05D0\u05D5\u05EA\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8)",
+    thenPromoteLive: "  \u05DB\u05E9\u05D4\u05E1\u05D8\u05D8\u05D5\u05E1 \u05DE\u05E8\u05D0\u05D4 \u05E9\u05D4\u05D1\u05E0\u05D9\u05D9\u05D4 \u05D4\u05E1\u05EA\u05D9\u05D9\u05DE\u05D4: npx deployai@latest promote v{n} (\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05DB\u05D1\u05E8 \u05D0\u05D9\u05E9\u05E8 \u05DC\u05E2\u05DC\u05D5\u05EA \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8)",
     heavyPage: "\u05E2\u05DE\u05D5\u05D3 \u05D4\u05D1\u05D9\u05EA \u05D8\u05D5\u05E2\u05DF {n} \u05E7\u05D1\u05E6\u05D9\u05DD \u05DE\u05D4\u05D0\u05EA\u05E8. \u05DB\u05DB\u05DC \u05E9\u05D9\u05E9 \u05E4\u05D7\u05D5\u05EA \u05E7\u05D1\u05E6\u05D9\u05DD, \u05D4\u05D0\u05EA\u05E8 \u05E0\u05D8\u05E2\u05DF \u05DE\u05D4\u05E8 \u05D9\u05D5\u05EA\u05E8 \u05DC\u05DE\u05D1\u05E7\u05E8\u05D9\u05DD.",
     prefetchPage: "\u05E2\u05DE\u05D5\u05D3 \u05D4\u05D1\u05D9\u05EA \u05D8\u05D5\u05E2\u05DF \u05E2\u05DE\u05D5\u05D3\u05D9\u05DD \u05DC\u05E4\u05E0\u05D9 \u05E9\u05DE\u05D9\u05E9\u05D4\u05D5 \u05E4\u05D5\u05EA\u05D7 \u05D0\u05D5\u05EA\u05DD (prefetch). \u05D0\u05DD \u05DE\u05DB\u05D1\u05D9\u05DD \u05D0\u05EA \u05D6\u05D4 \u05D1\u05E8\u05E9\u05D9\u05DE\u05D5\u05EA \u05E7\u05D9\u05E9\u05D5\u05E8\u05D9\u05DD \u05D0\u05E8\u05D5\u05DB\u05D5\u05EA, \u05D4\u05DE\u05D1\u05E7\u05E8\u05D9\u05DD \u05D7\u05D5\u05E1\u05DB\u05D9\u05DD \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD.",
     speedHint: "  \u05DC\u05D1\u05D3\u05D9\u05E7\u05D4: npx deployai@latest speed {url}",
@@ -26611,7 +26646,7 @@ function formatBytes(n2) {
 }
 
 // src/version.ts
-var CLI_VERSION = "0.1.0-beta.55";
+var CLI_VERSION = "0.1.0-beta.56";
 
 // src/api.ts
 function apiContext(apiFlag, root) {
@@ -31301,7 +31336,7 @@ async function deployVersion(root, ctx, opts, guest) {
     return;
   }
   if (res.autoLive && !live && !hold) out(t("autoLiveOn"));
-  await afterBuild(root, ctx, project.projectId, res.number, { live: live || !hold && Boolean(res.autoLive), hold, pollMs: opts.pollMs ?? 3e3, homeRetryMs: opts.pollMs });
+  await afterBuild(root, ctx, project.projectId, res.number, { live: live || !hold && Boolean(res.autoLive), hold, pollMs: opts.pollMs ?? 3e3, homeRetryMs: opts.pollMs, buildWaitMs: opts.buildWaitMs });
 }
 var CREDIT_WAIT_MS = 1e4;
 var sleep3 = (ms2) => new Promise((r) => setTimeout(r, ms2));
@@ -31322,12 +31357,12 @@ async function poll(root, ctx, projectId, n2, pollMs, maxMs, done) {
 async function afterBuild(root, ctx, projectId, n2, o) {
   const t = messages(root);
   out(t("waitBuild", { n: n2 }));
-  const built = await poll(root, ctx, projectId, n2, o.pollMs, BUILD_WAIT_MS, (s) => !s.latest || s.latest.number !== n2 || !["queued", "building"].includes(s.latest.status));
+  const built = await poll(root, ctx, projectId, n2, o.pollMs, o.buildWaitMs ?? BUILD_WAIT_MS, (s) => !s.latest || s.latest.number !== n2 || !["queued", "building"].includes(s.latest.status));
   out();
   if (!built) {
     out(t("buildSlow", { n: n2 }));
     out(t("followBuild"));
-    out(t("thenPromote", { n: n2 }));
+    out(t(o.live ? "thenPromoteLive" : "thenPromote", { n: n2 }));
     return;
   }
   const ready = built.latest?.number === n2 && built.latest.status === "ready" && built.project.liveVersion !== n2;
