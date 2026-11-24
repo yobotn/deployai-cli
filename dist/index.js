@@ -6,8 +6,8 @@ var __export = (target, all) => {
 };
 
 // src/cli.ts
-import { existsSync as existsSync25 } from "fs";
-import { join as join30, resolve as resolve11 } from "path";
+import { existsSync as existsSync26 } from "fs";
+import { join as join31, resolve as resolve11 } from "path";
 import { Command, CommanderError } from "commander";
 
 // ../shared/src/plans.ts
@@ -9844,12 +9844,12 @@ function hu_default() {
 function getArmenianPlural(count, one, many) {
   return Math.abs(count) === 1 ? one : many;
 }
-function withDefiniteArticle(word) {
-  if (!word)
+function withDefiniteArticle(word2) {
+  if (!word2)
     return "";
   const vowels = ["\u0561", "\u0565", "\u0568", "\u056B", "\u0578", "\u0578\u0582", "\u0585"];
-  const lastChar = word[word.length - 1];
-  return word + (vowels.includes(lastChar) ? "\u0576" : "\u0568");
+  const lastChar = word2[word2.length - 1];
+  return word2 + (vowels.includes(lastChar) ? "\u0576" : "\u0568");
 }
 var error24 = () => {
   const Sizable = {
@@ -22446,6 +22446,34 @@ async function readCapped(res, limit, failOver, deadline) {
   return out2;
 }
 
+// ../shared/src/readable-url.ts
+var RUN = /(?:%[0-9a-f]{2})+/gi;
+var RESERVED = /* @__PURE__ */ new Set(["/", "?", "#", "%", "&", "=", "+"]);
+var HIDDEN = [[0, 31], [127, 159], [1564, 1564], [8203, 8207], [8234, 8238], [8294, 8297], [65279, 65279]];
+var keep = (ch) => RESERVED.has(ch) || HIDDEN.some(([a, b]) => ch.codePointAt(0) >= a && ch.codePointAt(0) <= b);
+var letterBytes = (b) => b < 128 ? 1 : b >= 194 && b < 224 ? 2 : b >= 224 && b < 240 ? 3 : b >= 240 && b < 245 ? 4 : 0;
+function decodeRun(run) {
+  const codes = run.match(/%[0-9a-f]{2}/gi) ?? [];
+  let out2 = "";
+  for (let i = 0; i < codes.length; ) {
+    const n2 = letterBytes(parseInt(codes[i].slice(1), 16)) || 1;
+    const part = codes.slice(i, i + n2).join("");
+    let ch = null;
+    try {
+      ch = decodeURIComponent(part);
+    } catch {
+      ch = null;
+    }
+    out2 += ch !== null && !keep(ch) ? ch : part;
+    i += n2;
+  }
+  return out2;
+}
+function readableUrl(value2) {
+  if (!value2 || !value2.includes("%")) return value2;
+  return value2.replace(RUN, decodeRun);
+}
+
 // ../shared/src/state/machine.ts
 function defineMachine(m) {
   for (const [event, move] of Object.entries(m.events)) {
@@ -24184,7 +24212,7 @@ var FEATURE_PROBLEM_WORDS = {
 
 // ../shared/src/move-report.ts
 var text = (max) => external_exports.string().max(max);
-var page = text(300);
+var page = text(300).transform((p) => readableUrl(p));
 var tagKeys = TAG_CATALOG.map((c) => c.key);
 var record2 = external_exports.object({ type: text(10), name: text(255), content: text(2048), priority: external_exports.number().int().optional() });
 var QUESTION_KEYS = ["serverPixel", "thankYou", "verificationFile"];
@@ -24277,19 +24305,13 @@ function parsePlanFeatures(md) {
 var HOME_ROW = /^(the\s+)?home\s*page$|^homepage$|^home$|^(דף|עמוד)\s+(ה)?בית$|^ראשי$/i;
 function replacedPages(features, pages) {
   const clean3 = (s) => s.replace(/\s+/g, " ").trim().toLowerCase();
-  const read = (p) => {
-    try {
-      return decodeURIComponent(p);
-    } catch {
-      return p;
-    }
-  };
+  const read2 = readableUrl;
   const titleOf2 = (t) => clean3(t.split(/\s[-|–]\s/)[0] ?? t);
   const out2 = [];
   for (const f of features) {
     if (!f.status.toLowerCase().startsWith("replaced with")) continue;
     const name = clean3(f.name);
-    const path = HOME_ROW.test(name) ? "/" : pages.find((p) => clean3(read(p.path)).replace(/\/+$/, "") === name.replace(/\/+$/, "") || p.title && (clean3(p.title) === name || titleOf2(p.title) === name))?.path;
+    const path = HOME_ROW.test(name) ? "/" : pages.find((p) => clean3(read2(p.path)).replace(/\/+$/, "") === name.replace(/\/+$/, "") || p.title && (clean3(p.title) === name || titleOf2(p.title) === name))?.path;
     if (path) out2.push({ path, row: f.name });
   }
   return out2;
@@ -24297,14 +24319,8 @@ function replacedPages(features, pages) {
 var THANKS_PATH = /(^|[/_-])(thank|thanks|thankyou|toda|todah|תודה)([/_.-]|$)/i;
 var THANKS_TITLE = /^\s*(thank you|thanks|תודה)/i;
 function findThanksPages(pages) {
-  const read = (p) => {
-    try {
-      return decodeURIComponent(p);
-    } catch {
-      return p;
-    }
-  };
-  return pages.filter((p) => THANKS_PATH.test(read(p.path)) || THANKS_TITLE.test(p.title ?? "")).map((p) => p.path).slice(0, 20);
+  const read2 = readableUrl;
+  return pages.filter((p) => THANKS_PATH.test(read2(p.path)) || THANKS_TITLE.test(p.title ?? "")).map((p) => p.path).slice(0, 20);
 }
 function moveQuestions(r) {
   const out2 = [];
@@ -24364,7 +24380,7 @@ function tagRows(r, opts = {}) {
 }
 function pageOpened(v, path) {
   if (!v) return null;
-  const trim = (p) => p.replace(/\/+$/, "");
+  const trim = (p) => readableUrl(p).replace(/\/+$/, "");
   if (v.pageFindings) return !v.pageFindings.some((f) => f.problem !== "replaced" && trim(f.path) === trim(path));
   return v.pageProblems === 0 ? true : null;
 }
@@ -25225,6 +25241,91 @@ function movedLegalFromScan(scan) {
   if (marketing.length) add2("marketing", "confirm", marketing);
   if (trackers.length) add2("trackers", "expert", trackers);
   return { duties, forms, services, embeds: named("chat", "booking", "payments", "forms", "calls", "widget").filter((n2) => !/whatsapp/i.test(n2)), docs: [] };
+}
+
+// ../shared/src/legal-drift.ts
+var KIT_LEGAL_PATHS = ["/privacy", "/terms", "/cancellation", "/accessibility"];
+var LEGAL_PAGE_NAME = /privacy|terms|cancel|refund|return-policy|accessib|legal|cookie|פרטיות|תקנון|תנאי|ביטול|החזר|נגישות|עוגיות/i;
+var HE_PREFIX = "(?:^|[^\\p{L}\\p{N}])[\u05D5\u05D1\u05DC\u05D4\u05DE\u05E9\u05DB]?";
+var END = "(?![\\p{L}\\p{N}])";
+var word = (en, he) => new RegExp(`(?<![\\p{L}\\p{N}])(?:${en})${END}${he ? `|${HE_PREFIX}(?:${he})${END}` : ""}`, "iu");
+var OLD_PLATFORMS = [
+  { name: "Elementor", re: word("elementor(?:\\s+pro)?", "\u05D0\u05DC\u05DE\u05E0\u05D8\u05D5\u05E8") },
+  { name: "WordPress", re: word("wordpress(?:\\.(?:com|org))?|wp-content|wp-admin", "\u05D5\u05D5\u05E8\u05D3\u05E4\u05E8\u05E1|\u05D5\u05E8\u05D3\u05E4\u05E8\u05E1") },
+  { name: "WooCommerce", re: word("woocommerce", "\u05D5\u05D5\u05E7\u05D5\u05DE\u05E8\u05E1|\u05D5\u05D5\u05BC\u05E7\u05D5\u05DE\u05E8\u05E1|\u05D5\u05D5 \u05E7\u05D5\u05DE\u05E8\u05E1") },
+  { name: "Wix", re: word("wix(?:\\.com)?", "\u05D5\u05D5\u05D9\u05E7\u05E1|\u05D5\u05D9\u05E7\u05E1") },
+  { name: "Squarespace", re: word("squarespace") },
+  { name: "Webflow", re: word("webflow") },
+  { name: "Weebly", re: word("weebly") },
+  { name: "Jimdo", re: word("jimdo") },
+  { name: "Duda", re: word("duda") },
+  { name: "Site123", re: word("site123") },
+  { name: "Joomla", re: word("joomla", "\u05D2'\u05D5\u05DE\u05DC\u05D4") },
+  { name: "Drupal", re: word("drupal", "\u05D3\u05E8\u05D5\u05E4\u05DC") },
+  { name: "Divi", re: word("divi") },
+  { name: "WPBakery", re: word("wpbakery") },
+  { name: "Yoast", re: word("yoast") },
+  { name: "Jetpack", re: word("jetpack") },
+  { name: "Akismet", re: word("akismet") },
+  { name: "Wordfence", re: word("wordfence") },
+  { name: "Contact Form 7", re: word("contact\\s+form\\s+7") },
+  { name: "WPForms", re: word("wpforms") },
+  { name: "Gravity Forms", re: word("gravity\\s+forms") },
+  { name: "Ninja Forms", re: word("ninja\\s+forms") },
+  { name: "MonsterInsights", re: word("monsterinsights") },
+  { name: "Site Kit", re: word("site\\s+kit\\s+by\\s+google") }
+];
+var SERVICES = [
+  { name: "Google Analytics", keys: ["ga4", "ua"], re: word("google\\s+analytics", "\u05D2\u05D5\u05D2\u05DC \u05D0\u05E0\u05DC\u05D9\u05D8\u05D9\u05E7\u05E1|\u05D2\u05D5\u05D2\u05DC \u05D0\u05E0\u05DC\u05D9\u05D8\u05D9\u05E7\u05D4") },
+  { name: "Google Tag Manager", keys: ["gtm"], re: word("(?:google\\s+)?tag\\s+manager", "\u05EA\u05D2 \u05DE\u05E0\u05D2'\u05E8|\u05D8\u05D0\u05D2 \u05DE\u05E0\u05D2'\u05E8") },
+  { name: "Google Ads", keys: ["gads", "floodlight"], re: word("google\\s+ads|adwords|doubleclick", "\u05D2\u05D5\u05D2\u05DC \u05D0\u05D3\u05E1|\u05D2\u05D5\u05D2\u05DC \u05D0\u05D3\u05D5\u05D5\u05E8\u05D3\u05E1") },
+  { name: "Google AdSense", keys: ["adsense"], re: word("adsense", "\u05D0\u05D3\u05E1\u05E0\u05E1") },
+  { name: "Meta Pixel", keys: ["metapixel"], re: word("(?:facebook|meta)\\s+pixel|pixel\\s+(?:of|by)\\s+(?:facebook|meta)", "\u05E4\u05D9\u05E7\u05E1\u05DC(?: \u05E9\u05DC)? (?:\u05E4\u05D9\u05D9\u05E1\u05D1\u05D5\u05E7|\u05DE\u05D8\u05D0)|\u05D4\u05E4\u05D9\u05E7\u05E1\u05DC \u05E9\u05DC (?:\u05E4\u05D9\u05D9\u05E1\u05D1\u05D5\u05E7|\u05DE\u05D8\u05D0)") },
+  { name: "TikTok Pixel", keys: ["tiktok"], re: word("tiktok\\s+pixel", "\u05E4\u05D9\u05E7\u05E1\u05DC(?: \u05E9\u05DC)? \u05D8\u05D9\u05E7\u05D8\u05D5\u05E7") },
+  { name: "LinkedIn Insight", keys: ["linkedin"], re: word("linkedin\\s+insight") },
+  { name: "Hotjar", keys: ["hotjar"], re: word("hotjar", "\u05D4\u05D5\u05D8\u05D2'\u05D0\u05E8|\u05D4\u05D5\u05D8\u05D2\u05F3\u05D0\u05E8") },
+  { name: "Microsoft Clarity", keys: ["clarity"], re: word("microsoft\\s+clarity") },
+  { name: "Mouseflow", keys: ["mouseflow"], re: word("mouseflow") },
+  { name: "Yandex Metrica", keys: ["yandex"], re: word("yandex(?:\\s+metrica)?") },
+  { name: "Taboola", keys: ["taboola"], re: word("taboola", "\u05D8\u05D0\u05D1\u05D5\u05DC\u05D4") },
+  { name: "Outbrain", keys: ["outbrain"], re: word("outbrain", "\u05D0\u05D0\u05D5\u05D8\u05D1\u05E8\u05D9\u05D9\u05DF") },
+  { name: "Criteo", keys: ["criteo"], re: word("criteo") }
+];
+function legalPageText(html) {
+  const body = html.match(/<main\b[\s\S]*?<\/main\s*>/i)?.[0] ?? html;
+  return body.replace(/<!--[\s\S]*?-->/g, " ").replace(/<(script|style|noscript|template|svg|header|nav|footer)\b[\s\S]*?<\/\1\s*>/gi, " ").replace(/<[^>]*>/g, " ").replace(/&nbsp;|&#160;/gi, " ").replace(/&amp;/gi, "&").replace(/\s+/g, " ").trim();
+}
+function richText(body) {
+  const parts2 = [];
+  const walk2 = (v) => {
+    if (typeof v === "string") parts2.push(v);
+    else if (Array.isArray(v)) v.forEach(walk2);
+    else if (v && typeof v === "object") {
+      for (const [k, x] of Object.entries(v)) if (k !== "t" && k !== "href" && k !== "src") walk2(x);
+    }
+  };
+  walk2(body);
+  return parts2.join(" ");
+}
+var oldPlatformsIn = (text4) => OLD_PLATFORMS.filter((p) => p.re.test(text4)).map((p) => p.name);
+function legalDrift(texts, loaded) {
+  const found = [];
+  const add2 = (kind, name, where) => {
+    if (!found.some((f) => f.kind === kind && f.name === name && f.where === where)) found.push({ kind, name, where });
+  };
+  for (const t of texts) for (const name of oldPlatformsIn(t.text)) add2("oldPlatform", name, t.where);
+  if (!loaded) return found;
+  const has = new Set(loaded);
+  const viaTagManager = has.has("gtm");
+  for (const t of texts) {
+    for (const s of SERVICES) {
+      const named = s.re.test(t.text);
+      const on = s.keys.some((k) => has.has(k));
+      if (named && !on && !viaTagManager) add2("notLoaded", s.name, t.where);
+      if (t.privacy && on && !named) add2("notNamed", s.name, t.where);
+    }
+  }
+  return found;
 }
 
 // ../shared/src/moved-pages.ts
@@ -26126,6 +26227,15 @@ var M = {
     homeFix: "  Fix it and deploy again. This version did not go live; do not send its link to the owner yet.",
     creditLeft: "  The site still shows a builder's credit: {text}",
     creditFix: "  Remove it and put the site's own name and the year in its place, unless the owner asked to keep it.",
+    docsDrift: "  The site's documents say things that are not true of the site now:",
+    docsOldPlatform: "  {where}: names {name}, which this site no longer runs on.",
+    docsNotLoaded: "  {where}: names {name}, which the site's pages do not load.",
+    docsNotNamed: "  {where}: does not name {name}, which the site loads. A privacy page should usually name who gets visitors' data.",
+    docsMore: "  And {n} more.",
+    docsCodeFix: "  Change only those words to what is true now, keep the rest as it is, and tell the owner each change.",
+    docsCodeFixMoved: "  Change only those words to what is true now, before this goes up: the dashboard copies src/kit/moved-legal.json into the site once, so a later fix in that file never reaches the site. Keep the rest as it is, and tell the owner each change.",
+    docsLiveFixKit: "  These documents are kept in the site's dashboard, so a change in the code does not reach them. Tell the owner each line, in their language, with the words to change: they fix it in the dashboard, under Documents.",
+    docsLiveFixCode: "  For a page in the code: change only those words to what is true now, tell the owner each change, and deploy again.",
     askLiveFirst: "Put it live as soon as the build is done? Answer no to see the preview first. (y/N) ",
     askLiveNow: "Put v{n} live now? (y/N) ",
     waitBuild: "Waiting for the build of v{n}. Ctrl+C stops the waiting, not the build.",
@@ -26474,6 +26584,15 @@ var M = {
     homeFix: "  \u05EA\u05E7\u05E0\u05D5 \u05D5\u05D4\u05E2\u05DC\u05D5 \u05E9\u05D5\u05D1. \u05D4\u05D2\u05E8\u05E1\u05D4 \u05D4\u05D6\u05D5 \u05DC\u05D0 \u05E2\u05DC\u05EA\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8, \u05D0\u05D6 \u05E2\u05D5\u05D3 \u05D0\u05DC \u05EA\u05E9\u05DC\u05D7\u05D5 \u05D0\u05EA \u05D4\u05E7\u05D9\u05E9\u05D5\u05E8 \u05DC\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8.",
     creditLeft: "  \u05D4\u05D0\u05EA\u05E8 \u05E2\u05D3\u05D9\u05D9\u05DF \u05DE\u05E6\u05D9\u05D2 \u05E7\u05E8\u05D3\u05D9\u05D8 \u05E9\u05DC \u05D1\u05D5\u05E0\u05D4 \u05D0\u05EA\u05E8\u05D9\u05DD: {text}",
     creditFix: "  \u05D4\u05E1\u05D9\u05E8\u05D5 \u05D0\u05D5\u05EA\u05D5 \u05D5\u05E9\u05D9\u05DE\u05D5 \u05D1\u05DE\u05E7\u05D5\u05DE\u05D5 \u05D0\u05EA \u05E9\u05DD \u05D4\u05D0\u05EA\u05E8 \u05D5\u05D4\u05E9\u05E0\u05D4, \u05D0\u05DC\u05D0 \u05D0\u05DD \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D1\u05D9\u05E7\u05E9 \u05DC\u05D4\u05E9\u05D0\u05D9\u05E8 \u05D0\u05D5\u05EA\u05D5.",
+    docsDrift: "  \u05D1\u05DE\u05E1\u05DE\u05DB\u05D9\u05DD \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8 \u05DB\u05EA\u05D5\u05D1\u05D9\u05DD \u05D3\u05D1\u05E8\u05D9\u05DD \u05E9\u05DB\u05D1\u05E8 \u05DC\u05D0 \u05E0\u05DB\u05D5\u05E0\u05D9\u05DD \u05DC\u05D2\u05D1\u05D9 \u05D4\u05D0\u05EA\u05E8:",
+    docsOldPlatform: "  {where}: \u05DE\u05D5\u05D6\u05DB\u05E8 {name}, \u05D0\u05D1\u05DC \u05D4\u05D0\u05EA\u05E8 \u05DB\u05D1\u05E8 \u05DC\u05D0 \u05D1\u05E0\u05D5\u05D9 \u05E2\u05DC\u05D9\u05D5.",
+    docsNotLoaded: "  {where}: \u05DE\u05D5\u05D6\u05DB\u05E8 {name}, \u05D0\u05D1\u05DC \u05D3\u05E4\u05D9 \u05D4\u05D0\u05EA\u05E8 \u05DC\u05D0 \u05D8\u05D5\u05E2\u05E0\u05D9\u05DD \u05D0\u05D5\u05EA\u05D5.",
+    docsNotNamed: "  {where}: \u05DC\u05D0 \u05DE\u05D5\u05D6\u05DB\u05E8 {name}, \u05D0\u05E3 \u05E9\u05D4\u05D0\u05EA\u05E8 \u05D8\u05D5\u05E2\u05DF \u05D0\u05D5\u05EA\u05D5. \u05D1\u05DE\u05D3\u05D9\u05E0\u05D9\u05D5\u05EA \u05E4\u05E8\u05D8\u05D9\u05D5\u05EA \u05E0\u05D4\u05D5\u05D2 \u05DC\u05E6\u05D9\u05D9\u05DF \u05DE\u05D9 \u05DE\u05E7\u05D1\u05DC \u05DE\u05D9\u05D3\u05E2 \u05E2\u05DC \u05D4\u05DE\u05D1\u05E7\u05E8\u05D9\u05DD.",
+    docsMore: "  \u05D5\u05E2\u05D5\u05D3 {n}.",
+    docsCodeFix: "  \u05E9\u05E0\u05D5 \u05E8\u05E7 \u05D0\u05EA \u05D4\u05DE\u05D9\u05DC\u05D9\u05DD \u05D4\u05D0\u05DC\u05D4 \u05DC\u05DE\u05D4 \u05E9\u05E0\u05DB\u05D5\u05DF \u05D4\u05D9\u05D5\u05DD, \u05D4\u05E9\u05D0\u05D9\u05E8\u05D5 \u05D0\u05EA \u05DB\u05DC \u05D4\u05E9\u05D0\u05E8 \u05DB\u05DE\u05D5 \u05E9\u05D4\u05D5\u05D0, \u05D5\u05E4\u05E8\u05D8\u05D5 \u05DC\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05DB\u05DC \u05E9\u05D9\u05E0\u05D5\u05D9.",
+    docsCodeFixMoved: "  \u05E9\u05E0\u05D5 \u05E8\u05E7 \u05D0\u05EA \u05D4\u05DE\u05D9\u05DC\u05D9\u05DD \u05D4\u05D0\u05DC\u05D4 \u05DC\u05DE\u05D4 \u05E9\u05E0\u05DB\u05D5\u05DF \u05D4\u05D9\u05D5\u05DD, \u05DC\u05E4\u05E0\u05D9 \u05E9\u05D4\u05D2\u05E8\u05E1\u05D4 \u05E2\u05D5\u05DC\u05D4: \u05DC\u05D5\u05D7 \u05D4\u05E0\u05D9\u05D4\u05D5\u05DC \u05DE\u05E2\u05EA\u05D9\u05E7 \u05D0\u05EA src/kit/moved-legal.json \u05DC\u05D0\u05EA\u05E8 \u05E4\u05E2\u05DD \u05D0\u05D7\u05EA \u05D1\u05DC\u05D1\u05D3, \u05D5\u05EA\u05D9\u05E7\u05D5\u05DF \u05DE\u05D0\u05D5\u05D7\u05E8 \u05D9\u05D5\u05EA\u05E8 \u05D1\u05E7\u05D5\u05D1\u05E5 \u05DB\u05D1\u05E8 \u05DC\u05D0 \u05D9\u05D2\u05D9\u05E2 \u05DC\u05D0\u05EA\u05E8. \u05D4\u05E9\u05D0\u05D9\u05E8\u05D5 \u05D0\u05EA \u05DB\u05DC \u05D4\u05E9\u05D0\u05E8 \u05DB\u05DE\u05D5 \u05E9\u05D4\u05D5\u05D0, \u05D5\u05E4\u05E8\u05D8\u05D5 \u05DC\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05DB\u05DC \u05E9\u05D9\u05E0\u05D5\u05D9.",
+    docsLiveFixKit: "  \u05D4\u05DE\u05E1\u05DE\u05DB\u05D9\u05DD \u05D4\u05D0\u05DC\u05D4 \u05E9\u05DE\u05D5\u05E8\u05D9\u05DD \u05D1\u05DC\u05D5\u05D7 \u05D4\u05E0\u05D9\u05D4\u05D5\u05DC \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8, \u05D5\u05DC\u05DB\u05DF \u05E9\u05D9\u05E0\u05D5\u05D9 \u05D1\u05E7\u05D5\u05D3 \u05DC\u05D0 \u05DE\u05D2\u05D9\u05E2 \u05D0\u05DC\u05D9\u05D4\u05DD. \u05D4\u05E2\u05D1\u05D9\u05E8\u05D5 \u05DC\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05DB\u05DC \u05E9\u05D5\u05E8\u05D4 \u05D1\u05E9\u05E4\u05D4 \u05E9\u05DC\u05D5, \u05E2\u05DD \u05D4\u05DE\u05D9\u05DC\u05D9\u05DD \u05E9\u05E6\u05E8\u05D9\u05DA \u05DC\u05E9\u05E0\u05D5\u05EA: \u05D4\u05D5\u05D0 \u05DE\u05EA\u05E7\u05DF \u05D0\u05D5\u05EA\u05DF \u05D1\u05DC\u05D5\u05D7 \u05D4\u05E0\u05D9\u05D4\u05D5\u05DC, \u05D1\u05E2\u05DE\u05D5\u05D3 \u05D4\u05DE\u05E1\u05DE\u05DB\u05D9\u05DD.",
+    docsLiveFixCode: "  \u05D1\u05E2\u05DE\u05D5\u05D3 \u05E9\u05E0\u05DE\u05E6\u05D0 \u05D1\u05E7\u05D5\u05D3: \u05E9\u05E0\u05D5 \u05E8\u05E7 \u05D0\u05EA \u05D4\u05DE\u05D9\u05DC\u05D9\u05DD \u05D4\u05D0\u05DC\u05D4 \u05DC\u05DE\u05D4 \u05E9\u05E0\u05DB\u05D5\u05DF \u05D4\u05D9\u05D5\u05DD, \u05E4\u05E8\u05D8\u05D5 \u05DC\u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05DB\u05DC \u05E9\u05D9\u05E0\u05D5\u05D9 \u05D5\u05D4\u05E2\u05DC\u05D5 \u05E9\u05D5\u05D1.",
     askLiveFirst: "\u05DC\u05D4\u05E2\u05DC\u05D5\u05EA \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8 \u05DE\u05D9\u05D3 \u05DB\u05E9\u05D4\u05D1\u05E0\u05D9\u05D9\u05D4 \u05DE\u05E1\u05EA\u05D9\u05D9\u05DE\u05EA? \u05D0\u05DD \u05EA\u05E2\u05E0\u05D5 \u05DC\u05D0, \u05EA\u05E8\u05D0\u05D5 \u05E7\u05D5\u05D3\u05DD \u05D0\u05EA \u05D4\u05EA\u05E6\u05D5\u05D2\u05D4 \u05D4\u05DE\u05E7\u05D3\u05D9\u05DE\u05D4. (y/N) ",
     askLiveNow: "\u05DC\u05D4\u05E2\u05DC\u05D5\u05EA \u05D0\u05EA v{n} \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8 \u05E2\u05DB\u05E9\u05D9\u05D5? (y/N) ",
     waitBuild: "\u05DE\u05D7\u05DB\u05D9\u05DD \u05DC\u05D1\u05E0\u05D9\u05D9\u05D4 \u05E9\u05DC v{n}. Ctrl+C \u05DE\u05E4\u05E1\u05D9\u05E7 \u05D0\u05EA \u05D4\u05D4\u05DE\u05EA\u05E0\u05D4, \u05DC\u05D0 \u05D0\u05EA \u05D4\u05D1\u05E0\u05D9\u05D9\u05D4.",
@@ -26722,7 +26841,7 @@ function formatBytes(n2) {
 }
 
 // src/version.ts
-var CLI_VERSION = "0.1.0-beta.57";
+var CLI_VERSION = "0.1.0-beta.58";
 
 // src/api.ts
 function apiContext(apiFlag, root) {
@@ -27011,19 +27130,19 @@ function takeBlockedLine() {
 }
 
 // src/did-you-mean.ts
-var RUN = "npx deployai@latest";
+var RUN2 = "npx deployai@latest";
 var VALUE_OPTIONS = /* @__PURE__ */ new Set(["--api", "--dir", "-C", "--lang"]);
 var MEANS = {
   connect: [
     "There is no connect command.",
-    `To connect this folder to the site the owner made on DeployAI, run the line the site gave: ${RUN} start <id>`,
-    `For a site that is already on DeployAI: ${RUN} link`,
+    `To connect this folder to the site the owner made on DeployAI, run the line the site gave: ${RUN2} start <id>`,
+    `For a site that is already on DeployAI: ${RUN2} link`,
     "To connect a domain, the owner opens the site's Domains page in the DeployAI dashboard. To connect an AI chat: https://deployai.co.il/en/connect-ai"
   ],
-  publish: [`To publish: ${RUN} deploy`],
-  upload: [`To upload a new version: ${RUN} deploy`],
-  push: [`To upload a new version: ${RUN} deploy`],
-  live: [`To put a ready version live: ${RUN} promote <version>`]
+  publish: [`To publish: ${RUN2} deploy`],
+  upload: [`To upload a new version: ${RUN2} deploy`],
+  push: [`To upload a new version: ${RUN2} deploy`],
+  live: [`To put a ready version live: ${RUN2} promote <version>`]
 };
 function editDistance(a, b) {
   let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
@@ -27034,8 +27153,8 @@ function editDistance(a, b) {
   }
   return prev[b.length];
 }
-function closestCommand(word, names2) {
-  const w = word.toLowerCase();
+function closestCommand(word2, names2) {
+  const w = word2.toLowerCase();
   let best = null;
   for (const name of names2) {
     const d = name.startsWith(w) && w.length >= 3 ? 0.5 : editDistance(w, name);
@@ -27053,17 +27172,17 @@ function unknownCommandHelp(args, program) {
   }
   const rest = (at) => args.length > at + 1 ? ` ${args.slice(at + 1).join(" ")}` : "";
   const [first, second] = words;
-  if (!first) return [`All commands: ${RUN} --help`];
+  if (!first) return [`All commands: ${RUN2} --help`];
   const group = program.commands.find((c) => c.name() === first.w && c.commands.length);
   if (group && second) {
     const near2 = closestCommand(second.w, group.commands.map((c) => c.name()));
-    return [...near2 ? [`Did you mean: ${RUN} ${first.w} ${near2}${rest(second.at)}`] : [], `The ${first.w} commands: ${RUN} ${first.w} --help`];
+    return [...near2 ? [`Did you mean: ${RUN2} ${first.w} ${near2}${rest(second.at)}`] : [], `The ${first.w} commands: ${RUN2} ${first.w} --help`];
   }
   const meant = MEANS[first.w.toLowerCase()];
-  if (meant) return [...meant, `All commands: ${RUN} --help`];
-  if (START_ID.test(first.w)) return [`That looks like the site's start id. Run: ${RUN} start ${first.w}`];
+  if (meant) return [...meant, `All commands: ${RUN2} --help`];
+  if (START_ID.test(first.w)) return [`That looks like the site's start id. Run: ${RUN2} start ${first.w}`];
   const near = closestCommand(first.w, program.commands.map((c) => c.name()));
-  return [...near ? [`Did you mean: ${RUN} ${near}${rest(first.at)}`] : [], `All commands: ${RUN} --help`];
+  return [...near ? [`Did you mean: ${RUN2} ${near}${rest(first.at)}`] : [], `All commands: ${RUN2} --help`];
 }
 
 // src/commands/feedback.ts
@@ -28290,8 +28409,8 @@ function inspectCommand(root, opts) {
 
 // src/commands/save.ts
 import { createHash as createHash4 } from "crypto";
-import { readFileSync as readFileSync13, writeFileSync as writeFileSync11 } from "fs";
-import { join as join16 } from "path";
+import { readFileSync as readFileSync14, writeFileSync as writeFileSync11 } from "fs";
+import { join as join17 } from "path";
 
 // src/tar.ts
 import { readFileSync as readFileSync8 } from "fs";
@@ -28462,9 +28581,9 @@ function othersLine(root, others) {
 
 // src/commands/deploy.ts
 import { randomUUID as randomUUID2 } from "crypto";
-import { readFileSync as readFileSync12 } from "fs";
+import { readFileSync as readFileSync13 } from "fs";
 import { homedir as homedir2 } from "os";
-import { join as join15 } from "path";
+import { join as join16 } from "path";
 
 // src/ask.ts
 import { createInterface } from "readline/promises";
@@ -29317,6 +29436,143 @@ function headCommit(root) {
   return r.status === 0 ? toGitCommit(r.stdout) : null;
 }
 
+// src/legal-check.ts
+import { existsSync as existsSync13, readdirSync as readdirSync5, readFileSync as readFileSync12, statSync as statSync2 } from "fs";
+import { join as join15, relative as relative2 } from "path";
+var DRAFTS_FILE = "src/kit/legal-drafts.ts";
+var PAGE_DIRS = ["src/pages", "src/app", "app", "pages", "src/routes", "public", "content", "src/content"];
+var PAGE_FILE = /\.(astro|html?|md|mdx|tsx|jsx|vue|svelte)$/i;
+var MAX_FILES = 40;
+var MAX_BYTES3 = 4e5;
+var SHOWN2 = 8;
+var isKit = (root) => existsSync13(join15(root, "src/kit/schema.ts"));
+var isPrivacy = (where) => /privacy|פרטיות/i.test(where);
+function legalFiles(root) {
+  const found = [];
+  const walk2 = (dir, depth) => {
+    if (found.length >= MAX_FILES || depth > 4 || !existsSync13(dir)) return;
+    let names2;
+    try {
+      names2 = readdirSync5(dir);
+    } catch {
+      return;
+    }
+    for (const name of names2) {
+      if (name.startsWith(".") || name === "node_modules" || name === "dist" || name === "admin" || name === "api") continue;
+      const full = join15(dir, name);
+      let st;
+      try {
+        st = statSync2(full);
+      } catch {
+        continue;
+      }
+      const rel2 = relative2(root, full).replace(/\\/g, "/");
+      if (st.isDirectory()) walk2(full, depth + 1);
+      else if (PAGE_FILE.test(name) && st.size <= MAX_BYTES3 && LEGAL_PAGE_NAME.test(rel2)) found.push(rel2);
+    }
+  };
+  for (const d of PAGE_DIRS) walk2(join15(root, d), 0);
+  for (const name of safeList(root)) if (/\.html?$/i.test(name) && LEGAL_PAGE_NAME.test(name)) found.push(name);
+  return [...new Set(found)].slice(0, MAX_FILES);
+}
+var safeList = (dir) => {
+  try {
+    return readdirSync5(dir);
+  } catch {
+    return [];
+  }
+};
+var readMoved = (root) => {
+  try {
+    return existsSync13(join15(root, MOVED_LEGAL_FILE)) ? readJson(join15(root, MOVED_LEGAL_FILE)) : null;
+  } catch {
+    return null;
+  }
+};
+var read = (root, rel2) => {
+  try {
+    return readFileSync12(join15(root, rel2), "utf8");
+  } catch {
+    return "";
+  }
+};
+function codeLegalTexts(root) {
+  const texts = [];
+  const moved = readMoved(root);
+  for (const d of moved?.docs ?? []) texts.push({ where: `${MOVED_LEGAL_FILE} (${d.key})`, text: `${d.title} ${richText(d.body)}`, privacy: d.key === "privacy" });
+  if (existsSync13(join15(root, DRAFTS_FILE))) texts.push({ where: DRAFTS_FILE, text: read(root, DRAFTS_FILE) });
+  for (const rel2 of legalFiles(root)) {
+    const raw = read(root, rel2);
+    texts.push({ where: rel2, text: /\.html?$/i.test(rel2) ? legalPageText(raw) : raw, privacy: isPrivacy(rel2) });
+  }
+  return texts;
+}
+function print(root, found, fix) {
+  if (!found.length) return;
+  const t = messages(root);
+  out(t("docsDrift"));
+  for (const f of found.slice(0, SHOWN2)) out(t(f.kind === "oldPlatform" ? "docsOldPlatform" : f.kind === "notLoaded" ? "docsNotLoaded" : "docsNotNamed", { where: f.where, name: f.name }));
+  if (found.length > SHOWN2) out(t("docsMore", { n: found.length - SHOWN2 }));
+  for (const line of fix) out(line);
+  out();
+}
+function codeLegalHint(root) {
+  const found = legalDrift(codeLegalTexts(root), null);
+  print(root, found, [messages(root)(found.some((f) => f.where.startsWith(MOVED_LEGAL_FILE)) ? "docsCodeFixMoved" : "docsCodeFix")]);
+  return found;
+}
+async function previewLegalHint(root, previewUrl, readPage) {
+  const base = new URL(previewUrl);
+  const moved = readMoved(root);
+  const kit = isKit(root);
+  const paths = new Set(kit ? KIT_LEGAL_PATHS : []);
+  for (const d of moved?.duties ?? []) if (d.old) paths.add(d.old.split("?")[0]);
+  for (const rel2 of legalFiles(root)) {
+    const route = pageRoute(rel2);
+    if (route) paths.add(route);
+  }
+  if (!paths.size) return [];
+  const at = (path) => {
+    const u = new URL(base);
+    u.pathname = path;
+    return u.toString();
+  };
+  const get2 = async (path) => {
+    try {
+      const res = await readPage(at(path));
+      if (!res.ok || res.headers.has("x-deployai") || !/html/i.test(res.headers.get("content-type") ?? "")) {
+        await res.body?.cancel();
+        return null;
+      }
+      if (res.url && new URL(res.url).pathname.replace(/\/+$/, "") !== path.replace(/\/+$/, "")) {
+        await res.body?.cancel();
+        return null;
+      }
+      return await res.text();
+    } catch {
+      return null;
+    }
+  };
+  const [home, ...pages] = await Promise.all([get2("/"), ...[...paths].map(async (p) => ({ path: p, html: await get2(p) }))]);
+  const shown = pages.filter((p) => Boolean(p.html));
+  if (!shown.length) return [];
+  const loaded = /* @__PURE__ */ new Set();
+  for (const html of [home, ...shown.map((p) => p.html)]) if (html) for (const tag of scanPageTags(html, base.origin).tags) loaded.add(tag.key);
+  const texts = shown.map((p) => ({ where: p.path, text: legalPageText(p.html), privacy: isPrivacy(p.path) }));
+  const found = legalDrift(texts, [...loaded]);
+  const t = messages(root);
+  const inKit = found.some((f) => kit && KIT_LEGAL_PATHS.includes(f.where));
+  const inCode = found.some((f) => !kit || !KIT_LEGAL_PATHS.includes(f.where));
+  print(root, found, [...inKit ? [t("docsLiveFixKit")] : [], ...inCode ? [t("docsLiveFixCode")] : []]);
+  return found;
+}
+function pageRoute(rel2) {
+  const m = rel2.match(/^(?:src\/)?(?:pages|app|routes|content)\/(.+?)(?:\/(?:index|page|\+page))?\.(?:astro|html?|md|mdx|tsx|jsx|vue|svelte)$/i) ?? rel2.match(/^public\/(.+?)(?:\/index)?\.html?$/i) ?? rel2.match(/^([^/]+?)\.html?$/i);
+  if (!m) return null;
+  const route = m[1].replace(/\([^)]*\)\//g, "").replace(/(^|\/)index$/i, "");
+  return /[[\]]/.test(route) ? null : `/${route}`;
+}
+
 // src/prefs.ts
 var PATH = "/api/cli/preferences";
 function applyAccountPrefs(p) {
@@ -29417,6 +29673,10 @@ async function prepare(root, ctx, maxBytes) {
   }
   const sameName = changedUnderSameName(root, plan.files);
   if (sameName.length) out(t("sameNameChanged", { count: sameName.length, file: sameName[0] }));
+  try {
+    codeLegalHint(root);
+  } catch {
+  }
   const archive = packFiles(plan.files);
   if (archive.length > maxBytes) throw new CliError(t("uploadTooLargeGuest", { size: formatBytes(archive.length), max: formatBytes(maxBytes) }), 1, "too_large");
   const info = [[t("files"), `${plan.files.length} (${formatBytes(plan.totalBytes)}, packed ${formatBytes(archive.length)})`]];
@@ -29439,7 +29699,7 @@ function addTool(form, ctx, model) {
 }
 function codexModel() {
   try {
-    return codexConfigModel(readFileSync12(join15(process.env.CODEX_HOME || join15(homedir2(), ".codex"), "config.toml"), "utf8"));
+    return codexConfigModel(readFileSync13(join16(process.env.CODEX_HOME || join16(homedir2(), ".codex"), "config.toml"), "utf8"));
   } catch {
     return null;
   }
@@ -29588,6 +29848,7 @@ async function afterBuild(root, ctx, projectId, n2, o) {
       return;
     }
     await creditHint(root, built.latest.preview);
+    await previewLegalHint(root, built.latest.preview, readPreview).catch(() => []);
   }
   const sqlWaits = ready && built.latest?.migrationStatus === "waiting";
   let approval = null;
@@ -29738,7 +29999,7 @@ var SAVE_FILE = `${DEPLOYAI_DIR}/save.json`;
 function folderHash(files) {
   const h = createHash4("sha256");
   for (const f of [...files].sort((a, b) => a.rel < b.rel ? -1 : a.rel > b.rel ? 1 : 0)) {
-    h.update(f.rel).update("\0").update(createHash4("sha256").update(readFileSync13(f.abs)).digest()).update("\0");
+    h.update(f.rel).update("\0").update(createHash4("sha256").update(readFileSync14(f.abs)).digest()).update("\0");
   }
   return h.digest("hex");
 }
@@ -29773,7 +30034,7 @@ async function saveCommand(root, ctx, opts = {}) {
   const hash2 = folderHash(plan.files);
   let last = null;
   try {
-    last = readJson(join16(root, SAVE_FILE));
+    last = readJson(join17(root, SAVE_FILE));
   } catch {
   }
   if (last?.hash === hash2 && last.projectId === project.projectId && last.at) {
@@ -29791,7 +30052,7 @@ async function saveCommand(root, ctx, opts = {}) {
     const res = await apiRequest(ctx, "/api/cli/save", SaveResponse, { method: "POST", form, timeoutMs: 2 * 6e4 });
     try {
       ensureDeployaiDir(root);
-      writeFileSync11(join16(root, SAVE_FILE), JSON.stringify({ hash: hash2, at: res.at, projectId: project.projectId }) + "\n");
+      writeFileSync11(join17(root, SAVE_FILE), JSON.stringify({ hash: hash2, at: res.at, projectId: project.projectId }) + "\n");
     } catch {
     }
     out(res.saved ? t("saved", { n: res.files }) : t("saveSame", { ago: agoText(root, res.at) }));
@@ -29976,8 +30237,8 @@ function telemetryCommand(action) {
 }
 
 // src/commands/allow.ts
-import { existsSync as existsSync13, mkdirSync as mkdirSync8, readFileSync as readFileSync14, writeFileSync as writeFileSync12, appendFileSync as appendFileSync3 } from "fs";
-import { dirname as dirname4, join as join17 } from "path";
+import { existsSync as existsSync14, mkdirSync as mkdirSync8, readFileSync as readFileSync15, writeFileSync as writeFileSync12, appendFileSync as appendFileSync3 } from "fs";
+import { dirname as dirname4, join as join18 } from "path";
 var ALLOW_TOOLS = ["claude-code", "cursor", "copilot", "codex", "antigravity", "grok"];
 var CLAUDE_RULE = "Bash(npx deployai@latest *)";
 var CURSOR_LINE = "Running npx deployai@latest commands is allowed without approval.";
@@ -29987,7 +30248,7 @@ var CLICKS = {
   antigravity: "Antigravity: when it asks to run npx deployai@latest, choose Accept."
 };
 function readObject(file2) {
-  if (!existsSync13(file2)) return {};
+  if (!existsSync14(file2)) return {};
   try {
     const v = readJson(file2);
     return v && typeof v === "object" && !Array.isArray(v) ? v : null;
@@ -30009,9 +30270,9 @@ function addTo(obj, key2, list, value2) {
   return true;
 }
 function ignoreInGit(root, path) {
-  if (!existsSync13(join17(root, ".git"))) return;
-  const gi = join17(root, ".gitignore");
-  const text4 = existsSync13(gi) ? readFileSync14(gi, "utf8") : "";
+  if (!existsSync14(join18(root, ".git"))) return;
+  const gi = join18(root, ".gitignore");
+  const text4 = existsSync14(gi) ? readFileSync15(gi, "utf8") : "";
   if (text4.split(/\r?\n/).some((l) => l.trim() === path)) return;
   appendFileSync3(gi, `${text4 && !text4.endsWith("\n") ? "\n" : ""}${path}
 `);
@@ -30034,7 +30295,7 @@ function allowCommand(tool) {
   if (picked === "claude-code" || picked === "grok") {
     const grok = picked === "grok";
     const rel2 = ".claude/settings.local.json";
-    const file2 = join17(root, rel2);
+    const file2 = join18(root, rel2);
     const obj = readObject(file2);
     if (!obj) throw new CliError(`${rel2} is not valid JSON, so it was left as is. Ask the owner to add the Allow rule ${CLAUDE_RULE} with /permissions.`, 1, "allow_file");
     const added = addTo(obj, "permissions", "allow", CLAUDE_RULE);
@@ -30055,7 +30316,7 @@ function allowCommand(tool) {
   }
   if (picked === "cursor") {
     const rel2 = ".cursor/permissions.json";
-    const file2 = join17(root, rel2);
+    const file2 = join18(root, rel2);
     const obj = readObject(file2);
     if (!obj) throw new CliError(`${rel2} is not valid JSON, so it was left as is.`, 1, "allow_file");
     const added = addTo(obj, "autoRun", "allow_instructions", CURSOR_LINE);
@@ -30069,13 +30330,13 @@ function allowCommand(tool) {
 }
 
 // src/commands/sound.ts
-import { existsSync as existsSync14, readFileSync as readFileSync15, rmSync as rmSync4, writeFileSync as writeFileSync13 } from "fs";
+import { existsSync as existsSync15, readFileSync as readFileSync16, rmSync as rmSync4, writeFileSync as writeFileSync13 } from "fs";
 import { homedir as homedir3 } from "os";
-import { join as join18 } from "path";
+import { join as join19 } from "path";
 var SETTINGS = ".claude/settings.local.json";
 var TITLE_ENV = "CLAUDE_CODE_DISABLE_TERMINAL_TITLE";
 var AGENT_SCRIPT = ".deployai/agent-sound.mjs";
-function agentScript(sounds, config2 = join18(configDir(), "config.json")) {
+function agentScript(sounds, config2 = join19(configDir(), "config.json")) {
   return `// DeployAI's sound and tab dot for Claude Code. Written by: npx deployai@latest sound agent on. Removed by: sound agent off.
 // Stays on this computer and sends nothing. Reads the event's list of running tasks, never the prompt or the conversation.
 import { spawn } from 'node:child_process';
@@ -30153,16 +30414,16 @@ function foreignHooks(files) {
   return [...found];
 }
 function agentOn(root, opts = {}) {
-  const file2 = join18(root, SETTINGS);
+  const file2 = join19(root, SETTINGS);
   const obj = readObject(file2);
   if (!obj) throw new CliError(`${SETTINGS} is not valid JSON, so it was left as is.`, 1, "allow_file");
-  const home = process.env.CLAUDE_CONFIG_DIR || join18(opts.home ?? homedir3(), ".claude");
-  if (!opts.alongside && foreignHooks([join18(home, "settings.json"), join18(root, ".claude/settings.json"), file2]).length) return "has_own";
+  const home = process.env.CLAUDE_CONFIG_DIR || join19(opts.home ?? homedir3(), ".claude");
+  if (!opts.alongside && foreignHooks([join19(home, "settings.json"), join19(root, ".claude/settings.json"), file2]).length) return "has_own";
   writeSoundFiles();
   ensureDeployaiDir(root);
-  const script = join18(root, AGENT_SCRIPT);
+  const script = join19(root, AGENT_SCRIPT);
   const text4 = agentScript(soundsDir());
-  const scriptSame = existsSync14(script) && readFileSync15(script, "utf8") === text4;
+  const scriptSame = existsSync15(script) && readFileSync16(script, "utf8") === text4;
   if (!scriptSame) writeFileSync13(script, text4);
   const hooks = hooksOf(obj);
   const env = obj.env && typeof obj.env === "object" ? obj.env : {};
@@ -30181,7 +30442,7 @@ function agentOn(root, opts = {}) {
   return added || !scriptSame ? "on" : "already";
 }
 function agentOff(root) {
-  const file2 = join18(root, SETTINGS);
+  const file2 = join19(root, SETTINGS);
   const obj = readObject(file2);
   if (!obj) throw new CliError(`${SETTINGS} is not valid JSON, so it was left as is.`, 1, "allow_file");
   const hooks = hooksOf(obj);
@@ -30203,8 +30464,8 @@ function agentOff(root) {
     else delete obj.hooks;
     writeObject(file2, obj);
   }
-  const script = join18(root, AGENT_SCRIPT);
-  if (existsSync14(script)) {
+  const script = join19(root, AGENT_SCRIPT);
+  if (existsSync15(script)) {
     rmSync4(script);
     removed = true;
   }
@@ -30306,10 +30567,10 @@ async function voiceCommand(root, action, value2, ctx) {
   out(t(cfg.voice === true ? soundWanted(cfg) ? "voiceOn" : "voiceNeedsSound" : "voiceOff"));
 }
 function refreshAgentScript(root) {
-  const script = join18(root, AGENT_SCRIPT);
-  if (!existsSync14(script)) return false;
+  const script = join19(root, AGENT_SCRIPT);
+  if (!existsSync15(script)) return false;
   const text4 = agentScript(soundsDir());
-  const now = readFileSync15(script, "utf8");
+  const now = readFileSync16(script, "utf8");
   if (now === text4 || !now.startsWith("// DeployAI's sound and tab dot")) return false;
   writeSoundFiles();
   writeFileSync13(script, text4);
@@ -30344,15 +30605,15 @@ async function refreshRules(root, apiUrl) {
 import { createInterface as createInterface3 } from "readline/promises";
 
 // src/commands/migrate.ts
-import { existsSync as existsSync17, mkdirSync as mkdirSync11, readdirSync as readdirSync5, readFileSync as readFileSync18, statSync as statSync2, writeFileSync as writeFileSync17 } from "fs";
-import { dirname as dirname5, join as join21, posix, relative as relative3, resolve as resolve5, sep as sep4 } from "path";
+import { existsSync as existsSync18, mkdirSync as mkdirSync11, readdirSync as readdirSync6, readFileSync as readFileSync19, statSync as statSync3, writeFileSync as writeFileSync17 } from "fs";
+import { dirname as dirname5, join as join22, posix, relative as relative4, resolve as resolve5, sep as sep4 } from "path";
 
 // src/commands/look.ts
-import { existsSync as existsSync16, mkdirSync as mkdirSync10, writeFileSync as writeFileSync16 } from "fs";
-import { join as join20, relative as relative2, sep as sep3 } from "path";
+import { existsSync as existsSync17, mkdirSync as mkdirSync10, writeFileSync as writeFileSync16 } from "fs";
+import { join as join21, relative as relative3, sep as sep3 } from "path";
 
 // src/compare.ts
-import { readFileSync as readFileSync16, writeFileSync as writeFileSync14 } from "fs";
+import { readFileSync as readFileSync17, writeFileSync as writeFileSync14 } from "fs";
 import pixelmatch from "pixelmatch";
 import pngjs from "pngjs";
 var { PNG } = pngjs;
@@ -30362,7 +30623,7 @@ var BLOCK2 = 16;
 var COLOR_THRESHOLD = 0.1;
 var MOSTLY_MOVING = 0.5;
 function readPng(file2) {
-  const png = PNG.sync.read(readFileSync16(file2));
+  const png = PNG.sync.read(readFileSync17(file2));
   return { width: png.width, height: png.height, data: png.data };
 }
 function writePng(file2, pic) {
@@ -30432,9 +30693,9 @@ function compareLook(before, after, opts = {}) {
 
 // src/commands/shot.ts
 import { spawn as spawn3 } from "child_process";
-import { existsSync as existsSync15, mkdirSync as mkdirSync9, readFileSync as readFileSync17, rmSync as rmSync5, writeFileSync as writeFileSync15 } from "fs";
+import { existsSync as existsSync16, mkdirSync as mkdirSync9, readFileSync as readFileSync18, rmSync as rmSync5, writeFileSync as writeFileSync15 } from "fs";
 import { tmpdir as tmpdir2 } from "os";
-import { basename as basename2, join as join19, resolve as resolve4 } from "path";
+import { basename as basename2, join as join20, resolve as resolve4 } from "path";
 var SHOT_SIZES = [{ name: "phone", size: "390,844" }, { name: "desktop", size: "1440,900" }];
 var PLAYWRIGHT = "playwright@1.56";
 var WAIT_MS3 = 18e4;
@@ -30496,7 +30757,7 @@ var againName = (file2) => file2.replace(/\.png$/i, ".again.png");
 var SHOTS_INDEX = "shots.json";
 function readShotIndex(dir) {
   try {
-    const list = JSON.parse(readFileSync17(join19(dir, SHOTS_INDEX), "utf8"));
+    const list = JSON.parse(readFileSync18(join20(dir, SHOTS_INDEX), "utf8"));
     return Array.isArray(list) ? list.filter((e3) => e3 && typeof e3.url === "string" && typeof e3.file === "string" && typeof e3.width === "string") : [];
   } catch {
     return [];
@@ -30504,7 +30765,7 @@ function readShotIndex(dir) {
 }
 function addToIndex(dir, entries) {
   const kept = readShotIndex(dir).filter((e3) => !entries.some((n2) => n2.file === e3.file));
-  writeFileSync15(join19(dir, SHOTS_INDEX), JSON.stringify([...kept, ...entries], null, 2) + "\n");
+  writeFileSync15(join20(dir, SHOTS_INDEX), JSON.stringify([...kept, ...entries], null, 2) + "\n");
 }
 async function shotCommand(root, address, opts = {}, run = runNpx) {
   let url2;
@@ -30518,27 +30779,27 @@ async function shotCommand(root, address, opts = {}, run = runNpx) {
   const bundled = !opts.webkit && !browser;
   if (bundled && await run(["--yes", PLAYWRIGHT, "install", "chromium"]) !== 0) throw new CliError("No Chrome or Edge was found here, and Chromium could not be downloaded (the network may block it). Install Chrome, set CHROME_PATH to its path, or allow the Playwright browser download on this network, then run shot again.", 1, "no_browser");
   if (opts.webkit && await run(["--yes", PLAYWRIGHT, "install", "webkit"]) !== 0) throw new CliError("Safari's engine could not be installed. Run shot without --webkit to use Chrome or Edge.", 1, "shot_failed");
-  const dir = resolve4(root, opts.out ?? join19(".deployai", "shots"));
+  const dir = resolve4(root, opts.out ?? join20(".deployai", "shots"));
   mkdirSync9(dir, { recursive: true });
-  const taker = join19(tmpdir2(), "deployai-shot.cjs");
+  const taker = join20(tmpdir2(), "deployai-shot.cjs");
   writeFileSync15(taker, TAKER);
   const saved = [];
   const entries = [];
   for (const s of SHOT_SIZES) {
-    const file2 = join19(dir, shotName(url2.toString(), s.name));
+    const file2 = join20(dir, shotName(url2.toString(), s.name));
     const channel = opts.webkit || bundled ? null : channelFor(browser);
     const engine = opts.webkit ? ["--browser=webkit"] : bundled ? [] : channel ? [`--channel=${channel}`] : [`--exec=${browser}`];
     rmSync5(file2, { force: true });
     rmSync5(againName(file2), { force: true });
     const again = opts.again ? [`--again=${againName(file2)}`] : [];
     const code = await run(["--yes", "-p", PLAYWRIGHT, "node", taker, ...engine, `--viewport-size=${s.size}`, ...again, url2.toString(), file2]);
-    if (code !== 0 || !existsSync15(file2)) {
-      const step = existsSync15(`${file2}.step`) ? readFileSync17(`${file2}.step`, "utf8").trim() : "";
+    if (code !== 0 || !existsSync16(file2)) {
+      const step = existsSync16(`${file2}.step`) ? readFileSync18(`${file2}.step`, "utf8").trim() : "";
       rmSync5(`${file2}.step`, { force: true });
       throw new CliError(`The ${s.name} picture of ${url2} could not be taken${step ? `, stopped at: ${step}` : code === TIMED_OUT ? ", it took over 3 minutes" : ""}. Check that the page opens, then run shot again; if it stops again, look with your own browser tool or at home.html.`, 1, "shot_failed");
     }
     saved.push(file2);
-    entries.push({ url: url2.toString(), width: s.name, file: basename2(file2), again: opts.again && existsSync15(againName(file2)) ? basename2(againName(file2)) : null, takenAt: (/* @__PURE__ */ new Date()).toISOString() });
+    entries.push({ url: url2.toString(), width: s.name, file: basename2(file2), again: opts.again && existsSync16(againName(file2)) ? basename2(againName(file2)) : null, takenAt: (/* @__PURE__ */ new Date()).toISOString() });
     if (!opts.quiet) out(`${s.name.padEnd(8)} ${file2}`);
   }
   addToIndex(dir, entries);
@@ -30547,19 +30808,19 @@ async function shotCommand(root, address, opts = {}, run = runNpx) {
 }
 
 // src/commands/look.ts
-var BEFORE_DIR = join20(".deployai", "migration", "before");
-var AFTER_DIR = join20(".deployai", "migration", "after");
-var REPORT = join20(".deployai", "migration", "compare.json");
+var BEFORE_DIR = join21(".deployai", "migration", "before");
+var AFTER_DIR = join21(".deployai", "migration", "after");
+var REPORT = join21(".deployai", "migration", "compare.json");
 function previewAddress(preview, path) {
   const u = new URL(path, preview.origin);
   const token = preview.searchParams.get("deployai_preview");
   if (token) u.searchParams.set("deployai_preview", token);
   return u.toString();
 }
-var rel = (root, file2) => relative2(root, file2).split(sep3).join("/");
+var rel = (root, file2) => relative3(root, file2).split(sep3).join("/");
 var readOrNull = (file2) => {
   try {
-    return file2 && existsSync16(file2) ? readPng(file2) : null;
+    return file2 && existsSync17(file2) ? readPng(file2) : null;
   } catch {
     return null;
   }
@@ -30577,10 +30838,10 @@ async function compareLooks(root, previewRaw, opts = {}, shoot = shotCommand) {
   } catch {
     throw new CliError(`Not an address: ${previewRaw}. Use the preview address deploy printed.`, 1, "usage");
   }
-  const beforeDir = join20(root, BEFORE_DIR);
+  const beforeDir = join21(root, BEFORE_DIR);
   const before = readShotIndex(beforeDir);
   if (!before.length) return null;
-  const afterDir = join20(root, AFTER_DIR);
+  const afterDir = join21(root, AFTER_DIR);
   mkdirSync10(afterDir, { recursive: true });
   const maxDiff = opts.maxDiff ?? DEFAULT_MAX_DIFF;
   const lines = [];
@@ -30599,8 +30860,8 @@ async function compareLooks(root, previewRaw, opts = {}, shoot = shotCommand) {
       shot = false;
     }
     for (const entry of before.filter((e3) => e3.url === url2)) {
-      const beforeFile = join20(beforeDir, entry.file);
-      const afterFile = join20(afterDir, shotName(address, entry.width));
+      const beforeFile = join21(beforeDir, entry.file);
+      const afterFile = join21(afterDir, shotName(address, entry.width));
       const base = { page: path, width: entry.width, before: rel(root, beforeFile), mostlyMoving: false };
       const b = readOrNull(beforeFile);
       const a = shot ? readOrNull(afterFile) : null;
@@ -30609,7 +30870,7 @@ async function compareLooks(root, previewRaw, opts = {}, shoot = shotCommand) {
         say(`  ${path}  ${entry.width.padEnd(7)}  ${a ? "the before picture cannot be read: take it again" : "no picture of the preview page: check that it opens"}  FAIL`);
         continue;
       }
-      const result = compareLook(b, a, { beforeAgain: readOrNull(entry.again ? join20(beforeDir, entry.again) : null), afterAgain: readOrNull(againName(afterFile)), maxDiff });
+      const result = compareLook(b, a, { beforeAgain: readOrNull(entry.again ? join21(beforeDir, entry.again) : null), afterAgain: readOrNull(againName(afterFile)), maxDiff });
       const diffFile = afterFile.replace(/\.png$/i, ".diff.png");
       writePng(diffFile, result.diff);
       const total = result.compared + result.masked;
@@ -30619,7 +30880,7 @@ async function compareLooks(root, previewRaw, opts = {}, shoot = shotCommand) {
     }
   }
   const report2 = { checkedAt: (/* @__PURE__ */ new Date()).toISOString(), preview: preview.origin, maxDiff, pass: lines.every((l) => l.pass), pages: lines };
-  writeFileSync16(join20(root, REPORT), JSON.stringify(report2, null, 2) + "\n");
+  writeFileSync16(join21(root, REPORT), JSON.stringify(report2, null, 2) + "\n");
   if (opts.json) out(JSON.stringify(report2));
   else {
     if (lines.some((l) => l.mostlyMoving)) say("Most of a page moves by itself, so its number says little: look at that page yourself too.");
@@ -30647,7 +30908,7 @@ var PAUSE_MS = 150;
 var SCAN_WORKERS = 4;
 var START_SCAN_PAGES = 300;
 var sleep3 = (ms2) => new Promise((r) => setTimeout(r, ms2));
-var hostDir = (root, host) => join21(root, MIGRATION_DIR, host.replace(/^www\./, ""));
+var hostDir = (root, host) => join22(root, MIGRATION_DIR, host.replace(/^www\./, ""));
 var readJson3 = (file2) => {
   try {
     return readJson(file2);
@@ -30667,9 +30928,9 @@ async function get(url2, accept = "text/html,application/xhtml+xml,*/*;q=0.8", r
   }
 }
 function scannedHosts(root) {
-  const dir = join21(root, MIGRATION_DIR);
-  if (!existsSync17(dir)) return [];
-  return readdirSync5(dir).filter((h) => existsSync17(join21(dir, h, "inventory.json")));
+  const dir = join22(root, MIGRATION_DIR);
+  if (!existsSync18(dir)) return [];
+  return readdirSync6(dir).filter((h) => existsSync18(join22(dir, h, "inventory.json")));
 }
 async function migrateStatusCommand(root, ctx, stage, note) {
   if (!isAgentStage(stage)) throw new CliError(`Unknown stage: ${stage}. One of: ${AGENT_STAGES.join(", ")}.`, 1, "usage");
@@ -30682,18 +30943,18 @@ async function migrateStatusCommand(root, ctx, stage, note) {
   out(`Reported: ${stage}${note ? ` (${stageNote(note)})` : ""}.`);
 }
 function readChoices(root) {
-  return readJson3(join21(root, MIGRATION_DIR, "choices.json"));
+  return readJson3(join22(root, MIGRATION_DIR, "choices.json"));
 }
 function writeChoices(root, choices) {
   ensureMigrationDir(root);
-  writeJson(join21(root, MIGRATION_DIR, "choices.json"), choices);
+  writeJson(join22(root, MIGRATION_DIR, "choices.json"), choices);
 }
 function ensureMigrationDir(root) {
   ensureDeployaiDir(root);
-  const dir = join21(root, MIGRATION_DIR);
+  const dir = join22(root, MIGRATION_DIR);
   mkdirSync11(dir, { recursive: true });
-  const ignore = join21(dir, ".gitignore");
-  if (!existsSync17(ignore)) writeFileSync17(ignore, "*/media/\n*/media-state.json\n");
+  const ignore = join22(dir, ".gitignore");
+  if (!existsSync18(ignore)) writeFileSync17(ignore, "*/media/\n*/media-state.json\n");
 }
 function sameAddress(from, to) {
   try {
@@ -30764,14 +31025,14 @@ async function wordpressContent(base, dir) {
       await sleep3(PAUSE_MS);
     }
     if (items.length) {
-      writeJson(join21(dir, "content", `${type}.json`), items);
+      writeJson(join22(dir, "content", `${type}.json`), items);
       out(`  ${type}: ${items.length}`);
     }
   }
-  const posts = readJson3(join21(dir, "content", "posts.json"));
+  const posts = readJson3(join22(dir, "content", "posts.json"));
   if (posts?.length) {
-    const files = wpPostsToMarkdown({ origin: new URL(base).origin, posts, categories: readJson3(join21(dir, "content", "categories.json")) ?? [], tags: readJson3(join21(dir, "content", "tags.json")) ?? [], users: readJson3(join21(dir, "content", "users.json")) ?? [], media: readJson3(join21(dir, "content", "media.json")) ?? [] });
-    mkdirSync11(join21(dir, "posts"), { recursive: true });
+    const files = wpPostsToMarkdown({ origin: new URL(base).origin, posts, categories: readJson3(join22(dir, "content", "categories.json")) ?? [], tags: readJson3(join22(dir, "content", "tags.json")) ?? [], users: readJson3(join22(dir, "content", "users.json")) ?? [], media: readJson3(join22(dir, "content", "media.json")) ?? [] });
+    mkdirSync11(join22(dir, "posts"), { recursive: true });
     const postsDir = resolve5(dir, "posts");
     for (const f of files) {
       const target = resolve5(postsDir, f.file);
@@ -30848,7 +31109,7 @@ async function saveOldIcons(html, pageUrl, origin, dir) {
   add2(`${origin}/favicon.ico`, "icon");
   add2(logoInPage(html), "logo");
   const saved = [];
-  const icons = join21(dir, "icons");
+  const icons = join22(dir, "icons");
   for (const w of wanted.slice(0, 6)) {
     const res = await get(w.url, "image/*,*/*;q=0.8");
     if (!res?.ok) continue;
@@ -30859,14 +31120,14 @@ async function saveOldIcons(html, pageUrl, origin, dir) {
     if (!size && !svg) continue;
     const file2 = `${saved.length + 1}-${w.kind}.${svg ? "svg" : size?.format === "jpeg" ? "jpg" : size?.format}`;
     mkdirSync11(icons, { recursive: true });
-    writeFileSync17(join21(icons, file2), bytes);
+    writeFileSync17(join22(icons, file2), bytes);
     saved.push({ file: file2, kind: w.kind });
   }
-  if (saved.length) writeFileSync17(join21(icons, "icons.json"), JSON.stringify(saved, null, 2));
+  if (saved.length) writeFileSync17(join22(icons, "icons.json"), JSON.stringify(saved, null, 2));
   return saved.length;
 }
 async function saveOldStyles(html, pageUrl, dir) {
-  const styles = join21(dir, "styles");
+  const styles = join22(dir, "styles");
   let n2 = 0;
   for (const url2 of stylesheetLinks(html, pageUrl, 6)) {
     const res = await get(url2, "text/css,*/*;q=0.8");
@@ -30874,7 +31135,7 @@ async function saveOldStyles(html, pageUrl, dir) {
     const text4 = await res.text();
     if (text4.length > ICON_MAX_BYTES) continue;
     mkdirSync11(styles, { recursive: true });
-    writeFileSync17(join21(styles, `${++n2}.css`), text4);
+    writeFileSync17(join22(styles, `${++n2}.css`), text4);
   }
 }
 var TRIGGER_PAGES_CAP = 30;
@@ -30883,18 +31144,18 @@ async function readContainers(html, site) {
   const triggers = [];
   const hosts = ["www.googletagmanager.com", ...page3.serverContainers];
   for (const id2 of new Set(page3.tags.filter((t) => t.key === "gtm" && t.id).map((t) => t.id))) {
-    let read = null;
+    let read2 = null;
     for (const host of hosts) {
       const res = await get(`https://${host}/gtm.js?id=${encodeURIComponent(id2)}`, "*/*");
-      read = res?.ok ? readContainer(await res.text(), id2) : null;
-      if (read) break;
+      read2 = res?.ok ? readContainer(await res.text(), id2) : null;
+      if (read2) break;
     }
-    if (!read) {
+    if (!read2) {
       site.unreadContainers.push(id2);
       continue;
     }
-    for (const tag of read.tags) addFoundTag(site, tag, "container", null);
-    triggers.push(...read.triggers);
+    for (const tag of read2.tags) addFoundTag(site, tag, "container", null);
+    triggers.push(...read2.triggers);
   }
   return triggers;
 }
@@ -30902,15 +31163,15 @@ async function hasRootFile(origin, path, query = "", cookie) {
   const res = await get(`${origin}${path}${query}`, "*/*", "follow", cookie);
   return Boolean(res?.ok && !/text\/html/i.test(res.headers.get("content-type") ?? ""));
 }
-var tagsFile = (dir) => join21(dir, "tags.json");
-var stateFile = (dir) => join21(dir, "report-state.json");
+var tagsFile = (dir) => join22(dir, "tags.json");
+var stateFile = (dir) => join22(dir, "report-state.json");
 function kitMap(root) {
-  if (!existsSync17(join21(root, "src/kit/schema.ts"))) return {};
+  if (!existsSync18(join22(root, "src/kit/schema.ts"))) return {};
   const cut = (s, n2) => String(s ?? "").slice(0, n2);
-  const pages = (readJson3(join21(root, MOVED_PAGES_FILE)) ?? []).slice(0, 150).map((p) => ({ path: cut(p.path, 300), title: cut(p.title, 80), inNav: Boolean(p.inNav) }));
-  const posts = readJson3(join21(root, "src/kit/moved-posts.json")) ?? [];
-  const docs = [...new Set((readJson3(join21(root, MOVED_LEGAL_FILE))?.docs ?? []).map((d) => d.key).filter((k) => k === "privacy" || k === "terms" || k === "cancellation"))];
-  const forms = (readJson3(join21(root, "src/kit/forms.json")) ?? []).filter((f) => /^[a-z0-9-]{1,40}$/.test(f.key ?? "")).slice(0, 30).map((f) => ({
+  const pages = (readJson3(join22(root, MOVED_PAGES_FILE)) ?? []).slice(0, 150).map((p) => ({ path: cut(p.path, 300), title: cut(p.title, 80), inNav: Boolean(p.inNav) }));
+  const posts = readJson3(join22(root, "src/kit/moved-posts.json")) ?? [];
+  const docs = [...new Set((readJson3(join22(root, MOVED_LEGAL_FILE))?.docs ?? []).map((d) => d.key).filter((k) => k === "privacy" || k === "terms" || k === "cancellation"))];
+  const forms = (readJson3(join22(root, "src/kit/forms.json")) ?? []).filter((f) => /^[a-z0-9-]{1,40}$/.test(f.key ?? "")).slice(0, 30).map((f) => ({
     key: f.key,
     label: cut(f.label, 80),
     ...f.page ? { page: cut(f.page, 300) } : {},
@@ -30930,11 +31191,11 @@ function profileOfReport(inv) {
 }
 async function sendReport(root, ctx, host, open2, verify) {
   const dir = hostDir(root, host);
-  const inv = readJson3(join21(dir, "inventory.json"));
+  const inv = readJson3(join22(dir, "inventory.json"));
   const site = readJson3(tagsFile(dir));
   const startId = readChoices(root)?.startId;
   if (!inv || !site) return;
-  const dns = readJson3(join21(dir, "dns.json"));
+  const dns = readJson3(join22(dir, "dns.json"));
   const thanksPages = findThanksPages(inv.pages);
   if (open2 === "scan") {
     if (thanksPages.length && site.forms.length) {
@@ -30964,9 +31225,9 @@ async function sendReport(root, ctx, host, open2, verify) {
     return;
   }
   const state = readJson3(stateFile(dir)) ?? {};
-  const plan = existsSync17(join21(root, MIGRATION_DIR, "plan.md")) ? readFileSync18(join21(root, MIGRATION_DIR, "plan.md"), "utf8") : "";
-  const saved = verify ?? readJson3(join21(dir, "verify-report.json"))?.report ?? null;
-  const assets = readJson3(join21(dir, "assets.json")) ?? [];
+  const plan = existsSync18(join22(root, MIGRATION_DIR, "plan.md")) ? readFileSync19(join22(root, MIGRATION_DIR, "plan.md"), "utf8") : "";
+  const saved = verify ?? readJson3(join22(dir, "verify-report.json"))?.report ?? null;
+  const assets = readJson3(join22(dir, "assets.json")) ?? [];
   const report2 = {
     source: inv.source,
     platform: inv.platform,
@@ -31055,7 +31316,7 @@ async function migrateScanCommand(root, raw, opts = {}) {
   out(`Scanning ${base} (${platform3})`);
   const robotsRes = await get(`${origin}/robots.txt`, "text/plain");
   const robots = robotsRes?.ok ? await robotsRes.text() : "";
-  if (robots) writeFileSync17(join21(dir, "robots.txt"), robots);
+  if (robots) writeFileSync17(join22(dir, "robots.txt"), robots);
   const cap = Math.min(opts.max ?? PAGE_CAP, PAGE_CAP);
   const fromSitemaps = await sitemapUrls(base, robots ? parseRobots(robots).sitemaps : [], cap * 5);
   const all = [.../* @__PURE__ */ new Set([`${base}/`, ...fromSitemaps.urls, ...fromSitemaps.urls.length ? [] : homeLinks(html, base)])];
@@ -31068,7 +31329,7 @@ async function migrateScanCommand(root, raw, opts = {}) {
   const inUse = /* @__PURE__ */ new Set();
   const profileScan = emptyProfileScan();
   let next = 0;
-  let read = 0;
+  let read2 = 0;
   const worker = async () => {
     while (next < list.length) {
       const i = next++;
@@ -31090,7 +31351,7 @@ async function migrateScanCommand(root, raw, opts = {}) {
           if (t.type === "selector" ? selectorInPage(t.value, body) === true : body.includes(t.value)) inUse.add(t);
         }
       }
-      if (++read % 50 === 0) out(`  pages read: ${read} of ${list.length}`);
+      if (++read2 % 50 === 0) out(`  pages read: ${read2} of ${list.length}`);
       if (i) await sleep3(PAUSE_MS);
     }
   };
@@ -31098,7 +31359,7 @@ async function migrateScanCommand(root, raw, opts = {}) {
   await addStylesheetAssets(assets);
   const wordpressApi = platform3 === "wordpress" ? await wordpressContent(base, dir) : false;
   if (wordpressApi) {
-    const media = readJson3(join21(dir, "content", "media.json")) ?? [];
+    const media = readJson3(join22(dir, "content", "media.json")) ?? [];
     media.forEach((m) => m.source_url && assets.add(m.source_url));
   }
   const known = new Set(pages.map((p) => p.path));
@@ -31124,17 +31385,17 @@ async function migrateScanCommand(root, raw, opts = {}) {
   const bare2 = registrableDomain(host);
   try {
     const { records, unread } = await collectSnapshot(bare2, { extraNames: [...site.ownNames, ...site.serverContainers], deadlineMs: 3e4 });
-    writeJson(join21(dir, "dns.json"), { records: records.slice(0, 600), unread: unread.slice(0, 300), services: dnsServices(records).slice(0, 40) });
+    writeJson(join22(dir, "dns.json"), { records: records.slice(0, 600), unread: unread.slice(0, 300), services: dnsServices(records).slice(0, 40) });
   } catch {
   }
   const profile = siteProfile(profileScan, { platform: platform3 });
   const inventory = { source: base, platform: platform3, scannedAt: (/* @__PURE__ */ new Date()).toISOString(), sitemaps: fromSitemaps.sitemaps, pages, wordpressApi, skipped: Math.max(0, all.length - list.length), profile };
-  writeJson(join21(dir, "inventory.json"), inventory);
-  writeJson(join21(dir, "assets.json"), [...assets].sort());
-  writeFileSync17(join21(dir, "home.html"), html);
+  writeJson(join22(dir, "inventory.json"), inventory);
+  writeJson(join22(dir, "assets.json"), [...assets].sort());
+  writeFileSync17(join22(dir, "home.html"), html);
   const icons = await saveOldIcons(html, home.url, origin, dir);
   await saveOldStyles(html, home.url, dir);
-  const rel2 = relative3(root, dir).split(sep4).join("/");
+  const rel2 = relative4(root, dir).split(sep4).join("/");
   const broken = pages.filter((p) => p.status >= 400).length;
   out();
   out(`Saved in ${rel2}:`);
@@ -31145,7 +31406,7 @@ async function migrateScanCommand(root, raw, opts = {}) {
   if (icons) out(`  icons/          ${icons} icons and logo of the old site, for: npx deployai@latest brand favicon`);
   if (wordpressApi) {
     out("  content/        the WordPress pages, posts, categories, tags, media and authors as JSON");
-    if (existsSync17(join21(dir, "posts"))) out("  posts/          the posts as Markdown for the blog block, each with its old address");
+    if (existsSync18(join22(dir, "posts"))) out("  posts/          the posts as Markdown for the blog block, each with its old address");
   } else if (platform3 === "wordpress") out("  The WordPress API is closed on this site: work from the pages, or ask the owner for an export (Tools > Export).");
   out();
   for (const line of profileLines(profile)) out(line);
@@ -31167,8 +31428,8 @@ async function migrateMediaCommand(root) {
   if (!hosts.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
   for (const host of hosts) {
     const dir = hostDir(root, host);
-    const assets = readJson3(join21(dir, "assets.json")) ?? [];
-    const stateFile2 = join21(dir, "media-state.json");
+    const assets = readJson3(join22(dir, "assets.json")) ?? [];
+    const stateFile2 = join22(dir, "media-state.json");
     const state = readJson3(stateFile2) ?? { done: [], failed: [], bytes: 0 };
     const done = new Set(state.done);
     const todo = assets.filter((a) => !done.has(a));
@@ -31197,7 +31458,7 @@ async function migrateMediaCommand(root) {
     }
     state.done = [...done];
     writeJson(stateFile2, state);
-    out(`  ${formatBytes(state.bytes)} in ${relative3(root, join21(dir, "media")).split(sep4).join("/")}${state.failed.length ? `, ${state.failed.length} could not be downloaded (listed in media-state.json)` : ""}`);
+    out(`  ${formatBytes(state.bytes)} in ${relative4(root, join22(dir, "media")).split(sep4).join("/")}${state.failed.length ? `, ${state.failed.length} could not be downloaded (listed in media-state.json)` : ""}`);
   }
   out("Copy the files the new pages use into the site's public folder at the same path (for example public/wp-content/uploads/...), so old image addresses keep working.");
 }
@@ -31219,12 +31480,12 @@ var MARKDOWN_POST_DIRS = ["src/content/posts", "src/content/blog", "content/post
 function markdownPostFiles(root) {
   const files = [];
   const walk2 = (rel2, depth) => {
-    const abs = join21(root, rel2);
-    if (!existsSync17(abs) || depth > 4 || files.length >= 2e3) return;
-    for (const e3 of readdirSync5(abs, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+    const abs = join22(root, rel2);
+    if (!existsSync18(abs) || depth > 4 || files.length >= 2e3) return;
+    for (const e3 of readdirSync6(abs, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
       const child = posix.join(rel2, e3.name);
       if (e3.isDirectory()) walk2(child, depth + 1);
-      else if (e3.isFile() && /\.(md|mdx|markdown)$/i.test(e3.name) && statSync2(join21(root, child)).size <= 1024 * 1024) files.push({ file: child, text: readFileSync18(join21(root, child), "utf8") });
+      else if (e3.isFile() && /\.(md|mdx|markdown)$/i.test(e3.name) && statSync3(join22(root, child)).size <= 1024 * 1024) files.push({ file: child, text: readFileSync19(join22(root, child), "utf8") });
     }
   };
   for (const d of MARKDOWN_POST_DIRS) walk2(d, 0);
@@ -31234,16 +31495,16 @@ function migratePostsCommand(root) {
   const hosts = scannedHosts(root);
   const markdown = markdownPostFiles(root);
   if (!hosts.length && !markdown.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
-  if (!existsSync17(join21(root, "src/kit/schema.ts"))) throw new CliError("The dashboard is not in this folder yet. Run: npx deployai@latest blocks dashboard", 1, "usage");
+  if (!existsSync18(join22(root, "src/kit/schema.ts"))) throw new CliError("The dashboard is not in this folder yet. Run: npx deployai@latest blocks dashboard", 1, "usage");
   const posts = [];
   for (const host of hosts) {
     const dir = hostDir(root, host);
-    const inv = readJson3(join21(dir, "inventory.json"));
-    const list = readJson3(join21(dir, "content", "posts.json"));
-    if (inv && list?.length) posts.push(...wpPostsToKit({ origin: new URL(inv.source).origin, posts: list, categories: readJson3(join21(dir, "content", "categories.json")) ?? [], media: readJson3(join21(dir, "content", "media.json")) ?? [] }));
+    const inv = readJson3(join22(dir, "inventory.json"));
+    const list = readJson3(join22(dir, "content", "posts.json"));
+    if (inv && list?.length) posts.push(...wpPostsToKit({ origin: new URL(inv.source).origin, posts: list, categories: readJson3(join22(dir, "content", "categories.json")) ?? [], media: readJson3(join22(dir, "content", "media.json")) ?? [] }));
   }
   posts.push(...markdownPostsToKit(markdown));
-  const file2 = join21(root, "src/kit/moved-posts.json");
+  const file2 = join22(root, "src/kit/moved-posts.json");
   const had = readJson3(file2) ?? [];
   if (!posts.length && !had.length) {
     out("No posts in the scan or in this folder. If the old site has posts, write src/kit/moved-posts.json yourself: .deployai/blocks/dashboard.md says how.");
@@ -31272,15 +31533,15 @@ function migratePostsCommand(root) {
 function migratePagesCommand(root) {
   const hosts = scannedHosts(root);
   if (!hosts.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
-  if (!existsSync17(join21(root, "src/kit/schema.ts"))) throw new CliError("The dashboard is not in this folder yet. Run: npx deployai@latest blocks dashboard", 1, "usage");
-  const file2 = join21(root, MOVED_PAGES_FILE);
+  if (!existsSync18(join22(root, "src/kit/schema.ts"))) throw new CliError("The dashboard is not in this folder yet. Run: npx deployai@latest blocks dashboard", 1, "usage");
+  const file2 = join22(root, MOVED_PAGES_FILE);
   const before = readJson3(file2);
   const pages = [];
   for (const host of hosts) {
     const dir = hostDir(root, host);
-    const inv = readJson3(join21(dir, "inventory.json"));
+    const inv = readJson3(join22(dir, "inventory.json"));
     if (!inv) continue;
-    const homeHtml = existsSync17(join21(dir, "home.html")) ? readFileSync18(join21(dir, "home.html"), "utf8") : null;
+    const homeHtml = existsSync18(join22(dir, "home.html")) ? readFileSync19(join22(dir, "home.html"), "utf8") : null;
     for (const p of movedPagesFromScan({ pages: inv.pages, homeHtml, origin: new URL(inv.source).origin })) if (!pages.some((x) => x.path === p.path)) pages.push(p);
   }
   const kept = before?.length ? pages.filter((p) => before.some((b) => b.path === p.path)) : pages;
@@ -31291,12 +31552,12 @@ function migratePagesCommand(root) {
 function migrateLegalCommand(root) {
   const hosts = scannedHosts(root);
   if (!hosts.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
-  if (!existsSync17(join21(root, "src/kit/schema.ts"))) throw new CliError("The dashboard is not in this folder yet. Run: npx deployai@latest blocks dashboard", 1, "usage");
+  if (!existsSync18(join22(root, "src/kit/schema.ts"))) throw new CliError("The dashboard is not in this folder yet. Run: npx deployai@latest blocks dashboard", 1, "usage");
   const pages = [];
   const site = emptySiteTags();
   for (const host of hosts) {
     const dir = hostDir(root, host);
-    pages.push(...readJson3(join21(dir, "inventory.json"))?.pages ?? []);
+    pages.push(...readJson3(join22(dir, "inventory.json"))?.pages ?? []);
     const found = readJson3(tagsFile(dir));
     if (found) {
       site.tags.push(...found.tags);
@@ -31304,7 +31565,7 @@ function migrateLegalCommand(root) {
       site.forms.push(...found.forms);
     }
   }
-  const file2 = join21(root, MOVED_LEGAL_FILE);
+  const file2 = join22(root, MOVED_LEGAL_FILE);
   const legal = { ...movedLegalFromScan({ pages, site }), docs: readJson3(file2)?.docs ?? [] };
   writeFileSync17(file2, JSON.stringify(legal, null, 1));
   out(`Wrote ${MOVED_LEGAL_FILE}: ${legal.duties.length} rows for the dashboard's Documents page, ${legal.forms.length} forms, ${legal.services.length} outside services.`);
@@ -31316,22 +31577,22 @@ function migrateRedirectsCommand(root) {
   if (!hosts.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
   const lines = /* @__PURE__ */ new Set();
   for (const host of hosts) {
-    const inv = readJson3(join21(hostDir(root, host), "inventory.json"));
+    const inv = readJson3(join22(hostDir(root, host), "inventory.json"));
     if (inv) redirectLines(inv).forEach((l) => lines.add(l));
   }
-  const publicDir = join21(root, "public");
-  const file2 = join21(existsSync17(publicDir) ? publicDir : root, "_redirects");
-  const before = existsSync17(file2) ? readFileSync18(file2, "utf8").split(/\r?\n/).filter(Boolean) : [];
+  const publicDir = join22(root, "public");
+  const file2 = join22(existsSync18(publicDir) ? publicDir : root, "_redirects");
+  const before = existsSync18(file2) ? readFileSync19(file2, "utf8").split(/\r?\n/).filter(Boolean) : [];
   const added = [...lines].filter((l) => !before.some((b) => b.split(/\s+/)[0] === l.split(/\s+/)[0]));
   writeFileSync17(file2, [...before, ...added].join("\n") + "\n");
-  out(`${relative3(root, file2).split(sep4).join("/")}: ${added.length} added, ${before.length + added.length} in all (at most 2,000; no query strings).`);
+  out(`${relative4(root, file2).split(sep4).join("/")}: ${added.length} added, ${before.length + added.length} in all (at most 2,000; no query strings).`);
   out('Add a line "<old path> <new path> 301" only for a page that truly could not keep its address.');
 }
 function allowedRedirects(root) {
   const map2 = /* @__PURE__ */ new Map();
-  for (const file2 of [join21(root, "public", "_redirects"), join21(root, "_redirects")]) {
-    if (!existsSync17(file2)) continue;
-    for (const line of readFileSync18(file2, "utf8").split(/\r?\n/)) {
+  for (const file2 of [join22(root, "public", "_redirects"), join22(root, "_redirects")]) {
+    if (!existsSync18(file2)) continue;
+    for (const line of readFileSync19(file2, "utf8").split(/\r?\n/)) {
       const [from, to] = line.trim().split(/\s+/);
       if (from && to && !from.startsWith("#")) map2.set(from, to);
     }
@@ -31361,11 +31622,11 @@ async function migrateTagsCommand(root, ctx, opts) {
     const [k, v] = a.split("=");
     if (!QUESTION_KEYS.includes(k) || !ANSWERS.includes(v)) throw new CliError(`Not an answer: ${a}. Use one of ${QUESTION_KEYS.join(", ")} = ${ANSWERS.join(", ")}, for example serverPixel=yes.`, 1, "usage");
   }
-  const urls = opts.requests ? readFileSync18(resolve5(root, opts.requests), "utf8").split(/\r?\n/) : [];
+  const urls = opts.requests ? readFileSync19(resolve5(root, opts.requests), "utf8").split(/\r?\n/) : [];
   for (const host of hosts) {
     const dir = hostDir(root, host);
     const site = readJson3(tagsFile(dir));
-    const inv = readJson3(join21(dir, "inventory.json"));
+    const inv = readJson3(join22(dir, "inventory.json"));
     if (!site || !inv) continue;
     const state = readJson3(stateFile(dir)) ?? {};
     if (urls.length && opts.fired) {
@@ -31458,7 +31719,7 @@ async function migrateVerifyCommand(root, previewRaw, ctx, retryMs = PREVIEW_RET
   const perHost = [];
   const featureChecks = [];
   for (const host of hosts) {
-    const inv = readJson3(join21(hostDir(root, host), "inventory.json"));
+    const inv = readJson3(join22(hostDir(root, host), "inventory.json"));
     const oldSite = readJson3(tagsFile(hostDir(root, host)));
     const state = readJson3(stateFile(hostDir(root, host))) ?? {};
     const nextSite = emptySiteTags();
@@ -31512,8 +31773,8 @@ async function migrateVerifyCommand(root, previewRaw, ctx, retryMs = PREVIEW_RET
       if (there?.ok) findings.push({ path, problem: "link_broken", detail: from });
       await sleep3(PAUSE_MS / 3);
     }
-    const planFile = join21(root, MIGRATION_DIR, "plan.md");
-    const planRows = existsSync17(planFile) ? parsePlanFeatures(readFileSync18(planFile, "utf8")) : [];
+    const planFile = join22(root, MIGRATION_DIR, "plan.md");
+    const planRows = existsSync18(planFile) ? parsePlanFeatures(readFileSync19(planFile, "utf8")) : [];
     for (const r of replacedPages(planRows, inv?.pages ?? [])) findings.push({ path: r.path, problem: "replaced", detail: r.row });
     if (oldSite) {
       const home = await page3("/");
@@ -31537,26 +31798,26 @@ async function migrateVerifyCommand(root, previewRaw, ctx, retryMs = PREVIEW_RET
     }
   }
   const words = { missing: "not found on the preview", moved: "moved to", error: "answers", title_lost: "lost its title", description_lost: "lost its description", link_broken: "opens on the old site but not on the preview, linked from", replaced: 'is "Replaced with" in the plan, row' };
-  const report2 = join21(root, MIGRATION_DIR, "verify.json");
+  const report2 = join22(root, MIGRATION_DIR, "verify.json");
   writeJson(report2, { checkedAt: (/* @__PURE__ */ new Date()).toISOString(), preview: preview.origin, checked, findings, credits: [...credits.keys()], vendors: [...vendors.keys()], tags: tagFindings, leftOnOld, features: featureChecks });
   const brokenFeatures = featureChecks.filter((c) => !c.ok);
   if (brokenFeatures.length) {
     out(`${brokenFeatures.length} ${brokenFeatures.length === 1 ? "feature of the old site does" : "features of the old site do"} not work on the preview:`);
-    for (const c of brokenFeatures.slice(0, 40)) out(`  ${c.page}  ${FEATURE_WORDS[c.key]} ${FEATURE_PROBLEM_WORDS[c.problem]}`);
+    for (const c of brokenFeatures.slice(0, 40)) out(`  ${readableUrl(c.page)}  ${FEATURE_WORDS[c.key]} ${FEATURE_PROBLEM_WORDS[c.problem]}`);
     out(`Make each one work as it does on the old site, deploy again, and run verify again: npx deployai@latest migrate verify ${previewRaw}`);
     blockedBy("feature_broken");
     process.exitCode = 1;
   }
   if (credits.size) {
     out(`A builder's credit is still on the preview:`);
-    for (const [text4, path] of credits) out(`  ${path}  ${text4}`);
+    for (const [text4, path] of credits) out(`  ${readableUrl(path)}  ${text4}`);
     out("Remove each and put the site's own name and the year in its place, unless the owner asked to keep it, then deploy again and run verify again.");
     blockedBy("builder_credit");
     process.exitCode = 1;
   }
   if (vendors.size) {
     out(`Files of a plugin or theme are still on the preview:`);
-    for (const [name, path] of vendors) out(`  ${path}  ${name}`);
+    for (const [name, path] of vendors) out(`  ${readableUrl(path)}  ${name}`);
     out("Remove them. Write what the page needs into the site's own stylesheet and scripts, or use a UI source, so it looks and works the same, then deploy again and run verify again.");
     blockedBy("vendor_files");
     process.exitCode = 1;
@@ -31564,14 +31825,14 @@ async function migrateVerifyCommand(root, previewRaw, ctx, retryMs = PREVIEW_RET
   if (leftOnOld.length) {
     const what = { share: "share image (og:image)", x: "X image (twitter:image)", icon: "icon" };
     out("Still loading from the old site and missing from this one, so it breaks when the old site closes:");
-    for (const a of leftOnOld) out(`  ${what[a.kind]}  ${a.url}`);
+    for (const a of leftOnOld) out(`  ${what[a.kind]}  ${readableUrl(a.url)}`);
     out("Put each file in the site's own public folder (migrate media saved the images in .deployai/migration), point the tag at the site's own address, deploy again and run verify again.");
     blockedBy("old_host_assets");
     process.exitCode = 1;
   }
   if (tagFindings.length) {
     out(`${tagFindings.length} tags and connections need a fix:`);
-    for (const f of tagFindings.slice(0, 60)) out(`  ${f.what}  ${TAG_WORDS[f.problem]}${f.detail ? ` (${f.detail})` : ""}${f.page ? ` on ${f.page}` : ""}`);
+    for (const f of tagFindings.slice(0, 60)) out(`  ${readableUrl(f.what)}  ${TAG_WORDS[f.problem]}${f.detail ? ` (${f.detail})` : ""}${f.page ? ` on ${readableUrl(f.page)}` : ""}`);
     if (tagFindings.length > 60) out(`  and ${tagFindings.length - 60} more in verify.json`);
     out('Put each one back, deploy again and run verify again. If one was left out on purpose (the owner asked, or the plan replaced it with ours): npx deployai@latest migrate tags --removed "<its number or name>", and give its plan row the status "Replaced with <what took its place>" so the report says so.');
     blockedBy(...tagFindings.map((f) => f.problem));
@@ -31581,7 +31842,7 @@ async function migrateVerifyCommand(root, previewRaw, ctx, retryMs = PREVIEW_RET
   for (const h of perHost) {
     const dir = hostDir(root, h.host);
     const verify = { checkedAt: (/* @__PURE__ */ new Date()).toISOString(), pagesChecked: h.checked, pageProblems: h.problems, pageFindings: h.pages.map((f) => ({ path: f.path.slice(0, 300), problem: f.problem })).slice(0, 150), findings: h.found.map((f) => ({ problem: f.problem, what: f.what.slice(0, 240), ...f.detail ? { detail: f.detail.slice(0, 300) } : {}, ...f.page ? { page: f.page.slice(0, 300) } : {} })).slice(0, 300), seen: h.seen.slice(0, 300), removed: h.removed, vendors: [...vendors.keys()].map((v) => v.slice(0, 80)).slice(0, 40), ...h.features.length ? { featureChecks: h.features.slice(0, 60).map((c) => ({ ...c, page: c.page.slice(0, 300) })) } : {} };
-    writeJson(join21(dir, "verify-report.json"), { report: verify });
+    writeJson(join22(dir, "verify-report.json"), { report: verify });
     await sendReport(root, ctx, h.host, clean3 ? "verify" : null, verify);
   }
   await compareLooks(root, previewRaw, { maxDiff: look.maxDiff });
@@ -31589,8 +31850,8 @@ async function migrateVerifyCommand(root, previewRaw, ctx, retryMs = PREVIEW_RET
     out(`All ${checked} old addresses open on the preview with their title and description.`);
     return;
   }
-  out(`${findings.length} of ${checked} old addresses need a fix (also in ${relative3(root, report2).split(sep4).join("/")}):`);
-  for (const f of findings.slice(0, 60)) out(`  ${f.path}  ${words[f.problem]}${f.detail ? ` ${f.detail}` : ""}`);
+  out(`${findings.length} of ${checked} old addresses need a fix (also in ${relative4(root, report2).split(sep4).join("/")}):`);
+  for (const f of findings.slice(0, 60)) out(`  ${readableUrl(f.path)}  ${words[f.problem]}${f.detail ? ` ${f.detail}` : ""}`);
   if (findings.length > 60) out(`  and ${findings.length - 60} more in verify.json`);
   if (findings.some((f) => f.problem !== "link_broken" && f.problem !== "replaced")) out("Give each page its old address back (or, only if it truly cannot stay, a line in public/_redirects), deploy again, and run verify again.");
   if (findings.some((f) => f.problem === "link_broken")) out("A page links to an address the old site has and the preview does not, so that page was never moved. Move each one from the old site, with its own content and address, deploy again and run verify again.");
@@ -31718,8 +31979,8 @@ async function claimCommand(root, ctx, opts) {
 }
 
 // src/commands/backup.ts
-import { existsSync as existsSync18, writeFileSync as writeFileSync18 } from "fs";
-import { join as join22 } from "path";
+import { existsSync as existsSync19, writeFileSync as writeFileSync18 } from "fs";
+import { join as join23 } from "path";
 var WAIT_MS4 = 20 * 6e4;
 var EVERY_MS = 3e3;
 async function backupCommand(root, ctx) {
@@ -31752,8 +32013,8 @@ async function backupCommand(root, ctx) {
   return { file: file2 };
 }
 function freeName(root, name) {
-  let file2 = join22(root, name);
-  for (let n2 = 2; existsSync18(file2); n2++) file2 = join22(root, name.replace(/\.zip$/, `-${n2}.zip`));
+  let file2 = join23(root, name);
+  for (let n2 = 2; existsSync19(file2); n2++) file2 = join23(root, name.replace(/\.zip$/, `-${n2}.zip`));
   return file2;
 }
 
@@ -31905,12 +32166,12 @@ async function requestsOpenCommand(root, ctx, path, open2) {
 
 // src/commands/start.ts
 import { spawnSync as spawnSync5 } from "child_process";
-import { existsSync as existsSync19, readdirSync as readdirSync6, writeFileSync as writeFileSync20 } from "fs";
-import { join as join24, relative as relative4, resolve as resolve6 } from "path";
+import { existsSync as existsSync20, readdirSync as readdirSync7, writeFileSync as writeFileSync20 } from "fs";
+import { join as join25, relative as relative5, resolve as resolve6 } from "path";
 
 // src/commands/starter.ts
 import { writeFileSync as writeFileSync19 } from "fs";
-import { join as join23 } from "path";
+import { join as join24 } from "path";
 var esc2 = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 var TEXT = {
   he: { title: "\u05D4\u05D0\u05EA\u05E8 \u05E9\u05DC\u05D9", soon: "\u05D4\u05D0\u05EA\u05E8 \u05D1\u05D1\u05E0\u05D9\u05D9\u05D4, \u05D1\u05E7\u05E8\u05D5\u05D1 \u05DB\u05D0\u05DF." },
@@ -31958,8 +32219,8 @@ DeployAI wrote this page so the folder starts as a working site. Build the owner
 - Delete this README or replace it with notes about the site.
 `;
 function writeStarter(root, name, lang, stack) {
-  writeFileSync19(join23(root, "index.html"), page2(name ?? "", lang, stack));
-  writeFileSync19(join23(root, "README.md"), README);
+  writeFileSync19(join24(root, "index.html"), page2(name ?? "", lang, stack));
+  writeFileSync19(join24(root, "README.md"), README);
 }
 
 // src/commands/start.ts
@@ -31987,14 +32248,14 @@ function otherSiteFolders(here, root, projectId) {
   const dirs = /* @__PURE__ */ new Set([here, root]);
   for (const base of [here, root]) {
     try {
-      for (const e3 of readdirSync6(base, { withFileTypes: true })) if (e3.isDirectory() && !e3.name.startsWith(".") && e3.name !== "node_modules") dirs.add(join24(base, e3.name));
+      for (const e3 of readdirSync7(base, { withFileTypes: true })) if (e3.isDirectory() && !e3.name.startsWith(".") && e3.name !== "node_modules") dirs.add(join25(base, e3.name));
     } catch {
     }
   }
   const found = [];
   for (const dir of dirs) {
     const id2 = readProject(dir)?.projectId;
-    if (id2 && id2 !== projectId) found.push(relative4(root, dir) || ".");
+    if (id2 && id2 !== projectId) found.push(relative5(root, dir) || ".");
   }
   return found.sort();
 }
@@ -32067,7 +32328,7 @@ async function startCommand(cwd, ctx, id2, opts = {}) {
   if (sample && !sameSite) {
     const written = await downloadSample(ctxNow, sample.key, root);
     done.push(t("startDownloaded", { key: sample.key, n: written }));
-    if (existsSync19(join24(root, "package.json"))) {
+    if (existsSync20(join25(root, "package.json"))) {
       if (opts.install !== false && install(root)) done.push(t("startInstalled"));
       else steps.unshift({ cmd: "npm install", say: "Installs the sample's packages." });
     }
@@ -32092,7 +32353,7 @@ async function startCommand(cwd, ctx, id2, opts = {}) {
   const stackText = choices.stack ? stackBlock(choices.stack) : "";
   if (choices.brief || stackText) {
     ensureDeployaiDir(root);
-    writeFileSync20(join24(root, BRIEF_FILE), [choices.brief ? `# The owner's details
+    writeFileSync20(join25(root, BRIEF_FILE), [choices.brief ? `# The owner's details
 
 ${choices.brief}
 ` : "", stackText].filter(Boolean).join("\n"));
@@ -32113,7 +32374,7 @@ ${choices.brief}
   if (ctxNow.config.sound === true) agentFollows([here, root]);
   out(t("startTitle"));
   out();
-  if (root !== here) out(t(update ? "startUpdateFolder" : "startNewFolder", { dir: relative4(here, root) }));
+  if (root !== here) out(t(update ? "startUpdateFolder" : "startNewFolder", { dir: relative5(here, root) }));
   for (const line of done) out(`- ${line}`);
   if (choices.projectId && signedIn) {
     const builtOn = readProject(root)?.builtOn;
@@ -32140,7 +32401,7 @@ ${choices.brief}
   say("----- Instructions for the agent -----");
   say();
   if (root !== here) {
-    say(`Work only inside the folder ${relative4(here, root)} from now on (cd ${JSON.stringify(relative4(here, root))}).`);
+    say(`Work only inside the folder ${relative5(here, root)} from now on (cd ${JSON.stringify(relative5(here, root))}).`);
     say();
   }
   if (choices.projectId) {
@@ -32170,18 +32431,18 @@ ${choices.brief}
   for (const line of server.extra) say(line);
   say(rule(server, "startFail", START_FAIL_LINE));
   ensureDeployaiDir(root);
-  writeFileSync20(join24(root, START_FILE), `${lines.join("\n")}
+  writeFileSync20(join25(root, START_FILE), `${lines.join("\n")}
 `);
 }
 
 // src/commands/addon.ts
-import { dirname as dirname7, join as join26, resolve as resolve8 } from "path";
-import { mkdirSync as mkdirSync13, existsSync as existsSync21, writeFileSync as writeFileSync22 } from "fs";
+import { dirname as dirname7, join as join27, resolve as resolve8 } from "path";
+import { mkdirSync as mkdirSync13, existsSync as existsSync22, writeFileSync as writeFileSync22 } from "fs";
 
 // src/commands/addon-lanes.ts
 import { spawnSync as spawnSync6 } from "child_process";
-import { copyFileSync, existsSync as existsSync20, lstatSync as lstatSync2, mkdirSync as mkdirSync12, readdirSync as readdirSync7, rmdirSync, statSync as statSync3, unlinkSync as unlinkSync2, writeFileSync as writeFileSync21 } from "fs";
-import { basename as basename3, dirname as dirname6, join as join25, resolve as resolve7 } from "path";
+import { copyFileSync, existsSync as existsSync21, lstatSync as lstatSync2, mkdirSync as mkdirSync12, readdirSync as readdirSync8, rmdirSync, statSync as statSync4, unlinkSync as unlinkSync2, writeFileSync as writeFileSync21 } from "fs";
+import { basename as basename3, dirname as dirname6, join as join26, resolve as resolve7 } from "path";
 var git3 = (cwd, args) => spawnSync6("git", args, { cwd, encoding: "utf8" });
 var ok = (cwd, args) => git3(cwd, args).status === 0;
 var who = (cwd) => git3(cwd, ["config", "user.email"]).stdout?.trim() ? [] : ["-c", "user.name=DeployAI", "-c", "user.email=versions@deployai.co.il"];
@@ -32220,10 +32481,10 @@ function startWave(root, keys) {
   }
   const base = text3(root, ["rev-parse", "HEAD"]);
   if (!base) throw new CliError('This folder has no commit yet. Run: git add -A, then git commit -m "Before add-ons", then this command again.', 1, "no_commit");
-  const parent = join25(dirname6(root), `${basename3(root)}-addons`);
-  const lanes = w.lanes.map((l) => ({ name: l.name, keys: l.keys, dir: join25(parent, l.name), branch: `addon/${l.name}` }));
+  const parent = join26(dirname6(root), `${basename3(root)}-addons`);
+  const lanes = w.lanes.map((l) => ({ name: l.name, keys: l.keys, dir: join26(parent, l.name), branch: `addon/${l.name}` }));
   for (const l of lanes) {
-    if (existsSync20(l.dir)) throw new CliError(`A lane folder from an earlier run is still there: ${l.dir}. Bring its work in with npx deployai@latest addons merge, or remove it with git worktree remove "${l.dir}", then run this again.`, 1, "lane_exists");
+    if (existsSync21(l.dir)) throw new CliError(`A lane folder from an earlier run is still there: ${l.dir}. Bring its work in with npx deployai@latest addons merge, or remove it with git worktree remove "${l.dir}", then run this again.`, 1, "lane_exists");
     if (ok(root, ["rev-parse", "--verify", "--quiet", `refs/heads/${l.branch}`])) throw new CliError(`The branch ${l.branch} from an earlier run is still there. Bring it in with git merge ${l.branch}, or remove it with git branch -D ${l.branch}, then run this again.`, 1, "lane_exists");
   }
   for (const l of lanes) {
@@ -32240,13 +32501,13 @@ function startWave(root, keys) {
   return null;
 }
 function copyLocalFiles(from, to) {
-  const dir = join25(from, DEPLOYAI_DIR);
-  const files = existsSync20(dir) ? readdirSync7(dir).map((f) => join25(DEPLOYAI_DIR, f)).filter((f) => statSync3(join25(from, f)).isFile()) : [];
+  const dir = join26(from, DEPLOYAI_DIR);
+  const files = existsSync21(dir) ? readdirSync8(dir).map((f) => join26(DEPLOYAI_DIR, f)).filter((f) => statSync4(join26(from, f)).isFile()) : [];
   for (const f of [...files, ...LOCAL_FILES]) {
-    if (f === join25(DEPLOYAI_DIR, "run.json")) continue;
-    if (!existsSync20(join25(from, f)) || existsSync20(join25(to, f))) continue;
-    mkdirSync12(dirname6(join25(to, f)), { recursive: true });
-    copyFileSync(join25(from, f), join25(to, f));
+    if (f === join26(DEPLOYAI_DIR, "run.json")) continue;
+    if (!existsSync21(join26(from, f)) || existsSync21(join26(to, f))) continue;
+    mkdirSync12(dirname6(join26(to, f)), { recursive: true });
+    copyFileSync(join26(from, f), join26(to, f));
   }
 }
 function mergeStamps(root) {
@@ -32262,11 +32523,11 @@ function mergeStamps(root) {
   if (!ours2 || !theirs) return false;
   const merged = { ...ours2 };
   for (const [k, v] of Object.entries(theirs)) merged[k] = { ...ours2[k] ?? {}, ...v };
-  writeFileSync21(join25(root, ADDON_STAMP_FILE), JSON.stringify(merged, null, 2));
+  writeFileSync21(join26(root, ADDON_STAMP_FILE), JSON.stringify(merged, null, 2));
   return ok(root, ["add", "--", ADDON_STAMP_FILE]);
 }
 function removeLane(root, lane) {
-  const nm = join25(lane.dir, "node_modules");
+  const nm = join26(lane.dir, "node_modules");
   try {
     if (lstatSync2(nm).isSymbolicLink()) {
       try {
@@ -32290,7 +32551,7 @@ function addonsMergeCommand(root) {
   }
   if (ok(root, ["rev-parse", "-q", "--verify", "MERGE_HEAD"])) throw new CliError("A merge is still open in this folder. Resolve what it lists, then git add -A, then git commit --no-edit, then run npx deployai@latest addons merge again.", 1, "merge_open");
   for (const lane of wave.lanes) {
-    if (existsSync20(lane.dir) && text3(lane.dir, ["status", "--porcelain"])) throw new CliError(`Lane ${lane.name} has work that is not committed in ${lane.dir}. If its helper is still working, wait for it. Else commit it there: git add -A, then git commit -m "${lane.keys.join(", ")}", then run this again.`, 1, "lane_dirty");
+    if (existsSync21(lane.dir) && text3(lane.dir, ["status", "--porcelain"])) throw new CliError(`Lane ${lane.name} has work that is not committed in ${lane.dir}. If its helper is still working, wait for it. Else commit it there: git add -A, then git commit -m "${lane.keys.join(", ")}", then run this again.`, 1, "lane_dirty");
     if (!ok(root, ["rev-parse", "--verify", "--quiet", `refs/heads/${lane.branch}`])) throw new CliError(`The branch ${lane.branch} is missing, so lane ${lane.name} cannot come in. Run its add-ons here instead: ${lane.keys.map((k) => `npx deployai@latest addon run ${k}`).join(", then ")}.`, 1, "lane_missing");
     if (ok(root, ["merge-base", "--is-ancestor", lane.branch, "HEAD"])) continue;
     const r = git3(root, [...who(root), "merge", "--no-ff", "-m", `Add-ons: ${lane.keys.join(", ")}`, lane.branch]);
@@ -32312,9 +32573,9 @@ function addonsMergeCommand(root) {
     throw new CliError(`Lane ${lane.name} needs its conflicts resolved.`, 1, "merge_conflict");
   }
   for (const lane of wave.lanes) removeLane(root, lane);
-  const parent = join25(dirname6(root), `${basename3(root)}-addons`);
+  const parent = join26(dirname6(root), `${basename3(root)}-addons`);
   try {
-    if (existsSync20(parent) && !readdirSync7(parent).length) rmdirSync(parent);
+    if (existsSync21(parent) && !readdirSync8(parent).length) rmdirSync(parent);
   } catch {
   }
   writeRun(root, { mode: "parallel" });
@@ -32359,10 +32620,10 @@ async function addonsCommand(root, ctx) {
   }
   out(`Next: ${r.next}. To run what is waiting: npx deployai@latest addons run (or one: npx deployai@latest addon run <name>)`);
 }
-var FINAL_PUBLISH = 'Now the one publish. Run npx deployai@latest check, then ask the owner once, naming the site and its address: "See a preview first, put it live, or not yet?" Preview first is the recommended answer. If a check waits for a preview, offer only a preview or not yet. Then run once: npx deployai@latest deploy -m "<the add-ons, in a few words>", with --live only if they chose to put it live. Run the checks that waited on that preview and fix what they find; deploy again only if a fix was needed.';
+var FINAL_PUBLISH = 'Now the one publish. Run npx deployai@latest check, then ask the owner once, naming the site and its address: "See a preview first, put it live, or not yet?" Preview first is the recommended answer. If a check waits for a preview, offer only a preview or not yet. Then run once: npx deployai@latest deploy -m "<the add-ons, in a few words>", with --live only if they chose to put it live. Run the checks that waited on that preview and fix what they find, with the lines the deploy prints about the documents of the site: the add-ons after the Legal helper may have changed what the site loads; deploy again only if a fix was needed.';
 function finalPublish(end) {
-  if (end === "preview") return 'Now the one publish, as a preview: this run was started with --end preview, so do not ask the owner. Run npx deployai@latest check, then once: npx deployai@latest deploy -m "<the add-ons, in a few words>", without --live. Run the checks that waited on that preview and fix what they find; deploy again, still without --live, only if a fix was needed.';
-  if (end === "live") return 'Now the one publish, live: this run was started with --end live, so do not ask the owner. Run npx deployai@latest check. If a check waits for a preview, first run once: npx deployai@latest deploy -m "<the add-ons, in a few words>", run those checks on it and fix what they find. Then run once: npx deployai@latest deploy -m "<the add-ons, in a few words>" --live';
+  if (end === "preview") return 'Now the one publish, as a preview: this run was started with --end preview, so do not ask the owner. Run npx deployai@latest check, then once: npx deployai@latest deploy -m "<the add-ons, in a few words>", without --live. Run the checks that waited on that preview and fix what they find, with the lines the deploy prints about the documents of the site: the add-ons after the Legal helper may have changed what the site loads; deploy again, still without --live, only if a fix was needed.';
+  if (end === "live") return 'Now the one publish, live: this run was started with --end live, so do not ask the owner. Run npx deployai@latest check. If a check waits for a preview, first run once: npx deployai@latest deploy -m "<the add-ons, in a few words>", run those checks on it and fix what they find, with the lines the deploy prints about the documents of the site. Then run once: npx deployai@latest deploy -m "<the add-ons, in a few words>" --live';
   if (end === "none") return "Do not deploy: this run was started with --end none, so do not ask the owner either. Run npx deployai@latest check until it shows no blockers, and commit. The changes go up with the next deploy.";
   return FINAL_PUBLISH;
 }
@@ -32417,7 +32678,7 @@ async function addonsRunCommand(root, ctx, opts = {}) {
   const checkWithMe = ownerMode(root) === "check-with-me";
   if (!order && !running && r.picked && !r.agreed && todo.length > 1) {
     const stamps = readStamps(root);
-    const items = todo.map((a) => ({ ...a, trace: addonTrace(a.key, (path) => existsSync21(join26(root, path)), stamps) }));
+    const items = todo.map((a) => ({ ...a, trace: addonTrace(a.key, (path) => existsSync22(join27(root, path)), stamps) }));
     addonOrderBrief(items, Boolean(opts.parallel) && !checkWithMe).forEach((line) => out(line));
     if (opts.end !== void 0 && end) out(`Add --end ${end} to that command, so the run still ends as chosen.`);
     return;
@@ -32462,20 +32723,20 @@ async function addonBuyCommand(root, ctx, key2) {
 }
 function readStamps(root) {
   try {
-    return readJson(join26(root, ADDON_STAMP_FILE));
+    return readJson(join27(root, ADDON_STAMP_FILE));
   } catch {
     return {};
   }
 }
 function writeStamps(root, stamps) {
-  const file2 = join26(root, ADDON_STAMP_FILE);
+  const file2 = join27(root, ADDON_STAMP_FILE);
   mkdirSync13(dirname7(file2), { recursive: true });
   writeFileSync22(file2, JSON.stringify(stamps, null, 2));
 }
 function printAddon(root, a) {
   const lane = laneOf(root);
   const stamps = readStamps(root);
-  const trace = addonTrace(a.key, (path) => existsSync21(join26(root, path)), stamps);
+  const trace = addonTrace(a.key, (path) => existsSync22(join27(root, path)), stamps);
   writeStamps(root, { ...stamps, [a.key]: { ...stamps[a.key], runId: a.runId } });
   out(`DeployAI add-on ${a.position} of ${a.total}: ${a.name} (${a.key}, run ${a.runId}).`);
   if (lane) out(laneRules(lane));
@@ -32549,9 +32810,9 @@ async function addonDoneCommand(root, ctx, runId, opts) {
 // src/commands/speed.ts
 import { spawn as spawn4 } from "child_process";
 import { createHash as createHash5 } from "crypto";
-import { mkdirSync as mkdirSync14, mkdtempSync as mkdtempSync2, readFileSync as readFileSync19, rmSync as rmSync6, writeFileSync as writeFileSync23 } from "fs";
+import { mkdirSync as mkdirSync14, mkdtempSync as mkdtempSync2, readFileSync as readFileSync20, rmSync as rmSync6, writeFileSync as writeFileSync23 } from "fs";
 import { tmpdir as tmpdir3 } from "os";
-import { join as join27 } from "path";
+import { join as join28 } from "path";
 var ms = (v) => v >= 1e3 ? `${(v / 1e3).toFixed(1)} s` : `${Math.round(v)} ms`;
 var LOCAL_WAIT_MS = 18e4;
 function runLighthouse(url2, strategy, browser, file2) {
@@ -32575,11 +32836,11 @@ function runLighthouse(url2, strategy, browser, file2) {
 }
 async function localSpeed(url2, strategy, run = runLighthouse, browser = findBrowser()) {
   if (!browser) return null;
-  const dir = mkdtempSync2(join27(tmpdir3(), "deployai-speed-"));
+  const dir = mkdtempSync2(join28(tmpdir3(), "deployai-speed-"));
   try {
-    const file2 = join27(dir, "report.json");
+    const file2 = join28(dir, "report.json");
     await run(url2, strategy, browser, file2);
-    const lighthouseResult = JSON.parse(readFileSync19(file2, "utf8"));
+    const lighthouseResult = JSON.parse(readFileSync20(file2, "utf8"));
     return lighthouseResult.categories ? mapPsi({ lighthouseResult }, strategy) : null;
   } catch {
     return null;
@@ -32606,10 +32867,10 @@ function printReport(r, strategy, local2) {
   }
 }
 var CACHE_MS = 10 * 6e4;
-var cacheFile = (dir, url2, strategy) => join27(dir, `${createHash5("sha256").update(`${strategy} ${url2}`).digest("hex").slice(0, 24)}.json`);
+var cacheFile = (dir, url2, strategy) => join28(dir, `${createHash5("sha256").update(`${strategy} ${url2}`).digest("hex").slice(0, 24)}.json`);
 function readCache(dir, url2, strategy) {
   try {
-    return JSON.parse(readFileSync19(cacheFile(dir, url2, strategy), "utf8"));
+    return JSON.parse(readFileSync20(cacheFile(dir, url2, strategy), "utf8"));
   } catch {
     return null;
   }
@@ -32633,7 +32894,7 @@ async function speedCommand(ctx, url2, opts, deps = {}) {
   } catch {
     throw new CliError(`Not an address: ${url2}. Use the full address, for example https://example.com/`, 1, "usage");
   }
-  const dir = deps.cacheDir ?? join27(tmpdir3(), "deployai-speed-cache");
+  const dir = deps.cacheDir ?? join28(tmpdir3(), "deployai-speed-cache");
   const now = deps.now ?? Date.now;
   const cached2 = readCache(dir, page3, strategy);
   if (cached2 && now() - cached2.at < CACHE_MS) {
@@ -32691,25 +32952,25 @@ async function local(page3, strategy, deps, dir, now) {
 
 // src/commands/images.ts
 import { spawnSync as spawnSync7 } from "child_process";
-import { existsSync as existsSync22, mkdirSync as mkdirSync15, readdirSync as readdirSync8, statSync as statSync4, writeFileSync as writeFileSync24 } from "fs";
+import { existsSync as existsSync23, mkdirSync as mkdirSync15, readdirSync as readdirSync9, statSync as statSync5, writeFileSync as writeFileSync24 } from "fs";
 import { createRequire } from "module";
 import { homedir as homedir4 } from "os";
-import { extname, join as join28, relative as relative5, resolve as resolve9 } from "path";
+import { extname, join as join29, relative as relative6, resolve as resolve9 } from "path";
 var PHONE_WIDTH = 640;
 var SHARP = "sharp@0.34";
 var SKIP_DIRS2 = /* @__PURE__ */ new Set(["node_modules", ".git", ".deployai", "dist", ".astro", ".next"]);
 function imagesIn(dir) {
   const found = [];
   const walk2 = (d) => {
-    for (const name of readdirSync8(d)) {
-      const p = join28(d, name);
-      const st = statSync4(p);
+    for (const name of readdirSync9(d)) {
+      const p = join29(d, name);
+      const st = statSync5(p);
       if (st.isDirectory()) {
         if (!SKIP_DIRS2.has(name)) walk2(p);
       } else if (/\.(jpe?g|png)$/i.test(name)) found.push(p);
     }
   };
-  if (existsSync22(dir)) walk2(dir);
+  if (existsSync23(dir)) walk2(dir);
   return found.sort();
 }
 function outputsFor(file2, width) {
@@ -32719,21 +32980,21 @@ function outputsFor(file2, width) {
   return list;
 }
 function loadSharp() {
-  const dir = join28(homedir4(), ".deployai", "tools", "sharp");
-  if (!existsSync22(join28(dir, "node_modules", "sharp"))) {
+  const dir = join29(homedir4(), ".deployai", "tools", "sharp");
+  if (!existsSync23(join29(dir, "node_modules", "sharp"))) {
     mkdirSync15(dir, { recursive: true });
-    if (!existsSync22(join28(dir, "package.json"))) writeFileSync24(join28(dir, "package.json"), '{"private":true}');
+    if (!existsSync23(join29(dir, "package.json"))) writeFileSync24(join29(dir, "package.json"), '{"private":true}');
     out("Getting the image tool once (it stays outside the site)...");
     const r = spawnSync7(process.platform === "win32" ? "npm.cmd" : "npm", ["install", SHARP, "--no-audit", "--no-fund", "--silent"], { cwd: dir, stdio: "ignore", shell: process.platform === "win32" });
     if (r.status !== 0) throw new CliError("The image tool could not be installed. Check the internet connection and run optimize again.", 1, "images_failed");
   }
-  return createRequire(join28(dir, "package.json"))("sharp");
+  return createRequire(join29(dir, "package.json"))("sharp");
 }
 async function imagesCommand(root, folder, sharp = loadSharp) {
   const dir = resolve9(root, folder ?? "public");
   const files = imagesIn(dir);
   if (!files.length) {
-    out(`No JPG or PNG images under ${relative5(root, dir) || "."}.`);
+    out(`No JPG or PNG images under ${relative6(root, dir) || "."}.`);
     return { done: 0, skipped: 0, saved: 0 };
   }
   const make = sharp();
@@ -32741,10 +33002,10 @@ async function imagesCommand(root, folder, sharp = loadSharp) {
   let skipped = 0;
   let saved = 0;
   for (const file2 of files) {
-    const size = statSync4(file2).size;
+    const size = statSync5(file2).size;
     const meta3 = await make(file2).metadata();
     const outputs = outputsFor(file2, meta3.width);
-    if (outputs.every((o) => existsSync22(o.file) && statSync4(o.file).mtimeMs >= statSync4(file2).mtimeMs)) {
+    if (outputs.every((o) => existsSync23(o.file) && statSync5(o.file).mtimeMs >= statSync5(file2).mtimeMs)) {
       skipped++;
       continue;
     }
@@ -32764,7 +33025,7 @@ async function imagesCommand(root, folder, sharp = loadSharp) {
 
 // src/commands/blocks.ts
 import { createHash as createHash6 } from "crypto";
-import { existsSync as existsSync23, mkdirSync as mkdirSync16, readFileSync as readFileSync20, writeFileSync as writeFileSync25 } from "fs";
+import { existsSync as existsSync24, mkdirSync as mkdirSync16, readFileSync as readFileSync21, writeFileSync as writeFileSync25 } from "fs";
 import { dirname as dirname8, resolve as resolve10, sep as sep5 } from "path";
 import { gunzipSync as gunzipSync3 } from "zlib";
 var BLOCKS = [
@@ -32773,7 +33034,7 @@ var BLOCKS = [
   { key: "blog", title: "Blog: posts as Markdown files, categories, tags, authors, pages, RSS and article data for search" },
   { key: "late-tags", title: "Tracking tags (Tag Manager, Google, Meta, Clarity) that load a moment after the page shows, at once on conversion pages and ad clicks" }
 ];
-var MAX_BYTES3 = 5 * 1024 * 1024;
+var MAX_BYTES4 = 5 * 1024 * 1024;
 var sha = (data) => createHash6("sha256").update(data).digest("hex");
 var lockPath = (base, key2) => resolve10(base, ".deployai", "blocks", `${key2}.lock.json`);
 function readLock(base, key2) {
@@ -32802,10 +33063,10 @@ async function blocksCommand(root, ctx, name, opts = {}) {
   }
   if (!res.ok) throw new CliError(`Could not download the ${block.key} block (HTTP ${res.status}). Try again.`, 1, "api");
   const gz = Buffer.from(await res.arrayBuffer());
-  if (gz.length > MAX_BYTES3) throw new CliError("The block download is too large.", 1, "api");
+  if (gz.length > MAX_BYTES4) throw new CliError("The block download is too large.", 1, "api");
   let entries;
   try {
-    entries = readTar(gunzipSync3(gz, { maxOutputLength: MAX_BYTES3 * 4 }));
+    entries = readTar(gunzipSync3(gz, { maxOutputLength: MAX_BYTES4 * 4 }));
   } catch {
     throw new CliError("The block download is damaged. Try again.", 1, "api");
   }
@@ -32818,8 +33079,8 @@ async function blocksCommand(root, ctx, name, opts = {}) {
     if (e3.type !== "0" && e3.type !== "\0") continue;
     const target = resolve10(base, e3.name);
     if (target === base || !target.startsWith(base + sep5)) continue;
-    if (existsSync23(target)) {
-      const now = sha(readFileSync20(target));
+    if (existsSync24(target)) {
+      const now = sha(readFileSync21(target));
       if (now === sha(e3.data)) {
         lock[e3.name] = now;
       } else if (opts.update && lock[e3.name] === now) {
@@ -32904,10 +33165,10 @@ async function integrationsCommand(ctx, name, opts = {}) {
 
 // src/commands/brand.ts
 import { spawn as spawn5 } from "child_process";
-import { copyFileSync as copyFileSync2, existsSync as existsSync24, mkdirSync as mkdirSync17, mkdtempSync as mkdtempSync3, readdirSync as readdirSync9, readFileSync as readFileSync21, rmSync as rmSync7, statSync as statSync5, writeFileSync as writeFileSync26 } from "fs";
+import { copyFileSync as copyFileSync2, existsSync as existsSync25, mkdirSync as mkdirSync17, mkdtempSync as mkdtempSync3, readdirSync as readdirSync10, readFileSync as readFileSync22, rmSync as rmSync7, statSync as statSync6, writeFileSync as writeFileSync26 } from "fs";
 import { createServer } from "http";
 import { tmpdir as tmpdir4 } from "os";
-import { basename as basename4, dirname as dirname9, extname as extname2, join as join29, relative as relative6, sep as sep6 } from "path";
+import { basename as basename4, dirname as dirname9, extname as extname2, join as join30, relative as relative7, sep as sep6 } from "path";
 import { randomBytes } from "crypto";
 
 // src/commands/brand-page.ts
@@ -32999,22 +33260,22 @@ var WALK_CAP = 4e3;
 var SKIP_DIRS3 = /* @__PURE__ */ new Set(["node_modules", ".git", ".next", "dist", "build", "out", ".astro", ".output", ".svelte-kit", ".wrangler", ".deployai"]);
 var TYPES = { ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".gif": "image/gif", ".ico": "image/x-icon", ".avif": "image/avif" };
 function webRoot(root) {
-  for (const d of ["public", "static"]) if (existsSync24(join29(root, d))) return join29(root, d);
+  for (const d of ["public", "static"]) if (existsSync25(join30(root, d))) return join30(root, d);
   return root;
 }
 function walk(dir, found = []) {
   let names2;
   try {
-    names2 = readdirSync9(dir);
+    names2 = readdirSync10(dir);
   } catch {
     return found;
   }
   for (const n2 of names2) {
     if (found.length >= WALK_CAP) break;
-    const p = join29(dir, n2);
+    const p = join30(dir, n2);
     let isDir = false;
     try {
-      isDir = statSync5(p).isDirectory();
+      isDir = statSync6(p).isDirectory();
     } catch {
       continue;
     }
@@ -33026,31 +33287,31 @@ function walk(dir, found = []) {
 }
 function existingFavicon(root) {
   const web = webRoot(root);
-  for (const f of ["favicon.ico", "favicon.svg", "favicon.png", "icon.svg", "icon.png"]) if (existsSync24(join29(web, f))) return relative6(root, join29(web, f)).split(sep6).join("/");
-  for (const d of ["app", "src/app"]) for (const f of ["favicon.ico", "icon.svg", "icon.png", "icon.tsx", "icon.jpg"]) if (existsSync24(join29(root, d, f))) return `${d}/${f}`;
+  for (const f of ["favicon.ico", "favicon.svg", "favicon.png", "icon.svg", "icon.png"]) if (existsSync25(join30(web, f))) return relative7(root, join30(web, f)).split(sep6).join("/");
+  for (const d of ["app", "src/app"]) for (const f of ["favicon.ico", "icon.svg", "icon.png", "icon.tsx", "icon.jpg"]) if (existsSync25(join30(root, d, f))) return `${d}/${f}`;
   for (const f of walk(root).filter((p) => /\.(html|astro|tsx|jsx|vue|svelte)$/.test(p)).slice(0, 400)) {
     try {
-      const m = readFileSync21(f, "utf8").match(/<link\b[^>]*\brel=["'](?:shortcut )?icon["'][^>]*>/i);
+      const m = readFileSync22(f, "utf8").match(/<link\b[^>]*\brel=["'](?:shortcut )?icon["'][^>]*>/i);
       if (!m) continue;
       const href = m[0].match(/\shref=["']([^"']+)/i)?.[1] ?? "";
-      if (href.startsWith("data:") || /^https?:/.test(href) || existsSync24(join29(web, href.split("?")[0]))) return relative6(root, f).split(sep6).join("/");
+      if (href.startsWith("data:") || /^https?:/.test(href) || existsSync25(join30(web, href.split("?")[0]))) return relative7(root, f).split(sep6).join("/");
     } catch {
     }
   }
   return null;
 }
 function scannedIcons(root) {
-  const base = join29(root, MIGRATION_DIR);
-  if (!existsSync24(base)) return [];
+  const base = join30(root, MIGRATION_DIR);
+  if (!existsSync25(base)) return [];
   const found = [];
-  for (const host of readdirSync9(base)) {
-    const dir = join29(base, host, "icons");
+  for (const host of readdirSync10(base)) {
+    const dir = join30(base, host, "icons");
     try {
-      const list = readJson(join29(dir, "icons.json"));
+      const list = readJson(join30(dir, "icons.json"));
       for (const i of list) {
-        const path = join29(dir, i.file);
-        if (!existsSync24(path)) continue;
-        const size = imageSize(readFileSync21(path));
+        const path = join30(dir, i.file);
+        if (!existsSync25(path)) continue;
+        const size = imageSize(readFileSync22(path));
         found.push({ path, kind: i.kind, big: !size || size.width >= 64 });
       }
     } catch {
@@ -33062,8 +33323,8 @@ function findSource(root) {
   const icons = scannedIcons(root);
   const sharp = icons.find((i) => i.kind === "icon" && i.big);
   if (sharp) return { path: sharp.path, from: "old-icon" };
-  const dirs = ["public", "static", "src/assets", "assets", "images", "img"].map((d) => join29(root, d));
-  const logos = dirs.flatMap((d) => walk(d)).filter((p) => looksLikeLogo(relative6(root, p).split(sep6).join("/")));
+  const dirs = ["public", "static", "src/assets", "assets", "images", "img"].map((d) => join30(root, d));
+  const logos = dirs.flatMap((d) => walk(d)).filter((p) => looksLikeLogo(relative7(root, p).split(sep6).join("/")));
   const logo = logos.find((p) => /\.svg$/i.test(p)) ?? logos[0];
   if (logo) return { path: logo, from: "logo" };
   const oldLogo = icons.find((i) => i.kind === "logo");
@@ -33076,23 +33337,23 @@ var CODE_EXT2 = /\.(css|scss|sass|less|html|astro|vue|svelte)$/i;
 var READ_CAP = 300;
 function readText2(path) {
   try {
-    return readFileSync21(path, "utf8");
+    return readFileSync22(path, "utf8");
   } catch {
     return "";
   }
 }
 function scanDirs(root) {
-  const base = join29(root, MIGRATION_DIR);
+  const base = join30(root, MIGRATION_DIR);
   try {
-    return readdirSync9(base).map((h) => join29(base, h)).filter((d) => existsSync24(join29(d, "home.html")));
+    return readdirSync10(base).map((h) => join30(base, h)).filter((d) => existsSync25(join30(d, "home.html")));
   } catch {
     return [];
   }
 }
 function homePage(root) {
-  for (const d of scanDirs(root)) return readText2(join29(d, "home.html"));
+  for (const d of scanDirs(root)) return readText2(join30(d, "home.html"));
   for (const f of ["index.html", "public/index.html", "src/index.html", "src/pages/index.astro", "src/pages/index.html", "app/layout.tsx", "src/app/layout.tsx", "src/layouts/Layout.astro"]) {
-    const text4 = readText2(join29(root, f));
+    const text4 = readText2(join30(root, f));
     if (text4) return text4;
   }
   return "";
@@ -33103,27 +33364,27 @@ function siteFacts(root, given = {}) {
   const id2 = readSiteIdentity(home);
   let pkg;
   try {
-    pkg = readJson(join29(root, "package.json")).name;
+    pkg = readJson(join30(root, "package.json")).name;
   } catch {
   }
   const name = given.name?.trim() || readProject(root)?.name || id2.name || (pkg && !pkg.startsWith("@") ? pkg : "") || basename4(root);
   if (given.color) return { name, line: given.line ?? id2.line ?? "", color: given.color, colorFrom: "given" };
-  const old = scanDirs(root).flatMap((d) => walkAll(join29(d, "styles")).map((f) => ({ text: readText2(f) })));
+  const old = scanDirs(root).flatMap((d) => walkAll(join30(d, "styles")).map((f) => ({ text: readText2(f) })));
   const fromOld = scanDirs(root).length ? pickBrandColor([{ text: home, themeColor: id2.themeColor }, ...old]) : null;
   const sources = [{ text: home, themeColor: id2.themeColor }];
-  for (const f of ["tailwind.config.js", "tailwind.config.ts", "tailwind.config.mjs", "tailwind.config.cjs"]) sources.push({ text: readText2(join29(root, f)) });
-  const code = ["src", "app", "styles", "css", "public", "static"].flatMap((d) => walk(join29(root, d))).filter((p) => CODE_EXT2.test(p));
-  const plain2 = readdirSync9(root).filter((f) => CODE_EXT2.test(f)).map((f) => join29(root, f));
+  for (const f of ["tailwind.config.js", "tailwind.config.ts", "tailwind.config.mjs", "tailwind.config.cjs"]) sources.push({ text: readText2(join30(root, f)) });
+  const code = ["src", "app", "styles", "css", "public", "static"].flatMap((d) => walk(join30(root, d))).filter((p) => CODE_EXT2.test(p));
+  const plain2 = readdirSync10(root).filter((f) => CODE_EXT2.test(f)).map((f) => join30(root, f));
   for (const f of [...plain2, ...code].slice(0, READ_CAP)) sources.push({ text: readText2(f) });
   const color = fromOld ?? pickBrandColor(sources);
   return { name, line: given.line ?? id2.line ?? "", color: color ?? BRAND_DEFAULT_COLOR, colorFrom: color ? "site" : "default" };
 }
 function writeSiteFile(root, file2, data) {
-  const target = join29(webRoot(root), file2);
-  if (existsSync24(target)) {
-    const keep = join29(root, BRAND_DIR, "originals");
-    mkdirSync17(keep, { recursive: true });
-    copyFileSync2(target, join29(keep, file2));
+  const target = join30(webRoot(root), file2);
+  if (existsSync25(target)) {
+    const keep2 = join30(root, BRAND_DIR, "originals");
+    mkdirSync17(keep2, { recursive: true });
+    copyFileSync2(target, join30(keep2, file2));
   }
   mkdirSync17(dirname9(target), { recursive: true });
   writeFileSync26(target, data);
@@ -33161,7 +33422,7 @@ function allowed(req, url2, port, token) {
   return req.headers.host === `127.0.0.1:${port}` && url2.searchParams.get("t") === token;
 }
 async function headless(browser, url2, width, until, timeoutMs) {
-  const profile = mkdtempSync3(join29(tmpdir4(), "deployai-brand-"));
+  const profile = mkdtempSync3(join30(tmpdir4(), "deployai-brand-"));
   const child = spawn5(browser, ["--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check", "--disable-extensions", `--user-data-dir=${profile}`, `--window-size=${width},900`, url2], { stdio: "ignore", windowsHide: true });
   child.on("error", () => {
   });
@@ -33261,10 +33522,10 @@ async function drawInBrowser(o, browser) {
   }
 }
 function sourceBytes(path) {
-  return { bytes: readFileSync21(path), type: TYPES[extname2(path).toLowerCase()] ?? "application/octet-stream" };
+  return { bytes: readFileSync22(path), type: TYPES[extname2(path).toLowerCase()] ?? "application/octet-stream" };
 }
 function report(root, r) {
-  const where = relative6(root, webRoot(root)).split(sep6).join("/") || "the site root";
+  const where = relative7(root, webRoot(root)).split(sep6).join("/") || "the site root";
   out(`Written in ${where}: ${r.written.join(", ")}`);
   if (r.skipped.length) out(`Left out, the picture is too small to stay sharp: ${r.skipped.join(", ")}. A larger logo makes them.`);
   const tags2 = brandHeadTags(r.written);
@@ -33279,7 +33540,7 @@ function plainIcon(root, source, name, color) {
     const ext = extname2(source.path).toLowerCase();
     if (ext === ".ico" || ext === ".svg" || ext === ".png") {
       const file2 = `favicon${ext}`;
-      writeSiteFile(root, file2, readFileSync21(source.path));
+      writeSiteFile(root, file2, readFileSync22(source.path));
       return [file2];
     }
   }
@@ -33297,7 +33558,7 @@ function printStatus2(root, files) {
   const web = webRoot(root);
   const icon = existingFavicon(root);
   out(icon ? `Icon: ${icon}` : "Icon: missing. Run: npx deployai@latest brand favicon");
-  const missing = files.filter((f) => f !== "favicon.svg" && !existsSync24(join29(web, f)));
+  const missing = files.filter((f) => f !== "favicon.svg" && !existsSync25(join30(web, f)));
   if (files.length) out(missing.length ? `Missing from the full set: ${missing.join(", ")}` : "The full set is there.");
 }
 function printFacts(f, picture2) {
@@ -33316,7 +33577,7 @@ function withLogoColor(facts, source) {
 }
 function pickSource(root, from) {
   const source = from ? { path: from, from: "file" } : findSource(root);
-  if (source.path && !existsSync24(source.path)) throw new CliError(`No such file: ${source.path}`, 1, "usage");
+  if (source.path && !existsSync25(source.path)) throw new CliError(`No such file: ${source.path}`, 1, "usage");
   return source;
 }
 async function brandFaviconCommand(root, opts) {
@@ -33344,7 +33605,7 @@ async function brandFaviconCommand(root, opts) {
 }
 function iconsToDraw(root, force) {
   const icon = force ? null : existingFavicon(root);
-  const keepOg = !force && existsSync24(join29(webRoot(root), "og-image.png"));
+  const keepOg = !force && existsSync25(join30(webRoot(root), "og-image.png"));
   return {
     targets: BRAND_TARGETS.filter((t) => !(keepOg && t.file === "og-image.png") && !(icon && t.icoOnly)),
     keepIcon: Boolean(icon),
@@ -33400,7 +33661,7 @@ async function measurePage(browser, address, width, scripts) {
   }
 }
 function imageFiles(root) {
-  const dirs = [webRoot(root) === root ? null : webRoot(root), join29(root, "src"), join29(root, MIGRATION_DIR)].filter((d) => !!d);
+  const dirs = [webRoot(root) === root ? null : webRoot(root), join30(root, "src"), join30(root, MIGRATION_DIR)].filter((d) => !!d);
   const files = dirs.flatMap((d) => walkAll(d));
   if (webRoot(root) === root) files.push(...walk(root));
   return [...new Set(files)].filter((p) => IMAGE_EXT.test(p) && !p.split(sep6).includes("icons") && !BRAND_FILES.includes(basename4(p)));
@@ -33410,15 +33671,15 @@ function walkAll(dir) {
   const go = (d) => {
     let names2 = [];
     try {
-      names2 = readdirSync9(d);
+      names2 = readdirSync10(d);
     } catch {
       return;
     }
     for (const n2 of names2) {
       if (found.length >= WALK_CAP) return;
-      const p = join29(d, n2);
+      const p = join30(d, n2);
       try {
-        if (statSync5(p).isDirectory()) {
+        if (statSync6(p).isDirectory()) {
           if (!SKIP_DIRS3.has(n2) || n2 === ".deployai") go(p);
         } else found.push(p);
       } catch {
@@ -33435,7 +33696,7 @@ function judgeFiles(root) {
   for (const f of files) {
     let bytes;
     try {
-      bytes = readFileSync21(f);
+      bytes = readFileSync22(f);
     } catch {
       continue;
     }
@@ -33443,7 +33704,7 @@ function judgeFiles(root) {
     if (!size) continue;
     total++;
     const verdict = judgeImage({ width: size.width, height: size.height, bytes: bytes.length, format: size.format });
-    if (verdict !== "ok") findings.push({ where: relative6(root, f).split(sep6).join("/"), width: size.width, height: size.height, verdict });
+    if (verdict !== "ok") findings.push({ where: relative7(root, f).split(sep6).join("/"), width: size.width, height: size.height, verdict });
   }
   return { findings, total };
 }
@@ -33485,10 +33746,10 @@ async function brandImagesCommand(root, urls, opts) {
     if (verdict !== "ok") onPages.push({ where: m.src, width: m.width, height: m.height, shownWidth: m.shownWidth, verdict, alt: m.alt });
   }
   const weak = [...onPages, ...findings];
-  mkdirSync17(join29(root, BRAND_DIR), { recursive: true });
+  mkdirSync17(join30(root, BRAND_DIR), { recursive: true });
   const file2 = `${BRAND_DIR}/images.json`;
   const data = { measuredAt: (/* @__PURE__ */ new Date()).toISOString(), pages: urls, unmeasured, filesChecked: total, imagesMeasured: shown.size, weak };
-  writeFileSync26(join29(root, file2), `${JSON.stringify(data, null, 2)}
+  writeFileSync26(join30(root, file2), `${JSON.stringify(data, null, 2)}
 `);
   if (opts.json) {
     out(JSON.stringify(data));
@@ -33554,7 +33815,7 @@ function buildProgram() {
   const root = (cmd) => resolve11(g(cmd).dir ?? process.cwd());
   const ctx = (cmd) => apiContext(g(cmd).api, root(cmd));
   program.hook("preAction", async (_p, action) => {
-    if (["init", "start", "rules"].includes(action.name()) || !existsSync25(join30(root(action), "DEPLOYAI.md"))) return;
+    if (["init", "start", "rules"].includes(action.name()) || !existsSync26(join31(root(action), "DEPLOYAI.md"))) return;
     await refreshRules(root(action), ctx(action).apiUrl);
   });
   program.command("init").description("create DEPLOYAI.md and .deployai/ guard files").option("--force", "overwrite DEPLOYAI.md").option("--no-agent-files", "do not add the DEPLOYAI.md line to AGENTS.md and CLAUDE.md").action((opts, cmd) => initCommand(root(cmd), opts, ctx(cmd).apiUrl));
@@ -33748,8 +34009,8 @@ function nodeGuideUrl(lang, base = API_BASE_DEFAULT) {
 
 // src/update.ts
 import { spawnSync as spawnSync8 } from "child_process";
-import { existsSync as existsSync26, mkdirSync as mkdirSync18, readdirSync as readdirSync10, readFileSync as readFileSync22, rmSync as rmSync8, writeFileSync as writeFileSync27 } from "fs";
-import { join as join31 } from "path";
+import { existsSync as existsSync27, mkdirSync as mkdirSync18, readdirSync as readdirSync11, readFileSync as readFileSync23, rmSync as rmSync8, writeFileSync as writeFileSync27 } from "fs";
+import { join as join32 } from "path";
 var CHECK_EVERY_MS = 60 * 60 * 1e3;
 var ASK_NPM_MS = 1500;
 var GET_VERSION_MS = 12e4;
@@ -33787,11 +34048,11 @@ function updateAllowed(env, args) {
   return resolveApiUrl(void 0, loadConfig()) === API_BASE_DEFAULT.replace(/\/+$/, "");
 }
 function statePath() {
-  return join31(configDir(), "update-check.json");
+  return join32(configDir(), "update-check.json");
 }
 function readState() {
   try {
-    const data = JSON.parse(readFileSync22(statePath(), "utf8"));
+    const data = JSON.parse(readFileSync23(statePath(), "utf8"));
     return data && typeof data === "object" ? data : {};
   } catch {
     return {};
@@ -33816,20 +34077,20 @@ async function askNpmLatest(env) {
   }
 }
 function versionEntry(version2) {
-  return join31(configDir(), "cli", version2, "node_modules", "deployai", "dist", "index.js");
+  return join32(configDir(), "cli", version2, "node_modules", "deployai", "dist", "index.js");
 }
 function getVersion(version2, env) {
   process.stderr.write(`Getting the newest DeployAI CLI, version ${version2}.
 `);
-  const root = join31(configDir(), "cli");
-  const dir = join31(root, version2);
+  const root = join32(configDir(), "cli");
+  const dir = join32(root, version2);
   mkdirSync18(dir, { recursive: true });
-  writeFileSync27(join31(dir, "package.json"), '{"private":true}\n');
+  writeFileSync27(join32(dir, "package.json"), '{"private":true}\n');
   const installed = spawnSync8(`npm install deployai@${version2} --ignore-scripts --no-audit --no-fund --silent`, { cwd: dir, env, shell: true, stdio: "ignore", windowsHide: true, timeout: GET_VERSION_MS });
   if (installed.status !== 0) return false;
   const ran = spawnSync8(process.execPath, [versionEntry(version2), "--version"], { env: { ...env, DEPLOYAI_NO_UPDATE: "1" }, encoding: "utf8", timeout: GET_VERSION_MS });
   if (ran.status !== 0 || ran.stdout.trim() !== version2) return false;
-  for (const old of readdirSync10(root)) if (old !== version2) rmSync8(join31(root, old), { recursive: true, force: true });
+  for (const old of readdirSync11(root)) if (old !== version2) rmSync8(join32(root, old), { recursive: true, force: true });
   return true;
 }
 function runVersion(version2, args, env = process.env) {
@@ -33848,7 +34109,7 @@ async function versionToRun(current, args, env = process.env, deps = {}) {
   }
   const latest = state.latest;
   if (!latest || !PLAIN_VERSION.test(latest) || compareVersions(latest, current) <= 0) return null;
-  if (state.ready === latest && existsSync26(versionEntry(latest))) return latest;
+  if (state.ready === latest && existsSync27(versionEntry(latest))) return latest;
   if (now - (state.triedAt ?? 0) < CHECK_EVERY_MS) return null;
   state.triedAt = now;
   if (get2(latest, env)) state.ready = latest;
