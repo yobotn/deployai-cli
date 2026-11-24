@@ -6,8 +6,8 @@ var __export = (target, all) => {
 };
 
 // src/cli.ts
-import { existsSync as existsSync24 } from "fs";
-import { join as join28, resolve as resolve11 } from "path";
+import { existsSync as existsSync25 } from "fs";
+import { join as join30, resolve as resolve11 } from "path";
 import { Command, CommanderError } from "commander";
 
 // ../shared/src/plans.ts
@@ -21487,6 +21487,8 @@ var Version = external_exports.object({
   preview: external_exports.string().nullable().optional()
 });
 var VersionsResponse = external_exports.object({ versions: external_exports.array(Version) });
+var SaveResponse = external_exports.object({ saved: external_exports.boolean(), reason: external_exports.enum(["same"]).optional(), at: external_exports.string(), files: external_exports.number() });
+var SavesResponse = external_exports.object({ saves: external_exports.array(external_exports.object({ n: external_exports.number(), at: external_exports.string(), files: external_exports.number(), bytes: external_exports.number(), place: external_exports.string().nullable(), builtOn: external_exports.number().nullable(), version: external_exports.number().nullable(), tool: external_exports.string().nullable() })) });
 var RequestsResponse = external_exports.object({ lines: external_exports.array(external_exports.object({ at: external_exports.number(), method: external_exports.string(), path: external_exports.string(), status: external_exports.number(), outcome: external_exports.string(), country: external_exports.string(), dropped: external_exports.number().optional() })).nullable() });
 var LogLine = external_exports.object({ at: external_exports.number(), kind: external_exports.enum(["request", "log", "exception"]), level: external_exports.string(), text: external_exports.string() });
 var LogsReady = external_exports.object({ name: external_exports.string(), url: external_exports.string().nullable(), until: external_exports.number() });
@@ -23216,6 +23218,9 @@ var DEPLOY_TOOL_NAMES = {
   replit: "Replit",
   grok: "Grok Build"
 };
+function deployToolName(tool, other) {
+  return Object.hasOwn(DEPLOY_TOOL_NAMES, tool) ? DEPLOY_TOOL_NAMES[tool] : other;
+}
 var AI_AGENT_NAMES = [
   [/claude/, "claudeCode"],
   [/codex/, "codex"],
@@ -23229,10 +23234,11 @@ var AI_AGENT_NAMES = [
 ];
 function deployToolFromEnv(env) {
   const named = env.AI_AGENT?.trim().toLowerCase();
-  if (named) return AI_AGENT_NAMES.find(([re]) => re.test(named))?.[1] ?? "other";
+  const fromName = named ? AI_AGENT_NAMES.find(([re]) => re.test(named))?.[1] ?? "other" : null;
+  if (env.GROK_AGENT === "1" && fromName !== "claudeCode") return "grok";
+  if (fromName) return fromName;
   if (env.CLAUDECODE || env.CLAUDE_CODE) return "claudeCode";
   if (env.CODEX_SANDBOX || env.CODEX_CI || env.CODEX_THREAD_ID) return "codex";
-  if (env.GROK_AGENT === "1") return "grok";
   if (env.GEMINI_CLI) return "gemini";
   if (env.ANTIGRAVITY_AGENT) return "antigravity";
   if (env.OPENCODE === "1" || env.OPENCODE_CLIENT) return "opencode";
@@ -23441,7 +23447,10 @@ var CLI_MAP_NODES = [
   n("cmd-link", "cli", "link [site]", "\u05DE\u05D7\u05D1\u05E8 \u05D0\u05EA \u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05DC\u05D0\u05EA\u05E8, \u05D0\u05D5 \u05D9\u05D5\u05E6\u05E8 \u05D0\u05EA\u05E8 \u05E2\u05DD --create.", "Links the folder to a site, or makes one with --create."),
   n("cmd-deploy", "cli", "deploy -m", "\u05D1\u05D5\u05D3\u05E7, \u05D0\u05D5\u05E8\u05D6 \u05D5\u05DE\u05E2\u05DC\u05D4 \u05D2\u05E8\u05E1\u05D4, \u05DE\u05D7\u05DB\u05D4 \u05DC\u05D1\u05E0\u05D9\u05D9\u05D4 \u05D5\u05DE\u05E2\u05DC\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8 \u05E2\u05DD --live \u05D0\u05D5 \u05E0\u05D5\u05EA\u05DF \u05EA\u05E6\u05D5\u05D2\u05D4 \u05DE\u05E7\u05D3\u05D9\u05DE\u05D4. \u05E2\u05DD --hold \u05D2\u05E8\u05E1\u05EA \u05D1\u05D3\u05D9\u05E7\u05D4 \u05E0\u05E9\u05D0\u05E8\u05EA \u05D1\u05D4\u05DE\u05EA\u05E0\u05D4 \u05D2\u05DD \u05D1\u05D0\u05EA\u05E8 \u05E9\u05E2\u05D5\u05DC\u05D4 \u05DC\u05D1\u05D3 (D-961).", "Checks, packs and uploads a version, waits for the build, then puts it live with --live or gives the preview. With --hold a test version waits, also on a site that goes live by itself (D-961)."),
   n("cmd-guest", "cli", "deploy --guest", "\u05D0\u05EA\u05E8 \u05D6\u05DE\u05E0\u05D9 \u05D1\u05DC\u05D9 \u05D7\u05E9\u05D1\u05D5\u05DF, \u05E2\u05DD \u05E7\u05D9\u05E9\u05D5\u05E8 \u05DC\u05E9\u05DE\u05D9\u05E8\u05D4.", "A temporary site with no account, with a claim link."),
-  n("cmd-pull", "cli", "pull", "\u05DE\u05D5\u05E8\u05D9\u05D3 \u05D0\u05EA \u05D4\u05E7\u05D5\u05D3 \u05E9\u05DC \u05D4\u05D2\u05E8\u05E1\u05D4 \u05E9\u05D1\u05D0\u05D5\u05D5\u05D9\u05E8 \u05DC\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05E8\u05D9\u05E7\u05D4.", "Downloads the code of the live version into an empty folder."),
+  n("cmd-pull", "cli", "pull", "\u05DE\u05D5\u05E8\u05D9\u05D3 \u05DC\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05E8\u05D9\u05E7\u05D4 \u05D0\u05EA \u05D4\u05E2\u05D1\u05D5\u05D3\u05D4 \u05D4\u05E9\u05DE\u05D5\u05E8\u05D4 \u05D4\u05D0\u05D7\u05E8\u05D5\u05E0\u05D4 \u05E9\u05DC\u05DB\u05DD \u05DB\u05E9\u05D4\u05D9\u05D0 \u05D7\u05D3\u05E9\u05D4 \u05DE\u05D4\u05D4\u05E2\u05DC\u05D0\u05D4 \u05D4\u05D0\u05D7\u05E8\u05D5\u05E0\u05D4 \u05E9\u05DC\u05DB\u05DD, \u05D0\u05D7\u05E8\u05EA \u05D0\u05EA \u05D4\u05D2\u05E8\u05E1\u05D4 \u05E9\u05D1\u05D0\u05D5\u05D5\u05D9\u05E8 (D-1206).", "Downloads into an empty folder your newest saved work when it is newer than your last deploy, else the live version (D-1206)."),
+  n("cmd-save", "cli", "save", "\u05E9\u05D5\u05DE\u05E8 \u05D0\u05EA \u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05DB\u05DE\u05D5 \u05E9\u05D4\u05D9\u05D0, \u05D1\u05DC\u05D9 \u05D1\u05E0\u05D9\u05D9\u05D4 \u05D5\u05D1\u05DC\u05D9 \u05D2\u05E8\u05E1\u05D4, \u05DB\u05D3\u05D9 \u05E9\u05DE\u05D7\u05E9\u05D1 \u05D0\u05D7\u05E8 \u05D9\u05DE\u05E9\u05D9\u05DA \u05DE\u05DE\u05E0\u05D4. check \u05E9\u05D5\u05DE\u05E8 \u05D2\u05DD \u05DC\u05D1\u05D3 (D-1206).", "Keeps the folder as it is, with no build and no version, so another computer continues from it. check saves by itself too (D-1206)."),
+  n("cmd-saves", "cli", "saves", "\u05D7\u05DE\u05E9 \u05D4\u05E9\u05DE\u05D9\u05E8\u05D5\u05EA \u05D4\u05D0\u05D7\u05E8\u05D5\u05E0\u05D5\u05EA \u05E9\u05DC\u05DB\u05DD \u05D1\u05D0\u05EA\u05E8, \u05DE\u05DE\u05D5\u05E1\u05E4\u05E8\u05D5\u05EA \u05D1\u05E9\u05D1\u05D9\u05DC pull --save.", "Your newest five saves on the site, numbered for pull --save."),
+  n("cmd-backup", "cli", "backup", "\u05E9\u05D5\u05DE\u05E8 \u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05E7\u05D5\u05D1\u05E5 zip \u05D0\u05D7\u05D3 \u05E2\u05DD \u05DB\u05DC \u05D4\u05D0\u05EA\u05E8: \u05D4\u05E7\u05D5\u05D3, \u05DB\u05DC \u05DE\u05E1\u05D3 \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05D5\u05D4\u05E7\u05D1\u05E6\u05D9\u05DD. \u05D0\u05E4\u05E9\u05E8 \u05DC\u05E9\u05D7\u05D6\u05E8 \u05DE\u05DE\u05E0\u05D5 \u05D1\u05DC\u05E9\u05D5\u05E0\u05D9\u05EA \u05D2\u05D9\u05D1\u05D5\u05D9\u05D9\u05DD (D-1205).", "Saves one zip with the whole site into this folder: the code, every database and the files. It can be restored on the Backups tab (D-1205)."),
   n("cmd-sync", "cli", "sync", "\u05DE\u05DB\u05E0\u05D9\u05E1 \u05DC\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D0\u05EA \u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05E9\u05DE\u05D9\u05E9\u05D4\u05D5 \u05D0\u05D7\u05E8 \u05D4\u05E2\u05DC\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8, \u05D5\u05DE\u05E1\u05DE\u05DF \u05DE\u05D4 \u05E9\u05E9\u05E0\u05D9 \u05D4\u05E6\u05D3\u05D3\u05D9\u05DD \u05E9\u05D9\u05E0\u05D5 (D-907).", "Brings in the changes someone else put live, and marks what both sides changed (D-907)."),
   n("cmd-claim", "cli", "claim --email", "\u05E7\u05D9\u05E9\u05D5\u05E8 \u05D4\u05E9\u05DE\u05D9\u05E8\u05D4 \u05E9\u05D5\u05D1, \u05D0\u05D5 \u05D1\u05DE\u05D9\u05D9\u05DC \u05E2\u05DD \u05EA\u05D6\u05DB\u05D5\u05E8\u05EA \u05DC\u05E4\u05E0\u05D9 \u05D4\u05DE\u05D7\u05D9\u05E7\u05D4.", "The claim link again, or by email with a reminder before the delete."),
   n("cmd-status", "cli", "status", "\u05DE\u05E6\u05D1 \u05D4\u05D2\u05E8\u05E1\u05D4 \u05D4\u05D0\u05D7\u05E8\u05D5\u05E0\u05D4 \u05D5\u05DB\u05EA\u05D5\u05D1\u05EA \u05D4\u05EA\u05E6\u05D5\u05D2\u05D4 \u05D4\u05DE\u05E7\u05D3\u05D9\u05DE\u05D4.", "The latest version's state and preview address."),
@@ -23478,7 +23487,10 @@ var CLI_MAP_NODES = [
   n("api-projects", "server", "/api/cli/projects", "\u05D4\u05D0\u05EA\u05E8\u05D9\u05DD \u05E9\u05DC \u05D4\u05D7\u05E9\u05D1\u05D5\u05DF, \u05D5\u05D9\u05E6\u05D9\u05E8\u05EA \u05D0\u05EA\u05E8.", "The account's sites, and making one."),
   n("api-deploy", "server", "POST /api/cli/deploy", "\u05DE\u05E7\u05D1\u05DC \u05D0\u05EA \u05D4\u05E7\u05D5\u05D3, \u05D1\u05D5\u05E0\u05D4 \u05D5\u05DE\u05DB\u05D9\u05DF \u05EA\u05E6\u05D5\u05D2\u05D4 \u05DE\u05E7\u05D3\u05D9\u05DE\u05D4.", "Takes the source, builds and prepares a preview."),
   n("api-guest", "server", "POST /api/cli/guest", "\u05D0\u05EA\u05E8 \u05D6\u05DE\u05E0\u05D9 \u05D5\u05E7\u05D9\u05E9\u05D5\u05E8 \u05DC\u05E9\u05DE\u05D9\u05E8\u05D4.", "A temporary site and its claim link."),
-  n("api-source", "server", "GET /api/cli/source", "\u05D4\u05E7\u05D5\u05D3 \u05E9\u05DC \u05D4\u05D2\u05E8\u05E1\u05D4 \u05E9\u05D1\u05D0\u05D5\u05D5\u05D9\u05E8, \u05DC\u05D1\u05E2\u05DC\u05D9\u05DD \u05D0\u05D5 \u05DC\u05D7\u05D1\u05E8 \u05E6\u05D5\u05D5\u05EA.", "The code of the live version, for the owner or a member."),
+  n("api-source", "server", "GET /api/cli/source", "\u05D4\u05E7\u05D5\u05D3 \u05E9\u05DC \u05D4\u05D2\u05E8\u05E1\u05D4 \u05E9\u05D1\u05D0\u05D5\u05D5\u05D9\u05E8, \u05DC\u05D1\u05E2\u05DC\u05D9\u05DD \u05D0\u05D5 \u05DC\u05D7\u05D1\u05E8 \u05E6\u05D5\u05D5\u05EA. mine=1 \u05D0\u05D5 save=N: \u05D4\u05E9\u05DE\u05D9\u05E8\u05D4 \u05E9\u05DC\u05DB\u05DD (D-1206).", "The code of the live version, for the owner or a member. mine=1 or save=N: your own save (D-1206)."),
+  n("api-backup", "server", "POST /api/cli/backup", "\u05DE\u05D1\u05E7\u05E9 \u05E2\u05D5\u05EA\u05E7 \u05E9\u05DC \u05DB\u05DC \u05D4\u05D0\u05EA\u05E8 (\u05D0\u05D5\u05EA\u05D4 \u05E2\u05D1\u05D5\u05D3\u05D4 \u05DB\u05DE\u05D5 \u05D4\u05D5\u05E8\u05D3\u05D4 \u05E9\u05DC \u05D4\u05DB\u05D5\u05DC), \u05D5\u05D0\u05D6 \u05DE\u05E6\u05D1 \u05D4\u05E2\u05D5\u05EA\u05E7 \u05D5\u05D4\u05D4\u05D5\u05E8\u05D3\u05D4 \u05E9\u05DC\u05D5 (D-1205).", "Asks for a copy of the whole site (the same job as Download everything), then its state and its download (D-1205)."),
+  n("api-save", "server", "POST /api/cli/save", "\u05E9\u05D5\u05DE\u05E8 \u05D0\u05EA \u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05DC\u05D0\u05D3\u05DD \u05E9\u05DC\u05D4, \u05E2\u05DD \u05D0\u05D5\u05EA\u05DF \u05D1\u05D3\u05D9\u05E7\u05D5\u05EA \u05DB\u05DE\u05D5 \u05D4\u05E2\u05DC\u05D0\u05D4 (\u05D1\u05DC\u05D9 .env \u05D5\u05D1\u05DC\u05D9 \u05E1\u05D5\u05D3\u05D5\u05EA). \u05D7\u05DE\u05E9 \u05D0\u05D7\u05E8\u05D5\u05E0\u05D5\u05EA, 30 \u05D9\u05D5\u05DD.", "Keeps the folder for its own person, with the same checks as a deploy (no .env, no secrets). Newest five, 30 days."),
+  n("api-saves", "server", "GET /api/cli/saves", "\u05E8\u05E9\u05D9\u05DE\u05EA \u05D4\u05E9\u05DE\u05D9\u05E8\u05D5\u05EA \u05E9\u05DC\u05DB\u05DD \u05D1\u05D0\u05EA\u05E8.", "Your saves on the site."),
   n("api-guest-email", "server", "POST /api/guest/email", "\u05E9\u05D5\u05DC\u05D7 \u05D0\u05EA \u05E7\u05D9\u05E9\u05D5\u05E8 \u05D4\u05E9\u05DE\u05D9\u05E8\u05D4 \u05D5\u05E9\u05D5\u05DE\u05E8 \u05D0\u05EA \u05D4\u05DE\u05D9\u05D9\u05DC \u05DC\u05EA\u05D6\u05DB\u05D5\u05E8\u05EA.", "Mails the claim link and keeps the email for the reminder."),
   n("api-status", "server", "/api/cli/status, versions", "\u05DE\u05E6\u05D1 \u05D5\u05D2\u05E8\u05E1\u05D0\u05D5\u05EA \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8.", "The site's state and versions."),
   n("api-promote", "server", "/api/cli/promote, rollback", "\u05DE\u05D7\u05DC\u05D9\u05E3 \u05D0\u05EA \u05D4\u05D2\u05E8\u05E1\u05D4 \u05D4\u05D7\u05D9\u05D4.", "Switches the live version."),
@@ -23531,6 +23543,10 @@ var CLI_MAP_EDGES = [
   e("cmd-guest", "api-guest"),
   e("cmd-claim", "api-guest-email"),
   e("cmd-pull", "api-source"),
+  e("cmd-save", "api-save"),
+  e("cmd-check", "api-save"),
+  e("cmd-saves", "api-saves"),
+  e("cmd-backup", "api-backup"),
   e("cmd-sync", "api-source"),
   e("cmd-check", "api-check"),
   e("cmd-telemetry", "api-check"),
@@ -24405,7 +24421,7 @@ var ENV_KEYS = {
   DISPATCH_RATE_LIMIT_FREE: { scope: "same", section: "cloudflare", about: "The same on a site on a free plan." },
   DISPATCH_RATE_LIMIT_PAID: { scope: "same", section: "cloudflare", about: "The same on a site on a paid plan." },
   DISPATCH_RATE_LIMIT_PERIOD: { scope: "same", section: "cloudflare", about: "The rate limit period in seconds: 10 or 60." },
-  GOOGLE_CLIENT_ID: { scope: "same", section: "login", about: "Google Cloud Console, OAuth client, with both the laptop and the server redirect addresses on it." },
+  GOOGLE_CLIENT_ID: { scope: "same", section: "login", about: "Google Cloud Console, OAuth client, with both the laptop and the server redirect addresses on it: the login (/api/auth/callback/google) and Google Drive copies (/api/drive/callback, D-1205, with the Drive API on). Unset off production, a simulated Drive answers." },
   GOOGLE_CLIENT_SECRET: { scope: "same", section: "login", about: "The secret of that Google client." },
   GITHUB_CLIENT_ID: { scope: "same", section: "login", about: "GitHub, Settings, Developer settings, OAuth Apps, with both redirect addresses on it." },
   GITHUB_CLIENT_SECRET: { scope: "same", section: "login", about: "The secret of that GitHub app." },
@@ -26042,12 +26058,42 @@ var M = {
     guestClaim: "Open the claim link to keep the site (sign up or log in).",
     claimLink: "Keep link for this temporary site: {url}",
     pulled: "Downloaded the code of version v{v}: {n} files.",
+    backupStarted: "Making a copy of the whole site: the code, every database and the files. This can take a few minutes.",
+    backupSaved: "Saved the copy: {file}. Keep it somewhere of your own. To bring it back, open the site on DeployAI, then Backups, then Restore from a copy.",
+    backupSkipped: "Left out because they are too large: {names}. Write to us and we will move them with you.",
+    backupFailed: "The copy did not finish. Try again in a few minutes, or make it on the Backups tab of the site.",
+    backupSlow: "The copy is taking long. It will wait on the Backups tab of the site when it is ready.",
     pulledHistory: "Downloaded the history: {n} versions as git commits, up to the live version v{v}.",
     pullNoGit: "The history needs git on this computer. Install it from https://git-scm.com, or run pull without --history.",
     pullNotLinked: "This folder is not linked to a site. Copy the line again from the site page on DeployAI.",
     pullNotEmpty: "The history needs an empty folder. This one already has files, so nothing was downloaded.",
     pullKept: "{n} file(s) were already in this folder, so they were kept as they are: {files}",
     pullNoSource: "This site has no version to download yet.",
+    pullNoSave: "You have no save with that number on this site. See them with: npx deployai@latest saves",
+    pullSaveNumber: "Give the save number from npx deployai@latest saves, for example --save 2.",
+    pulledSave: "Brought your saved work from {ago}{tool}: {n} files, built on v{v}. Tell the owner the work continues from there.",
+    pulledSaveNoBase: "Brought your saved work from {ago}{tool}: {n} files. Tell the owner the work continues from there.",
+    saved: "Saved your work: {n} files. Any computer continues from it with the same start line.",
+    saveSame: "Nothing changed since the last save ({ago}).",
+    saveTooLarge: "This folder is over 50 MB, so it cannot be saved. Leave large files out with .deployaiignore.",
+    saveFailedAuto: "Could not save the work to DeployAI this time. Run npx deployai@latest save after the next change.",
+    savesNone: "You have no saves on this site yet. Save with: npx deployai@latest save",
+    savesTitle: "Your saves on this site, newest first:",
+    savesSave: "save",
+    savesDeploy: "deploy v{v}",
+    savesFiles: "{n} files",
+    savesHere: "this folder",
+    savesElsewhere: "another folder or computer",
+    savesPullHint: "Bring one into an empty folder with: npx deployai@latest pull --save <n>",
+    agoNow: "just now",
+    agoMinute: "a minute ago",
+    agoMinutes: "{n} minutes ago",
+    agoHour: "an hour ago",
+    agoHoursTwo: "2 hours ago",
+    agoHours: "{n} hours ago",
+    agoDay: "a day ago",
+    agoDaysTwo: "2 days ago",
+    agoDays: "{n} days ago",
     pullTooLarge: "The code of this version is over 50 MB, too large to download.",
     pullDamaged: "The download is damaged. Try again.",
     guestEmailHint: "To get it by email, with a reminder before the delete: npx deployai@latest claim --email <email>",
@@ -26360,12 +26406,42 @@ var M = {
     guestClaim: "\u05E4\u05EA\u05D7\u05D5 \u05D0\u05EA \u05E7\u05D9\u05E9\u05D5\u05E8 \u05D4\u05E9\u05DE\u05D9\u05E8\u05D4 \u05DB\u05D3\u05D9 \u05DC\u05E9\u05DE\u05D5\u05E8 \u05D0\u05EA \u05D4\u05D0\u05EA\u05E8 (\u05D4\u05E8\u05E9\u05DE\u05D4 \u05D0\u05D5 \u05DB\u05E0\u05D9\u05E1\u05D4).",
     claimLink: "\u05E7\u05D9\u05E9\u05D5\u05E8 \u05D4\u05E9\u05DE\u05D9\u05E8\u05D4 \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D4\u05D6\u05DE\u05E0\u05D9: {url}",
     pulled: "\u05D4\u05D5\u05E8\u05D3\u05E0\u05D5 \u05D0\u05EA \u05D4\u05E7\u05D5\u05D3 \u05E9\u05DC \u05D2\u05E8\u05E1\u05D4 v{v}: {n} \u05E7\u05D1\u05E6\u05D9\u05DD.",
+    backupStarted: "\u05DE\u05DB\u05D9\u05E0\u05D9\u05DD \u05E2\u05D5\u05EA\u05E7 \u05E9\u05DC \u05DB\u05DC \u05D4\u05D0\u05EA\u05E8: \u05D4\u05E7\u05D5\u05D3, \u05DB\u05DC \u05DE\u05E1\u05D3 \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05D5\u05D4\u05E7\u05D1\u05E6\u05D9\u05DD. \u05D6\u05D4 \u05D9\u05DB\u05D5\u05DC \u05DC\u05E7\u05D7\u05EA \u05DB\u05DE\u05D4 \u05D3\u05E7\u05D5\u05EA.",
+    backupSaved: "\u05D4\u05E2\u05D5\u05EA\u05E7 \u05E0\u05E9\u05DE\u05E8: {file}. \u05E9\u05DE\u05E8\u05D5 \u05D0\u05D5\u05EA\u05D5 \u05D1\u05DE\u05E7\u05D5\u05DD \u05DE\u05E9\u05DC\u05DB\u05DD. \u05DB\u05D3\u05D9 \u05DC\u05D4\u05D7\u05D6\u05D9\u05E8 \u05D0\u05D5\u05EA\u05D5, \u05E4\u05EA\u05D7\u05D5 \u05D0\u05EA \u05D4\u05D0\u05EA\u05E8 \u05D1\u05BEDeployAI, \u05D0\u05D7\u05E8 \u05DB\u05DA \u05D2\u05D9\u05D1\u05D5\u05D9\u05D9\u05DD, \u05D5\u05D0\u05D6 \u05E9\u05D7\u05D6\u05D5\u05E8 \u05DE\u05E2\u05D5\u05EA\u05E7.",
+    backupSkipped: "\u05DC\u05D0 \u05E0\u05DB\u05DC\u05DC\u05D5 \u05DB\u05D9 \u05D4\u05DD \u05D2\u05D3\u05D5\u05DC\u05D9\u05DD \u05DE\u05D3\u05D9: {names}. \u05DB\u05EA\u05D1\u05D5 \u05DC\u05E0\u05D5 \u05D5\u05E0\u05E2\u05D1\u05D9\u05E8 \u05D0\u05D5\u05EA\u05DD \u05D9\u05D7\u05D3.",
+    backupFailed: "\u05D4\u05E2\u05D5\u05EA\u05E7 \u05DC\u05D0 \u05D4\u05D5\u05E9\u05DC\u05DD. \u05E0\u05E1\u05D5 \u05E9\u05D5\u05D1 \u05D1\u05E2\u05D5\u05D3 \u05DB\u05DE\u05D4 \u05D3\u05E7\u05D5\u05EA, \u05D0\u05D5 \u05D4\u05DB\u05D9\u05E0\u05D5 \u05D0\u05D5\u05EA\u05D5 \u05D1\u05DC\u05E9\u05D5\u05E0\u05D9\u05EA \u05D2\u05D9\u05D1\u05D5\u05D9\u05D9\u05DD \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8.",
+    backupSlow: "\u05D4\u05E2\u05D5\u05EA\u05E7 \u05DC\u05D5\u05E7\u05D7 \u05D6\u05DE\u05DF. \u05DB\u05E9\u05D9\u05D4\u05D9\u05D4 \u05DE\u05D5\u05DB\u05DF \u05D4\u05D5\u05D0 \u05D9\u05D7\u05DB\u05D4 \u05D1\u05DC\u05E9\u05D5\u05E0\u05D9\u05EA \u05D2\u05D9\u05D1\u05D5\u05D9\u05D9\u05DD \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8.",
     pulledHistory: "\u05D4\u05D5\u05E8\u05D3\u05E0\u05D5 \u05D0\u05EA \u05D4\u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D4: {n} \u05D2\u05E8\u05E1\u05D0\u05D5\u05EA \u05DB\u05BEcommits \u05D1\u05BEgit, \u05E2\u05D3 \u05D4\u05D2\u05E8\u05E1\u05D4 \u05E9\u05D1\u05D0\u05D5\u05D5\u05D9\u05E8 v{v}.",
     pullNoGit: "\u05DB\u05D3\u05D9 \u05DC\u05D4\u05D5\u05E8\u05D9\u05D3 \u05D0\u05EA \u05D4\u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D4 \u05E6\u05E8\u05D9\u05DA git \u05D1\u05DE\u05D7\u05E9\u05D1. \u05D4\u05EA\u05E7\u05D9\u05E0\u05D5 \u05D0\u05D5\u05EA\u05D5 \u05DE\u05BEhttps://git-scm.com, \u05D0\u05D5 \u05D4\u05E8\u05D9\u05E6\u05D5 pull \u05D1\u05DC\u05D9 \u200E--history.",
     pullNotLinked: "\u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5 \u05DC\u05D0 \u05DE\u05D7\u05D5\u05D1\u05E8\u05EA \u05DC\u05D0\u05EA\u05E8. \u05D4\u05E2\u05EA\u05D9\u05E7\u05D5 \u05E9\u05D5\u05D1 \u05D0\u05EA \u05D4\u05E9\u05D5\u05E8\u05D4 \u05DE\u05D3\u05E3 \u05D4\u05D0\u05EA\u05E8 \u05D1\u05BEDeployAI.",
     pullNotEmpty: "\u05DB\u05D3\u05D9 \u05DC\u05D4\u05D5\u05E8\u05D9\u05D3 \u05D0\u05EA \u05D4\u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D4 \u05E6\u05E8\u05D9\u05DA \u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05E8\u05D9\u05E7\u05D4. \u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5 \u05DB\u05D1\u05E8 \u05D9\u05E9 \u05E7\u05D1\u05E6\u05D9\u05DD, \u05D0\u05D6 \u05DC\u05D0 \u05D4\u05D5\u05E8\u05D3\u05E0\u05D5 \u05DB\u05DC\u05D5\u05DD.",
     pullKept: "{n} \u05E7\u05D1\u05E6\u05D9\u05DD \u05DB\u05D1\u05E8 \u05D4\u05D9\u05D5 \u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4, \u05D5\u05D4\u05E9\u05D0\u05E8\u05E0\u05D5 \u05D0\u05D5\u05EA\u05DD \u05DB\u05DE\u05D5 \u05E9\u05D4\u05DD: {files}",
     pullNoSource: "\u05DC\u05D0\u05EA\u05E8 \u05D4\u05D6\u05D4 \u05E2\u05D5\u05D3 \u05D0\u05D9\u05DF \u05D2\u05E8\u05E1\u05D4 \u05DC\u05D4\u05D5\u05E8\u05D9\u05D3.",
+    pullNoSave: "\u05D0\u05D9\u05DF \u05DC\u05DB\u05DD \u05E9\u05DE\u05D9\u05E8\u05D4 \u05D1\u05DE\u05E1\u05E4\u05E8 \u05D4\u05D6\u05D4 \u05D1\u05D0\u05EA\u05E8. \u05D0\u05E4\u05E9\u05E8 \u05DC\u05E8\u05D0\u05D5\u05EA \u05D0\u05EA \u05D4\u05E9\u05DE\u05D9\u05E8\u05D5\u05EA \u05E2\u05DD: npx deployai@latest saves",
+    pullSaveNumber: "\u05E6\u05E8\u05D9\u05DA \u05D0\u05EA \u05DE\u05E1\u05E4\u05E8 \u05D4\u05E9\u05DE\u05D9\u05E8\u05D4 \u05DE\u05BEnpx deployai@latest saves, \u05DC\u05DE\u05E9\u05DC --save 2.",
+    pulledSave: "\u05D4\u05D1\u05D0\u05E0\u05D5 \u05D0\u05EA \u05D4\u05E2\u05D1\u05D5\u05D3\u05D4 \u05E9\u05E9\u05DE\u05E8\u05EA\u05DD {ago}{tool}: {n} \u05E7\u05D1\u05E6\u05D9\u05DD, \u05E2\u05DC \u05D1\u05E1\u05D9\u05E1 v{v}. \u05E1\u05E4\u05E8\u05D5 \u05DC\u05D1\u05E2\u05DC\u05D9\u05DD \u05E9\u05D4\u05E2\u05D1\u05D5\u05D3\u05D4 \u05DE\u05DE\u05E9\u05D9\u05DB\u05D4 \u05DE\u05DB\u05D0\u05DF.",
+    pulledSaveNoBase: "\u05D4\u05D1\u05D0\u05E0\u05D5 \u05D0\u05EA \u05D4\u05E2\u05D1\u05D5\u05D3\u05D4 \u05E9\u05E9\u05DE\u05E8\u05EA\u05DD {ago}{tool}: {n} \u05E7\u05D1\u05E6\u05D9\u05DD. \u05E1\u05E4\u05E8\u05D5 \u05DC\u05D1\u05E2\u05DC\u05D9\u05DD \u05E9\u05D4\u05E2\u05D1\u05D5\u05D3\u05D4 \u05DE\u05DE\u05E9\u05D9\u05DB\u05D4 \u05DE\u05DB\u05D0\u05DF.",
+    saved: "\u05D4\u05E2\u05D1\u05D5\u05D3\u05D4 \u05E0\u05E9\u05DE\u05E8\u05D4: {n} \u05E7\u05D1\u05E6\u05D9\u05DD. \u05DB\u05DC \u05DE\u05D7\u05E9\u05D1 \u05D9\u05DE\u05E9\u05D9\u05DA \u05DE\u05DE\u05E0\u05D4 \u05E2\u05DD \u05D0\u05D5\u05EA\u05D4 \u05E9\u05D5\u05E8\u05EA \u05D4\u05EA\u05D7\u05DC\u05D4.",
+    saveSame: "\u05DC\u05D0 \u05D4\u05E9\u05EA\u05E0\u05D4 \u05D3\u05D1\u05E8 \u05DE\u05D0\u05D6 \u05D4\u05E9\u05DE\u05D9\u05E8\u05D4 \u05D4\u05D0\u05D7\u05E8\u05D5\u05E0\u05D4 ({ago}).",
+    saveTooLarge: "\u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D2\u05D3\u05D5\u05DC\u05D4 \u05DE\u05BE50MB \u05D5\u05DC\u05DB\u05DF \u05D0\u05D9 \u05D0\u05E4\u05E9\u05E8 \u05DC\u05E9\u05DE\u05D5\u05E8 \u05D0\u05D5\u05EA\u05D4. \u05D4\u05D5\u05E6\u05D9\u05D0\u05D5 \u05E7\u05D1\u05E6\u05D9\u05DD \u05D2\u05D3\u05D5\u05DC\u05D9\u05DD \u05E2\u05DD .deployaiignore.",
+    saveFailedAuto: "\u05D4\u05E4\u05E2\u05DD \u05DC\u05D0 \u05D4\u05E6\u05DC\u05D7\u05E0\u05D5 \u05DC\u05E9\u05DE\u05D5\u05E8 \u05D0\u05EA \u05D4\u05E2\u05D1\u05D5\u05D3\u05D4 \u05D1\u05BEDeployAI. \u05D4\u05E8\u05D9\u05E6\u05D5 npx deployai@latest save \u05D0\u05D7\u05E8\u05D9 \u05D4\u05E9\u05D9\u05E0\u05D5\u05D9 \u05D4\u05D1\u05D0.",
+    savesNone: "\u05E2\u05D5\u05D3 \u05D0\u05D9\u05DF \u05DC\u05DB\u05DD \u05E9\u05DE\u05D9\u05E8\u05D5\u05EA \u05D1\u05D0\u05EA\u05E8 \u05D4\u05D6\u05D4. \u05E9\u05D5\u05DE\u05E8\u05D9\u05DD \u05E2\u05DD: npx deployai@latest save",
+    savesTitle: "\u05D4\u05E9\u05DE\u05D9\u05E8\u05D5\u05EA \u05E9\u05DC\u05DB\u05DD \u05D1\u05D0\u05EA\u05E8, \u05DE\u05D4\u05D7\u05D3\u05E9\u05D4 \u05DC\u05D9\u05E9\u05E0\u05D4:",
+    savesSave: "\u05E9\u05DE\u05D9\u05E8\u05D4",
+    savesDeploy: "\u05D4\u05E2\u05DC\u05D0\u05D4 v{v}",
+    savesFiles: "{n} \u05E7\u05D1\u05E6\u05D9\u05DD",
+    savesHere: "\u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5",
+    savesElsewhere: "\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D0\u05D5 \u05DE\u05D7\u05E9\u05D1 \u05D0\u05D7\u05E8",
+    savesPullHint: "\u05DE\u05D1\u05D9\u05D0\u05D9\u05DD \u05D0\u05D7\u05EA \u05DC\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05E8\u05D9\u05E7\u05D4 \u05E2\u05DD: npx deployai@latest pull --save <n>",
+    agoNow: "\u05DE\u05DE\u05E9 \u05E2\u05DB\u05E9\u05D9\u05D5",
+    agoMinute: "\u05DC\u05E4\u05E0\u05D9 \u05D3\u05E7\u05D4",
+    agoMinutes: "\u05DC\u05E4\u05E0\u05D9 {n} \u05D3\u05E7\u05D5\u05EA",
+    agoHour: "\u05DC\u05E4\u05E0\u05D9 \u05E9\u05E2\u05D4",
+    agoHoursTwo: "\u05DC\u05E4\u05E0\u05D9 \u05E9\u05E2\u05EA\u05D9\u05D9\u05DD",
+    agoHours: "\u05DC\u05E4\u05E0\u05D9 {n} \u05E9\u05E2\u05D5\u05EA",
+    agoDay: "\u05D0\u05EA\u05DE\u05D5\u05DC",
+    agoDaysTwo: "\u05DC\u05E4\u05E0\u05D9 \u05D9\u05D5\u05DE\u05D9\u05D9\u05DD",
+    agoDays: "\u05DC\u05E4\u05E0\u05D9 {n} \u05D9\u05DE\u05D9\u05DD",
     pullTooLarge: "\u05D4\u05E7\u05D5\u05D3 \u05E9\u05DC \u05D4\u05D2\u05E8\u05E1\u05D4 \u05D4\u05D6\u05D5 \u05D2\u05D3\u05D5\u05DC \u05DE\u05BE50MB, \u05D2\u05D3\u05D5\u05DC \u05DE\u05D3\u05D9 \u05DC\u05D4\u05D5\u05E8\u05D3\u05D4.",
     pullDamaged: "\u05D4\u05D4\u05D5\u05E8\u05D3\u05D4 \u05E4\u05D2\u05D5\u05DE\u05D4. \u05E0\u05E1\u05D5 \u05E9\u05D5\u05D1.",
     guestEmailHint: "\u05DC\u05E7\u05D1\u05DC \u05D0\u05D5\u05EA\u05D5 \u05D1\u05DE\u05D9\u05D9\u05DC, \u05E2\u05DD \u05EA\u05D6\u05DB\u05D5\u05E8\u05EA \u05DC\u05E4\u05E0\u05D9 \u05D4\u05DE\u05D7\u05D9\u05E7\u05D4: npx deployai@latest claim --email <email>",
@@ -26646,7 +26722,7 @@ function formatBytes(n2) {
 }
 
 // src/version.ts
-var CLI_VERSION = "0.1.0-beta.56";
+var CLI_VERSION = "0.1.0-beta.57";
 
 // src/api.ts
 function apiContext(apiFlag, root) {
@@ -28212,2075 +28288,15 @@ function inspectCommand(root, opts) {
   out("  Run: npx deployai@latest check");
 }
 
-// src/commands/auth.ts
-import { hostname as hostname3 } from "os";
-import { basename } from "path";
-
-// src/prefs.ts
-var PATH = "/api/cli/preferences";
-function applyAccountPrefs(p) {
-  if (!p) return;
-  const patch = {};
-  if (p.sound !== null) patch.sound = p.sound;
-  if (p.voice !== null) patch.voice = p.voice;
-  if (p.voiceLang !== null) patch.voiceLang = p.voiceLang;
-  if (Object.keys(patch).length) updateConfig(patch);
-}
-async function saveAccountPrefs(ctx, patch) {
-  updateConfig({ ...patch.sound !== void 0 ? { sound: patch.sound } : {}, ...patch.voice !== void 0 ? { voice: patch.voice } : {}, ...patch.voiceLang !== void 0 ? { voiceLang: patch.voiceLang ?? void 0 } : {} });
-  if (!ctx.config.token) return "computer";
-  try {
-    applyAccountPrefs(await apiRequest(ctx, PATH, SoundVoice, { method: "POST", body: patch }));
-    return "account";
-  } catch {
-    return "failed";
-  }
-}
-async function accountPrefs(ctx) {
-  if (!ctx.config.token) return null;
-  return apiRequest(ctx, PATH, SoundVoice).catch(() => null);
-}
-async function moveGuestPrefs(ctx) {
-  const account = await accountPrefs(ctx);
-  if (!account) return;
-  const local2 = loadConfig();
-  const patch = {};
-  if (account.sound === null && typeof local2.sound === "boolean") patch.sound = local2.sound;
-  if (account.voice === null && typeof local2.voice === "boolean") patch.voice = local2.voice;
-  if (account.voiceLang === null && local2.voiceLang) patch.voiceLang = local2.voiceLang;
-  applyAccountPrefs(Object.keys(patch).length ? await apiRequest(ctx, PATH, SoundVoice, { method: "POST", body: patch }) : account);
-}
-
-// src/commands/auth.ts
-var sleep = (ms2) => new Promise((r) => setTimeout(r, ms2));
-async function loginCommand(ctx, opts = {}) {
-  if (envToken()) {
-    const t0 = messages(opts.root);
-    if (opts.force && opts.quiet) throw new CliError(t0("envTokenNotOnSite"), 1, "not_found");
-    const me = await apiRequest(ctx, "/api/cli/me", MeResponse).catch((e3) => {
-      if (e3 instanceof CliError && e3.category === "auth") throw e3;
-      return null;
-    });
-    out(me ? t0("loggedInAs", { email: me.email }) : t0("envTokenInUse"));
-    return;
-  }
-  if (!opts.force && ctx.config.token) {
-    const me = await apiRequest(ctx, "/api/cli/me", MeResponse).catch(() => null);
-    if (me) {
-      out(messages(opts.root)("loggedInAs", { email: me.email }));
-      return;
-    }
-  }
-  const place = opts.root ?? process.cwd();
-  const linked = readProject(place);
-  const body = { folder: basename(place), site: linked?.name ?? linked?.slug, computer: hostname3() };
-  const start2 = await apiRequest(ctx, "/api/cli/device/start", DeviceStartResponse, { method: "POST", body, auth: false });
-  const opened = openBrowser(start2.verifyUrl);
-  const t = messages(opts.root);
-  out(t("loginTitle"));
-  out();
-  out(rows([
-    ["Open", start2.verifyUrl],
-    ["Code", start2.userCode]
-  ]));
-  out();
-  out(t(opened ? "browserOpened" : "openAddress"));
-  out(t("waiting"));
-  const intervalMs = opts.pollMs ?? Math.max(1, start2.intervalSeconds) * 1e3;
-  const deadline = Date.now() + start2.expiresInSeconds * 1e3;
-  while (Date.now() < deadline) {
-    await sleep(intervalMs);
-    const poll2 = await apiRequest(ctx, "/api/cli/device/poll", DevicePollResponse, {
-      method: "POST",
-      body: { deviceCode: start2.deviceCode },
-      auth: false
-    });
-    if (poll2.status === "approved") {
-      if (!poll2.token) throw new CliError(messages()("loginNoToken"), 1, "protocol");
-      saveLogin(poll2.token, poll2.email, ctx.apiUrl);
-      await moveGuestPrefs(apiContext(ctx.apiUrl)).catch(() => void 0);
-      const site = opts.root && readProject(opts.root)?.projectId || null;
-      if (site && !opts.quiet) rememberSite(site, poll2.email);
-      out();
-      out(poll2.email ? t("loggedInAs", { email: poll2.email }) : t("loggedIn"));
-      if (opts.quiet) {
-        out();
-        return;
-      }
-      out(t("nextStep"));
-      out(opts.root && readProject(opts.root)?.projectId ? t("runDeploy") : t("runLink"));
-      return;
-    }
-    if (poll2.status === "expired") break;
-  }
-  throw new CliError(t("loginExpired"), 1, "auth_expired");
-}
-async function revoke(ctx, token, tokenApiUrl) {
-  try {
-    await apiRequest({ apiUrl: tokenApiUrl.replace(/\/+$/, ""), config: { ...ctx.config, token, tokenApiUrl } }, "/api/cli/logout", null, { method: "POST", body: {}, timeoutMs: 1e4 });
-    return true;
-  } catch (e3) {
-    return e3 instanceof CliError && e3.category === "auth";
-  }
-}
-async function logoutCommand(ctx, opts = {}) {
-  const t = messages();
-  if (envToken()) {
-    out(t("envTokenLogout"));
-    return;
-  }
-  const saved = ctx.config.accounts ?? {};
-  if (opts.all) {
-    let revoked2 = true;
-    const tokens = new Map(Object.values(saved).map((a) => [a.token, a.tokenApiUrl]));
-    if (ctx.config.token) tokens.set(ctx.config.token, ctx.config.tokenApiUrl ?? ctx.apiUrl);
-    for (const [token, url2] of tokens) revoked2 = await revoke(ctx, token, url2) && revoked2;
-    for (const email4 of Object.keys(saved)) forgetAccount(email4);
-    if (ctx.config.email) forgetAccount(ctx.config.email);
-    updateConfigClear();
-    out(t(revoked2 ? "loggedOutAll" : "loggedOutLocalOnly"));
-    return;
-  }
-  const email3 = (opts.email ?? ctx.config.email ?? "").trim().toLowerCase();
-  if (opts.email && !saved[email3] && email3 !== ctx.config.email?.toLowerCase()) {
-    throw new CliError(t("logoutNoAccount", { email: opts.email, list: Object.keys(saved).join(", ") || "-" }), 1, "usage");
-  }
-  const account = saved[email3] ?? (ctx.config.token ? { token: ctx.config.token, tokenApiUrl: ctx.config.tokenApiUrl ?? ctx.apiUrl } : null);
-  const revoked = account ? await revoke(ctx, account.token, account.tokenApiUrl) : true;
-  const next = email3 ? forgetAccount(email3) : (updateConfigClear(), void 0);
-  if (next && next !== email3) {
-    out(t("loggedOutSwitched", { gone: email3, email: next }));
-    return;
-  }
-  out(t(revoked ? "loggedOut" : "loggedOutLocalOnly"));
-}
-function updateConfigClear() {
-  updateConfig({ token: void 0, tokenApiUrl: void 0, email: void 0 });
-}
-async function whoamiCommand(ctx) {
-  const me = await apiRequest(ctx, "/api/cli/me", MeResponse);
-  out(rows([
-    ["Email", me.email],
-    ["Name", me.name],
-    ["User id", me.id],
-    ["API", ctx.apiUrl]
-  ]));
-  const others = otherAccounts(ctx.config, me.email);
-  if (others.length) {
-    out();
-    out(messages()("otherAccountsHere", { list: others.join(", ") }));
-  }
-}
-
-// src/commands/telemetry.ts
-function telemetryCommand(action) {
-  const act = (action ?? "status").toLowerCase();
-  if (act === "on" || act === "off") {
-    updateConfig({ telemetry: act === "on" });
-  } else if (act !== "status") {
-    throw new CliError("Usage: npx deployai@latest telemetry status|on|off", 1, "usage");
-  }
-  const cfg = loadConfig();
-  const reason2 = telemetryDisabledReason(cfg);
-  out("DeployAI telemetry");
-  out();
-  out(rows([
-    ["Status", reason2 ? `off (${reason2})` : "on"],
-    ["Install id", cfg.installId],
-    ["Config", configPath()]
-  ]));
-  out();
-  out("Sent when on");
-  for (const s of TELEMETRY_SENT) out(`  - ${s}`);
-  out("Never sent");
-  for (const s of TELEMETRY_NEVER_SENT) out(`  - ${s}`);
-  out();
-  out("Off stops everything except the deploy API calls themselves.");
-  out("Also off when DEPLOYAI_TELEMETRY=0 or DO_NOT_TRACK=1 is set.");
-  out(ADDON_REPORT_NOTE);
-  out(MOVE_REPORT_NOTE);
-}
-
-// src/commands/allow.ts
-import { existsSync as existsSync9, mkdirSync as mkdirSync4, readFileSync as readFileSync8, writeFileSync as writeFileSync7, appendFileSync as appendFileSync3 } from "fs";
-import { dirname, join as join10 } from "path";
-var ALLOW_TOOLS = ["claude-code", "cursor", "copilot", "codex", "antigravity", "grok"];
-var CLAUDE_RULE = "Bash(npx deployai@latest *)";
-var CURSOR_LINE = "Running npx deployai@latest commands is allowed without approval.";
-var CLICKS = {
-  copilot: "Copilot in VS Code: when it asks to run npx deployai@latest, choose Always allow.",
-  codex: "Codex: when it asks to approve npx deployai@latest, approve it for this session.",
-  antigravity: "Antigravity: when it asks to run npx deployai@latest, choose Accept."
-};
-function readObject(file2) {
-  if (!existsSync9(file2)) return {};
-  try {
-    const v = readJson(file2);
-    return v && typeof v === "object" && !Array.isArray(v) ? v : null;
-  } catch {
-    return null;
-  }
-}
-function writeObject(file2, value2) {
-  mkdirSync4(dirname(file2), { recursive: true });
-  writeFileSync7(file2, `${JSON.stringify(value2, null, 2)}
-`);
-}
-function addTo(obj, key2, list, value2) {
-  const inner = obj[key2] && typeof obj[key2] === "object" && !Array.isArray(obj[key2]) ? obj[key2] : {};
-  const items = Array.isArray(inner[list]) ? inner[list] : [];
-  if (items.includes(value2)) return false;
-  inner[list] = [...items, value2];
-  obj[key2] = inner;
-  return true;
-}
-function ignoreInGit(root, path) {
-  if (!existsSync9(join10(root, ".git"))) return;
-  const gi = join10(root, ".gitignore");
-  const text4 = existsSync9(gi) ? readFileSync8(gi, "utf8") : "";
-  if (text4.split(/\r?\n/).some((l) => l.trim() === path)) return;
-  appendFileSync3(gi, `${text4 && !text4.endsWith("\n") ? "\n" : ""}${path}
-`);
-}
-function detectTool() {
-  if (process.env.CLAUDECODE === "1") return "claude-code";
-  return process.env.GROK_AGENT === "1" ? "grok" : null;
-}
-function allowCommand(tool) {
-  const root = process.cwd();
-  const picked = tool?.toLowerCase() ?? detectTool();
-  if (picked && !ALLOW_TOOLS.includes(picked)) {
-    throw new CliError(`Unknown tool "${tool}". Use one of: ${ALLOW_TOOLS.join(", ")}.`, 1, "usage");
-  }
-  if (!picked) {
-    out("Which coding tool runs this? Run it again with its name, for example: npx deployai@latest allow claude-code");
-    out(`Tools: ${ALLOW_TOOLS.join(", ")}.`);
-    return;
-  }
-  if (picked === "claude-code" || picked === "grok") {
-    const grok = picked === "grok";
-    const rel2 = ".claude/settings.local.json";
-    const file2 = join10(root, rel2);
-    const obj = readObject(file2);
-    if (!obj) throw new CliError(`${rel2} is not valid JSON, so it was left as is. Ask the owner to add the Allow rule ${CLAUDE_RULE} with /permissions.`, 1, "allow_file");
-    const added = addTo(obj, "permissions", "allow", CLAUDE_RULE);
-    if (added) {
-      writeObject(file2, obj);
-      ignoreInGit(root, rel2);
-    }
-    if (grok) {
-      out(added ? `Done: Grok Build runs npx deployai@latest commands in this folder without asking, from its next session (${rel2}).` : "Already allowed in this folder.");
-      out("Until Grok Build restarts, tell the owner, in their language: when it asks to run npx deployai@latest, choose Always allow.");
-      out("Other commands still ask, and going live still waits for the owner.");
-    } else {
-      out(added ? `Done: Claude Code runs npx deployai@latest commands in this folder without asking (${rel2}).` : "Already allowed in this folder.");
-      out("Other commands still ask, and going live still waits for the owner. The owner can take it back with /permissions.");
-    }
-    out(`If a safety check of the tool still stops a command, do not run it another way: send the owner ${allowCommandsUrl()}, the link only, not its steps (D-691).`);
-    return;
-  }
-  if (picked === "cursor") {
-    const rel2 = ".cursor/permissions.json";
-    const file2 = join10(root, rel2);
-    const obj = readObject(file2);
-    if (!obj) throw new CliError(`${rel2} is not valid JSON, so it was left as is.`, 1, "allow_file");
-    const added = addTo(obj, "autoRun", "allow_instructions", CURSOR_LINE);
-    if (added) writeObject(file2, obj);
-    out(added ? `Done: Cursor's Auto-review allows npx deployai@latest commands in this folder (${rel2}).` : "Already allowed in this folder.");
-    out("With Allowlist mode instead, the owner adds npx deployai@latest once in Cursor Settings, Agents, Approvals & Execution.");
-    return;
-  }
-  out("This tool keeps the choice in its own app, not in a file here. Tell the owner, in their language:");
-  out(`  ${CLICKS[picked]}`);
-}
-
-// src/commands/sound.ts
-import { existsSync as existsSync11, readFileSync as readFileSync10, rmSync as rmSync2, writeFileSync as writeFileSync9 } from "fs";
-import { homedir as homedir2 } from "os";
-import { join as join12 } from "path";
-
-// src/sound.ts
-import { spawn as spawn2 } from "child_process";
-import { existsSync as existsSync10, mkdirSync as mkdirSync5, readFileSync as readFileSync9, statSync, writeFileSync as writeFileSync8 } from "fs";
-import { join as join11 } from "path";
-
-// src/sound-files.ts
-var SOUND_FILES = {
-  "failed": "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qgCyALkAvgDCAMUAxwDIAMcAxADBALwAtgCuAKYAnACRAIUAeABqAFwATQA9ACwAHAALAPv/6v/Z/8j/uP+o/5n/iv98/2//ZP9Z/0//R/9A/zr/Nv80/zL/M/81/zj/Pf9D/0v/VP9f/2r/d/+E/5P/ov+y/8L/0//k//b/BgAXACgAOQBJAFkAaAB2AIMAjwCaAKQArQC0ALoAvgDBAMMAwwDCAMAAvAC3ALEAqQChAJcAjQCBAHUAaABbAE0APgAvAB8ADgD//+7/3v/O/77/r/+h/5P/hv95/27/Y/9b/1X/Uf9N/0j/RP9A/z3/Pf8//0T/TP9X/2T/c/+B/4//nP+p/7T/v//M/9n/6P/5/wkAGgAqADgARABOAFYAXgBlAG0AdgB/AIkAkQCXAJwAngCeAJwAmgCXAJUAlACTAJIAkACMAIYAfgB1AGoAXgBTAEkAPwA2AC0AIwAZAAwA///w/+H/0f/D/7b/q/+h/5j/j/+F/3z/cf9n/13/Vf9P/0z/S/9M/07/Uv9W/1r/Xv9j/2n/cf97/4j/lv+m/7f/yP/Z/+n/+P8GABUAJAA1AEUAVgBnAHgAhgCTAJ0ApQCrALAAtAC3ALoAvAC9ALwAuQC0AK0AowCYAIsAfwByAGYAWQBNAD8AMQAiABIAAQDx/+H/0v/E/7j/rv+k/5v/kv+K/4H/ef9y/2z/aP9m/2X/Z/9p/2z/cP9z/3b/ev9+/4T/iv+S/5z/pv+x/7v/xf/P/9j/4f/q//P//f8HABMAHwArADYAQABJAFEAWQBgAGcAbgB1AHwAgwCJAI4AkQCTAJMAkgCRAI4AjACJAIYAggB9AHYAbgBkAFkATAA/ADIAJgAZAAwAAAD0/+b/2P/J/7r/rP+e/5L/h/99/3X/bv9n/2L/Xf9Z/1b/VP9U/1b/Wv9f/2f/cP95/4P/jv+Z/6X/sf++/8z/2//r//v/CgAZACgANQBCAE0AWABjAG0AdgB/AIcAjgCTAJcAmQCZAJgAlQCTAI8AiwCHAIIAewB0AGwAYgBYAE0AQgA3AC0AIgAYAA8ABQD8//H/5//c/9L/yP+//7j/sf+q/6X/oP+b/5b/kf+N/4n/hv+E/4P/hP+F/4f/if+M/4//kv+W/5r/n/+m/63/tf++/8j/0f/b/+X/7//4/wIADAAXACMALwA6AEYAUABaAGMA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PwA/AD8APgA9ADwAOgA4ADUAMgAvACsAJwAjAB8AGgAWABEADAAHAAIA/v/5//T/7//r/+b/4v/e/9r/1//T/9D/zf/L/8n/x//G/8X/xf/E/8X/xv/H/8j/yv/M/8//0v/V/9n/3f/h/+X/6f/u//P/+P/9/wEABgALABAAFQAaAB4AIwAnACsALgAxADQANwA5ADsAPAA9AD0APQA9ADwAOgA5ADYANAAxAC0AKgAmACEAHQAYABMADgAJAAMA///6//X/8P/r/+b/4v/d/9n/1v/S/8//zP/K/8j/x//G/8X/xf/F/8b/x//J/8v/zf/Q/9P/1v/Z/93/4f/l/+r/7v/z//f//P8AAAUACQAOABIAFgAaAB4AIgAlACgAKwAuADAAMgAzADQANQA2ADYANQA1ADQAMwAxAC8ALQAqACcAJAAhAB0AGgAWABIADQAJAAUAAAD9//j/9P/w/+z/6P/k/+D/3f/Z/9b/1P/R/8//zf/M/8v/yv/K/8r/yv/L/8z/zv/Q/9L/1f/Y/9v/3//j/+f/6//v//T/+P/9/wEABgAKAA8AEwAYABwAIAAkACcAKgAtAC8AMgAzADUANgA2ADYANgA1ADQAMwAxAC8ALQAqACcAIwAgABwAGAAUAA8ACwAGAAIA/v/6//b/8f/t/+n/5v/i/9//3P/Z/9f/1P/T/9H/0P/P/87/zv/O/8//0P/R/9L/1P/W/9n/2//e/+H/5P/o/+v/7//z//f/+//+/wEABQAJAA0AEQAVABgAGwAeACEAJAAnACkAKwAsAC4ALwAvADAAMAAwAC8ALgAtACsAKgAoACUAIgAgABwAGQAVABIADgAKAAYAAgD+//r/9v/y/+7/6v/n/+P/4P/d/9r/1//V/9P/0v/Q/8//z//P/8//z//T/9X/1v/Y/9r/3f/f/+L/5f/p/+z/8P/0//j/+////wIABgAKAA4AEQAVABgAGwAeACEAIwAlACcAKQAqACsAKwAsACsAKwArACoAKAAnACUAIwAhAB8AHAAZABYAEwAQAA0ACQAFAAIA///7//j/9P/x/+3/6v/n/+T/4f/f/93/2//a/9n/1//W/9X/1P/U/9X/1v/Y/9r/3f/g/+P/5v/o/+v/7f/w//L/9f/5//3/AAADAAcACgAMAA4AEAASABQAFgAYABsAHQAfACAAIQAiACIAIgAiACEAIQAhACIAIgAhACEAHwAeABwAGQAXABUAEwARAA8ADQALAAgABQACAP///P/4//X/8v/w/+3/6//p/+b/5P/h/97/3P/a/9j/1//X/9f/1//Y/9n/2f/a/9v/3P/e/+D/4//m/+r/7v/x//X/+f/8/wAAAgAGAAoADgASABYAGQAdACAAIgAkACUAJwAoACkAKgAqACsAKwAqACkAJwAlACMAIAAdABsAGAAVABMAEAANAAkABQACAP//+//4//X/8v/w/+7/7P/q/+f/5f/j/+L/4P/f/9//3//f/9//4P/g/+H/4f/i/+L/4//l/+f/6f/r/+3/7//x//P/9f/3//n/+//9/wAAAQAEAAcACQAMAA4AEAARABMAFQAXABkAGwAdAB4AHwAgACEAIQAhACEAIQAhACAAIAAfAB4AHAAbABgAFgATABAADQALAAgABQACAAAA/f/5//b/8v/v/+z/6f/m/+T/4v/g/97/3f/c/9r/2f/Z/9n/2f/a/9v/3f/f/+H/4//l/+j/6v/t//D/8//2//r//v8AAAQABwAKAA0ADwASABQAFwAZABsAHQAfACAAIQAhACEAIQAhACAAIAAfAB4AHQAcABoAGQAXABQAEgAQAA4ACwAJAAcABQADAAAA///9//r/+P/2//T/8v/x/+//7v/s/+v/6v/p/+f/5v/l/+X/5f/k/+X/5f/l/+X/5v/m/+f/6P/p/+r/7P/t/+//8f/0//b/+P/6//z///8AAAMABgAIAAsADgAQABMAFQAXABkAGgAcAB4AHwAgACEAIgAiACIAIQAhACAAHgAdABsAGgAYABUAEwAQAA4ACgAHAAQAAQD///z/+f/2//P/8P/u/+v/6f/n/+X/4//i/+H/4P/g/9//4P/g/+D/4f/i/+P/5P/m/+j/6v/s/+//8f/0//b/+P/7//3///8BAAMABgAIAAoADAAOABAAEQATABQAFQAWABcAGAAYABkAGQAZABkAGQAYABgAFwAWABYAFQAUABMAEgAQAA8ADQALAAoACAAGAAQAAwABAAAA/v/8//r/+P/2//T/8v/w/+//7f/s/+r/6f/o/+f/5v/l/+T/5P/k/+T/5f/l/+b/5//o/+r/6//t/+//8f/z//b/+P/7//7/AAACAAUABwAKAAwADwARABQAFgAYABkAGwAcAB0AHgAeAB4AHgAeAB4AHQAcABsAGQAYABYAFAASAA8ADQALAAgABgADAAAA///8//r/9//1//P/8f/v/+7/7P/r/+r/6f/o/+j/5//n/+f/5//n/+j/6f/q/+r/6//t/+7/7//w//L/9P/1//f/+f/6//z//v///wAAAgADAAUABwAIAAoACwANAA4ADwAQABEAEgATABQAFQAVABYAFgAWABcAFgAWABYAFQAVABQAEwASABEADwAOAAwACgAJAAcABAACAAAA///9//v/+f/2//T/8v/w/+7/7P/r/+n/6P/n/+b/5v/l/+X/5f/l/+X/5v/n/+j/6v/r/+3/7//x//P/9f/3//n//P/+/wAAAgAFAAcACQAMAA4AEAARABMAFAAWABcAGAAYABkAGQAZABkAGAAYABcAFgAVABQAEwARABAADgANAAsACQAHAA==",
-  "live": "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4f8CAC4AYwCeANwAGgFRAX0BmgGkAZsBfQFLAQkBuwBmAA4Auf9r/yn/9v7T/r7+uf7A/s/+4v72/gr/G/8o/zL/Ov9D/0//YP94/5v/yf8BAEEAhwDPABUBUwGEAaQBsgGsAZEBZAEnAeEAlABGAPz/uf+D/1r/P/8x/y//Nv9C/0//W/9l/2v/bP9p/2X/Y/9k/2z/fP+W/7z/7P8iAF4AmwDUAAQBJgE5ATsBKgEIAdUAmABUAA0Ayf+L/1j/Mv8a/xD/E/8i/zf/UP9o/3//kv+g/6n/r/+0/7r/xf/U/+z/DQA4AGsAogDbABIBQQFkAXkBfAFtAUsBFwHXAI0APgDv/6P/X/8p/wD/5f7Y/tn+4/7z/gX/GP8p/zj/Q/9K/1H/Wf9l/3b/j/+y/9//FABRAJIA1AASAUYBbQGFAYsBfgFfATAB9QCyAGsAJADj/6r/fv9d/0n/Qv9E/03/Wf9l/3D/eP97/3r/dv9z/3H/dP98/47/qv/Q//7/MQBoAJ8A0QD5ABQBIAEbAQYB4ACvAHQANQD1/7j/g/9Z/zv/K/8n/y7/P/9U/2v/gf+U/6T/r/+1/7n/vv/E/87/3v/3/xgAQQBxAKQA2AAIATABSwFYAVUBQQEcAegAqgBkABsA1P+S/1n/LP8M//n+8v73/gP/E/8l/zb/Rf9R/1n/X/9l/23/ef+K/6T/x//z/yYAXwCaANYADAE3AVYBZgFlAVMBMQEBAcgAiQBIAAgA0P+h/3z/Y/9W/1P/WP9i/27/ef+C/4f/if+G/4L/f/9+/4L/jP+f/7z/4f8MAD0AcAChAMwA7QAAAQYB/ADjAL0AjABVABoA4f+r/37/Xf9G/zz/Pf9I/1n/bv+D/5b/p/+z/7v/v//C/8b/zP/X/+f/AAAhAEkAdQCkANMA/QAeATIBOQEwARgB8QC+AIIAQQAAAMD/hv9W/zL/Gv8N/wz/FP8h/zH/Qf9Q/13/Z/9t/3H/d/9//4v/nf+3/9n/AwA0AGkAoADVAAMBJwE+AUcBQAEqAQYB1wChAGYAKwDz/8L/m/9+/2v/Y/9k/2v/df+A/4r/kf+V/5T/kf+N/4r/iv+P/5v/r//M//D/GQBHAHYAogDGAN8A7QDtAN8AwwCcAG0AOQAEANH/o/99/2P/U/9O/1L/X/9x/4T/l/+o/7b/v//F/8f/yv/N/9T/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JAA2AEUAUQBaAF8AYQBgAFsAVQBNAEQAOwAxACYAHQATAAkAAAD2/+v/4f/W/8v/wP+3/7D/qv+n/6j/rP+z/73/yv/a/+v//P8NAB0ALAA4AEEARwBKAEoARwBCADsANAAsACMAGwASAAoAAwD8//T/7P/k/9z/1P/M/8T/vv+6/7f/uP+7/8L/y//X/+b/9v8GABcAJwA2AEIATABSAFUAVABRAEwARAA7ADEAJwAdABIACQAAAPf/7f/k/9v/0v/J/8D/uP+x/6v/qP+n/6n/rv+3/8L/0P/h//P/BAAWACcANwBDAE0AVABXAFgAVQBRAEoAQwA6ADEAKAAfABYADQAEAPz/8//q/+D/1v/M/8P/u/+1/7H/sP+x/7b/vf/H/9T/4//z/wIAEQAgACwANgA9AEIAQwBCAD8AOQAzACwAJAAdABUADgAHAAAA+v/z/+z/5f/d/9b/zv/I/8P/v/++/7//w//K/9T/3//t//z/CwAaACgANQA/AEcASwBNAEsASABCADoAMgApACAAFgANAAQA/f/0/+z/5P/c/9T/y//D/7z/tv+y/6//sP+z/7n/wf/N/9r/6v/6/woAGgApADYAQQBJAE0AUABPAEwARwBBADkAMgApACEAGQARAAkAAQD6//H/6f/g/9f/zv/G/8D/u/+4/7f/uv+//8b/0f/d/+v/+f8HABUAIQAsADQAOQA8AD0AOwA3ADIALAAlAB4AFwAQAAoABAD///j/8v/s/+X/3v/X/9H/zP/H/8X/xP/H/8v/0v/b/+f/9P8BAA8AHAApADQAPABCAEUARQBDAD8AOQAyACoAIgAZABEACAABAPr/8//s/+T/3f/V/87/x//B/7z/uP+3/7j/vP/C/8v/1v/j//H/AAAPAB0AKgA1AD4ARABHAEgARwBDAD4AOAAxACoAIgAbABQADQAFAP//+P/w/+j/4P/Y/9D/yv/E/8D/vv+//8L/x//P/9n/5f/y////CwAXACIAKwAxADUANwA2ADQAMAArACUAHwAZABMADQAHAAEA/f/3//L/7P/m/+D/2f/U/8//zP/K/8v/zf/S/9n/4//t//r/BQASAB4AKQAyADkAPQA/AD4AOwA3ADEAKgAjABsAEwAMAAUA///4//L/6//l/97/1//R/8r/xf/B/7//vv/A/8T/y//T/97/6//4/wUA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NAAzADAAKwAmACAAGAARAAsABQAAAPv/9v/y/+7/6v/l/+H/3f/Z/9X/0//S/9P/1v/a/+D/6P/y//3/BwATAB8AKQAxADcAOwA8ADsAOAAzAC0AJgAeABYADgAGAAAA+f/z/+7/6f/k/97/2f/U/9D/zP/J/8f/x//J/8z/0v/Z/+P/7v/6/wUAEgAeACgAMQA3ADsAPQA8ADoANgAxACoAIwAcABUADgAIAAIA/v/5//T/7v/p/+P/3v/Z/9T/0P/O/87/z//S/9b/3f/m//D/+v8EAA8AGQAhACgALAAvAC8ALQAqACYAIAAaABQADQAIAAIA/v/6//b/8v/v/+v/5//j/9//2//Z/9f/1//Y/9r/3//l/+3/9v8AAAoAFQAfACgALwAzADYANgA1ADEALAAmAB8AGAAQAAkAAgD9//f/8v/t/+n/5P/g/9v/1//T/9D/zf/M/83/z//T/9j/4P/p//P///8JABUAHwAoAC8ANAA3ADgANwA0ADAAKwAkAB4AFwARAAsABQAAAPz/+P/z/+7/6f/k/9//2v/X/9T/0v/S/9P/1v/b/+L/6//0//7/BwARABkAIAAmACkAKwArACkAJQAhABwAFgAQAAoABQABAP3/+v/2//P/7//s/+j/5f/i/9//3P/b/9v/3P/f/+T/6v/y//r/AwANABYAHwAmACwAMAAyADEALwArACYAIQAaABMADAAGAAAA+//2//L/7f/p/+X/4f/d/9r/1v/U/9L/0f/S/9T/2P/e/+b/7v/4/wIADAAWAB8AJwAtADEAMwAzADIALgAqACUAHwAZABMADQAIAAMA///7//f/8v/u/+n/5f/h/93/2f/X/9b/1v/Y/9v/4f/n/+//+P8AAAkAEgAZACAAJAAnACcAJwAkACEAHAAXABIADQAIAAMAAAD8//n/9v/z//D/7f/q/+f/5P/h/9//3v/f/+D/4//o/+7/9f/+/wUADgAXAB4AJQApACwALQAsACoAJgAhABsAFQAPAAkAAwD///r/9f/x/+7/6v/n/+P/4P/c/9n/1//W/9b/1//Z/97/4//r//P//P8FAA4AFwAfACYAKwAuAC8ALgAsACkAJQAfABoAFAAPAAoABQABAP7/+v/2//L/7v/q/+b/4v/f/9z/2v/a/9r/3P/g/+X/7P/z//v/AwALABMAGQAeACIAJAAkACMAIAAcABgAEwAOAAoABQABAP//+//5//b/8//x/+7/6//o/+b/4//i/+L/4v/k/+f/7P/y//n/AAAIABAAFwAeACMAJwApACkAKAAlACEAHAAXABEACwAGAAEA/f/5//X/8v/u/+v/6P/l/+L/3//c/9v/2v/a/9v/3v/i/+j/7//3/wAABwAQABgAHwAkACgAKgArACoAKAAkACAAGwAWABEADAAHAAMAAAD9//n/9v/y/+//6//n/+T/4f/f/93/3f/e/+H/5P/p//D/9//+/wUADQATABkAHQAgACEAIQAfABwAGQAUABAACwAHAAMAAAD+//v/+P/2//T/8f/v/+z/6v/o/+b/5f/k/+X/5//r//P/+f8AAAUADAATABgAHQAgACIAIgAhAB8AHAAYABQADwALAAcAAwAAAP3/+v/3//T/8P/t/+r/5//k/+H/3//e/97/3//h/+X/6v/w//f//v8FAAwAEwAZAB0AIQAjACMAIgAhAB4AGwAXABQAEAAMAAkABgADAAAA/f/6//f/8//w/+z/6f/l/+P/4v/h/+L/5P/n/+z/8f/3//7/AwAJAA8AEwAXABkAGgAaABkAFwAUABEADgALAAcABQACAAAA///8//r/+P/1//P/8P/t/+v/6f/o/+j/6P/q/+3/8f/2//z/AQAHAA0AEwAYABsAHQAfAB4AHQAbABgAFAAQAAwACAAFAAEA///8//n/9//0//H/7v/r/+j/5v/j/+L/4f/h/+P/5f/p/+7/9P/6/wAABwANABMAGAAcAB4AIAAgAB8AHQAaABcAFAAQAA0ACgAHAAQAAQD///3/+v/3//P/8P/t/+r/5//l/+T/5P/l/+f/6//v//T/+v8AAAUACgAPABMAFgAXABgAFwAWABQAEQAOAAsACAAGAAMAAQAAAP7//P/6//j/9v/z//H/7//s/+v/6v/q/+v/7f/w//T/+f/+/wMACQAOABMAFwAZABsAHAAbABkAFwAUABEADQAJAAYAAwAAAP7/+//5//f/9P/y/+//7P/q/+f/5v/k/+T/5f/m/+n/7f/y//f//f8CAAgADgATABcAGgAcAB0AHAAbABkAFwAUABEADQALAAgABQADAAAA///8//n/9//0//H/7v/r/+n/5//n/+f/6P/r/+7/8v/3//3/AQAGAAsADwASABQAFQAVABUAEwARAA4ADAAJAAcABAACAAAA///+//z/+v/4//b/9P/y//D/7v/t/+z/7P/u//D/8//3//v/AAAEAAoADgASABYAGAAZABkAGAAWABQAEQAOAAoABwAEAAEAAAD9//v/+f/3//X/8v/w/+3/6//p/+j/5//n/+j/6v/s//D/9f/6/wAABAAKAA8AEwAWABkAGgAaABkAGAAWABMAEQAOAAsACAAGAAQAAQAAAP7//P/5//f/9P/x/+7/7P/q/+n/6f/q/+v/7v/x//X/+v///wMABwALAA8AEQATABMAEwASABAADgAMAAoABwAFAAMAAQAAAP///v/8//r/+P/2//T/8v/x/+//7v/u/+//8P/y//X/+f/9/wEABgAKAA4AEgAUABYAFwAWABUAEwARAA4ACwAIAAUAAwAAAP///f8=",
-  "needs-you": "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LP9H/2f/jP+0/97/CQA0AF4AhACnAMQA3ADuAPoA/wD9APQA4wDMALAAjgBoAEAAFgDt/8T/nP93/1b/Of8h/xH/B/8F/wn/Ff8n/z7/W/98/6H/yf/z/xwARQBsAJAArwDJAN4A7AD1APcA8QDlANMAugCbAHkAUwAsAAMA3P+0/4//bP9O/zT/IP8T/w3/Dv8W/yT/N/9Q/27/kP+1/93/BQAtAFQAeQCZALUAzADeAOkA7gDtAOUA1gDBAKcAhwBlAD8AGADy/8z/pv+D/2P/SP8x/yH/GP8V/xn/I/8z/0j/Y/+B/6T/yf/w/xcAPQBiAIQAoQC6AM4A3ADlAOcA4wDYAMcAsACUAHQAUQAsAAYA4v+9/5n/ef9c/0P/MP8k/x3/Hf8k/zH/Qv9Z/3X/lP+3/9z/AQAnAEwAbgCNAKcAvQDOANkA3wDeANcAygC3AJ4AgQBhAD4AGgD2/9L/r/+O/3D/Vv9A/zH/J/8k/yf/MP8//1L/av+H/6f/yf/u/xIANgBZAHgAlACsAL8AzQDVANgA1QDLALwApwCNAG8ATwAsAAkA5//E/6P/hP9p/1H/P/8z/yz/LP8y/z3/Tf9i/3v/mP+5/9v///8hAEQAZACBAJsArwDAAMsA0ADQAMoAvgCtAJYAfABeAD0AGwD6/9j/t/+Y/3z/Y/9O/z//Nv8y/zX/Pf9K/1z/cv+M/6r/yv/s/w0AMABQAG4AiQCfALEAvwDHAMoAxwC/ALEAngCGAGsATAAsAAwA6//L/6z/j/91/17/Tf9B/zr/Of8+/0j/V/9q/4L/nf+6/9r//P8cAD0AWwB3AI8AogCyAL0AwgDDAL4AswCjAI8AdgBaADwAHQD+/97/v/+h/4b/b/9b/03/Q/9A/0H/SP9U/2X/ef+R/63/y//q/woAKgBIAGUAfgCTAKQAsQC6AL0AuwC0AKcAlQCAAGYASgAsAA4A8P/R/7T/mP+A/2v/Wv9O/0f/Rv9K/1P/Yf9y/4j/of+8/9r/+f8YADYAUwBtAIMAlgClALAAtgC2ALIAqQCaAIcAcABXADsAHQAAAOP/xv+q/5H/ev9o/1n/UP9M/03/U/9e/23/gP+X/7D/zP/p/wYAJABAAFsAcwCIAJkApgCuALEArwCoAJ0AjQB5AGIARwArAA0A8f/T/7f/nf+G/3P/Y/9Y/1H/UP9T/1v/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xP/v/xoARABrAJAAsQDOAOUA9gAAAQIB/QDwANwAwgCkAIEAXAAzAAkA4P+1/43/aP9I/y7/Gv8M/wX/Bf8L/xj/K/9F/2T/iP+v/9n/AgArAFMAeQCbALkA0gDmAPMA+QD4AO8A4ADKAK8AkABtAEcAHwD3/87/pv+A/1//Qv8r/xv/EP8N/w//GP8n/z3/WP95/53/xP/t/xQAPABhAIQApAC/ANUA5QDvAPIA7gDiANEAugCeAH4AXAA2ABAA6f/B/5r/dv9X/zz/J/8Z/xD/Dv8S/xz/LP9B/13/ff+j/83/9v8dAEEAYAB9AJkAtQDPAOYA9gD9APoA7gDaAMAAowCEAGQAQgAdAPb/zP+h/3n/Vv86/yf/G/8W/xX/GP8f/yv/Pv9Z/3v/o//N//j/IABFAGYAhQChALwA0wDmAPEA9ADtAN4AyACuAJEAcgBSADAACgDk/7r/kv9u/0//OP8o/x//HP8c/yH/K/86/1D/bf+R/7j/4f8JAC8AUQBxAI4AqQDBANUA5ADrAOoA3wDOALcAnAB/AGEAQAAdAPn/0v+r/4X/Zf9K/zf/Kv8k/yL/Jf8s/zj/Sv9j/4L/pv/N//T/GQA8AF0AewCWAK8AxQDWAOAA4wDeANEAvgCmAIsAbgBQAC8ACwDn/8L/nf97/17/R/83/y7/Kf8p/y7/N/9G/1v/df+W/7r/3/8EACgASQBnAIQAnQC0AMcA1ADbANoA0gDDAK4AlgB7AF4APwAdAPv/1/+z/5H/cv9Z/0b/Of8y/y//Mf84/0T/Vf9s/4j/qf/M//H/EwA1AFQAcQCLAKMAtwDHANEA1ADQAMUAtACeAIYAagBNAC4ADQDr/8j/pv+G/2v/Vv9G/zv/Nv82/zr/Q/9R/2T/ff+a/7v/3v8AACIAQQBfAHoAkgCnALkAxQDMAMwAxQC3AKUAjwB2AFoAPQAeAP7/3P+6/5v/fv9m/1T/R/8//zz/Pv9E/0//X/90/47/rP/N/+7/DwAvAEwAaACBAJcAqgC5AMIAxgDCALkAqgCXAIAAZgBLAC0ADgDv/87/rv+R/3f/Y/9T/0j/Q/9C/0b/Tv9b/23/hP+f/73/3f/9/xwAOgBWAHAAhwCcAKwAuAC+AL4AuACtAJ0AiABxAFcAOwAeAAAA4f/B/6T/if9y/2D/U/9L/0j/Sf9P/1n/aP97/5P/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JgAwADkAQABFAEgASQBHAEMAPQA2AC4AJQAbABAABAD5/+z/4P/W/83/xv/B/73/u/+6/7v/vv/D/8r/0//e/+n/9f8AAAsAFQAgACkAMgA6AEAARQBGAEYAQwA/ADkAMQApACAAFgAKAP//8//o/93/0//L/8X/wf++/7z/vP++/8L/yP/Q/9n/5P/v//r/BAAPABkAIwAsADQAOwBAAEMARABDAD8AOgA0ACwAJAAaABAABQD6/+//5P/a/9H/yv/F/8H/v/++/7//wv/G/83/1f/f/+n/9P///wkAEwAdACYALwA2ADwAQABCAEIAPwA7ADYALwAnAB8AFQAKAAAA9f/q/+D/1//P/8n/xf/C/8D/wP/C/8b/y//S/9v/5P/v//n/AwANABcAIAApADEANwA8AD8AQAA/ADwANwAxACoAIgAaABAABQD7//H/5v/d/9X/zv/J/8X/w//C/8P/xf/K/9D/1//g/+r/9P/+/wcAEQAbACMAKwAyADgAPAA+AD4APAA4ADMALQAmAB4AFAALAAAA9//t/+P/2v/T/83/yf/G/8T/xP/G/8n/zv/U/9z/5f/v//n/AgALABUAHgAmAC0AMwA4ADsAPAA7ADkANQAvACkAIQAZABAABgD9//P/6f/g/9j/0v/N/8n/x//G/8b/yf/N/9L/2f/h/+r/9P/9/wYADwAYACEAKAAvADQAOAA6ADoAOAA1ADEAKwAkAB0AFAALAAEA+P/v/+b/3v/X/9H/zP/J/8j/yP/J/8z/0f/W/97/5v/v//j/AQAKABMAGwAjACoAMAA0ADcAOAA4ADUAMgAtACcAIAAYAA8ABgD+//T/6//j/9v/1f/Q/8z/yv/J/8r/zP/P/9T/2//i/+v/8//9/wUADQAWAB4AJQArADAANAA2ADYANQAyAC4AKQAjABsAEwALAAIA+v/x/+j/4P/a/9T/0P/N/8v/y//M/8//0//Y/9//5//v//j/AAAIABEAGQAgACcALAAxADMANQA0ADMAMAArACYAHwAYABAABwAAAPf/7v/m/97/2P/T/8//zP/L/8v/zP/P/9P/2f/g/+j/8f/6/wEACQAQABcAHgAmACwAMgA2ADkAOAA2ADIALQAoACEAGwATAAsAAgD5/+//5f/d/9f/0v/P/83/y//L/8z/zv/S/9j/3//o//H/+v8CAAoAEgAaACEAKAAuADMANgA3ADYAMwAvACoAJAAeABcADwAGAP7/9P/r/+P/2//W/9L/z//N/8z/zf/O/9H/1v/c/+T/7P/1//7/BgAOABUAHAAjACkALwAzADUANQAzADAAKwAmACAAGgATAAsAAgD6//H/6P/g/9r/1f/S/9D/zv/O/8//0f/U/9r/4f/o//H/+v8BAAkAEAAYAB8AJQArAC8AMgAzADIAMAAtACgAIgAcABYADgAGAP//9v/t/+X/3//Z/9X/0v/Q/8//0P/R/9T/2P/e/+X/7f/1//3/BAAMABMAGgAhACYAKwAvADEAMQAwAC0AKQAkAB8AGQASAAoAAgD7//L/6v/j/93/2P/V/9L/0f/R/9H/0//X/9z/4v/p//H/+f8AAAgADwAWABwAIgAoACwALwAwAC8ALgAqACYAIQAbABUADgAHAP//9//v/+j/4f/c/9j/1f/T/9L/0v/U/9b/2v/g/+b/7f/1//3/AwALABIAGAAeACQAKAAsAC4ALgAtACsAJwAjAB4AGAARAAoAAwD8//T/7P/m/+D/2//Y/9X/1P/T/9T/1v/Z/97/4//q//H/+f8AAAYADQAUABoAIAAlACkALAAtAC0AKwAoACQAIAAaABQADgAHAAAA+P/x/+r/5P/f/9v/2P/W/9X/1f/W/9n/3P/h/+f/7v/1//z/AgAJABAAFgAcACEAJgApACsAKwArACkAJQAhAB0AFwARAAoAAwD9//X/7v/o/+L/3v/a/9j/1v/W/9f/2P/b/9//5f/r//H/+P///wUADAASABgAHgAiACYAKQAqACoAKQAmACMAHgAZABQADQAHAAAA+v/z/+z/5v/h/93/2v/Y/9f/1//Y/9v/3v/j/+j/7v/3//3/AgAIAA4AFAAZAB0AIQAjACUAJQAlACMAIAAdABgAEwAOAAgAAgD9//f/8f/r/+b/4v/f/93/3P/c/9z/3v/h/+T/6f/u//T/+v8AAAUACwAQABUAGgAeACEAIwAkACQAIwAhAB4AGgAVABAACwAFAAAA+v/0/+//6v/l/+L/3//e/93/3f/e/+D/4//n/+z/8f/3//3/AgAHAA0AEgAXABsAHgAhACIAIwAiACEAHgAbABcAEwAOAAgAAgD+//j/8v/t/+j/5f/i/+D/3v/e/9//4P/i/+b/6v/v//T/+v///wQACQAPABMAGAAcAB4AIQAiACIAIQAfABwAGQAUABAACwAFAAAA+//1//D/6//n/+T/4v/g/9//3//g/+L/5f/o/+3/8v/3//z/AQAGAAsAEAAVABkAHAAeACAAIQAgAB8AHQAaABYAEgANAAgAAwD+//n/8//v/+r/5//k/+L/4f/g/+H/4v/k/+f/6//v//T/+v///wMACAANABIAFgAZABwAHgAfAB8AHwAdABoAFwATAA8ACgAFAAAA/P/3//L/7f/p/+b/5P/i/+H/4f/i/+T/5v/q/+7/8v/3//z/AAAFAAoADwATABcAGgAcAB4AHgAeAB0AGwAYABUAEQANAAgAAwD///r/9f/w/+z/6f/m/+T/4//i/+P/5P/m/+n/7P/w//X/+v///wMABwAMABAAFAAYABoAHAAdAB0AHQAbABkAFgATAA8ACgAFAAAA/P/4//P/7//r/+j/5v/k/+P/4//k/+b/6P/r/+//8//3//z/AAAFAAkADgASABUAGAAaABwAHAAcABsAGQAXABQAEAAMAAgAAwD///r/9v/x/+7/6v/o/+b/5f/k/+T/5v/n/+r/7f/x//X/+v/+/wIABwALAA8AEwAWABgAGgAbABwAGwAaABgAFQASAA4ACgAFAAEA/f/5//T/8P/t/+r/6P/m/+X/5f/m/+f/6f/s/+//8//3//z/AAAEAAgADAAQABQAFgAYABoAGwAaABoAGAAWABMADwAMAAgAAwAAAPv/9//z/+//7P/q/+j/5v/m/+b/5//p/+v/7v/y//b/+v/+/wEABgAKAA4AEQAUABcAGAAZABoAGQAYABYAFAARAA0ACQAFAAEA/v8=",
-  "turn": "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xwDCALwAsgCnAJkAigB5AGYAUgA9ACcAEQD8/+b/0P+7/6f/lP+C/3L/ZP9X/03/Rf8//zz/O/89/0H/SP9R/1z/af94/4j/m/+u/8L/1//s/wEAFgAsAEEAVQBoAHkAiQCXAKQArgC2ALsAvwDAAL4AugC0AKwAogCVAIcAdwBmAFMAPwArABYAAADs/9f/w/+w/53/jP98/27/Yv9Y/1D/Sv9G/0X/Rv9J/0//V/9h/23/e/+K/5v/rf/A/9T/6P/9/xAAJQA5AEwAXgBvAH8AjQCZAKMAqwCxALUAtgC2ALIArQCmAJ0AkQCEAHUAZQBUAEEALgAaAAUA8v/e/8v/uP+m/5b/hv95/23/Yv9a/1T/UP9O/07/Uf9W/13/Zv9x/37/jP+c/63/vv/R/+T/+P8LAB4AMQBEAFUAZgB1AIMAjwCZAKEApwCrAK0ArQCrAKYAoACXAI0AgQBzAGQAVABCADAAHQAKAPj/5f/S/8D/r/+f/5D/gv92/2z/ZP9d/1n/V/9X/1n/Xf9j/2v/df+B/47/nf+t/73/z//h//T/BQAYACoAPABNAF0AbAB5AIUAjwCYAJ4AogClAKUAowCgAJoAkgCJAH4AcQBjAFQAQwAyACAADgD9/+v/2f/H/7f/p/+Z/4z/gP92/23/Z/9i/1//X/9g/2P/af9w/3n/hP+Q/57/rf+8/83/3v/w/wEAEgAkADUARQBVAGMAcAB8AIYAjgCVAJoAnACdAJwAmQCUAI0AhQB7AG8AYgBTAEQANAAjABIAAADw/9//zv++/6//of+U/4n/f/92/2//a/9o/2b/Z/9q/2//df99/4f/k/+f/63/vP/M/9z/7P/9/w0AHgAuAD4ATQBbAGgAcwB9AIYAjACRAJQAlgCVAJIAjgCIAIAAdwBsAGAAUwBFADUAJQAVAAQA9f/k/9X/xf+3/6n/nP+R/4f/f/94/3P/b/9u/27/cP90/3r/gv+L/5X/of+u/7z/yv/a/+n/+f8JABkAKAA3AEYAUwBgAGsAdQB9AIQAiQCNAI4AjgCMAIgAgwB8AHQAagBfAFIARQA2ACcAGAAIAPn/6v/a/8z/vv+w/6T/mf+P/4f/gP97/3f/df91/3f/ev9//4b/jv+Y/6P/r/+8/8n/2P/n//b/BAAUACMAMQA/AEwAWABjAG0AdgB8AIIAhQCHAIcA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CwARABYAGwAgACQAKAArAC4AMAAxADIAMgAyADEALwAtACoAJwAjAB8AGwAWABAACwAFAAAA+//1//D/6//m/+L/3f/a/9f/1P/S/9D/z//P/8//0P/R/9T/1v/a/93/4v/m/+v/8P/1//r/AAAEAAoADwAUABkAHQAiACUAKAArAC0ALwAvADAALwAvAC0AKwApACYAIgAfABoAFQAQAAsABgABAPz/9//y/+3/6P/k/+D/3P/Z/9f/1P/T/9L/0f/R/9L/0//V/9j/2//e/+L/5v/r//D/9P/5////AwAIAA0AEgAXABsAHwAjACYAKAAqACwALQAtAC0ALQArACoAJwAlACEAHgAaABUAEQAMAAcAAgD+//n/9P/v/+r/5v/i/9//3P/Z/9f/1f/U/9T/1P/U/9X/1//Z/9z/3//j/+f/6//v//T/+f/+/wIABgALABAAFAAZAB0AIAAjACYAKAApACoAKwArACoAKQAoACYAIwAgAB0AGQAVABEADAAHAAMA///6//X/8f/t/+j/5f/h/97/3P/a/9j/1//W/9b/1v/X/9n/2//d/+D/5P/n/+v/7//0//j//f8AAAUACgAOABIAFwAaAB4AIQAjACUAJwAoACkAKQAoACgAJgAkACIAHwAcABkAFQARAA0ACAAEAAAA+//3//P/7v/r/+f/5P/h/97/3P/a/9n/2P/Y/9j/2f/b/9z/3//h/+T/6P/r/+//8//4//z/AAAEAAgADAARABUAGAAbAB4AIQAjACUAJgAnACcAJgAmACUAIwAhAB4AGwAYABUAEQANAAkABAAAAP3/+P/0//D/7P/p/+b/4//g/97/3f/b/9r/2v/a/9v/3P/e/+D/4v/l/+j/7P/v//P/9//7////AwAHAAsADwATABYAGQAcAB8AIQAiACQAJAAlACUAJAAjACEAIAAdABsAGAAUABEADQAJAAUAAQD+//r/9v/y/+7/6//o/+X/4v/g/9//3f/d/9z/3P/d/97/3//h/+P/5v/p/+z/7//z//f/+////wIABgAKAA0AEQAUABcAGgAdAB8AIAAiACIAIwAjACIAIQAgAB4AHAAaABcAFAARAA0ACQAGAAIA///7//f/8//w/+3/6v/n/+T/4v/h/9//3//c/9z/3P/c/93/3//h/+P/5v/p/+z/8P/z//f/+////wIABgAKAA4AEgAVABgAGwAdAB8AIQAiACMAIwAjACMAIgAhAB8AHQAaABcAFAARAA0ACQAFAAEA/v/6//b/8//v/+z/6f/m/+T/4v/g/9//3v/d/93/3v/f/+D/4v/k/+b/6f/s/+//8//3//r//v8BAAUACQAMABAAEwAWABkAGwAdAB8AIAAhACIAIgAhACEAHwAeABwAGQAXABQAEQANAAoABgACAP///P/4//T/8f/u/+v/6P/m/+T/4v/h/+D/3//f/9//4P/h/+P/5f/n/+r/7P/v//P/9v/6//3/AAAEAAcACwAOABIAFAAXABoAHAAdAB8AHwAgACAAIAAfAB4AHQAbABkAFgAUABEADQAKAAYAAwAAAP3/+f/2//L/7//s/+r/5//l/+T/4v/h/+H/4f/h/+H/4v/k/+b/6P/q/+3/8P/z//b/+f/9/wAAAwAGAAoADQAQABMAFQAYABoAGwAdAB4AHgAfAB4AHgAdABwAGgAYABYAEwAQAA0ACgAHAAQAAAD+//r/9//0//H/7v/s/+n/5//l/+T/4//i/+L/4v/j/+T/5f/m/+j/6//t//D/8//2//n//P///wIABQAIAAsADgARABQAFgAYABoAGwAcAB0AHQAdAB0AHAAbABkAFwAVABMAEAAOAAsABwAEAAEA///7//j/9f/y//D/7f/r/+n/5//m/+X/5P/k/+T/5P/l/+b/5//p/+v/7f/w//P/9f/4//v///8BAAQABwAKAA0AEAASABQAFgAYABkAGwAbABwAHAAbABsAGgAYABcAFQATABAADgALAAgABQACAAAA/P/5//b/9P/x/+//7P/q/+n/5//m/+X/5f/l/+X/5v/n/+j/6v/s/+7/8P/z//X/+P/7//7/AAADAAYACQAMAA4AEQATABUAFwAYABkAGgAaABoAGgAZABkAFwA="
-};
-
-// src/sound.ts
-function soundWanted(cfg, env = process.env) {
-  if (cfg.sound !== true) return false;
-  if (env.CI && env.CI !== "0" && env.CI !== "false") return false;
-  const s = env.DEPLOYAI_SOUND;
-  return !(s !== void 0 && ["0", "false", "off", "no"].includes(s.toLowerCase()));
-}
-var soundsDir = () => join11(configDir(), "sounds");
-function writeSoundFiles() {
-  mkdirSync5(soundsDir(), { recursive: true });
-  for (const [name, b64] of Object.entries(SOUND_FILES)) {
-    const data = Buffer.from(b64, "base64");
-    const file2 = join11(soundsDir(), `${name}.wav`);
-    if (!existsSync10(file2) || statSync(file2).size !== data.length) writeFileSync8(file2, data);
-  }
-  if (process.platform === "win32") {
-    const ps = windowsSpeakerFile();
-    if (!existsSync10(ps) || readFileSync9(ps, "utf8") !== WINDOWS_SPEAKER) writeFileSync8(ps, WINDOWS_SPEAKER);
-  }
-}
-function playerFor(platform3, file2) {
-  if (platform3 === "win32") return { cmd: "powershell.exe", args: ["-NoProfile", "-NonInteractive", "-Command", `(New-Object Media.SoundPlayer '${file2.replace(/'/g, "''")}').PlaySync()`] };
-  if (platform3 === "darwin") return { cmd: "afplay", args: [file2] };
-  if (platform3 === "linux") return { cmd: "sh", args: ["-c", 'paplay "$0" 2>/dev/null || aplay -q "$0" 2>/dev/null', file2] };
-  return null;
-}
-function playSound(name, cfg, line) {
-  if (!soundWanted(cfg)) return;
-  try {
-    writeSoundFiles();
-    const file2 = join11(soundsDir(), `${name}.wav`);
-    const say = line && voiceWanted(cfg) ? { text: VOICE_LINES[line.key][cfg.voiceLang ?? line.lang], lang: cfg.voiceLang ?? line.lang } : null;
-    const player = say ? speakerFor(process.platform, file2, say.text, say.lang) : playerFor(process.platform, file2);
-    if (!player) return;
-    const child = spawn2(player.cmd, player.args, { detached: true, stdio: "ignore", windowsHide: true });
-    child.on("error", () => void 0);
-    child.unref();
-  } catch {
-  }
-}
-var VOICE_LINES = {
-  live: { he: "\u05D4\u05D0\u05EA\u05E8 \u05E9\u05DC\u05DB\u05DD \u05D1\u05D0\u05D5\u05D5\u05D9\u05E8", en: "Your site is live" },
-  waiting: { he: "\u05D9\u05E9 \u05DC\u05D9 \u05E9\u05D0\u05DC\u05D4 \u05D0\u05DC\u05D9\u05DB\u05DD", en: "I need your answer" },
-  done: { he: "\u05E1\u05D9\u05D9\u05DE\u05EA\u05D9. \u05D1\u05D5\u05D0\u05D5 \u05DC\u05D4\u05E1\u05EA\u05DB\u05DC", en: "Done. Come take a look" }
-};
-function voiceWanted(cfg, env = process.env) {
-  if (cfg.voice !== true || !soundWanted(cfg, env)) return false;
-  const v = env.DEPLOYAI_VOICE;
-  return !(v !== void 0 && ["0", "false", "off", "no"].includes(v.toLowerCase()));
-}
-var WINDOWS_SPEAKER = `param([string]$Sound, [string]$Text, [string]$Lang)
-$ErrorActionPreference = 'Stop'
-if ($Sound) { try { (New-Object Media.SoundPlayer $Sound).PlaySync() } catch {} }
-if (-not $Text) { exit 0 }
-Add-Type -AssemblyName System.Runtime.WindowsRuntime
-$null = [Windows.Media.SpeechSynthesis.SpeechSynthesizer, Windows.Media.SpeechSynthesis, ContentType = WindowsRuntime]
-$null = [Windows.Storage.Streams.DataReader, Windows.Storage.Streams, ContentType = WindowsRuntime]
-$asTask = ([System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object { $_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation\`1' })[0]
-function Wait-Op($op, $type) { $task = $asTask.MakeGenericMethod($type).Invoke($null, @($op)); $task.Wait() | Out-Null; $task.Result }
-$voice = [Windows.Media.SpeechSynthesis.SpeechSynthesizer]::AllVoices | Where-Object { $_.Language -like "$Lang*" } | Select-Object -First 1
-if (-not $voice) { exit 0 }
-$s = New-Object Windows.Media.SpeechSynthesis.SpeechSynthesizer
-$s.Voice = $voice
-$stream = Wait-Op ($s.SynthesizeTextToStreamAsync($Text)) ([Windows.Media.SpeechSynthesis.SpeechSynthesisStream])
-$reader = New-Object Windows.Storage.Streams.DataReader($stream.GetInputStreamAt(0))
-$n = [uint32]$stream.Size
-$null = Wait-Op ($reader.LoadAsync($n)) ([uint32])
-$bytes = New-Object byte[] $n
-$reader.ReadBytes($bytes)
-$file = Join-Path $env:TEMP ('deployai-voice-' + $PID + '.wav')
-[IO.File]::WriteAllBytes($file, $bytes)
-try { (New-Object Media.SoundPlayer $file).PlaySync() } finally { Remove-Item $file -ErrorAction SilentlyContinue }
-`;
-var windowsSpeakerFile = () => join11(soundsDir(), "speak.ps1");
-function speakerFor(platform3, file2, text4, lang) {
-  if (platform3 === "win32") return { cmd: "powershell.exe", args: ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", windowsSpeakerFile(), "-Sound", file2, "-Text", text4, "-Lang", lang] };
-  if (platform3 === "darwin") return { cmd: "sh", args: ["-c", 'afplay "$0"; v=$(say -v "?" | grep " $2_" | head -n 1 | sed "s/  *[a-z][a-z]_[A-Z][A-Z].*//"); [ -n "$v" ] && say -v "$v" "$1"', file2, text4, lang] };
-  if (platform3 === "linux") return { cmd: "sh", args: ["-c", '(paplay "$0" || aplay -q "$0") 2>/dev/null; (spd-say -w -l "$2" "$1" || espeak-ng -v "$2" "$1") >/dev/null 2>&1', file2, text4, lang] };
-  return null;
-}
-
-// src/commands/sound.ts
-var SETTINGS = ".claude/settings.local.json";
-var TITLE_ENV = "CLAUDE_CODE_DISABLE_TERMINAL_TITLE";
-var AGENT_SCRIPT = ".deployai/agent-sound.mjs";
-function agentScript(sounds, config2 = join12(configDir(), "config.json")) {
-  return `// DeployAI's sound and tab dot for Claude Code. Written by: npx deployai@latest sound agent on. Removed by: sound agent off.
-// Stays on this computer and sends nothing. Reads the event's list of running tasks, never the prompt or the conversation.
-import { spawn } from 'node:child_process';
-import { readFileSync } from 'node:fs';
-import { basename, join } from 'node:path';
-
-const SOUNDS = ${JSON.stringify(sounds)};
-const CONFIG = ${JSON.stringify(config2)};
-// Said after the sound when the owner said yes to the voice (D-1113): fixed lines only, never the prompt or the conversation.
-const LINES = ${JSON.stringify({ waiting: VOICE_LINES.waiting, done: VOICE_LINES.done })};
-// Never finish, so they do not count as work still running: servers and watchers, monitors, recurring crons.
-const NEVER_ENDS = /(^|[\\s:/'"-])(dev|dev:[\\w-]+|serve|server|start|watch|worker|tunnel|cloudflared|vite|preview|compose up)(\\s|$|['"])|tail\\s+-f/i;
-const FINISHED = /^(completed|complete|done|failed|killed|stopped|cancelled|canceled|error)$/;
-
-let raw = '';
-for await (const chunk of process.stdin) raw += chunk;
-let event = {};
-try { event = JSON.parse(raw); } catch {}
-
-// Claude stopped talking but a shell or an agent still runs: that is not done. It stops again when the work ends.
-const list = (v) => (Array.isArray(v) ? v.filter(Boolean) : []);
-const stillWorking = list(event.background_tasks).some((t) => !FINISHED.test(t.status ?? '') && t.type !== 'monitor' && !(t.type === 'shell' && NEVER_ENDS.test(t.command ?? '')))
-  || list(event.session_crons).some((c) => !c.recurring);
-
-const asked = process.argv[2];
-const state = asked === 'done' && stillWorking ? 'working' : asked;
-// "turn", not "live": a turn ending says nothing about the site. Only a deploy the server took plays Da-ding.
-const sound = { waiting: 'needs-you', done: 'turn', failed: 'failed' }[state];
-const no = (v) => ['0', 'false', 'off', 'no'].includes((v ?? '').toLowerCase());
-const off = no(process.env.DEPLOYAI_SOUND);
-const read = (f) => { try { return JSON.parse(readFileSync(f, 'utf8')); } catch { return {}; } };
-const cfg = read(CONFIG);
-const lang = cfg.voiceLang === 'he' || cfg.voiceLang === 'en' ? cfg.voiceLang : read(join(String(process.env.CLAUDE_PROJECT_DIR ?? event.cwd ?? '.'), '.deployai', 'project.json')).lang === 'he' ? 'he' : 'en';
-const text = cfg.voice === true && !no(process.env.DEPLOYAI_VOICE) ? LINES[state]?.[lang] : null;
-if (sound && !off) {
-  const file = join(SOUNDS, sound + '.wav');
-  const player = process.platform === 'win32'
-    ? (text ? ['powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', join(SOUNDS, 'speak.ps1'), '-Sound', file, '-Text', text, '-Lang', lang]]
-      : ['powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', "(New-Object Media.SoundPlayer '" + file.replace(/'/g, "''") + "').PlaySync()"]])
-    : process.platform === 'darwin'
-      ? (text ? ['sh', ['-c', 'afplay "$0"; v=$(say -v "?" | grep " $2_" | head -n 1 | sed "s/  *[a-z][a-z]_[A-Z][A-Z].*//"); [ -n "$v" ] && say -v "$v" "$1"', file, text, lang]] : ['afplay', [file]])
-      : ['sh', ['-c', text ? '(paplay "$0" || aplay -q "$0") 2>/dev/null; (spd-say -w -l "$2" "$1" || espeak-ng -v "$2" "$1") >/dev/null 2>&1' : 'paplay "$0" 2>/dev/null || aplay -q "$0" 2>/dev/null', file, ...(text ? [text, lang] : [])]];
-  try {
-    const child = spawn(player[0], player[1], { detached: true, stdio: 'ignore', windowsHide: true });
-    child.on('error', () => {});
-    child.unref();
-  } catch {}
-}
-
-// Busy orange, done green, needs you or failed red (D-869). The emoji dot is in the title for every terminal; Windows Terminal
-// also lights its tab with its own progress state (OSC 9;4): busy spinning, done cleared, needs you yellow, failed red.
-const dot = { working: '\\u{1F7E0}', waiting: '\\u{1F534}', done: '\\u{1F7E2}', failed: '\\u{1F534}' }[state] ?? '';
-const progress = { working: '3;0', waiting: '4;100', done: '0;0', failed: '2;100' }[state];
-const name = basename(String(event.cwd ?? '')).replace(/[^\\p{L}\\p{N} ._-]/gu, '').slice(0, 40) || 'DeployAI';
-process.stdout.write(JSON.stringify({ terminalSequence: '\\u001b]0;' + dot + ' ' + name + '\\u0007' + (progress ? '\\u001b]9;4;' + progress + '\\u0007' : '') }));
-`;
-}
-var hookCommand = (state) => `node "$CLAUDE_PROJECT_DIR/${AGENT_SCRIPT}" ${state}`;
-var ours = (h) => typeof h?.command === "string" && h.command.includes(AGENT_SCRIPT);
-var EVENTS = [
-  { event: "UserPromptSubmit", state: "working" },
-  { event: "Stop", state: "done" },
-  { event: "StopFailure", state: "failed" },
-  { event: "Notification", state: "waiting", matcher: "permission_prompt|elicitation_dialog" }
-];
-var hooksOf = (obj) => obj?.hooks && typeof obj.hooks === "object" ? obj.hooks : {};
-function foreignHooks(files) {
-  const found = /* @__PURE__ */ new Set();
-  for (const file2 of files) {
-    const hooks = hooksOf(readObject(file2));
-    for (const event of ["Stop", "Notification"]) {
-      if ((hooks[event] ?? []).some((g) => (g.hooks ?? []).some((h) => !ours(h)))) found.add(event);
-    }
-  }
-  return [...found];
-}
-function agentOn(root, opts = {}) {
-  const file2 = join12(root, SETTINGS);
-  const obj = readObject(file2);
-  if (!obj) throw new CliError(`${SETTINGS} is not valid JSON, so it was left as is.`, 1, "allow_file");
-  const home = process.env.CLAUDE_CONFIG_DIR || join12(opts.home ?? homedir2(), ".claude");
-  if (!opts.alongside && foreignHooks([join12(home, "settings.json"), join12(root, ".claude/settings.json"), file2]).length) return "has_own";
-  writeSoundFiles();
-  ensureDeployaiDir(root);
-  const script = join12(root, AGENT_SCRIPT);
-  const text4 = agentScript(soundsDir());
-  const scriptSame = existsSync11(script) && readFileSync10(script, "utf8") === text4;
-  if (!scriptSame) writeFileSync9(script, text4);
-  const hooks = hooksOf(obj);
-  const env = obj.env && typeof obj.env === "object" ? obj.env : {};
-  let added = env[TITLE_ENV] !== "1";
-  for (const { event, state, matcher } of EVENTS) {
-    const groups = hooks[event] ?? [];
-    if (groups.some((g) => (g.hooks ?? []).some(ours))) continue;
-    hooks[event] = [...groups, { ...matcher ? { matcher } : {}, hooks: [{ type: "command", command: hookCommand(state) }] }];
-    added = true;
-  }
-  if (added) {
-    writeObject(file2, { ...obj, env: { ...env, [TITLE_ENV]: "1" }, hooks });
-    ignoreInGit(root, SETTINGS);
-    ignoreInGit(root, AGENT_SCRIPT);
-  }
-  return added || !scriptSame ? "on" : "already";
-}
-function agentOff(root) {
-  const file2 = join12(root, SETTINGS);
-  const obj = readObject(file2);
-  if (!obj) throw new CliError(`${SETTINGS} is not valid JSON, so it was left as is.`, 1, "allow_file");
-  const hooks = hooksOf(obj);
-  let removed = false;
-  if (obj.env && typeof obj.env === "object" && TITLE_ENV in obj.env) {
-    const { [TITLE_ENV]: _ours, ...env } = obj.env;
-    if (Object.keys(env).length) obj.env = env;
-    else delete obj.env;
-    removed = true;
-  }
-  for (const event of Object.keys(hooks)) {
-    const left = (hooks[event] ?? []).map((g) => ({ ...g, hooks: (g.hooks ?? []).filter((h) => !ours(h)) })).filter((g) => g.hooks.length);
-    if (left.length !== hooks[event]?.length) removed = true;
-    if (left.length) hooks[event] = left;
-    else delete hooks[event];
-  }
-  if (removed) {
-    if (Object.keys(hooks).length) obj.hooks = hooks;
-    else delete obj.hooks;
-    writeObject(file2, obj);
-  }
-  const script = join12(root, AGENT_SCRIPT);
-  if (existsSync11(script)) {
-    rmSync2(script);
-    removed = true;
-  }
-  return removed;
-}
-function agentCommand(root, state, tool, opts) {
-  const picked = tool?.toLowerCase() ?? (process.env.CLAUDECODE === "1" ? "claude-code" : null);
-  if (state !== "on" && state !== "off") throw new CliError("Usage: npx deployai@latest sound agent on|off [claude-code]", 1, "usage");
-  if (picked !== "claude-code") {
-    out("The sound while the agent works is only for Claude Code so far. The sound when the site is ready already works here: npx deployai@latest sound on.");
-    return;
-  }
-  if (state === "off") {
-    out(agentOff(root) ? `Done: removed from this folder (${SETTINGS}, ${AGENT_SCRIPT}).` : "It was not on in this folder.");
-    return;
-  }
-  const r = agentOn(root, opts);
-  if (r === "has_own") {
-    out("Claude Code already runs something when it stops or asks, so nothing changed. Tell the owner, and only if they want both, run it again with --alongside.");
-    return;
-  }
-  out(r === "on" ? `Done, in this folder only (${SETTINGS}, ${AGENT_SCRIPT}). The sound works from the next message; the dot in the tab shows once Claude Code starts again.` : "Already on in this folder.");
-  out("It stays on this computer, sends nothing, and never reads the prompt or the conversation. To remove it: npx deployai@latest sound agent off.");
-}
-function agentFollows(folders, env = process.env) {
-  if (env.CLAUDECODE !== "1") return false;
-  let on = false;
-  for (const folder of new Set(folders)) {
-    try {
-      if (agentOn(folder) !== "has_own") on = true;
-    } catch {
-    }
-  }
-  return on;
-}
-var terminalFolders = (root) => [.../* @__PURE__ */ new Set([root, readProject(root)?.startedFrom ?? root])];
-var savedLine = (t, where) => t(where === "account" ? "prefsSavedAccount" : where === "computer" ? "prefsSavedHere" : "prefsSaveFailed");
-async function soundCommand(root, action, state, tool, opts = {}, ctx) {
-  const act = (action ?? "status").toLowerCase();
-  if (act === "agent") return agentCommand(root, state?.toLowerCase(), tool, opts);
-  const t = messages(root);
-  if (act === "on" || act === "off") {
-    const where = ctx ? await saveAccountPrefs(ctx, { sound: act === "on" }) : (updateConfig({ sound: act === "on" }), "computer");
-    const cfg2 = loadConfig();
-    out(t(act === "on" ? "soundOn" : "soundOff"));
-    out(savedLine(t, where));
-    if (act === "on") {
-      if (agentFollows(terminalFolders(root))) out(t("soundAgentOn"));
-      playSound("live", cfg2);
-    } else {
-      for (const folder of terminalFolders(root)) {
-        try {
-          agentOff(folder);
-        } catch {
-        }
-      }
-    }
-    return;
-  }
-  const account = ctx ? await accountPrefs(ctx) : null;
-  applyAccountPrefs(account);
-  const cfg = loadConfig();
-  if (act === "test") {
-    if (!soundWanted(cfg)) return out(t("soundOff"));
-    playSound("live", cfg);
-    return out(t("soundTest"));
-  }
-  if (act !== "status") throw new CliError("Usage: npx deployai@latest sound on|off|status|test, or sound agent on|off", 1, "usage");
-  out(t(soundWanted(cfg) ? "soundOn" : "soundOff"));
-}
-async function voiceCommand(root, action, value2, ctx) {
-  const act = (action ?? "status").toLowerCase();
-  const t = messages(root);
-  const save2 = async (patch) => ctx ? saveAccountPrefs(ctx, patch) : (updateConfig({ ...patch.voice !== void 0 ? { voice: patch.voice } : {}, ...patch.voiceLang ? { voiceLang: patch.voiceLang } : {} }), "computer");
-  if (act === "on" || act === "off") {
-    const where = await save2({ voice: act === "on" });
-    out(t(act === "on" ? "voiceOn" : "voiceOff"));
-    out(savedLine(t, where));
-    return;
-  }
-  if (act === "lang") {
-    const lang = (value2 ?? "").toLowerCase();
-    if (lang !== "he" && lang !== "en") throw new CliError("Usage: npx deployai@latest voice lang he|en", 1, "usage");
-    const where = await save2({ voiceLang: lang });
-    out(t("voiceLang", { lang: lang === "he" ? "\u05E2\u05D1\u05E8\u05D9\u05EA" : "English" }));
-    out(savedLine(t, where));
-    return;
-  }
-  if (act !== "status" && act !== "test") throw new CliError("Usage: npx deployai@latest voice on|off|status|test, or voice lang he|en", 1, "usage");
-  const account = ctx ? await accountPrefs(ctx) : null;
-  applyAccountPrefs(account);
-  const cfg = loadConfig();
-  if (act === "test") {
-    if (!soundWanted(cfg)) return out(t("voiceNeedsSound"));
-    if (!voiceWanted(cfg)) return out(t("voiceOff"));
-    playSound("live", cfg, { key: "live", lang: cliLang(root) });
-    return out(t("voiceTest"));
-  }
-  out(t(cfg.voice === true ? soundWanted(cfg) ? "voiceOn" : "voiceNeedsSound" : "voiceOff"));
-}
-function refreshAgentScript(root) {
-  const script = join12(root, AGENT_SCRIPT);
-  if (!existsSync11(script)) return false;
-  const text4 = agentScript(soundsDir());
-  const now = readFileSync10(script, "utf8");
-  if (now === text4 || !now.startsWith("// DeployAI's sound and tab dot")) return false;
-  writeSoundFiles();
-  writeFileSync9(script, text4);
-  return true;
-}
-
-// src/commands/rules.ts
-var SAID = {
-  updated: "DEPLOYAI.md was updated to the current DeployAI rules. Read it again before you go on.",
-  added: "DEPLOYAI.md got the DeployAI rules it lacked, at its end. Read them before you go on."
-};
-async function rulesCommand(root, apiUrl) {
-  const texts = initTexts(await serverRules(apiUrl));
-  out(texts.md.trimEnd());
-  out();
-  const sync = syncRulesFile(root, texts.md, texts.later);
-  if (sync === "current") out("DEPLOYAI.md here has these rules.");
-  else if (sync === "none") out("No DEPLOYAI.md in this folder. To add one: npx deployai@latest init");
-  else if (SAID[sync]) out(SAID[sync]);
-  else out("DEPLOYAI.md here was edited, so it was left as it is. Follow the rules above. To replace it with them: npx deployai@latest init --force");
-}
-async function refreshRules(root, apiUrl) {
-  try {
-    const texts = initTexts(await serverRules(apiUrl));
-    const sync = syncRulesFile(root, texts.md, texts.later);
-    if (SAID[sync]) err(SAID[sync]);
-  } catch {
-  }
-}
-
-// src/ask.ts
-import { createInterface } from "readline/promises";
-var isInteractive = () => Boolean(process.stdin.isTTY && process.stdout.isTTY) && !isCi() && !envToken();
-async function askLine(question) {
-  const rl = createInterface({ input: process.stdin, output: process.stdout });
-  try {
-    return (await rl.question(question)).trim();
-  } finally {
-    rl.close();
-  }
-}
-async function askYes(question) {
-  const answer = (await askLine(question)).toLowerCase();
-  return answer === "y" || answer === "yes";
-}
-
-// src/commands/link.ts
-import { createInterface as createInterface2 } from "readline/promises";
-
-// src/commands/migrate.ts
-import { existsSync as existsSync14, mkdirSync as mkdirSync8, readdirSync as readdirSync3, readFileSync as readFileSync13, statSync as statSync2, writeFileSync as writeFileSync13 } from "fs";
-import { dirname as dirname2, join as join15, posix, relative as relative2, resolve as resolve2, sep as sep2 } from "path";
-
-// src/commands/look.ts
-import { existsSync as existsSync13, mkdirSync as mkdirSync7, writeFileSync as writeFileSync12 } from "fs";
-import { join as join14, relative, sep } from "path";
-
-// src/compare.ts
-import { readFileSync as readFileSync11, writeFileSync as writeFileSync10 } from "fs";
-import pixelmatch from "pixelmatch";
-import pngjs from "pngjs";
-var { PNG } = pngjs;
-var DEFAULT_MAX_DIFF = 1;
-var MAX_HEIGHT = 16e3;
-var BLOCK = 16;
-var COLOR_THRESHOLD = 0.1;
-var MOSTLY_MOVING = 0.5;
-function readPng(file2) {
-  const png = PNG.sync.read(readFileSync11(file2));
-  return { width: png.width, height: png.height, data: png.data };
-}
-function writePng(file2, pic) {
-  const png = new PNG({ width: pic.width, height: pic.height });
-  png.data = Buffer.from(pic.data.buffer, pic.data.byteOffset, pic.data.byteLength);
-  writeFileSync10(file2, PNG.sync.write(png));
-}
-function onCanvas(pic, width, height) {
-  if (pic.width === width && pic.height === height) return pic.data;
-  const data = new Uint8Array(width * height * 4);
-  for (let i = 0; i < data.length; i += 4) {
-    data[i] = 255;
-    data[i + 1] = 0;
-    data[i + 2] = 255;
-    data[i + 3] = 255;
-  }
-  const w = Math.min(pic.width, width);
-  for (let y = 0; y < Math.min(pic.height, height); y++) data.set(pic.data.subarray(y * pic.width * 4, (y * pic.width + w) * 4), y * width * 4);
-  return data;
-}
-var sizeOf = (...pics) => ({ width: Math.max(...pics.map((p) => p.width)), height: Math.min(MAX_HEIGHT, Math.max(...pics.map((p) => p.height))) });
-function movingMask(first, second, width, height) {
-  const out2 = new Uint8Array(width * height * 4);
-  pixelmatch(onCanvas(first, width, height), onCanvas(second, width, height), out2, width, height, { threshold: COLOR_THRESHOLD, diffMask: true });
-  const bw = Math.ceil(width / BLOCK), bh = Math.ceil(height / BLOCK);
-  const blocks = new Uint8Array(bw * bh);
-  for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) if (out2[(y * width + x) * 4 + 3]) blocks[Math.floor(y / BLOCK) * bw + Math.floor(x / BLOCK)] = 1;
-  const grown = new Uint8Array(bw * bh);
-  for (let by = 0; by < bh; by++) for (let bx = 0; bx < bw; bx++) {
-    if (!blocks[by * bw + bx]) continue;
-    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
-      const x = bx + dx, y = by + dy;
-      if (x >= 0 && y >= 0 && x < bw && y < bh) grown[y * bw + x] = 1;
-    }
-  }
-  const mask = new Uint8Array(width * height);
-  for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) mask[y * width + x] = grown[Math.floor(y / BLOCK) * bw + Math.floor(x / BLOCK)];
-  return mask;
-}
-function compareLook(before, after, opts = {}) {
-  const { width, height } = sizeOf(before, after);
-  const a = onCanvas(before, width, height);
-  const b = new Uint8Array(onCanvas(after, width, height));
-  const mask = new Uint8Array(width * height);
-  for (const [one, two2] of [[before, opts.beforeAgain], [after, opts.afterAgain]]) {
-    if (!two2) continue;
-    const m = movingMask(one, two2, width, height);
-    for (let i = 0; i < m.length; i++) if (m[i]) mask[i] = 1;
-  }
-  let masked = 0;
-  for (let i = 0; i < mask.length; i++) if (mask[i]) {
-    masked++;
-    b.set(a.subarray(i * 4, i * 4 + 4), i * 4);
-  }
-  const out2 = new Uint8Array(width * height * 4);
-  const changed = pixelmatch(a, b, out2, width, height, { threshold: COLOR_THRESHOLD, alpha: 0.15 });
-  for (let i = 0; i < mask.length; i++) if (mask[i]) {
-    out2[i * 4] = Math.round(out2[i * 4] * 0.4);
-    out2[i * 4 + 1] = Math.round(out2[i * 4 + 1] * 0.4 + 90);
-    out2[i * 4 + 2] = 255;
-  }
-  const compared = width * height - masked;
-  const percent = compared ? Math.round(changed / compared * 1e4) / 100 : 0;
-  const maxDiff = opts.maxDiff ?? DEFAULT_MAX_DIFF;
-  return { changed, compared, masked, percent, pass: percent <= maxDiff, mostlyMoving: masked / (width * height) > MOSTLY_MOVING, diff: { width, height, data: out2 } };
-}
-
-// src/commands/shot.ts
-import { spawn as spawn3 } from "child_process";
-import { existsSync as existsSync12, mkdirSync as mkdirSync6, readFileSync as readFileSync12, rmSync as rmSync3, writeFileSync as writeFileSync11 } from "fs";
-import { tmpdir } from "os";
-import { basename as basename2, join as join13, resolve } from "path";
-var SHOT_SIZES = [{ name: "phone", size: "390,844" }, { name: "desktop", size: "1440,900" }];
-var PLAYWRIGHT = "playwright@1.56";
-var WAIT_MS2 = 18e4;
-var TIMED_OUT = 124;
-var TAKER = String.raw`const fs = require('fs'), path = require('path');
-const a = process.argv.slice(2), opt = (k) => (a.find((x) => x.startsWith('--' + k + '=')) || '').split('=')[1];
-const [url, file] = a.filter((x) => !x.startsWith('--'));
-const step = (s) => fs.writeFileSync(file + '.step', s);
-const bin = (process.env.PATH || '').split(path.delimiter).find((d) => fs.existsSync(path.join(d, '..', 'playwright', 'package.json')));
-const pw = require(path.join(bin, '..', 'playwright'));
-(async () => {
-  step('start the browser');
-  const [w, h] = opt('viewport-size').split(',').map(Number);
-  const browser = opt('browser') === 'webkit' ? await pw.webkit.launch() : await pw.chromium.launch(opt('exec') ? { executablePath: a.find((x) => x.startsWith('--exec=')).slice(7) } : { channel: opt('channel') });
-  const page = await browser.newPage({ viewport: { width: w, height: h } });
-  step('open the page');
-  await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
-  await page.waitForLoadState('load', { timeout: 15000 }).catch(() => {});
-  step('scroll to the bottom');
-  await page.evaluate(async () => { for (let y = 0; y < Math.min(document.body.scrollHeight, 40000); y += innerHeight) { scrollTo(0, y); await new Promise((r) => setTimeout(r, 150)); } scrollTo(0, 0); });
-  await page.waitForTimeout(1500);
-  step('take the picture');
-  await page.screenshot({ path: file, fullPage: true, animations: 'disabled', timeout: 60000 });
-  if (opt('again')) {
-    step('take the second picture');
-    await page.waitForTimeout(4000);
-    await page.screenshot({ path: opt('again'), fullPage: true, animations: 'disabled', timeout: 60000 });
-  }
-  await browser.close();
-  fs.rmSync(file + '.step', { force: true });
-})().catch((e) => { try { fs.appendFileSync(file + '.step', ': ' + String(e && e.message || e).split(String.fromCharCode(10))[0]); } catch {} process.exit(1); });
-`;
-var channelFor = (browser) => /msedge|edge/i.test(browser) ? "msedge" : /chrome(\.exe)?$|google-chrome/i.test(browser) ? "chrome" : null;
-function shotName(address, width) {
-  const u = new URL(address);
-  const path = u.pathname.replace(/\/+$/, "").replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "") || "home";
-  return `${u.hostname}-${path}-${width}.png`;
-}
-function runNpx(args) {
-  const win = process.platform === "win32";
-  return new Promise((done) => {
-    const child = win ? spawn3(["npx", ...args.map((a) => `"${a}"`)].join(" "), { stdio: "ignore", windowsHide: true, shell: true }) : spawn3("npx", args, { stdio: "ignore" });
-    let killed = false;
-    const timer = setTimeout(() => {
-      killed = true;
-      child.kill();
-    }, WAIT_MS2);
-    child.once("error", () => {
-      clearTimeout(timer);
-      done(1);
-    });
-    child.once("exit", (code) => {
-      clearTimeout(timer);
-      done(killed ? TIMED_OUT : code ?? 1);
-    });
-  });
-}
-var againName = (file2) => file2.replace(/\.png$/i, ".again.png");
-var SHOTS_INDEX = "shots.json";
-function readShotIndex(dir) {
-  try {
-    const list = JSON.parse(readFileSync12(join13(dir, SHOTS_INDEX), "utf8"));
-    return Array.isArray(list) ? list.filter((e3) => e3 && typeof e3.url === "string" && typeof e3.file === "string" && typeof e3.width === "string") : [];
-  } catch {
-    return [];
-  }
-}
-function addToIndex(dir, entries) {
-  const kept = readShotIndex(dir).filter((e3) => !entries.some((n2) => n2.file === e3.file));
-  writeFileSync11(join13(dir, SHOTS_INDEX), JSON.stringify([...kept, ...entries], null, 2) + "\n");
-}
-async function shotCommand(root, address, opts = {}, run = runNpx) {
-  let url2;
-  try {
-    url2 = new URL(address);
-    if (!/^https?:$/.test(url2.protocol) || address.includes('"')) throw new Error("bad");
-  } catch {
-    throw new CliError("Give a full page address, like https://my-site.co.il/about.", 1, "bad_address");
-  }
-  const browser = opts.webkit ? null : findBrowser();
-  if (!opts.webkit && !browser) throw new CliError("No Chrome or Edge was found on this computer. Install Chrome, set CHROME_PATH to its path, or run shot again with --webkit (it downloads Safari's engine first).", 1, "no_browser");
-  if (opts.webkit && await run(["--yes", PLAYWRIGHT, "install", "webkit"]) !== 0) throw new CliError("Safari's engine could not be installed. Run shot without --webkit to use Chrome or Edge.", 1, "shot_failed");
-  const dir = resolve(root, opts.out ?? join13(".deployai", "shots"));
-  mkdirSync6(dir, { recursive: true });
-  const taker = join13(tmpdir(), "deployai-shot.cjs");
-  writeFileSync11(taker, TAKER);
-  const saved = [];
-  const entries = [];
-  for (const s of SHOT_SIZES) {
-    const file2 = join13(dir, shotName(url2.toString(), s.name));
-    const channel = opts.webkit ? null : channelFor(browser);
-    const engine = opts.webkit ? ["--browser=webkit"] : channel ? [`--channel=${channel}`] : [`--exec=${browser}`];
-    rmSync3(file2, { force: true });
-    rmSync3(againName(file2), { force: true });
-    const again = opts.again ? [`--again=${againName(file2)}`] : [];
-    const code = await run(["--yes", "-p", PLAYWRIGHT, "node", taker, ...engine, `--viewport-size=${s.size}`, ...again, url2.toString(), file2]);
-    if (code !== 0 || !existsSync12(file2)) {
-      const step = existsSync12(`${file2}.step`) ? readFileSync12(`${file2}.step`, "utf8").trim() : "";
-      rmSync3(`${file2}.step`, { force: true });
-      throw new CliError(`The ${s.name} picture of ${url2} could not be taken${step ? `, stopped at: ${step}` : code === TIMED_OUT ? ", it took over 3 minutes" : ""}. Check that the page opens, then run shot again; if it stops again, look with your own browser tool or at home.html.`, 1, "shot_failed");
-    }
-    saved.push(file2);
-    entries.push({ url: url2.toString(), width: s.name, file: basename2(file2), again: opts.again && existsSync12(againName(file2)) ? basename2(againName(file2)) : null, takenAt: (/* @__PURE__ */ new Date()).toISOString() });
-    if (!opts.quiet) out(`${s.name.padEnd(8)} ${file2}`);
-  }
-  addToIndex(dir, entries);
-  if (!opts.quiet) out("Open both and look at them as a visitor: the header, the menu, every image and button.");
-  return saved;
-}
-
-// src/commands/look.ts
-var BEFORE_DIR = join14(".deployai", "migration", "before");
-var AFTER_DIR = join14(".deployai", "migration", "after");
-var REPORT = join14(".deployai", "migration", "compare.json");
-function previewAddress(preview, path) {
-  const u = new URL(path, preview.origin);
-  const token = preview.searchParams.get("deployai_preview");
-  if (token) u.searchParams.set("deployai_preview", token);
-  return u.toString();
-}
-var rel = (root, file2) => relative(root, file2).split(sep).join("/");
-var readOrNull = (file2) => {
-  try {
-    return file2 && existsSync13(file2) ? readPng(file2) : null;
-  } catch {
-    return null;
-  }
-};
-function parseMaxDiff(raw) {
-  if (raw === void 0) return DEFAULT_MAX_DIFF;
-  const n2 = typeof raw === "number" ? raw : Number(String(raw).replace(/%$/, ""));
-  if (!Number.isFinite(n2) || n2 < 0 || n2 > 100) throw new CliError("--max-diff is a percent from 0 to 100, like 1 or 0.5.", 1, "usage");
-  return n2;
-}
-async function compareLooks(root, previewRaw, opts = {}, shoot = shotCommand) {
-  let preview;
-  try {
-    preview = new URL(/^https?:\/\//.test(previewRaw) ? previewRaw : `https://${previewRaw}`);
-  } catch {
-    throw new CliError(`Not an address: ${previewRaw}. Use the preview address deploy printed.`, 1, "usage");
-  }
-  const beforeDir = join14(root, BEFORE_DIR);
-  const before = readShotIndex(beforeDir);
-  if (!before.length) return null;
-  const afterDir = join14(root, AFTER_DIR);
-  mkdirSync7(afterDir, { recursive: true });
-  const maxDiff = opts.maxDiff ?? DEFAULT_MAX_DIFF;
-  const lines = [];
-  const say = (line) => {
-    if (!opts.json) out(line);
-  };
-  say(`Measuring ${new Set(before.map((e3) => e3.url)).size} pages against their before pictures, at most ${maxDiff}% changed:`);
-  for (const url2 of [...new Set(before.map((e3) => e3.url))]) {
-    const old = new URL(url2);
-    const path = old.pathname + old.search;
-    const address = previewAddress(preview, path);
-    let shot = true;
-    try {
-      await shoot(root, address, { out: AFTER_DIR, again: true, quiet: true });
-    } catch {
-      shot = false;
-    }
-    for (const entry of before.filter((e3) => e3.url === url2)) {
-      const beforeFile = join14(beforeDir, entry.file);
-      const afterFile = join14(afterDir, shotName(address, entry.width));
-      const base = { page: path, width: entry.width, before: rel(root, beforeFile), mostlyMoving: false };
-      const b = readOrNull(beforeFile);
-      const a = shot ? readOrNull(afterFile) : null;
-      if (!b || !a) {
-        lines.push({ ...base, percent: null, maskedPercent: null, pass: false, after: a ? rel(root, afterFile) : null, diff: null, problem: a ? "unreadable" : "no_after" });
-        say(`  ${path}  ${entry.width.padEnd(7)}  ${a ? "the before picture cannot be read: take it again" : "no picture of the preview page: check that it opens"}  FAIL`);
-        continue;
-      }
-      const result = compareLook(b, a, { beforeAgain: readOrNull(entry.again ? join14(beforeDir, entry.again) : null), afterAgain: readOrNull(againName(afterFile)), maxDiff });
-      const diffFile = afterFile.replace(/\.png$/i, ".diff.png");
-      writePng(diffFile, result.diff);
-      const total = result.compared + result.masked;
-      const maskedPercent = total ? Math.round(result.masked / total * 1e3) / 10 : 0;
-      lines.push({ ...base, percent: result.percent, maskedPercent, pass: result.pass, mostlyMoving: result.mostlyMoving, after: rel(root, afterFile), diff: rel(root, diffFile) });
-      say(`  ${path}  ${entry.width.padEnd(7)}  ${result.percent.toFixed(2)}% changed${maskedPercent ? `, ${maskedPercent}% moves by itself` : ""}  ${result.pass ? "pass" : "FAIL"}  ${rel(root, diffFile)}`);
-    }
-  }
-  const report2 = { checkedAt: (/* @__PURE__ */ new Date()).toISOString(), preview: preview.origin, maxDiff, pass: lines.every((l) => l.pass), pages: lines };
-  writeFileSync12(join14(root, REPORT), JSON.stringify(report2, null, 2) + "\n");
-  if (opts.json) out(JSON.stringify(report2));
-  else {
-    if (lines.some((l) => l.mostlyMoving)) say("Most of a page moves by itself, so its number says little: look at that page yourself too.");
-    if (report2.pass) say("Every page looks as on the old site.");
-    else say(`Open each .diff.png that failed: red changed, blue moves by itself and is left out. Make the page match the old one (only a credit or a part marked Partly moved may differ), deploy again and run this again.`);
-  }
-  if (!report2.pass) {
-    blockedBy("look_differs");
-    process.exitCode = 1;
-  }
-  return report2;
-}
-async function migrateCompareCommand(root, previewRaw, opts = {}, shoot = shotCommand) {
-  const report2 = await compareLooks(root, previewRaw, { maxDiff: parseMaxDiff(opts.maxDiff), json: opts.json }, shoot);
-  if (!report2) throw new CliError("No before pictures yet. On the old site, for the home page and one page of each kind, run: npx deployai@latest shot <old page address> --out .deployai/migration/before --again", 1, "usage");
-}
-
-// src/commands/migrate.ts
-var UA = `deployai-migrate/${CLI_VERSION} (+https://deployai.co.il/move)`;
-var PAGE_CAP = 1e3;
-var WP_PAGE_CAP = 50;
-var MEDIA_FILE_CAP = 25 * 1024 * 1024;
-var MEDIA_TOTAL_CAP = 1024 * 1024 * 1024;
-var PAUSE_MS = 150;
-var SCAN_WORKERS = 4;
-var START_SCAN_PAGES = 300;
-var sleep2 = (ms2) => new Promise((r) => setTimeout(r, ms2));
-var hostDir = (root, host) => join15(root, MIGRATION_DIR, host.replace(/^www\./, ""));
-var readJson3 = (file2) => {
-  try {
-    return readJson(file2);
-  } catch {
-    return null;
-  }
-};
-var writeJson = (file2, data) => {
-  mkdirSync8(dirname2(file2), { recursive: true });
-  writeFileSync13(file2, JSON.stringify(data, null, 2) + "\n");
-};
-async function get(url2, accept = "text/html,application/xhtml+xml,*/*;q=0.8", redirect = "follow", cookie) {
-  try {
-    return await fetch(url2, { headers: { "User-Agent": UA, Accept: accept, ...cookie ? { Cookie: cookie } : {} }, redirect, signal: AbortSignal.timeout(3e4) });
-  } catch {
-    return null;
-  }
-}
-function scannedHosts(root) {
-  const dir = join15(root, MIGRATION_DIR);
-  if (!existsSync14(dir)) return [];
-  return readdirSync3(dir).filter((h) => existsSync14(join15(dir, h, "inventory.json")));
-}
-async function migrateStatusCommand(root, ctx, stage, note) {
-  if (!isAgentStage(stage)) throw new CliError(`Unknown stage: ${stage}. One of: ${AGENT_STAGES.join(", ")}.`, 1, "usage");
-  const choices = readChoices(root);
-  if (!choices?.startId || !choices.requestId) {
-    out("This folder is not a managed move, so there is no request to update. Nothing was sent.");
-    return;
-  }
-  await apiRequest(ctx, "/api/migrations/progress", null, { method: "POST", auth: false, body: { startId: choices.startId, stage, note: stageNote(note) } });
-  out(`Reported: ${stage}${note ? ` (${stageNote(note)})` : ""}.`);
-}
-function readChoices(root) {
-  return readJson3(join15(root, MIGRATION_DIR, "choices.json"));
-}
-function writeChoices(root, choices) {
-  ensureMigrationDir(root);
-  writeJson(join15(root, MIGRATION_DIR, "choices.json"), choices);
-}
-function ensureMigrationDir(root) {
-  ensureDeployaiDir(root);
-  const dir = join15(root, MIGRATION_DIR);
-  mkdirSync8(dir, { recursive: true });
-  const ignore = join15(dir, ".gitignore");
-  if (!existsSync14(ignore)) writeFileSync13(ignore, "*/media/\n*/media-state.json\n");
-}
-function sameAddress(from, to) {
-  try {
-    const a = new URL(from);
-    const b = new URL(to, from);
-    const host = (u) => u.hostname.replace(/^www\./, "");
-    const path = (u) => u.pathname.replace(/\/+$/, "");
-    return host(a) === host(b) && path(a) === path(b) && a.search === b.search;
-  } catch {
-    return false;
-  }
-}
-async function sitemapUrls(base, robotsSitemaps, enough) {
-  const own2 = [`${base}/wp-sitemap.xml`, `${base}/sitemap_index.xml`, `${base}/sitemap.xml`];
-  const prefix = new URL(base).pathname.replace(/\/$/, "");
-  const queue = prefix ? [...own2, ...robotsSitemaps] : robotsSitemaps.length ? [...robotsSitemaps] : own2;
-  const host = new URL(base).hostname.replace(/^www\./, "");
-  const inSite = (u) => u.hostname.replace(/^www\./, "") === host && (!prefix || u.pathname === prefix || u.pathname.startsWith(`${prefix}/`));
-  const seen = /* @__PURE__ */ new Set();
-  const found = [];
-  const urls = /* @__PURE__ */ new Set();
-  while (queue.length && seen.size < 200 && urls.size < enough) {
-    const next = queue.shift();
-    if (seen.has(next)) continue;
-    seen.add(next);
-    const res = await get(next, "application/xml,text/xml,*/*;q=0.5");
-    if (!res?.ok) continue;
-    const xml2 = await res.text();
-    if (!/<(urlset|sitemapindex)\b/i.test(xml2)) continue;
-    found.push(next);
-    const parsed = parseSitemapXml(xml2);
-    queue.push(...parsed.sitemaps);
-    for (const u of parsed.urls) {
-      try {
-        if (inSite(new URL(u))) urls.add(u);
-      } catch {
-      }
-    }
-    await sleep2(PAUSE_MS);
-  }
-  return { urls: [...urls], sitemaps: found };
-}
-function homeLinks(html, origin) {
-  const host = new URL(origin).hostname;
-  const out2 = /* @__PURE__ */ new Set();
-  for (const m of html.matchAll(/<a\b[^>]*href=["']([^"'#]+)/gi)) {
-    try {
-      const u = new URL(m[1], origin);
-      if (u.hostname === host && !/\.(jpe?g|png|gif|webp|svg|pdf|zip|mp4|mp3)$/i.test(u.pathname)) out2.add(u.origin + u.pathname + u.search);
-    } catch {
-    }
-  }
-  return [...out2];
-}
-async function wordpressContent(base, dir) {
-  const probe = await get(`${base}/wp-json/wp/v2/types`, "application/json");
-  if (!probe?.ok || !(probe.headers.get("content-type") ?? "").includes("json")) return false;
-  const types = ["pages", "posts", "categories", "tags", "media", "users", "product"];
-  for (const type of types) {
-    const items = [];
-    for (let page3 = 1; page3 <= WP_PAGE_CAP; page3++) {
-      const res = await get(`${base}/wp-json/wp/v2/${type}?per_page=100&page=${page3}`, "application/json");
-      if (!res?.ok) break;
-      const batch = await res.json().catch(() => null);
-      if (!Array.isArray(batch) || !batch.length) break;
-      items.push(...batch);
-      if (batch.length < 100) break;
-      await sleep2(PAUSE_MS);
-    }
-    if (items.length) {
-      writeJson(join15(dir, "content", `${type}.json`), items);
-      out(`  ${type}: ${items.length}`);
-    }
-  }
-  const posts = readJson3(join15(dir, "content", "posts.json"));
-  if (posts?.length) {
-    const files = wpPostsToMarkdown({ origin: new URL(base).origin, posts, categories: readJson3(join15(dir, "content", "categories.json")) ?? [], tags: readJson3(join15(dir, "content", "tags.json")) ?? [], users: readJson3(join15(dir, "content", "users.json")) ?? [], media: readJson3(join15(dir, "content", "media.json")) ?? [] });
-    mkdirSync8(join15(dir, "posts"), { recursive: true });
-    const postsDir = resolve2(dir, "posts");
-    for (const f of files) {
-      const target = resolve2(postsDir, f.file);
-      if (dirname2(target) !== postsDir) continue;
-      writeFileSync13(target, f.text);
-    }
-    out(`  posts as Markdown: ${files.length}`);
-  }
-  return true;
-}
-function pageAssets(html, base) {
-  const found = /* @__PURE__ */ new Set();
-  const add2 = (u) => {
-    if (!u || u.startsWith("data:")) return;
-    try {
-      found.add(new URL(u.trim(), base).toString());
-    } catch {
-    }
-  };
-  for (const m of html.matchAll(/<img\b[^>]*>/gi)) {
-    add2(m[0].match(/\ssrc=["']([^"']+)/i)?.[1]);
-    const set2 = m[0].match(/\ssrcset=["']([^"']+)/i)?.[1];
-    if (set2) add2(set2.split(",").map((s) => s.trim().split(/\s+/)[0]).pop());
-  }
-  add2(html.match(/<meta[^>]+property=["']og:image["'][^>]*content=["']([^"']+)/i)?.[1]);
-  for (const m of html.matchAll(/url\(["']?([^"')]+\.(?:jpe?g|png|gif|webp|svg|avif))/gi)) add2(m[1]);
-  const own2 = (u) => {
-    if (!u) return;
-    try {
-      if (new URL(u.trim(), base).hostname.replace(/^www\./, "") === new URL(base).hostname.replace(/^www\./, "")) add2(u);
-    } catch {
-    }
-  };
-  for (const m of html.matchAll(/<script\b[^>]*\ssrc=["']([^"']+)/gi)) own2(m[1]);
-  for (const u of stylesheetLinks(html, base, 50)) own2(u);
-  return [...found];
-}
-function stylesheetAssets(css, cssUrl) {
-  const host = new URL(cssUrl).hostname.replace(/^www\./, "");
-  const found = /* @__PURE__ */ new Set();
-  for (const m of css.matchAll(/url\(\s*["']?([^"')]+)/gi)) {
-    const u = m[1].trim();
-    if (u.startsWith("data:") || u.startsWith("#")) continue;
-    try {
-      const url2 = new URL(u, cssUrl);
-      url2.hash = "";
-      if (!url2.search) url2.search = "";
-      if (/^https?:$/.test(url2.protocol) && url2.hostname.replace(/^www\./, "") === host) found.add(url2.toString());
-    } catch {
-    }
-  }
-  return [...found];
-}
-async function addStylesheetAssets(assets) {
-  for (const url2 of [...assets].filter((a) => /\.css(\?|$)/i.test(a)).slice(0, 50)) {
-    const res = await get(url2, "text/css,*/*;q=0.8");
-    if (!res?.ok) continue;
-    stylesheetAssets(await res.text(), url2).forEach((a) => assets.add(a));
-    await sleep2(PAUSE_MS);
-  }
-}
-var ICON_MAX_BYTES = 2 * 1024 * 1024;
-async function saveOldIcons(html, pageUrl, origin, dir) {
-  const wanted = [];
-  const add2 = (href, kind) => {
-    if (!href) return;
-    try {
-      const url2 = new URL(href, pageUrl).toString();
-      if (!wanted.some((w) => w.url === url2)) wanted.push({ url: url2, kind });
-    } catch {
-    }
-  };
-  iconLinks(html).forEach((h) => add2(h, "icon"));
-  add2(`${origin}/favicon.ico`, "icon");
-  add2(logoInPage(html), "logo");
-  const saved = [];
-  const icons = join15(dir, "icons");
-  for (const w of wanted.slice(0, 6)) {
-    const res = await get(w.url, "image/*,*/*;q=0.8");
-    if (!res?.ok) continue;
-    const bytes = Buffer.from(await res.arrayBuffer());
-    if (bytes.length > ICON_MAX_BYTES) continue;
-    const size = imageSize(bytes);
-    const svg = !size && isSvgText(bytes.subarray(0, 2048).toString("utf8"));
-    if (!size && !svg) continue;
-    const file2 = `${saved.length + 1}-${w.kind}.${svg ? "svg" : size?.format === "jpeg" ? "jpg" : size?.format}`;
-    mkdirSync8(icons, { recursive: true });
-    writeFileSync13(join15(icons, file2), bytes);
-    saved.push({ file: file2, kind: w.kind });
-  }
-  if (saved.length) writeFileSync13(join15(icons, "icons.json"), JSON.stringify(saved, null, 2));
-  return saved.length;
-}
-async function saveOldStyles(html, pageUrl, dir) {
-  const styles = join15(dir, "styles");
-  let n2 = 0;
-  for (const url2 of stylesheetLinks(html, pageUrl, 6)) {
-    const res = await get(url2, "text/css,*/*;q=0.8");
-    if (!res?.ok) continue;
-    const text4 = await res.text();
-    if (text4.length > ICON_MAX_BYTES) continue;
-    mkdirSync8(styles, { recursive: true });
-    writeFileSync13(join15(styles, `${++n2}.css`), text4);
-  }
-}
-var TRIGGER_PAGES_CAP = 30;
-async function readContainers(html, site) {
-  const page3 = scanPageTags(html, "https://home.invalid/");
-  const triggers = [];
-  const hosts = ["www.googletagmanager.com", ...page3.serverContainers];
-  for (const id2 of new Set(page3.tags.filter((t) => t.key === "gtm" && t.id).map((t) => t.id))) {
-    let read = null;
-    for (const host of hosts) {
-      const res = await get(`https://${host}/gtm.js?id=${encodeURIComponent(id2)}`, "*/*");
-      read = res?.ok ? readContainer(await res.text(), id2) : null;
-      if (read) break;
-    }
-    if (!read) {
-      site.unreadContainers.push(id2);
-      continue;
-    }
-    for (const tag of read.tags) addFoundTag(site, tag, "container", null);
-    triggers.push(...read.triggers);
-  }
-  return triggers;
-}
-async function hasRootFile(origin, path, query = "", cookie) {
-  const res = await get(`${origin}${path}${query}`, "*/*", "follow", cookie);
-  return Boolean(res?.ok && !/text\/html/i.test(res.headers.get("content-type") ?? ""));
-}
-var tagsFile = (dir) => join15(dir, "tags.json");
-var stateFile = (dir) => join15(dir, "report-state.json");
-function kitMap(root) {
-  if (!existsSync14(join15(root, "src/kit/schema.ts"))) return {};
-  const cut = (s, n2) => String(s ?? "").slice(0, n2);
-  const pages = (readJson3(join15(root, MOVED_PAGES_FILE)) ?? []).slice(0, 150).map((p) => ({ path: cut(p.path, 300), title: cut(p.title, 80), inNav: Boolean(p.inNav) }));
-  const posts = readJson3(join15(root, "src/kit/moved-posts.json")) ?? [];
-  const docs = [...new Set((readJson3(join15(root, MOVED_LEGAL_FILE))?.docs ?? []).map((d) => d.key).filter((k) => k === "privacy" || k === "terms" || k === "cancellation"))];
-  const forms = (readJson3(join15(root, "src/kit/forms.json")) ?? []).filter((f) => /^[a-z0-9-]{1,40}$/.test(f.key ?? "")).slice(0, 30).map((f) => ({
-    key: f.key,
-    label: cut(f.label, 80),
-    ...f.page ? { page: cut(f.page, 300) } : {},
-    ...f.thanks ? { thanks: cut(f.thanks, 300) } : {},
-    fields: [.../* @__PURE__ */ new Set([...Object.values(f.map ?? {}), ...Object.keys(f.labels ?? {})])].map((x) => cut(x, 60)).slice(0, 40)
-  }));
-  return { kit: { pages, posts: posts.slice(0, 300).map((p) => ({ path: cut(p.path || `/blog/${p.slug}`, 300), title: cut(p.title, 200) })), postsTotal: posts.length, docs, forms } };
-}
-function profileOfReport(inv) {
-  if (!inv.profile) return {};
-  const p = inv.profile;
-  return {
-    siteKinds: p.kinds.slice(0, 4),
-    siteFeatures: p.features.slice(0, 10).map((f) => ({ key: f.key, pages: f.pages.slice(0, 10).map((x) => x.slice(0, 300)), providers: f.providers.slice(0, 10).map((x) => x.slice(0, 60)) })),
-    connectFirst: p.connectFirst.slice(0, 20).map((c) => ({ feature: c.feature, provider: c.provider ? c.provider.slice(0, 60) : null }))
-  };
-}
-async function sendReport(root, ctx, host, open2, verify) {
-  const dir = hostDir(root, host);
-  const inv = readJson3(join15(dir, "inventory.json"));
-  const site = readJson3(tagsFile(dir));
-  const startId = readChoices(root)?.startId;
-  if (!inv || !site) return;
-  const dns = readJson3(join15(dir, "dns.json"));
-  const thanksPages = findThanksPages(inv.pages);
-  if (open2 === "scan") {
-    if (thanksPages.length && site.forms.length) {
-      const titled = thanksPages.map((p) => {
-        const t = inv.pages.find((x) => x.path === p)?.title;
-        return t ? `${p} (${t})` : p;
-      });
-      out();
-      out(`Thank you pages on the old site: ${titled.join(", ")}. Keep each at its address. In src/kit/forms.json, give each form the one whose title fits it as its thank you page; a form no page fits shows the thank you message on its own page. Do not ask the owner: name in the plan which page each form opens.`);
-    }
-    const questions = moveQuestions({ plugins: site.plugins, platform: inv.platform, tags: site.tags, forms: site.forms, triggers: site.triggers, verification: site.verification, serverContainers: site.serverContainers, thanksPages, dns });
-    if (questions.length) {
-      out();
-      out("The scan cannot see these. Ask the owner, in plain words, and record each answer. Not sure keeps the old site as it is:");
-      if (questions.includes("serverPixel")) out(`  Does the site send conversions to Meta or Google from the server?${site.plugins.length ? ` (signs: ${site.plugins.join(", ")})` : ""} npx deployai@latest migrate tags --answer serverPixel=yes`);
-      if (questions.includes("thankYou")) out("  Does a page open after sending the form, and what is its address? npx deployai@latest migrate tags --answer thankYou=yes");
-      if (questions.includes("verificationFile")) out("  Was the site verified in Google Search Console with a file, and what is its name? npx deployai@latest migrate tags --answer verificationFile=yes");
-    }
-  }
-  if (open2 === "scan") {
-    const on = dashboardParts({ forms: site.forms, pages: inv.pages });
-    out();
-    out(`This move gets the site's own free dashboard, in place of the old platform's admin. Add a Site dashboard row to the plan. Turn on in it: pages, accessibility, legal${on.length ? `, ${on.join(", ")}` : ""}.`);
-  }
-  if (!startId || !ctx) {
-    out("The move report needs a start from the DeployAI site, so none was made here. Tell the owner the lists above in plain words.");
-    return;
-  }
-  const state = readJson3(stateFile(dir)) ?? {};
-  const plan = existsSync14(join15(root, MIGRATION_DIR, "plan.md")) ? readFileSync13(join15(root, MIGRATION_DIR, "plan.md"), "utf8") : "";
-  const saved = verify ?? readJson3(join15(dir, "verify-report.json"))?.report ?? null;
-  const assets = readJson3(join15(dir, "assets.json")) ?? [];
-  const report2 = {
-    source: inv.source,
-    platform: inv.platform,
-    scannedAt: inv.scannedAt,
-    pages: { total: inv.pages.length, broken: inv.pages.filter((p) => p.status >= 400).length, skipped: inv.skipped },
-    files: assets.length,
-    ...reportOfTags(site),
-    ...thanksPages.length ? { thanksPages } : {},
-    dns: dns ?? null,
-    features: parsePlanFeatures(plan),
-    ...profileOfReport(inv),
-    ...state.answers ? { answers: state.answers } : {},
-    ...kitMap(root),
-    verify: saved ? { ...saved, removed: state.removed ?? saved.removed, ...state.fired?.length ? { fired: state.fired } : {} } : null
-  };
-  if (Buffer.byteLength(JSON.stringify(report2)) > MOVE_REPORT_MAX_BYTES) report2.dns = null;
-  let url2 = state.url;
-  try {
-    const send2 = () => apiRequest(ctx, "/api/migrations/report", null, { method: "POST", auth: false, body: { startId, host, report: report2 } });
-    const r = await send2().catch(async () => {
-      await sleep2(2500);
-      return send2();
-    });
-    url2 = r.url ?? url2;
-  } catch (e3) {
-    out(`The move report could not be sent (${e3.message}). Nothing is lost: run npx deployai@latest migrate report to try again.`);
-    return;
-  }
-  if (!url2) return;
-  const opened = new Set(state.opened ?? []);
-  const firstTime = open2 && !opened.has(open2);
-  if (firstTime) opened.add(open2);
-  writeJson(stateFile(dir), { ...state, url: url2, opened: [...opened] });
-  const browser = firstTime ? openBrowser(url2) : false;
-  out();
-  out(`Move report for the owner${browser ? " (opened in the browser)" : ""}: ${url2}`);
-  if (firstTime) out("Give the owner this link in one line. It only shows what we found and what moved, and it updates by itself: anything that needs the owner, you ask in the chat.");
-  if (open2 === "verify") for (const line of reportAsksLines(report2)) out(line);
-}
-var ASK_WORDS = {
-  serverPixel: "Does the site send conversions to Meta or Google from the server?",
-  thankYou: "Does a page open after sending the form, and what is its address?",
-  verificationFile: "Was the site verified in Google Search Console with a file, and what is its name?"
-};
-function reportAsksLines(report2) {
-  const tries = selfChecks(report2).map((c) => {
-    const id2 = c.detail ? ` (${c.detail})` : "";
-    switch (c.kind) {
-      case "replaced":
-        return `${c.name}: now ${c.detail ?? "ours"}. Try that it does the same job on the preview.`;
-      case "arrive":
-        return `${c.name}${id2}: open the preview, then see the visit arrive in ${c.name}.`;
-      case "form":
-        return "The form: send one test message from the preview and see it arrive by email and in the dashboard, Messages.";
-      case "tap":
-        return `${c.name}${id2}: tap it once on a phone and see the chat or call open with the right number.`;
-      case "outside":
-        return `${c.name}: a service our checks do not cover. See that its part of the page works on the preview.`;
-      case "page":
-        return `${c.name}: open this address on the preview.`;
-    }
-  });
-  const waiting = moveWaiting(report2, report2.answers ?? {});
-  const asks = [...waiting.todo.map((f) => `${f.name}${f.note ? `: ${f.note}` : ""}`), ...waiting.questions.filter((q) => !q.answer).map((q) => `${ASK_WORDS[q.key]} npx deployai@latest migrate tags --answer ${q.key}=yes|no|unsure`)];
-  const lines = [];
-  if (tries.length) lines.push("", `The report lists ${tries.length} things for the owner to try on the preview. In the same message as the link, name each in plain words, one short line each, and say they tick them on the site's Move tab:`, ...tries.map((x) => `  ${x}`));
-  if (asks.length) lines.push("", "The report says these wait for the owner. Ask about each in the chat now, so nothing on the report is new to them:", ...asks.map((x) => `  ${x}`));
-  return lines;
-}
-async function migrateScanCommand(root, raw, opts = {}) {
-  const source = normalizeSourceUrl(raw);
-  if (!source) throw new CliError(`Not a site address: ${raw}. Use the full address, for example https://example.co.il`, 1, "usage");
-  if (isBlockedMoveSite(source)) throw new CliError("We do not move sites of banks, hospitals, health funds, insurers, payment services or government bodies. Tell the owner this in one line and stop.", 1, "blocked_site");
-  const home = await get(source);
-  if (!home) throw new CliError(`Could not reach ${source}. Check the address, or that the site is up.`, 1, "network");
-  if (home.status === 401 || home.status === 403) throw new CliError(`${source} answers ${home.status}: it is behind a login or a security check. If it opens in a browser, open it in your browser tool, ask the owner to pass any check in that window, and read the pages there (recommended). Else ask the owner to pause the check while it moves, or work from their export.`, 1, "blocked", "source_closed");
-  const origin = new URL(home.url).origin;
-  const base = (origin + new URL(home.url).pathname).replace(/\/+$/, "");
-  const html = await home.text();
-  const headers = Object.fromEntries(home.headers.entries());
-  const platform3 = detectPlatform(html, headers);
-  const host = new URL(origin).hostname;
-  ensureMigrationDir(root);
-  const dir = hostDir(root, host);
-  mkdirSync8(dir, { recursive: true });
-  out(`Scanning ${base} (${platform3})`);
-  const robotsRes = await get(`${origin}/robots.txt`, "text/plain");
-  const robots = robotsRes?.ok ? await robotsRes.text() : "";
-  if (robots) writeFileSync13(join15(dir, "robots.txt"), robots);
-  const cap = Math.min(opts.max ?? PAGE_CAP, PAGE_CAP);
-  const fromSitemaps = await sitemapUrls(base, robots ? parseRobots(robots).sitemaps : [], cap * 5);
-  const all = [.../* @__PURE__ */ new Set([`${base}/`, ...fromSitemaps.urls, ...fromSitemaps.urls.length ? [] : homeLinks(html, base)])];
-  const list = all.slice(0, cap);
-  out(`  sitemaps: ${fromSitemaps.sitemaps.length}, addresses: ${all.length}${all.length > cap ? ` (the first ${cap} are read)` : ""}`);
-  const pages = new Array(list.length);
-  const assets = /* @__PURE__ */ new Set();
-  const site = emptySiteTags();
-  const containerTriggers = await readContainers(html, site);
-  const inUse = /* @__PURE__ */ new Set();
-  const profileScan = emptyProfileScan();
-  let next = 0;
-  let read = 0;
-  const worker = async () => {
-    while (next < list.length) {
-      const i = next++;
-      const url2 = list[i];
-      let res = i === 0 ? null : await get(url2, void 0, "manual");
-      const moved = res && res.status >= 300 && res.status < 400 ? res.headers.get("location") : null;
-      if (moved && sameAddress(url2, moved)) res = await get(new URL(moved, url2).href);
-      const status = i === 0 ? home.status : res?.status ?? 0;
-      if (i && res) addClosedPage(profileScan, pathOf(url2), status, res.headers.get("location"));
-      const body = i === 0 ? html : res && res.ok ? await res.text() : "";
-      const seo = body ? readPageSeo(body) : null;
-      pages[i] = { path: pathOf(url2), status, title: seo?.title ?? null, description: seo?.description ?? null, canonical: seo?.canonical ?? null, h1: seo?.h1[0] ?? null, lang: seo?.lang ?? null };
-      if (body) pageAssets(body, url2).forEach((a) => assets.add(a));
-      if (body) {
-        addPageProfile(profileScan, body, pathOf(url2));
-        addPageTags(site, scanPageTags(body, url2), pathOf(url2));
-        for (const t of containerTriggers) {
-          if (inUse.has(t) || t.type === "page") continue;
-          if (t.type === "selector" ? selectorInPage(t.value, body) === true : body.includes(t.value)) inUse.add(t);
-        }
-      }
-      if (++read % 50 === 0) out(`  pages read: ${read} of ${list.length}`);
-      if (i) await sleep2(PAUSE_MS);
-    }
-  };
-  await Promise.all(Array.from({ length: SCAN_WORKERS }, worker));
-  await addStylesheetAssets(assets);
-  const wordpressApi = platform3 === "wordpress" ? await wordpressContent(base, dir) : false;
-  if (wordpressApi) {
-    const media = readJson3(join15(dir, "content", "media.json")) ?? [];
-    media.forEach((m) => m.source_url && assets.add(m.source_url));
-  }
-  const known = new Set(pages.map((p) => p.path));
-  for (const t of containerTriggers.filter((x) => x.type === "page").slice(0, TRIGGER_PAGES_CAP)) {
-    if (known.has(t.value)) {
-      inUse.add(t);
-      continue;
-    }
-    const res = await get(`${origin}${t.value}`);
-    if (!res?.ok || new URL(res.url).pathname !== t.value.split("?")[0]) continue;
-    const body = await res.text();
-    const seo = readPageSeo(body);
-    pages.push({ path: t.value, status: res.status, title: seo.title ?? null, description: seo.description ?? null, canonical: seo.canonical ?? null, h1: seo.h1[0] ?? null, lang: seo.lang ?? null });
-    known.add(t.value);
-    addPageProfile(profileScan, body, t.value);
-    addPageTags(site, scanPageTags(body, res.url), t.value);
-    inUse.add(t);
-    await sleep2(PAUSE_MS);
-  }
-  site.triggers = [...inUse];
-  for (const file2 of ROOT_FILES) if (await hasRootFile(origin, file2)) site.rootFiles.push(file2);
-  writeJson(tagsFile(dir), site);
-  const bare2 = registrableDomain(host);
-  try {
-    const { records, unread } = await collectSnapshot(bare2, { extraNames: [...site.ownNames, ...site.serverContainers], deadlineMs: 3e4 });
-    writeJson(join15(dir, "dns.json"), { records: records.slice(0, 600), unread: unread.slice(0, 300), services: dnsServices(records).slice(0, 40) });
-  } catch {
-  }
-  const profile = siteProfile(profileScan, { platform: platform3 });
-  const inventory = { source: base, platform: platform3, scannedAt: (/* @__PURE__ */ new Date()).toISOString(), sitemaps: fromSitemaps.sitemaps, pages, wordpressApi, skipped: Math.max(0, all.length - list.length), profile };
-  writeJson(join15(dir, "inventory.json"), inventory);
-  writeJson(join15(dir, "assets.json"), [...assets].sort());
-  writeFileSync13(join15(dir, "home.html"), html);
-  const icons = await saveOldIcons(html, home.url, origin, dir);
-  await saveOldStyles(html, home.url, dir);
-  const rel2 = relative2(root, dir).split(sep2).join("/");
-  const broken = pages.filter((p) => p.status >= 400).length;
-  out();
-  out(`Saved in ${rel2}:`);
-  out(`  inventory.json  ${pages.length} pages with their address, title, description and headings${broken ? ` (${broken} already broken on the old site)` : ""}`);
-  out(`  assets.json     ${assets.size} images, stylesheets, scripts, fonts and files`);
-  out(`  tags.json       ${site.tags.length} tags and connections, ${site.outside.length} other outside addresses, ${site.triggers.length} conversion rules, ${site.forms.length} forms. Keep every one of them.`);
-  if (site.unreadContainers.length) out(`  Could not read Tag Manager ${site.unreadContainers.join(", ")}: its rules are unknown.`);
-  if (icons) out(`  icons/          ${icons} icons and logo of the old site, for: npx deployai@latest brand favicon`);
-  if (wordpressApi) {
-    out("  content/        the WordPress pages, posts, categories, tags, media and authors as JSON");
-    if (existsSync14(join15(dir, "posts"))) out("  posts/          the posts as Markdown for the blog block, each with its old address");
-  } else if (platform3 === "wordpress") out("  The WordPress API is closed on this site: work from the pages, or ask the owner for an export (Tools > Export).");
-  out();
-  for (const line of profileLines(profile)) out(line);
-  out();
-  out("Keep every path in inventory.json exactly as it is: same address, same title and description.");
-  await sendReport(root, opts.ctx, host, "scan");
-  return inventory.skipped;
-}
-function mediaTarget(dir, url2) {
-  const u = new URL(url2);
-  const clean3 = posix.normalize(decodeURIComponent(u.pathname)).replace(/^\/+/, "");
-  if (!clean3 || clean3.endsWith("/") || clean3.includes("..")) return null;
-  const base = resolve2(dir, "media", u.hostname.replace(/^www\./, ""));
-  const target = resolve2(base, clean3);
-  return target.startsWith(base + sep2) ? target : null;
-}
-async function migrateMediaCommand(root) {
-  const hosts = scannedHosts(root);
-  if (!hosts.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
-  for (const host of hosts) {
-    const dir = hostDir(root, host);
-    const assets = readJson3(join15(dir, "assets.json")) ?? [];
-    const stateFile2 = join15(dir, "media-state.json");
-    const state = readJson3(stateFile2) ?? { done: [], failed: [], bytes: 0 };
-    const done = new Set(state.done);
-    const todo = assets.filter((a) => !done.has(a));
-    out(`${host}: ${assets.length} files, ${todo.length} left`);
-    for (const [i, url2] of todo.entries()) {
-      if (state.bytes >= MEDIA_TOTAL_CAP) {
-        out(`  Stopped at ${formatBytes(state.bytes)}: the cap for one move. Use only the files the new pages need.`);
-        break;
-      }
-      const target = mediaTarget(dir, url2);
-      const res = target ? await safeFetch(url2, { maxBytes: MEDIA_FILE_CAP, timeoutMs: 6e4, userAgent: UA }).catch(() => null) : null;
-      const pageForFile = !!res && !/\.html?$/i.test(new URL(res.finalUrl).pathname) && /text\/html/i.test(res.contentType);
-      if (!target || !res || res.status < 200 || res.status > 299 || pageForFile) {
-        if (!state.failed.includes(url2)) state.failed.push(url2);
-        done.add(url2);
-        continue;
-      }
-      mkdirSync8(dirname2(target), { recursive: true });
-      writeFileSync13(target, res.body);
-      const bytes = res.body.byteLength;
-      state.bytes += bytes;
-      done.add(url2);
-      state.done = [...done];
-      if (i % 25 === 0) writeJson(stateFile2, state);
-      await sleep2(PAUSE_MS / 3);
-    }
-    state.done = [...done];
-    writeJson(stateFile2, state);
-    out(`  ${formatBytes(state.bytes)} in ${relative2(root, join15(dir, "media")).split(sep2).join("/")}${state.failed.length ? `, ${state.failed.length} could not be downloaded (listed in media-state.json)` : ""}`);
-  }
-  out("Copy the files the new pages use into the site's public folder at the same path (for example public/wp-content/uploads/...), so old image addresses keep working.");
-}
-function redirectLines(inv, rss = "/rss.xml") {
-  const lines = /* @__PURE__ */ new Set();
-  for (const p of inv.pages) {
-    const path = p.path.split("?")[0];
-    if (/\/feed\/?$/.test(path)) lines.add(`${path} ${rss} 301`);
-    if (/\/attachment\/[^/]+\/?$/.test(path)) lines.add(`${path} ${path.replace(/\/attachment\/[^/]+\/?$/, "/")} 301`);
-  }
-  if (inv.platform === "wordpress") {
-    const folder = new URL(inv.source).pathname.replace(/\/+$/, "");
-    lines.add(`${folder}/feed/ ${rss} 301`);
-    lines.add(`${folder}/comments/feed/ ${rss} 301`);
-  }
-  return [...lines];
-}
-var MARKDOWN_POST_DIRS = ["src/content/posts", "src/content/blog", "content/posts", "content/blog", "content/post", "_posts"];
-function markdownPostFiles(root) {
-  const files = [];
-  const walk2 = (rel2, depth) => {
-    const abs = join15(root, rel2);
-    if (!existsSync14(abs) || depth > 4 || files.length >= 2e3) return;
-    for (const e3 of readdirSync3(abs, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
-      const child = posix.join(rel2, e3.name);
-      if (e3.isDirectory()) walk2(child, depth + 1);
-      else if (e3.isFile() && /\.(md|mdx|markdown)$/i.test(e3.name) && statSync2(join15(root, child)).size <= 1024 * 1024) files.push({ file: child, text: readFileSync13(join15(root, child), "utf8") });
-    }
-  };
-  for (const d of MARKDOWN_POST_DIRS) walk2(d, 0);
-  return files;
-}
-function migratePostsCommand(root) {
-  const hosts = scannedHosts(root);
-  const markdown = markdownPostFiles(root);
-  if (!hosts.length && !markdown.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
-  if (!existsSync14(join15(root, "src/kit/schema.ts"))) throw new CliError("The dashboard is not in this folder yet. Run: npx deployai@latest blocks dashboard", 1, "usage");
-  const posts = [];
-  for (const host of hosts) {
-    const dir = hostDir(root, host);
-    const inv = readJson3(join15(dir, "inventory.json"));
-    const list = readJson3(join15(dir, "content", "posts.json"));
-    if (inv && list?.length) posts.push(...wpPostsToKit({ origin: new URL(inv.source).origin, posts: list, categories: readJson3(join15(dir, "content", "categories.json")) ?? [], media: readJson3(join15(dir, "content", "media.json")) ?? [] }));
-  }
-  posts.push(...markdownPostsToKit(markdown));
-  const file2 = join15(root, "src/kit/moved-posts.json");
-  const had = readJson3(file2) ?? [];
-  if (!posts.length && !had.length) {
-    out("No posts in the scan or in this folder. If the old site has posts, write src/kit/moved-posts.json yourself: .deployai/blocks/dashboard.md says how.");
-    return;
-  }
-  const paths = new Set(had.map((p) => p.path || `/blog/${p.slug}/`));
-  const slugs = new Set(had.map((p) => p.slug));
-  const added = posts.filter((p) => {
-    if (paths.has(p.path) || slugs.has(p.slug)) return false;
-    paths.add(p.path);
-    slugs.add(p.slug);
-    return true;
-  });
-  if (!added.length) {
-    out(`All ${had.length} posts are already in src/kit/moved-posts.json, so nothing was added.`);
-    return;
-  }
-  writeFileSync13(file2, JSON.stringify([...had, ...added.map(({ lost: _lost, ...p }) => p)], null, 1));
-  out(had.length ? `Added ${added.length} posts to src/kit/moved-posts.json, beside the ${had.length} it had. Turn on blog in src/kit/site.config.ts.` : `Wrote ${added.length} posts to src/kit/moved-posts.json. Turn on blog in src/kit/site.config.ts.`);
-  const short = added.filter((p) => p.lost.length);
-  if (short.length) {
-    out("These lost a part the dashboard has no shape for. Add each to the page by hand, and say Partly moved in the plan:");
-    short.forEach((p) => out(`  ${p.path}: ${p.lost.join(", ")}`));
-  }
-}
-function migratePagesCommand(root) {
-  const hosts = scannedHosts(root);
-  if (!hosts.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
-  if (!existsSync14(join15(root, "src/kit/schema.ts"))) throw new CliError("The dashboard is not in this folder yet. Run: npx deployai@latest blocks dashboard", 1, "usage");
-  const file2 = join15(root, MOVED_PAGES_FILE);
-  const before = readJson3(file2);
-  const pages = [];
-  for (const host of hosts) {
-    const dir = hostDir(root, host);
-    const inv = readJson3(join15(dir, "inventory.json"));
-    if (!inv) continue;
-    const homeHtml = existsSync14(join15(dir, "home.html")) ? readFileSync13(join15(dir, "home.html"), "utf8") : null;
-    for (const p of movedPagesFromScan({ pages: inv.pages, homeHtml, origin: new URL(inv.source).origin })) if (!pages.some((x) => x.path === p.path)) pages.push(p);
-  }
-  const kept = before?.length ? pages.filter((p) => before.some((b) => b.path === p.path)) : pages;
-  writeFileSync13(file2, JSON.stringify(kept, null, 1));
-  out(`Wrote ${MOVED_PAGES_FILE}: ${kept.length} pages for the dashboard's Pages, ${kept.filter((p) => p.inNav).length} of them in the menu.`);
-  out("Build each page at exactly its path, as a page of the site's code with its own look and words. Draw the site's menu from navItems() in src/kit/store.ts. A page the plan drops: remove it from this file.");
-}
-function migrateLegalCommand(root) {
-  const hosts = scannedHosts(root);
-  if (!hosts.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
-  if (!existsSync14(join15(root, "src/kit/schema.ts"))) throw new CliError("The dashboard is not in this folder yet. Run: npx deployai@latest blocks dashboard", 1, "usage");
-  const pages = [];
-  const site = emptySiteTags();
-  for (const host of hosts) {
-    const dir = hostDir(root, host);
-    pages.push(...readJson3(join15(dir, "inventory.json"))?.pages ?? []);
-    const found = readJson3(tagsFile(dir));
-    if (found) {
-      site.tags.push(...found.tags);
-      site.outside.push(...found.outside);
-      site.forms.push(...found.forms);
-    }
-  }
-  const file2 = join15(root, MOVED_LEGAL_FILE);
-  const legal = { ...movedLegalFromScan({ pages, site }), docs: readJson3(file2)?.docs ?? [] };
-  writeFileSync13(file2, JSON.stringify(legal, null, 1));
-  out(`Wrote ${MOVED_LEGAL_FILE}: ${legal.duties.length} rows for the dashboard's Documents page, ${legal.forms.length} forms, ${legal.services.length} outside services.`);
-  for (const d of legal.duties) if (d.old) out(`  ${d.key}: the old site has its own page at ${d.old}. Keep it. See "Accessibility and documents" in .deployai/blocks/dashboard.md.`);
-  out("Nothing here is finished or checked: it tells the owner what to look at. Keep tags, forms and pages as they are.");
-}
-function migrateRedirectsCommand(root) {
-  const hosts = scannedHosts(root);
-  if (!hosts.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
-  const lines = /* @__PURE__ */ new Set();
-  for (const host of hosts) {
-    const inv = readJson3(join15(hostDir(root, host), "inventory.json"));
-    if (inv) redirectLines(inv).forEach((l) => lines.add(l));
-  }
-  const publicDir = join15(root, "public");
-  const file2 = join15(existsSync14(publicDir) ? publicDir : root, "_redirects");
-  const before = existsSync14(file2) ? readFileSync13(file2, "utf8").split(/\r?\n/).filter(Boolean) : [];
-  const added = [...lines].filter((l) => !before.some((b) => b.split(/\s+/)[0] === l.split(/\s+/)[0]));
-  writeFileSync13(file2, [...before, ...added].join("\n") + "\n");
-  out(`${relative2(root, file2).split(sep2).join("/")}: ${added.length} added, ${before.length + added.length} in all (at most 2,000; no query strings).`);
-  out('Add a line "<old path> <new path> 301" only for a page that truly could not keep its address.');
-}
-function allowedRedirects(root) {
-  const map2 = /* @__PURE__ */ new Map();
-  for (const file2 of [join15(root, "public", "_redirects"), join15(root, "_redirects")]) {
-    if (!existsSync14(file2)) continue;
-    for (const line of readFileSync13(file2, "utf8").split(/\r?\n/)) {
-      const [from, to] = line.trim().split(/\s+/);
-      if (from && to && !from.startsWith("#")) map2.set(from, to);
-    }
-  }
-  return map2;
-}
-var PREVIEW_TRIES = 6;
-var PREVIEW_RETRY_MS = 2e4;
-async function previewCookie(preview, retryMs = PREVIEW_RETRY_MS) {
-  if (!preview.searchParams.get("deployai_preview")) return void 0;
-  for (let i = 0; i < PREVIEW_TRIES; i++) {
-    if (i) await sleep2(retryMs);
-    const res = await get(preview.href, void 0, "manual");
-    await res?.body?.cancel().catch(() => {
-    });
-    const cookie = res?.headers.get("set-cookie")?.split(";")[0];
-    if (cookie) return cookie;
-    if (res && !(res.status === 404 && res.headers.has("x-deployai"))) return void 0;
-  }
-  throw new CliError("This preview link does not open. If this version is already live, its preview has ended: run verify on the site address instead, npx deployai@latest migrate verify <the site address>. If not, run npx deployai@latest status and use the newest link it prints.", 1, "preview_gone");
-}
-async function migrateTagsCommand(root, ctx, opts) {
-  const hosts = scannedHosts(root);
-  if (!hosts.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
-  const answers = (opts.answer ?? []).map((a) => a.replace(/=unknown$/i, "=unsure"));
-  for (const a of answers) {
-    const [k, v] = a.split("=");
-    if (!QUESTION_KEYS.includes(k) || !ANSWERS.includes(v)) throw new CliError(`Not an answer: ${a}. Use one of ${QUESTION_KEYS.join(", ")} = ${ANSWERS.join(", ")}, for example serverPixel=yes.`, 1, "usage");
-  }
-  const urls = opts.requests ? readFileSync13(resolve2(root, opts.requests), "utf8").split(/\r?\n/) : [];
-  for (const host of hosts) {
-    const dir = hostDir(root, host);
-    const site = readJson3(tagsFile(dir));
-    const inv = readJson3(join15(dir, "inventory.json"));
-    if (!site || !inv) continue;
-    const state = readJson3(stateFile(dir)) ?? {};
-    if (urls.length && opts.fired) {
-      const seen = emptySiteTags();
-      addBrowserRequests(seen, urls, inv.source);
-      const before = new Map((state.fired ?? []).map((t) => [tagRowKey(t), t]));
-      for (const t of seen.tags) before.set(tagRowKey(t), { key: t.key, id: t.id });
-      state.fired = [...before.values()];
-      out(`Seen firing on the preview: ${seen.tags.map((t) => t.name).join(", ") || "no known tag"}.`);
-    } else if (urls.length) {
-      const added = addBrowserRequests(site, urls, inv.source);
-      writeJson(tagsFile(dir), site);
-      out(`${added} more found from the browser. Keep them too.`);
-    }
-    if (opts.removed?.length) {
-      state.removed = [.../* @__PURE__ */ new Set([...state.removed ?? [], ...opts.removed])];
-      const names2 = removableNames(site);
-      const known = opts.removed.filter((r) => names2.some((n2) => n2.toLowerCase() === r.toLowerCase()));
-      const unknown2 = opts.removed.filter((r) => !known.includes(r));
-      if (known.length) out(`Marked as left out on purpose: ${known.join(", ")}. Verify will not ask for these. The report shows what took its place from the plan row "Replaced with ...".`);
-      if (unknown2.length) out(`Not found in what the old site has: ${unknown2.join(", ")}. Use the name verify prints, exactly as it prints it.`);
-    }
-    for (const a of answers) {
-      const [k, v] = a.split("=");
-      state.answers = { ...state.answers, [k]: v };
-    }
-    writeJson(stateFile(dir), state);
-    await sendReport(root, ctx, host, null);
-  }
-}
-async function migrateReportCommand(root, ctx) {
-  const hosts = scannedHosts(root);
-  if (!hosts.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
-  for (const host of hosts) await sendReport(root, ctx, host, null);
-}
-var TAG_WORDS = {
-  tag_lost: "is gone from the preview",
-  trigger_lost: "is what a conversion waits for, and it is gone: the conversion stops counting with no error",
-  field_lost: "is a hidden form field that carries the ad source, and it is gone",
-  verification_lost: "verification tag is gone",
-  file_lost: "is a file a service reads, and it is gone",
-  blocked_by_headers: "is blocked by public/_headers",
-  event_lost: "is an event the old pages send, and it is gone"
-};
-function previewPage(preview, path) {
-  const u = new URL(path, preview.origin);
-  const token = preview.searchParams.get("deployai_preview");
-  if (token) u.searchParams.set("deployai_preview", token);
-  return u.toString();
-}
-var FEATURE_WORDS = { cart: "the store page", checkout: "the checkout", booking: "the booking page", login: "the sign in page", protected: "the members only page", forms: "the form page", payments: "payments" };
-var FEATURE_PAGES = 5;
-var LINK_CAP = 150;
-async function checkFeatures(inv, fetchPage) {
-  const checks = [];
-  for (const f of inv.profile?.features ?? []) {
-    if (f.key === "payments") continue;
-    for (const path of f.pages.slice(0, FEATURE_PAGES)) {
-      const manual = f.key === "protected" || f.key === "checkout";
-      const res = await fetchPage(path, manual);
-      let html = "";
-      if (res?.status === 200) html = await res.text().catch(() => "");
-      else await res?.body?.cancel().catch(() => {
-      });
-      const c = checkFeaturePage(f.key, path, res ? { status: res.status, location: res.headers.get("location"), html } : null);
-      if (c) checks.push(c);
-      await sleep2(PAUSE_MS / 3);
-    }
-  }
-  return checks;
-}
-async function migrateVerifyCommand(root, previewRaw, ctx, retryMs = PREVIEW_RETRY_MS, look = {}) {
-  let preview;
-  try {
-    preview = new URL(/^https?:\/\//.test(previewRaw) ? previewRaw : `https://${previewRaw}`);
-  } catch {
-    throw new CliError(`Not an address: ${previewRaw}. Use the preview address deploy printed.`, 1, "usage");
-  }
-  const hosts = scannedHosts(root);
-  if (!hosts.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
-  const redirects = allowedRedirects(root);
-  const cookie = await previewCookie(preview, retryMs);
-  const page3 = (path) => get(cookie ? new URL(path, preview.origin).toString() : previewPage(preview, path), void 0, "follow", cookie);
-  const findings = [];
-  const credits = /* @__PURE__ */ new Map();
-  const vendors = /* @__PURE__ */ new Map();
-  let checked = 0;
-  const tagFindings = [];
-  const leftOnOld = [];
-  const perHost = [];
-  const featureChecks = [];
-  for (const host of hosts) {
-    const inv = readJson3(join15(hostDir(root, host), "inventory.json"));
-    const oldSite = readJson3(tagsFile(hostDir(root, host)));
-    const state = readJson3(stateFile(hostDir(root, host))) ?? {};
-    const nextSite = emptySiteTags();
-    const triggerFound = {};
-    const formIdFound = {};
-    for (const t of oldSite?.triggers ?? []) if (t.type !== "page") triggerFound[t.value] = false;
-    for (const f of oldSite?.forms ?? []) if (f.id) formIdFound[f.id] = false;
-    const checkedBefore = checked;
-    const findingsBefore = findings.length;
-    const linksFrom = /* @__PURE__ */ new Map();
-    for (const old of inv?.pages ?? []) {
-      if (old.status >= 300) continue;
-      const res = await page3(old.path);
-      checked++;
-      let next = null;
-      if (res) {
-        const u = new URL(res.url);
-        u.searchParams.delete("deployai_preview");
-        const body = res.ok ? await res.text() : "";
-        const seo = body ? readPageSeo(body) : null;
-        for (const c of builderCredits(body)) if (!credits.has(c)) credits.set(c, old.path);
-        for (const v of vendorFiles(body)) if (!vendors.has(v)) vendors.set(v, old.path);
-        for (const l of body ? pageLinks(body, res.url) : []) if (!linksFrom.has(l)) linksFrom.set(l, old.path);
-        if (body && oldSite) {
-          addPageTags(nextSite, scanPageTags(body, res.url), old.path);
-          for (const t of oldSite.triggers) {
-            if (t.type === "page" || triggerFound[t.value]) continue;
-            if (t.type === "selector" ? selectorInPage(t.value, body) === true : body.includes(t.value)) triggerFound[t.value] = true;
-          }
-          for (const id2 of Object.keys(formIdFound)) if (!formIdFound[id2] && new RegExp(`\\bid\\s*=\\s*["']?${id2.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}["'\\s>]`).test(body)) formIdFound[id2] = true;
-        }
-        next = { status: res.status, finalPath: u.pathname + u.search, title: seo?.title ?? null, description: seo?.description ?? null };
-      }
-      const f = comparePage(old, next, redirects.get(old.path.split("?")[0]));
-      if (f) findings.push(f);
-      await sleep2(PAUSE_MS / 3);
-    }
-    const known = new Set((inv?.pages ?? []).map((p) => samePath(p.path)));
-    let tried = 0;
-    for (const [path, from] of linksFrom) {
-      if (known.has(samePath(path)) || tried >= LINK_CAP) continue;
-      known.add(samePath(path));
-      tried++;
-      const here = await page3(path);
-      await here?.body?.cancel().catch(() => {
-      });
-      if (here && here.status !== 404 && here.status !== 410) continue;
-      const there = inv ? await get(new URL(path, inv.source).toString()) : null;
-      await there?.body?.cancel().catch(() => {
-      });
-      if (there?.ok) findings.push({ path, problem: "link_broken", detail: from });
-      await sleep2(PAUSE_MS / 3);
-    }
-    const planFile = join15(root, MIGRATION_DIR, "plan.md");
-    const planRows = existsSync14(planFile) ? parsePlanFeatures(readFileSync13(planFile, "utf8")) : [];
-    for (const r of replacedPages(planRows, inv?.pages ?? [])) findings.push({ path: r.path, problem: "replaced", detail: r.row });
-    if (oldSite) {
-      const home = await page3("/");
-      const csp = home?.headers.get("content-security-policy") ?? null;
-      const homeHtml = home?.ok ? await home.clone().text().catch(() => "") : "";
-      for (const a of oldHostAssets(homeHtml, preview.origin + "/", hosts)) {
-        if (leftOnOld.some((x) => x.url === a.url)) continue;
-        const u = new URL(a.url);
-        const here = await page3(u.pathname + u.search);
-        if (!here?.ok || !/^image\//i.test(here.headers.get("content-type") ?? "")) leftOnOld.push(a);
-      }
-      const fileOnPreview = {};
-      for (const file2 of oldSite.rootFiles) fileOnPreview[file2] = await hasRootFile(preview.origin, file2, cookie ? "" : preview.search, cookie);
-      const pageOnPreview = {};
-      for (const t of oldSite.triggers.filter((x) => x.type === "page")) pageOnPreview[t.value] = Boolean((await page3(t.value))?.ok);
-      const found = compareTags(oldSite, nextSite, { removed: state.removed ?? [], csp, fileOnPreview, triggerFound, pageOnPreview, formIdFound });
-      tagFindings.push(...found);
-      const features = inv ? await checkFeatures(inv, (path, manual) => get(cookie ? new URL(path, preview.origin).toString() : previewPage(preview, path), void 0, manual ? "manual" : "follow", cookie)) : [];
-      featureChecks.push(...features);
-      perHost.push({ host, checked: checked - checkedBefore, problems: findings.length - findingsBefore, pages: findings.slice(findingsBefore), seen: nextSite.tags.map((t) => ({ key: t.key, id: t.id })), found, removed: state.removed ?? [], features });
-    }
-  }
-  const words = { missing: "not found on the preview", moved: "moved to", error: "answers", title_lost: "lost its title", description_lost: "lost its description", link_broken: "opens on the old site but not on the preview, linked from", replaced: 'is "Replaced with" in the plan, row' };
-  const report2 = join15(root, MIGRATION_DIR, "verify.json");
-  writeJson(report2, { checkedAt: (/* @__PURE__ */ new Date()).toISOString(), preview: preview.origin, checked, findings, credits: [...credits.keys()], vendors: [...vendors.keys()], tags: tagFindings, leftOnOld, features: featureChecks });
-  const brokenFeatures = featureChecks.filter((c) => !c.ok);
-  if (brokenFeatures.length) {
-    out(`${brokenFeatures.length} ${brokenFeatures.length === 1 ? "feature of the old site does" : "features of the old site do"} not work on the preview:`);
-    for (const c of brokenFeatures.slice(0, 40)) out(`  ${c.page}  ${FEATURE_WORDS[c.key]} ${FEATURE_PROBLEM_WORDS[c.problem]}`);
-    out(`Make each one work as it does on the old site, deploy again, and run verify again: npx deployai@latest migrate verify ${previewRaw}`);
-    blockedBy("feature_broken");
-    process.exitCode = 1;
-  }
-  if (credits.size) {
-    out(`A builder's credit is still on the preview:`);
-    for (const [text4, path] of credits) out(`  ${path}  ${text4}`);
-    out("Remove each and put the site's own name and the year in its place, unless the owner asked to keep it, then deploy again and run verify again.");
-    blockedBy("builder_credit");
-    process.exitCode = 1;
-  }
-  if (vendors.size) {
-    out(`Files of a plugin or theme are still on the preview:`);
-    for (const [name, path] of vendors) out(`  ${path}  ${name}`);
-    out("Remove them. Write what the page needs into the site's own stylesheet and scripts, or use a UI source, so it looks and works the same, then deploy again and run verify again.");
-    blockedBy("vendor_files");
-    process.exitCode = 1;
-  }
-  if (leftOnOld.length) {
-    const what = { share: "share image (og:image)", x: "X image (twitter:image)", icon: "icon" };
-    out("Still loading from the old site and missing from this one, so it breaks when the old site closes:");
-    for (const a of leftOnOld) out(`  ${what[a.kind]}  ${a.url}`);
-    out("Put each file in the site's own public folder (migrate media saved the images in .deployai/migration), point the tag at the site's own address, deploy again and run verify again.");
-    blockedBy("old_host_assets");
-    process.exitCode = 1;
-  }
-  if (tagFindings.length) {
-    out(`${tagFindings.length} tags and connections need a fix:`);
-    for (const f of tagFindings.slice(0, 60)) out(`  ${f.what}  ${TAG_WORDS[f.problem]}${f.detail ? ` (${f.detail})` : ""}${f.page ? ` on ${f.page}` : ""}`);
-    if (tagFindings.length > 60) out(`  and ${tagFindings.length - 60} more in verify.json`);
-    out('Put each one back, deploy again and run verify again. If one was left out on purpose (the owner asked, or the plan replaced it with ours): npx deployai@latest migrate tags --removed "<its number or name>", and give its plan row the status "Replaced with <what took its place>" so the report says so.');
-    blockedBy(...tagFindings.map((f) => f.problem));
-    process.exitCode = 1;
-  }
-  const clean3 = !findings.length && !tagFindings.length && !credits.size && !vendors.size && !leftOnOld.length && !brokenFeatures.length;
-  for (const h of perHost) {
-    const dir = hostDir(root, h.host);
-    const verify = { checkedAt: (/* @__PURE__ */ new Date()).toISOString(), pagesChecked: h.checked, pageProblems: h.problems, pageFindings: h.pages.map((f) => ({ path: f.path.slice(0, 300), problem: f.problem })).slice(0, 150), findings: h.found.map((f) => ({ problem: f.problem, what: f.what.slice(0, 240), ...f.detail ? { detail: f.detail.slice(0, 300) } : {}, ...f.page ? { page: f.page.slice(0, 300) } : {} })).slice(0, 300), seen: h.seen.slice(0, 300), removed: h.removed, vendors: [...vendors.keys()].map((v) => v.slice(0, 80)).slice(0, 40), ...h.features.length ? { featureChecks: h.features.slice(0, 60).map((c) => ({ ...c, page: c.page.slice(0, 300) })) } : {} };
-    writeJson(join15(dir, "verify-report.json"), { report: verify });
-    await sendReport(root, ctx, h.host, clean3 ? "verify" : null, verify);
-  }
-  await compareLooks(root, previewRaw, { maxDiff: look.maxDiff });
-  if (!findings.length) {
-    out(`All ${checked} old addresses open on the preview with their title and description.`);
-    return;
-  }
-  out(`${findings.length} of ${checked} old addresses need a fix (also in ${relative2(root, report2).split(sep2).join("/")}):`);
-  for (const f of findings.slice(0, 60)) out(`  ${f.path}  ${words[f.problem]}${f.detail ? ` ${f.detail}` : ""}`);
-  if (findings.length > 60) out(`  and ${findings.length - 60} more in verify.json`);
-  if (findings.some((f) => f.problem !== "link_broken" && f.problem !== "replaced")) out("Give each page its old address back (or, only if it truly cannot stay, a line in public/_redirects), deploy again, and run verify again.");
-  if (findings.some((f) => f.problem === "link_broken")) out("A page links to an address the old site has and the preview does not, so that page was never moved. Move each one from the old site, with its own content and address, deploy again and run verify again.");
-  if (findings.some((f) => f.problem === "replaced")) out("A page is never Replaced with. Rebuild each from the old page with the same sections, words, images, links and buttons in the same order, give its plan row the status Moved, deploy again and run verify again. A new design is a change the owner asks for after the move.");
-  const pageReason = { missing: "pages_missing", moved: "pages_moved", error: "pages_error", title_lost: "title_lost", description_lost: "description_lost", link_broken: "links_broken", replaced: "page_replaced" };
-  blockedBy(...findings.map((f) => pageReason[f.problem]));
-  process.exitCode = 1;
-}
-
-// src/commands/link.ts
-async function save(root, p, ctx) {
-  updateProject(root, { projectId: p.id, name: p.name, slug: p.slug });
-  rememberSite(p.id, ctx.config.email);
-  const t = messages(root);
-  out(t("linkedTo", { name: p.name, slug: p.slug }));
-  out(t("savedIn"));
-  await moveOffer(root, p, ctx);
-  out(t("nextStep"));
-  out(t("runDeploy"));
-}
-async function moveOffer(root, p, ctx) {
-  const startId = readChoices(root)?.startId;
-  if (!startId) return;
-  const t = messages(root);
-  try {
-    const r = await apiRequest(ctx, "/api/cli/migrations/grant", null, { method: "POST", body: { projectId: p.id, startId } });
-    if (typeof r.slug === "string" && /^[a-z0-9-]{2,40}$/.test(r.slug)) {
-      updateProject(root, { slug: r.slug });
-      out(t("movedSlug", { url: r.url ?? r.slug }));
-    }
-    if (r.granted?.length) out(t("moveOfferGranted", { n: r.granted.length }));
-    else if (r.reason && r.reason !== "start_used") out(t(r.reason === "cap" ? "moveOfferCap" : r.reason === "offer_over" ? "moveOfferOver" : "moveOfferNotMove"));
-  } catch {
-  }
-}
-function projectLine(p, i) {
-  const live = p.liveVersion ? `v${p.liveVersion}` : "-";
-  return `  ${String(i + 1).padStart(2)}. ${p.slug.padEnd(24)} ${p.status.padEnd(7)} ${live.padEnd(5)} ${p.url ?? ""}`.trimEnd();
-}
-async function linkCommand(root, ctx, target, opts) {
-  requireToken(ctx);
-  const t = messages(root);
-  if (opts.create) {
-    const framework = analyzeProject(root).inspect.framework.id;
-    const p = await apiRequest(ctx, "/api/cli/projects", Project, { method: "POST", body: { name: opts.create, framework } });
-    out(t("createdProject", { name: p.name }));
-    if (p.notice) out(p.notice);
-    await save(root, p, ctx);
-    return;
-  }
-  const { projects } = await apiRequest(ctx, "/api/cli/projects", ProjectsResponse);
-  if (target) {
-    const p = projects.find((x) => x.id === target || x.slug === target || x.name === target);
-    if (!p) throw new CliError(messages(root)("noProjectNamed", { name: target }), 1, "not_found");
-    await save(root, p, ctx);
-    return;
-  }
-  if (!projects.length) {
-    out(t("noProjects"));
-    if (isInteractive()) {
-      const rl = createInterface2({ input: process.stdin, output: process.stdout });
-      let name;
-      try {
-        name = (await rl.question("Name for a new site: ")).trim();
-      } finally {
-        rl.close();
-      }
-      if (!name) throw new CliError(messages(root)("noNameGiven"), 1, "usage");
-      return linkCommand(root, ctx, void 0, { create: name });
-    }
-    out(t("nextStep"));
-    out(t("runLinkCreate"));
-    return;
-  }
-  if (projects.length === 1) {
-    const p = projects[0];
-    const address = p.url ?? p.slug;
-    if (isInteractive()) {
-      const rl = createInterface2({ input: process.stdin, output: process.stdout });
-      let answer;
-      try {
-        answer = (await rl.question(t("linkConfirm", { name: p.name, address }))).trim().toLowerCase();
-      } finally {
-        rl.close();
-      }
-      if (answer === "y" || answer === "yes") return save(root, p, ctx);
-      out(t("linkCancelled"));
-      return;
-    }
-    throw new CliError([t("linkOnlyOne", { name: p.name, address }), `  npx deployai@latest link ${p.slug}`, '  npx deployai@latest link --create "<name>"'].join("\n"), 1, "usage");
-  }
-  const current = readProject(root)?.projectId;
-  out(t("projects"));
-  projects.forEach((p, i) => out(projectLine(p, i) + (p.id === current ? t("linkedMark") : "")));
-  out();
-  if (isInteractive()) {
-    const rl = createInterface2({ input: process.stdin, output: process.stdout });
-    try {
-      const answer = (await rl.question("Number to link: ")).trim();
-      const p = projects[Number(answer) - 1];
-      if (!p) throw new CliError(messages(root)("noProjectPicked"), 1, "usage");
-      await save(root, p, ctx);
-    } finally {
-      rl.close();
-    }
-    return;
-  }
-  out(t("nextStep"));
-  out(t("runLinkPick"));
-}
-
-// src/commands/deploy.ts
-import { randomUUID as randomUUID2 } from "crypto";
-import { readFileSync as readFileSync17 } from "fs";
-import { homedir as homedir3 } from "os";
-import { join as join20 } from "path";
-
-// src/same-name.ts
-import { createHash as createHash2 } from "crypto";
-import { mkdirSync as mkdirSync9, readFileSync as readFileSync14, writeFileSync as writeFileSync14 } from "fs";
-import { dirname as dirname3, join as join16 } from "path";
-var LAST_FILES = ".deployai/last-files.json";
-var KEPT = /^(public|static)\/.*\.(avif|webp|png|jpe?g|gif|svg|ico|woff2?|ttf|otf|mp4|webm|css|js|mjs)$/i;
-var HASHED = /[.-][A-Za-z0-9_]{6,20}\.[a-z0-9]+$/;
-var digest = (abs) => createHash2("sha1").update(readFileSync14(abs)).digest("hex").slice(0, 16);
-function changedUnderSameName(root, files) {
-  const now = {};
-  for (const f of files) if (KEPT.test(f.rel) && !HASHED.test(f.rel.split("/").pop() ?? "")) now[f.rel] = digest(f.abs);
-  let before = {};
-  try {
-    before = readJson(join16(root, LAST_FILES));
-  } catch {
-  }
-  const changed = Object.keys(now).filter((rel2) => before[rel2] && before[rel2] !== now[rel2]).sort();
-  try {
-    mkdirSync9(dirname3(join16(root, LAST_FILES)), { recursive: true });
-    writeFileSync14(join16(root, LAST_FILES), JSON.stringify(now));
-  } catch {
-  }
-  return changed;
-}
-
-// src/commands/sync.ts
-import { spawnSync as spawnSync3 } from "child_process";
-import { existsSync as existsSync17, mkdirSync as mkdirSync11, mkdtempSync, readFileSync as readFileSync16, rmSync as rmSync5, unlinkSync, writeFileSync as writeFileSync16 } from "fs";
-import { tmpdir as tmpdir2 } from "os";
-import { dirname as dirname5, join as join19, resolve as resolve5, sep as sep4 } from "path";
-import { gunzipSync as gunzipSync2 } from "zlib";
+// src/commands/save.ts
+import { createHash as createHash4 } from "crypto";
+import { readFileSync as readFileSync13, writeFileSync as writeFileSync11 } from "fs";
+import { join as join16 } from "path";
 
 // src/tar.ts
-import { readFileSync as readFileSync15 } from "fs";
+import { readFileSync as readFileSync8 } from "fs";
 import { gzipSync } from "zlib";
-var BLOCK2 = 512;
+var BLOCK = 512;
 function writeString(buf, offset, length, value2) {
   buf.write(value2, offset, Math.min(length, Buffer.byteLength(value2)), "utf8");
 }
@@ -30290,7 +28306,7 @@ function writeOctal(buf, offset, length, value2) {
   buf[offset + length - 1] = 0;
 }
 function header(name, size, mtimeSec, mode, type, prefix = "") {
-  const h = Buffer.alloc(BLOCK2, 0);
+  const h = Buffer.alloc(BLOCK, 0);
   writeString(h, 0, 100, name);
   writeOctal(h, 100, 8, mode);
   writeOctal(h, 108, 8, 0);
@@ -30305,7 +28321,7 @@ function header(name, size, mtimeSec, mode, type, prefix = "") {
   writeString(h, 297, 32, "deployai");
   writeString(h, 345, 155, prefix);
   let sum = 0;
-  for (let i = 0; i < BLOCK2; i++) sum += h[i];
+  for (let i = 0; i < BLOCK; i++) sum += h[i];
   const chk = sum.toString(8).padStart(6, "0");
   h.write(chk, 148, 6, "ascii");
   h[154] = 0;
@@ -30313,8 +28329,8 @@ function header(name, size, mtimeSec, mode, type, prefix = "") {
   return h;
 }
 function padding(size) {
-  const rest = size % BLOCK2;
-  return rest === 0 ? Buffer.alloc(0) : Buffer.alloc(BLOCK2 - rest, 0);
+  const rest = size % BLOCK;
+  return rest === 0 ? Buffer.alloc(0) : Buffer.alloc(BLOCK - rest, 0);
 }
 function isAscii(s) {
   return /^[\x20-\x7e]*$/.test(s);
@@ -30352,7 +28368,7 @@ function createTar(entries) {
     }
     parts2.push(e3.data, padding(e3.data.length));
   }
-  parts2.push(Buffer.alloc(BLOCK2 * 2, 0));
+  parts2.push(Buffer.alloc(BLOCK * 2, 0));
   return Buffer.concat(parts2);
 }
 function createTarGz(entries) {
@@ -30362,7 +28378,7 @@ function packFiles(files) {
   return createTarGz(
     files.map((f) => ({
       name: f.rel,
-      data: readFileSync15(f.abs),
+      data: readFileSync8(f.abs),
       mtimeMs: f.mtimeMs,
       mode: f.mode & 64 ? 493 : 420
     }))
@@ -30377,18 +28393,18 @@ function readTar(tar) {
   const entries = [];
   let offset = 0;
   let paxPath = null;
-  while (offset + BLOCK2 <= tar.length) {
-    const h = tar.subarray(offset, offset + BLOCK2);
+  while (offset + BLOCK <= tar.length) {
+    const h = tar.subarray(offset, offset + BLOCK);
     if (h.every((b) => b === 0)) break;
     const name = readString(h, 0, 100);
     const sizeField = readString(h, 124, 12).trim() || "0";
     if (!/^[0-7]{1,12}$/.test(sizeField)) throw new Error("Archive header is damaged");
     const size = parseInt(sizeField, 8);
-    if (offset + BLOCK2 + size > tar.length) throw new Error("Archive header is damaged");
+    if (offset + BLOCK + size > tar.length) throw new Error("Archive header is damaged");
     const type = String.fromCharCode(h[156] || 48);
     const prefix = readString(h, 345, 155);
-    const data = tar.subarray(offset + BLOCK2, offset + BLOCK2 + size);
-    offset += BLOCK2 + Math.ceil(size / BLOCK2) * BLOCK2;
+    const data = tar.subarray(offset + BLOCK, offset + BLOCK + size);
+    offset += BLOCK + Math.ceil(size / BLOCK) * BLOCK;
     if (type === "x") {
       const m = /(?:^|\n)\d+ path=([^\n]*)\n/.exec(data.toString("utf8"));
       paxPath = m ? m[1] : null;
@@ -30405,10 +28421,10 @@ function aliasPathPart(path) {
 }
 
 // src/work.ts
-import { createHash as createHash3 } from "crypto";
-import { resolve as resolve3 } from "path";
+import { createHash as createHash2 } from "crypto";
+import { resolve } from "path";
 function placeOf(ctx, root) {
-  return createHash3("sha256").update(`${ctx.config.installId}:${resolve3(root)}`).digest("hex").slice(0, 16);
+  return createHash2("sha256").update(`${ctx.config.installId}:${resolve(root)}`).digest("hex").slice(0, 16);
 }
 async function checkWork(ctx, root, projectId, builtOn, retried = false) {
   const none2 = { others: [], behind: null, answered: false };
@@ -30444,15 +28460,69 @@ function othersLine(root, others) {
   return t("workOthers", { names: names2 });
 }
 
+// src/commands/deploy.ts
+import { randomUUID as randomUUID2 } from "crypto";
+import { readFileSync as readFileSync12 } from "fs";
+import { homedir as homedir2 } from "os";
+import { join as join15 } from "path";
+
+// src/ask.ts
+import { createInterface } from "readline/promises";
+var isInteractive = () => Boolean(process.stdin.isTTY && process.stdout.isTTY) && !isCi() && !envToken();
+async function askLine(question) {
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  try {
+    return (await rl.question(question)).trim();
+  } finally {
+    rl.close();
+  }
+}
+async function askYes(question) {
+  const answer = (await askLine(question)).toLowerCase();
+  return answer === "y" || answer === "yes";
+}
+
+// src/same-name.ts
+import { createHash as createHash3 } from "crypto";
+import { mkdirSync as mkdirSync4, readFileSync as readFileSync9, writeFileSync as writeFileSync7 } from "fs";
+import { dirname, join as join10 } from "path";
+var LAST_FILES = ".deployai/last-files.json";
+var KEPT = /^(public|static)\/.*\.(avif|webp|png|jpe?g|gif|svg|ico|woff2?|ttf|otf|mp4|webm|css|js|mjs)$/i;
+var HASHED = /[.-][A-Za-z0-9_]{6,20}\.[a-z0-9]+$/;
+var digest = (abs) => createHash3("sha1").update(readFileSync9(abs)).digest("hex").slice(0, 16);
+function changedUnderSameName(root, files) {
+  const now = {};
+  for (const f of files) if (KEPT.test(f.rel) && !HASHED.test(f.rel.split("/").pop() ?? "")) now[f.rel] = digest(f.abs);
+  let before = {};
+  try {
+    before = readJson(join10(root, LAST_FILES));
+  } catch {
+  }
+  const changed = Object.keys(now).filter((rel2) => before[rel2] && before[rel2] !== now[rel2]).sort();
+  try {
+    mkdirSync4(dirname(join10(root, LAST_FILES)), { recursive: true });
+    writeFileSync7(join10(root, LAST_FILES), JSON.stringify(now));
+  } catch {
+  }
+  return changed;
+}
+
+// src/commands/sync.ts
+import { spawnSync as spawnSync3 } from "child_process";
+import { existsSync as existsSync11, mkdirSync as mkdirSync6, mkdtempSync, readFileSync as readFileSync10, rmSync as rmSync3, unlinkSync, writeFileSync as writeFileSync9 } from "fs";
+import { tmpdir } from "os";
+import { dirname as dirname3, join as join13, resolve as resolve3, sep as sep2 } from "path";
+import { gunzipSync as gunzipSync2 } from "zlib";
+
 // src/commands/pull.ts
 import { spawnSync as spawnSync2 } from "child_process";
-import { existsSync as existsSync16, readdirSync as readdirSync5, rmSync as rmSync4 } from "fs";
-import { join as join18 } from "path";
+import { existsSync as existsSync10, readdirSync as readdirSync4, rmSync as rmSync2 } from "fs";
+import { join as join12 } from "path";
 
 // src/commands/samples.ts
-import { createInterface as createInterface3 } from "readline/promises";
-import { existsSync as existsSync15, mkdirSync as mkdirSync10, readdirSync as readdirSync4, writeFileSync as writeFileSync15 } from "fs";
-import { dirname as dirname4, join as join17, relative as relative3, resolve as resolve4, sep as sep3 } from "path";
+import { createInterface as createInterface2 } from "readline/promises";
+import { existsSync as existsSync9, mkdirSync as mkdirSync5, readdirSync as readdirSync3, writeFileSync as writeFileSync8 } from "fs";
+import { dirname as dirname2, join as join11, relative, resolve as resolve2, sep } from "path";
 import { gunzipSync } from "zlib";
 var SAMPLES = [
   { key: "landing", title: "Landing page: a full one-page site with WhatsApp sign-up", stack: "static HTML and CSS" },
@@ -30474,28 +28544,28 @@ function listSamples(apiUrl) {
   out(`See them live:              ${apiUrl}/samples`);
 }
 function filesIn(dir) {
-  return existsSync15(dir) ? readdirSync4(dir).filter((f) => !IGNORED.has(f)) : [];
+  return existsSync9(dir) ? readdirSync3(dir).filter((f) => !IGNORED.has(f)) : [];
 }
 function freeFolder(cwd, key2) {
   for (let n2 = 1; ; n2++) {
-    const dir = resolve4(cwd, n2 === 1 ? key2 : `${key2}-${n2}`);
+    const dir = resolve2(cwd, n2 === 1 ? key2 : `${key2}-${n2}`);
     if (!filesIn(dir).length) return dir;
   }
 }
 async function askWhere(cwd, key2, count) {
   const fresh = freeFolder(cwd, key2);
-  const rl = createInterface3({ input: process.stdin, output: process.stdout });
+  const rl = createInterface2({ input: process.stdin, output: process.stdout });
   try {
     out(`This folder already has ${count} ${count === 1 ? "file" : "files"}. Where should the ${key2} sample go?`);
-    out(`  1) A new folder: ${relative3(cwd, fresh)}`);
+    out(`  1) A new folder: ${relative(cwd, fresh)}`);
     out("  2) This folder (files with the same name are replaced)");
     out("  3) Cancel");
     const choice = (await rl.question("Choose 1, 2 or 3 [1]: ")).trim() || "1";
     if (choice === "2") return cwd;
     if (choice !== "1") return null;
-    const name = (await rl.question(`Folder name [${relative3(cwd, fresh)}]: `)).trim();
+    const name = (await rl.question(`Folder name [${relative(cwd, fresh)}]: `)).trim();
     if (!name) return fresh;
-    const dir = resolve4(cwd, name);
+    const dir = resolve2(cwd, name);
     if (filesIn(dir).length) throw new CliError(`The folder ${name} is not empty. Run it again and pick another name.`, 1, "not_empty");
     return dir;
   } finally {
@@ -30503,7 +28573,7 @@ async function askWhere(cwd, key2, count) {
   }
 }
 async function downloadSample(ctx, key2, root) {
-  mkdirSync10(root, { recursive: true });
+  mkdirSync5(root, { recursive: true });
   let res;
   try {
     res = await fetch(`${ctx.apiUrl}/samples-src/${key2}.tar.gz`, {
@@ -30525,20 +28595,20 @@ function extractInto(gz, root, damaged, kept) {
   } catch {
     throw new CliError(damaged, 1, "api");
   }
-  mkdirSync10(root, { recursive: true });
-  const base = resolve4(root);
+  mkdirSync5(root, { recursive: true });
+  const base = resolve2(root);
   let written = 0;
   for (const e3 of entries) {
     if (e3.type !== "0" && e3.type !== "\0") continue;
     if (privateProjectFile(e3.name.replace(/\\/g, "/")) || aliasPathPart(e3.name.replace(/\\/g, "/"))) continue;
-    const target = resolve4(base, e3.name);
-    if (target !== base && !target.startsWith(base + sep3)) continue;
-    if (kept && existsSync15(target)) {
+    const target = resolve2(base, e3.name);
+    if (target !== base && !target.startsWith(base + sep)) continue;
+    if (kept && existsSync9(target)) {
       kept.push(e3.name.replace(/\\/g, "/"));
       continue;
     }
-    mkdirSync10(dirname4(target), { recursive: true });
-    writeFileSync15(target, e3.data);
+    mkdirSync5(dirname2(target), { recursive: true });
+    writeFileSync8(target, e3.data);
     written++;
   }
   return written;
@@ -30549,7 +28619,7 @@ async function samplesCommand(cwd, ctx, key2, opts = {}) {
   if (!sample) throw new CliError(messages()("noSampleNamed", { key: key2 }), 1, "not_found");
   let root;
   if (opts.folder) {
-    root = resolve4(cwd, opts.folder);
+    root = resolve2(cwd, opts.folder);
     if (filesIn(root).length && !opts.force) throw new CliError(`The folder ${opts.folder} is not empty. Run: npx deployai@latest samples ${sample.key}, and it picks a free folder`, 1, "not_empty");
   } else {
     const here = filesIn(cwd);
@@ -30561,13 +28631,13 @@ async function samplesCommand(cwd, ctx, key2, opts = {}) {
     } else root = freeFolder(cwd, sample.key);
   }
   const written = await downloadSample(ctx, sample.key, root);
-  const base = resolve4(root);
-  const hasPackage = existsSync15(join17(base, "package.json"));
-  out(base === resolve4(cwd) ? `Downloaded the ${sample.key} sample: ${written} files.` : `Downloaded the ${sample.key} sample into the new folder ${relative3(cwd, base)}: ${written} files. Work in that folder from now on.`);
+  const base = resolve2(root);
+  const hasPackage = existsSync9(join11(base, "package.json"));
+  out(base === resolve2(cwd) ? `Downloaded the ${sample.key} sample: ${written} files.` : `Downloaded the ${sample.key} sample into the new folder ${relative(cwd, base)}: ${written} files. Work in that folder from now on.`);
   out("");
   const t = messages(base);
   out(t("nextSteps"));
-  if (base !== resolve4(cwd)) out(`  cd ${JSON.stringify(relative3(cwd, base))}`);
+  if (base !== resolve2(cwd)) out(`  cd ${JSON.stringify(relative(cwd, base))}`);
   if (hasPackage) out("  npm install");
   out("  npx deployai@latest check");
   if (ctx.config.token) {
@@ -30587,30 +28657,39 @@ async function pullCommand(root, ctx, opts = {}) {
   const hasFiles = filesIn(root).length > 0;
   if (opts.history && hasFiles) throw new CliError(t("pullNotEmpty"), 1, "not_empty");
   requireToken(ctx);
-  if (opts.history) return pullHistory(root, ctx, projectId);
+  if (opts.history) {
+    await pullHistory(root, ctx, projectId);
+    return { fromSave: false };
+  }
+  if (opts.save !== void 0 && (!Number.isInteger(opts.save) || opts.save < 1)) throw new CliError(t("pullSaveNumber"), 1, "usage");
   const kept = [];
-  const n2 = extractInto(await fetchSource(root, ctx, projectId), root, t("pullDamaged"), hasFiles ? kept : void 0);
+  const n2 = extractInto(await fetchSource(root, ctx, projectId, void 0, opts.save ? { save: opts.save } : opts.live ? {} : { mine: true }), root, t("pullDamaged"), hasFiles ? kept : void 0);
   const builtOn = lastVersion && Number(lastVersion) > 0 ? Number(lastVersion) : void 0;
   if (builtOn) updateProject(root, { builtOn });
   await touchWork(ctx, root, projectId, builtOn);
-  out(t("pulled", { n: n2, v: lastVersion ?? "?" }));
+  if (lastSave) {
+    const tool = lastSave.tool ? ` (${deployToolName(lastSave.tool, lastSave.tool)})` : "";
+    out(t(builtOn ? "pulledSave" : "pulledSaveNoBase", { n: n2, ago: agoText(root, lastSave.at), tool, v: builtOn ?? "?" }));
+  } else out(t("pulled", { n: n2, v: lastVersion ?? "?" }));
   if (kept.length) out(t("pullKept", { n: kept.length, files: kept.slice(0, KEPT_SHOWN).join(", ") + (kept.length > KEPT_SHOWN ? ", ..." : "") }));
+  return { fromSave: Boolean(lastSave) };
 }
 var KEPT_SHOWN = 8;
 var lastVersion = null;
-async function fetchSource(root, ctx, projectId, version2) {
+var lastSave = null;
+async function fetchSource(root, ctx, projectId, version2, own2 = {}) {
   const t = messages(root);
   const token = requireToken(ctx);
   let res;
   try {
-    res = await fetch(`${ctx.apiUrl}/api/cli/source?projectId=${encodeURIComponent(projectId)}${version2 ? `&version=${version2}` : ""}`, { headers: { "User-Agent": userAgent(ctx.config), Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(12e4) });
+    res = await fetch(`${ctx.apiUrl}/api/cli/source?projectId=${encodeURIComponent(projectId)}${version2 ? `&version=${version2}` : ""}${own2.save ? `&save=${own2.save}` : own2.mine ? "&mine=1" : ""}`, { headers: { "User-Agent": userAgent(ctx.config), Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(12e4) });
   } catch {
     throw new CliError(messages()("unreachable", { url: ctx.apiUrl }), 1, "network");
   }
   if (res.status === 401) throw new CliError(t("sessionExpired"), 1, "auth");
   if (res.status === 404) {
     const code = (await res.clone().json().catch(() => null))?.error;
-    throw new CliError(code === "no_source" ? t("pullNoSource") : code === "not_on_site" ? t("notOnSite") : t("notFound"), 1, "not_found");
+    throw new CliError(code === "no_source" ? t("pullNoSource") : code === "no_save" ? t("pullNoSave") : code === "not_on_site" ? t("notOnSite") : t("notFound"), 1, "not_found");
   }
   if (res.status === 403) {
     const code = (await res.clone().json().catch(() => null))?.error;
@@ -30620,13 +28699,15 @@ async function fetchSource(root, ctx, projectId, version2) {
   const gz = Buffer.from(await res.arrayBuffer());
   if (gz.length > MAX_BYTES2) throw new CliError(t("pullTooLarge"), 1, "too_large");
   lastVersion = res.headers.get("X-DeployAI-Version");
+  const savedAt = res.headers.get("X-DeployAI-Save");
+  lastSave = savedAt ? { at: savedAt, tool: res.headers.get("X-DeployAI-Save-Tool") } : null;
   return gz;
 }
 var git = (root, args, env = {}) => spawnSync2("git", args, { cwd: root, encoding: "utf8", env: { ...process.env, ...env } });
 function clearTree(root) {
-  for (const name of readdirSync5(root)) {
+  for (const name of readdirSync4(root)) {
     if (name === ".git" || name === ".deployai") continue;
-    rmSync4(join18(root, name), { recursive: true, force: true });
+    rmSync2(join12(root, name), { recursive: true, force: true });
   }
 }
 async function pullHistory(root, ctx, projectId) {
@@ -30636,7 +28717,7 @@ async function pullHistory(root, ctx, projectId) {
   const live = versions.find((v) => v.isLive)?.number ?? Math.max(0, ...versions.filter((v) => v.status === "ready").map((v) => v.number));
   const chosen = versions.filter((v) => v.number <= live && v.status !== "failed" && v.status !== "queued").sort((a, b) => a.number - b.number);
   if (!chosen.length) throw new CliError(t("pullNoSource"), 1, "not_found");
-  if (!existsSync16(join18(root, ".git")) && git(root, ["init", "-q"]).status !== 0) throw new CliError(t("pullNoGit"), 1, "usage");
+  if (!existsSync10(join12(root, ".git")) && git(root, ["init", "-q"]).status !== 0) throw new CliError(t("pullNoGit"), 1, "usage");
   for (const v of chosen) {
     const gz = await fetchSource(root, ctx, projectId, v.number).catch(() => null);
     if (!gz) continue;
@@ -30690,17 +28771,17 @@ function migrationClashes(base, live, ours2) {
   return out2;
 }
 function mergeText(ours2, base, live, liveLabel) {
-  const dir = mkdtempSync(join19(tmpdir2(), "deployai-sync-"));
+  const dir = mkdtempSync(join13(tmpdir(), "deployai-sync-"));
   try {
-    const [o, b, l] = ["ours", "base", "live"].map((n2) => join19(dir, n2));
-    writeFileSync16(o, ours2);
-    writeFileSync16(b, base);
-    writeFileSync16(l, live);
+    const [o, b, l] = ["ours", "base", "live"].map((n2) => join13(dir, n2));
+    writeFileSync9(o, ours2);
+    writeFileSync9(b, base);
+    writeFileSync9(l, live);
     const r = spawnSync3("git", ["merge-file", "-p", "-L", "this folder", "-L", "common start", "-L", liveLabel, o, b, l], { encoding: "buffer", maxBuffer: 64 * 1024 * 1024 });
     if (r.error || r.status === null || r.status < 0) return null;
     return { text: r.stdout, conflicts: r.status > 0 };
   } finally {
-    rmSync5(dir, { recursive: true, force: true });
+    rmSync3(dir, { recursive: true, force: true });
   }
 }
 async function bringIn(root, ctx, projectId, behind) {
@@ -30711,28 +28792,28 @@ async function bringIn(root, ctx, projectId, behind) {
   const liveFiles = filesOf(await fetchSource(root, ctx, projectId, live));
   const baseFiles = filesOf(await fetchSource(root, ctx, projectId, behind.base));
   const plan = planUpload(root);
-  const ourFiles = new Map(plan.files.map((f) => [f.rel, readFileSync16(f.abs)]));
-  if (!existsSync17(join19(root, ".git")) && git2(root, ["init", "-q"]).status !== 0) throw new CliError(t("syncNoGit"), 1, "usage");
+  const ourFiles = new Map(plan.files.map((f) => [f.rel, readFileSync10(f.abs)]));
+  if (!existsSync11(join13(root, ".git")) && git2(root, ["init", "-q"]).status !== 0) throw new CliError(t("syncNoGit"), 1, "usage");
   git2(root, ["add", "-A"]);
   git2(root, ["-c", `user.name=${BOT.name}`, "-c", `user.email=${BOT.email}`, "commit", "-q", "--allow-empty", "-m", `Before sync with live v${live}`]);
   const state = { live, base: behind.base, conflicts: [], clashes: migrationClashes(baseFiles, liveFiles, ourFiles) };
   let taken = 0;
   let merged = 0;
-  const folder = resolve5(root);
+  const folder = resolve3(root);
   const write = (path, data) => {
-    const abs = resolve5(folder, path);
-    if (!abs.startsWith(folder + sep4)) return;
+    const abs = resolve3(folder, path);
+    if (!abs.startsWith(folder + sep2)) return;
     if (data === void 0) {
-      if (existsSync17(abs)) unlinkSync(abs);
+      if (existsSync11(abs)) unlinkSync(abs);
       return;
     }
-    mkdirSync11(dirname5(abs), { recursive: true });
-    writeFileSync16(abs, data);
+    mkdirSync6(dirname3(abs), { recursive: true });
+    writeFileSync9(abs, data);
   };
   const keepLiveCopy = (path, data) => {
-    const abs = join19(root, DEPLOYAI_DIR, "sync", `${path}.live`);
-    mkdirSync11(dirname5(abs), { recursive: true });
-    writeFileSync16(abs, data);
+    const abs = join13(root, DEPLOYAI_DIR, "sync", `${path}.live`);
+    mkdirSync6(dirname3(abs), { recursive: true });
+    writeFileSync9(abs, data);
   };
   for (const path of /* @__PURE__ */ new Set([...baseFiles.keys(), ...liveFiles.keys(), ...ourFiles.keys()])) {
     const b = baseFiles.get(path);
@@ -30765,7 +28846,7 @@ async function bringIn(root, ctx, projectId, behind) {
     else merged++;
   }
   ensureDeployaiDir(root);
-  writeFileSync16(join19(root, SYNC_FILE), JSON.stringify(state, null, 2) + "\n");
+  writeFileSync9(join13(root, SYNC_FILE), JSON.stringify(state, null, 2) + "\n");
   updateProject(root, { builtOn: live });
   const tip = await recordHistory(root, ctx, projectId, behind).catch(() => null);
   if (tip && !state.conflicts.length && !state.clashes.length) {
@@ -30790,8 +28871,8 @@ var LIVE_REF = "refs/deployai/live";
 var HISTORY_MAX = 20;
 async function recordHistory(root, ctx, projectId, behind) {
   const t = messages(root);
-  const gitDir = join19(root, ".git");
-  if (!existsSync17(gitDir)) return null;
+  const gitDir = join13(root, ".git");
+  if (!existsSync11(gitDir)) return null;
   const run = (args, env = {}) => spawnSync3("git", [`--git-dir=${gitDir}`, ...args], { encoding: "utf8", env: { ...process.env, ...env } });
   let tip = run(["rev-parse", "-q", "--verify", LIVE_REF]).stdout.trim() || null;
   const lastNumber = tip ? Number(/^v(\d+)/.exec(run(["log", "-1", "--format=%s", LIVE_REF]).stdout.trim())?.[1] ?? 0) : 0;
@@ -30800,8 +28881,8 @@ async function recordHistory(root, ctx, projectId, behind) {
   for (const v of todo) {
     const gz = await fetchSource(root, ctx, projectId, v.number).catch(() => null);
     if (!gz) continue;
-    const tree = mkdtempSync(join19(tmpdir2(), "deployai-history-"));
-    const index = join19(tmpdir2(), `deployai-index-${process.pid}-${v.number}`);
+    const tree = mkdtempSync(join13(tmpdir(), "deployai-history-"));
+    const index = join13(tmpdir(), `deployai-index-${process.pid}-${v.number}`);
     try {
       extractInto(gz, tree, t("pullDamaged"));
       const env = { GIT_INDEX_FILE: index };
@@ -30814,8 +28895,8 @@ async function recordHistory(root, ctx, projectId, behind) {
       tip = sha2;
       added++;
     } finally {
-      rmSync5(tree, { recursive: true, force: true });
-      rmSync5(index, { force: true });
+      rmSync3(tree, { recursive: true, force: true });
+      rmSync3(index, { force: true });
     }
   }
   if (!tip) return null;
@@ -30866,20 +28947,114 @@ async function syncCommand(root, ctx) {
 function syncLeftovers(root) {
   let state;
   try {
-    state = JSON.parse(readFileSync16(join19(root, SYNC_FILE), "utf8"));
+    state = JSON.parse(readFileSync10(join13(root, SYNC_FILE), "utf8"));
   } catch {
     return [];
   }
   const left = [];
   for (const c of state.conflicts ?? []) {
     if (c.why !== "both") continue;
-    const abs = join19(root, c.path);
-    if (existsSync17(abs) && MARKER.test(readFileSync16(abs, "utf8"))) left.push(c.path);
+    const abs = join13(root, c.path);
+    if (existsSync11(abs) && MARKER.test(readFileSync10(abs, "utf8"))) left.push(c.path);
   }
   for (const [a, b] of state.clashes ?? []) {
-    if (a && b && existsSync17(join19(root, a)) && existsSync17(join19(root, b)) && migrationNumber(a) === migrationNumber(b)) left.push(`${a} + ${b}`);
+    if (a && b && existsSync11(join13(root, a)) && existsSync11(join13(root, b)) && migrationNumber(a) === migrationNumber(b)) left.push(`${a} + ${b}`);
   }
   return left;
+}
+
+// src/sound.ts
+import { spawn as spawn2 } from "child_process";
+import { existsSync as existsSync12, mkdirSync as mkdirSync7, readFileSync as readFileSync11, statSync, writeFileSync as writeFileSync10 } from "fs";
+import { join as join14 } from "path";
+
+// src/sound-files.ts
+var SOUND_FILES = {
+  "failed": "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qgCyALkAvgDCAMUAxwDIAMcAxADBALwAtgCuAKYAnACRAIUAeABqAFwATQA9ACwAHAALAPv/6v/Z/8j/uP+o/5n/iv98/2//ZP9Z/0//R/9A/zr/Nv80/zL/M/81/zj/Pf9D/0v/VP9f/2r/d/+E/5P/ov+y/8L/0//k//b/BgAXACgAOQBJAFkAaAB2AIMAjwCaAKQArQC0ALoAvgDBAMMAwwDCAMAAvAC3ALEAqQChAJcAjQCBAHUAaABbAE0APgAvAB8ADgD//+7/3v/O/77/r/+h/5P/hv95/27/Y/9b/1X/Uf9N/0j/RP9A/z3/Pf8//0T/TP9X/2T/c/+B/4//nP+p/7T/v//M/9n/6P/5/wkAGgAqADgARABOAFYAXgBlAG0AdgB/AIkAkQCXAJwAngCeAJwAmgCXAJUAlACTAJIAkACMAIYAfgB1AGoAXgBTAEkAPwA2AC0AIwAZAAwA///w/+H/0f/D/7b/q/+h/5j/j/+F/3z/cf9n/13/Vf9P/0z/S/9M/07/Uv9W/1r/Xv9j/2n/cf97/4j/lv+m/7f/yP/Z/+n/+P8GABUAJAA1AEUAVgBnAHgAhgCTAJ0ApQCrALAAtAC3ALoAvAC9ALwAuQC0AK0AowCYAIsAfwByAGYAWQBNAD8AMQAiABIAAQDx/+H/0v/E/7j/rv+k/5v/kv+K/4H/ef9y/2z/aP9m/2X/Z/9p/2z/cP9z/3b/ev9+/4T/iv+S/5z/pv+x/7v/xf/P/9j/4f/q//P//f8HABMAHwArADYAQABJAFEAWQBgAGcAbgB1AHwAgwCJAI4AkQCTAJMAkgCRAI4AjACJAIYAggB9AHYAbgBkAFkATAA/ADIAJgAZAAwAAAD0/+b/2P/J/7r/rP+e/5L/h/99/3X/bv9n/2L/Xf9Z/1b/VP9U/1b/Wv9f/2f/cP95/4P/jv+Z/6X/sf++/8z/2//r//v/CgAZACgANQBCAE0AWABjAG0AdgB/AIcAjgCTAJcAmQCZAJgAlQCTAI8AiwCHAIIAewB0AGwAYgBYAE0AQgA3AC0AIgAYAA8ABQD8//H/5//c/9L/yP+//7j/sf+q/6X/oP+b/5b/kf+N/4n/hv+E/4P/hP+F/4f/if+M/4//kv+W/5r/n/+m/63/tf++/8j/0f/b/+X/7//4/wIADAAXACMALwA6AEYAUABaAGMA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PwA/AD8APgA9ADwAOgA4ADUAMgAvACsAJwAjAB8AGgAWABEADAAHAAIA/v/5//T/7//r/+b/4v/e/9r/1//T/9D/zf/L/8n/x//G/8X/xf/E/8X/xv/H/8j/yv/M/8//0v/V/9n/3f/h/+X/6f/u//P/+P/9/wEABgALABAAFQAaAB4AIwAnACsALgAxADQANwA5ADsAPAA9AD0APQA9ADwAOgA5ADYANAAxAC0AKgAmACEAHQAYABMADgAJAAMA///6//X/8P/r/+b/4v/d/9n/1v/S/8//zP/K/8j/x//G/8X/xf/F/8b/x//J/8v/zf/Q/9P/1v/Z/93/4f/l/+r/7v/z//f//P8AAAUACQAOABIAFgAaAB4AIgAlACgAKwAuADAAMgAzADQANQA2ADYANQA1ADQAMwAxAC8ALQAqACcAJAAhAB0AGgAWABIADQAJAAUAAAD9//j/9P/w/+z/6P/k/+D/3f/Z/9b/1P/R/8//zf/M/8v/yv/K/8r/yv/L/8z/zv/Q/9L/1f/Y/9v/3//j/+f/6//v//T/+P/9/wEABgAKAA8AEwAYABwAIAAkACcAKgAtAC8AMgAzADUANgA2ADYANgA1ADQAMwAxAC8ALQAqACcAIwAgABwAGAAUAA8ACwAGAAIA/v/6//b/8f/t/+n/5v/i/9//3P/Z/9f/1P/T/9H/0P/P/87/zv/O/8//0P/R/9L/1P/W/9n/2//e/+H/5P/o/+v/7//z//f/+//+/wEABQAJAA0AEQAVABgAGwAeACEAJAAnACkAKwAsAC4ALwAvADAAMAAwAC8ALgAtACsAKgAoACUAIgAgABwAGQAVABIADgAKAAYAAgD+//r/9v/y/+7/6v/n/+P/4P/d/9r/1//V/9P/0v/Q/8//z//P/8//z//T/9X/1v/Y/9r/3f/f/+L/5f/p/+z/8P/0//j/+////wIABgAKAA4AEQAVABgAGwAeACEAIwAlACcAKQAqACsAKwAsACsAKwArACoAKAAnACUAIwAhAB8AHAAZABYAEwAQAA0ACQAFAAIA///7//j/9P/x/+3/6v/n/+T/4f/f/93/2//a/9n/1//W/9X/1P/U/9X/1v/Y/9r/3f/g/+P/5v/o/+v/7f/w//L/9f/5//3/AAADAAcACgAMAA4AEAASABQAFgAYABsAHQAfACAAIQAiACIAIgAiACEAIQAhACIAIgAhACEAHwAeABwAGQAXABUAEwARAA8ADQALAAgABQACAP///P/4//X/8v/w/+3/6//p/+b/5P/h/97/3P/a/9j/1//X/9f/1//Y/9n/2f/a/9v/3P/e/+D/4//m/+r/7v/x//X/+f/8/wAAAgAGAAoADgASABYAGQAdACAAIgAkACUAJwAoACkAKgAqACsAKwAqACkAJwAlACMAIAAdABsAGAAVABMAEAANAAkABQACAP//+//4//X/8v/w/+7/7P/q/+f/5f/j/+L/4P/f/9//3//f/9//4P/g/+H/4f/i/+L/4//l/+f/6f/r/+3/7//x//P/9f/3//n/+//9/wAAAQAEAAcACQAMAA4AEAARABMAFQAXABkAGwAdAB4AHwAgACEAIQAhACEAIQAhACAAIAAfAB4AHAAbABgAFgATABAADQALAAgABQACAAAA/f/5//b/8v/v/+z/6f/m/+T/4v/g/97/3f/c/9r/2f/Z/9n/2f/a/9v/3f/f/+H/4//l/+j/6v/t//D/8//2//r//v8AAAQABwAKAA0ADwASABQAFwAZABsAHQAfACAAIQAhACEAIQAhACAAIAAfAB4AHQAcABoAGQAXABQAEgAQAA4ACwAJAAcABQADAAAA///9//r/+P/2//T/8v/x/+//7v/s/+v/6v/p/+f/5v/l/+X/5f/k/+X/5f/l/+X/5v/m/+f/6P/p/+r/7P/t/+//8f/0//b/+P/6//z///8AAAMABgAIAAsADgAQABMAFQAXABkAGgAcAB4AHwAgACEAIgAiACIAIQAhACAAHgAdABsAGgAYABUAEwAQAA4ACgAHAAQAAQD///z/+f/2//P/8P/u/+v/6f/n/+X/4//i/+H/4P/g/9//4P/g/+D/4f/i/+P/5P/m/+j/6v/s/+//8f/0//b/+P/7//3///8BAAMABgAIAAoADAAOABAAEQATABQAFQAWABcAGAAYABkAGQAZABkAGQAYABgAFwAWABYAFQAUABMAEgAQAA8ADQALAAoACAAGAAQAAwABAAAA/v/8//r/+P/2//T/8v/w/+//7f/s/+r/6f/o/+f/5v/l/+T/5P/k/+T/5f/l/+b/5//o/+r/6//t/+//8f/z//b/+P/7//7/AAACAAUABwAKAAwADwARABQAFgAYABkAGwAcAB0AHgAeAB4AHgAeAB4AHQAcABsAGQAYABYAFAASAA8ADQALAAgABgADAAAA///8//r/9//1//P/8f/v/+7/7P/r/+r/6f/o/+j/5//n/+f/5//n/+j/6f/q/+r/6//t/+7/7//w//L/9P/1//f/+f/6//z//v///wAAAgADAAUABwAIAAoACwANAA4ADwAQABEAEgATABQAFQAVABYAFgAWABcAFgAWABYAFQAVABQAEwASABEADwAOAAwACgAJAAcABAACAAAA///9//v/+f/2//T/8v/w/+7/7P/r/+n/6P/n/+b/5v/l/+X/5f/l/+X/5v/n/+j/6v/r/+3/7//x//P/9f/3//n//P/+/wAAAgAFAAcACQAMAA4AEAARABMAFAAWABcAGAAYABkAGQAZABkAGAAYABcAFgAVABQAEwARABAADgANAAsACQAHAA==",
+  "live": "UklGRr5xAABXQVZFZm10IBAAAAABAAEAIlYAAESsAAACABAAZGF0YZpxAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQACAAMABQAIAAwAEQAXACAALAA7AE4AZgCDAKYAzQD2AB8BQAEkAckAaQAFAJ//Nf/H/lf+4/1s/fH8cPzq+137wvqc+tT6P/uj+8f7gPu1+hD6A/rH+ZL5nPkS+hH7nPya/t8AMgNUBQ8HQwjjCP8IvAhNCOkHvgfqB3MISAlCCi0L0gsBDJ0LoAobCTYHJwUoA2sBEwAt/6z+cv5Q/hb+l/24/HT73PkU+FH2yPSq8xfzG/Oq86L01PUN9x/46Phc+Yb5g/l++ab5JPoU+378Uf5rAJ4CsgR4Bs4HpAgBCQEJywiNCHEIlAgBCa0JewpCC9ILAgy0C90KignXB/AFBgRHAtYAw/8J/5L+O/7a/Un9bvxB+8r5JviA9gT14PMy8wnzYPMf9CH1OvZA9xT4qPj++Cz5UvmZ+SP6DPte/A/+BAAZAh4E6QVYB1oI7wgpCSkJEgkLCS0JhwkTCr0KZAvfCwwMzAsVC+sJYwiiBs8EFQOUAV0AdP/J/kD+uf0T/Tb8Fvu4+TL4pfY59RL0UPMD8yvzuPOL9IL1ePZR9/r3c/jJ+Bb5evkU+vv6O/zR/aj/oAGVA2AF4QYGCMkIOAloCXgJiAmxCQAKdQoBC4wL9AsaDOULRgs+Ct0IPgeFBdQDSQL5AOr/Ef9d/rL99fwQ/Pf6rPk++Mj2afVE9HTzCvMK82rzE/Tp9Mv1oPZX9+r3YfjQ+E/5+Pnh+hb8lf1S/zEBFQPcBGkGqAeSCC0JiQm/CekJHApmCssKQQu1CwsMKgz7C24LgwpECcYHJQaBBPQCkwFlAGn/jv7C/e38/vvo+qr5T/js9pv1efSf8x7z/fI187jzbPQ59Qb2w/Zo9/n3g/ga+dP5wPrt+1v9Af/KAJ0CXQTwBUIHSwgMCY8J6AkrCmwKuAoTC3gL2QshDDgMDAyPC7wKmgk6CLIGHQWTAycC4wDK/8/+5f37/P/76Pqz+Wf4FPfP9bL00vM/8wPzGvN58w70xPSF9UL28vaV9zX44Pin+Zn6wfsh/bT+aAAqAuIDdwXXBvcH1wh8CfQJUQqhCvIKSQuiC/ULMAxBDBcMpQvnCt8JmggrB6cFJASzAmEBMAAc/xn+Gv0T/Pj6yPmI+EL3CPbw9Az0bfMa8xTzVPPL82n0HPXU9Yr2Ovfq96X4d/lu+pL76Pxq/gwAvgFrA/4EZwaZB5IIVAnoCVwKvQoWC2wLvwsHDDkMRAwcDLQLBgsVCukIkQcfBqYENgPbAZoAcv9a/kr9NvwX++r5svh290f2NPVO9KTzP/Mh80XzovMp9Mv0e/Ux9uj2pPdq+Eb5QPpi+678Iv60/1YB+AKIBPUFNAdACBkJxglQCsIKJAt9C8wLDgw5DEEMGgy5CxoLPQooCeYHhwYaBa8DUAIEAc3/pf6G/Wj8RPsY+uX4s/eL9n31l/Tm83LzP/NL84/zAPSR9Df16fWi9mT3M/gV+RL6Mft2/N39YP/zAIoCEwSBBckG4wfQCJEJLwqwCh0LewvKCwkMMAw1DBAMtwslC1kKWQksCN8GgAUcBL4CbAEqAPf+zP2l/H37Ufoi+fb31vbM9ef0MPSw82zzY/OR8+zzbPQF9bD1afYt9wD45vjk+QH7PfyZ/Q//lQAfAqEDDgVaBn8HewhNCfwJjAoEC2gLuQv3CxwMIQz+C6wLJgtqCnwJYwgoB9gFfgQjA9ABiQBN/xr+7Py/+5P6aPlB+Cb3IfY89YH0+POl84vzpPPs81r05vSI9Tz2APfU97r4uPnR+gf8WP3C/joAuQEzA5wE6gUWBx0I/Qi6CVgK2gpFC5sL2gv/CwUM5QuZCx4LcQqUCY0IZAcjBtQEgQMvAuUApf9s/jn9Cvzd+rT5kfh793r2lfXY9Ef06fO+88bz/PNZ9Nf0b/Uc9tz2rveU+I/5pPrS+xr9d/7k/1cByAIsBHkFqga4B6QIbQkWCqIKFQtwC7IL2QvhC8ULgAsOC24KoQmsCJQHYwYgBdUDiAI/Af3/wf6L/Vr8LfsG+uf41ffX9vT1NPWd9DX0/fP18xr0aPTX9GT1CPbC9pD3cvhq+Xn6oPve/DH+kf/5AGACvgMJBTsGTwdDCBUJyAleCtkKOQt/C6oLtQueC18L9wpkCqYJwQi5B5cGYgUhBNsClQFTABf/4P2u/IL7XfpB+TP4N/dW9pT1+fSI9EX0L/RF9IP05fRl9QD2svZ691f4SvlS+nL7pvzt/UP/nwD9AVMDmgTMBeMG3Qe3CHIJEAqSCvkKRAtyC4ILbws4C9kKUgqiCcwI1AfCBpoFZAQmA+YBpwBs/zb+Bf3a+7j6n/mU+Jv3uvb49Vj14fSU9HL0evSq9P70cvUC9qv2bPdC+C75MPpG+3H8rv34/kkAnQHsAi4EXgV2BnMHUwgWCbsJQwqwCgALMwtICzsLCwu1CjkKlgnPCOYH4gbIBZ4EagMxAvcAwP+M/l39NfwU+/759vgA+CH3Xva79T716PS89Lj02vQh9Yn1Dvat9mX3M/gY+RH6H/tA/HL9sf75/0IBiALEA/EECQYIB+wHtAhfCe0JYAq1Cu4KCAsBC9gKiwoaCoMJygjwB/sG7wXRBKcDdwJDARAA4P61/Y/8cvtg+lv5Z/iJ98b2Ifaf9UL1DPX89BP1TfWp9SL2t/Zm9yv4B/n4+fz6FPw7/W/+rP/rACgCXgOGBJwFnAaCB04I/giSCQoKZQqjCsIKwgqhCl0K9QlrCb4I8wcMBw0G/ATeA7YCiwFdADP/DP7q/NH7wfrA+c/48vcv94j2Avaf9WD1R/VT9YH10fU/9sn2bfcp+Pv44/ne+uv7CP0x/mP/mADNAfsCHgQxBTAGFwfmB5oIMgmvCQ8KUwp4Cn4KZAopCswJTQmtCO8HFQckBiAFDQTwAs0BpwCD/2D+Q/0u/CP7Jfo2+Vz4mffx9mf2//W59Zf1mPW79QD2Yvbi9nv3Lfj2+NP5xPrH+9n89/0f/0kAdQGcArkDyATFBa0GfQc0CNAIUQm2Cf8JKgo3CiQK8QmdCSkJlgjlBxgHNQY9BTYEJAMKAuwAz/+z/pv9ivyD+4n6nfnF+AP4WvfN9mD2FPbq9eL1+/U09oz2APeP9zf49fjI+a/6p/uv/ML93/4AACIBQQJYA2IEXAVDBhMHzAdsCPEIWgmoCdkJ7AngCbUJawkCCXoI1QcWBz8GVAVZBFIDQgItARYAAv/w/eX84vvs+gT6Lfls+ML3NPfD9nH2QPYv9j/2bva79iX3qfdG+Pn4wvmf+oz7ifyS/aT+u//TAOoB+gL/A/UE2gWrBmUHBgiOCPwITwmFCZ4JmQl3CTYJ1ghaCMEHDgdEBmUFdgR6A3UCaQFbAE3/Qv48/T/8Tfto+pT51Pgr+Jv3JvfQ9pj2f/aG9qv27vZN98f3WfgD+cH5k/p1+2f8Zf1t/nr/iQCXAaACnwOSBHQFQwb9BqEHKwidCPMILwlOCVAJNQn9CKcINQioBwEHQwZxBY4EnQOiAqABmwCV/5H+kf2Z/Kv7y/r5+Tv5kvgB+Ir3L/fx9tH20Pbs9ib3e/fq93L4EPnE+Yv6Y/tK/D79O/4+/0MASQFKAkMDMQQQBd4FlwY8B8gHPQiXCNcI/AgFCfEIwQh1CA0IiwfwBj4GeAWhBLsDywLTAdYA2f/c/uP98PwI/Cv7Xfqg+fj4Zvjt9473S/cl9xz3MPdg96z3EfiO+CL5y/mI+lX7Mfwa/Q3+Bv8CAP8A+AHrAtQDrwR6BTMG1wZmB9wHOgh/CKkIuAisCIQIQAjiB2sH2wY0BnoFrgTUA+4CAAINARcAI/8x/kT9YfyI+736A/pc+cn4T/jt96b3evdq93b3nvff9zv4rvg4+df5iPpL+x38+/zj/dP+xv+5AKsBlwJ6A1EEGgXRBXUGBAd9B94HJghVCGoIZAhECAkItQdHB8IGJwZ4BbcE6AMNAykCPwFSAGb/e/6V/bf84/sc+2T6vvks+a/4S/gA+M/3ufe+9933Fvho+NH4Ufnl+Y36RfsM/OD8vv2k/o7/eABiAUcCJAP3A7wEcQUUBqQGHgeCB84HAQgbCBwIAwjRB4UHIQemBhYGcgW8BPgDKANOAm4BiQCl/8H+4v0J/Tr8d/vC+h36jPkP+aj4Wvgl+An4Bvge+E74l/j3+G35+PmV+kP7APzJ/J39ef5Z/zsAHQH7AdICoANhBBQFtgVFBsEGJgd1B60HzAfTB8EHlgdTB/kGiAYCBmgFvQQEBD4DbgKXAbwA4P8E/yv+Wf2O/M/7Hft6+un5bPkE+bP4efhY+FD4YPiJ+Mn4IPmN+Q36oPpE+/b7tvx//VH+Kf8CANwAswGEAk0DCgS6BFsF6QVlBswGHQdZB30HiQd+B1sHIAfPBmcG6wVbBbsEDARQA4oCvAHqABUAQv9w/qT93/wk/Hb71fpF+sf5XvkK+c34p/iZ+KP4xPj9+Ev5r/km+q/6Sfvx+6b8Zv0u/vz+zv+fAG8BOgL+ArcDZAQCBY8FCwZzBscGBQcuBz8HOgceB+sGogZEBtEFTAW1BBAEXgOhAt0BFAFIAHz/sv7s/Sz9dvzL+y37nvoh+rb5YPkf+fX44vjm+AH5Mvl4+dP5QfrA+lD77/ua/FD9D/7U/p3/ZgAvAfQBsgJnAxAErAQ4BbMFHAZyBrMG3wb2BvYG4Qa2BnUGHwa1BTkFrQQRBGgDtQL6AToBdgCy/+/+MP52/cT8HfyB+/T6d/oM+rT5cflD+Sv5Kvk++Wj5pvn5+V761Ppb+/D7kvw+/fT9sP5w/zIA8wCyAWoCGwPAA1kE5AReBcgFHwZiBpIGrAayBqMGfwZGBvgFlwUlBaEEDwRwA8YCFAJcAaEA5f8p/3D+vP0P/Wv80/tI+8z6YPoH+sH5kPl0+W35e/me+db5IPp9+uv6aPv0+4z8MP3c/Y/+R/8BALsAcwEmAtICdAMKBJIEDAV1Bc0FEwZFBmQGbwZlBkcGFgbQBXgFDgWTBAoEdAPTAioCewHHABIAXv+s/v79Vv22/CH8mPsd+7L6WPoQ+tz5vPmw+bn51fkG+kn6nvoD+3j7+/uK/CT9yP1y/iL/1f+HADgB5gGMAioDvQNEBLwEJQV+BcUF+gUcBiwGJwYQBuUFpwVWBfUEgwQCBHUD3gI9ApYB6wA9AJD/5P48/pn9/vxs/Ob7bPsB+6b6Xfom+gL68vn2+Q36Nvpy+sD6HfuK+wT8ivwc/bf9Wf4A/6v/VgABAakBSwLkAnQD+ANvBNgEMQV5BbEF1gXpBeoF2AWzBXwFNAXaBHAE+QN0A+UCTQKuAQoBZAC+/xn/dv7Z/UL9tPww/Lj7Tvvz+qj6b/pI+jT6MvpE+mj6nfrj+jn7nfsP/I38Fv2p/UL+4v6F/ykAzgBwAQwCogIuA7ADJQSNBOYEMAVpBZEFqAWtBaAFggVRBRAFvgRcBO0DcQPqAloCwwEnAYgA6f9K/63+Ff6D/fj8d/wB/Jj7Pfvx+rb6jPp0+m/6e/qZ+sj6B/tW+7P7HfyT/BT9nv0v/sf+Y/8AAJ4AOgHRAWMC7AJrA94DRQSeBOgEIwVNBWcFcQVpBVAFJgXrBKAERgTfA2sD7AJkAtUBQAGpAA8AeP/h/k7+wP05/bv8R/zf+4T7OPv7+s/6tPqq+rL6yvrz+iz7dPvJ+yz8mvwT/ZX9H/6v/kT/2/9xAAgBmgEnAqwCKAOaA/8DWASiBN4ECwUoBTUFMgUeBfoExQSCBC8EzwNjA+sCawLkAVcBxgA0AKL/Ef+D/vr9d/38/Iv8JPzK+337P/sQ+/L65fro+vv6H/tS+5P74vs9/KT8Ff2Q/RL+mv4o/7j/SADZAGYB7gFwAukCWAO9AxQEXwScBMsE6gT7BPsE7ATOBJ8EYgQXBL4DWQPpAnAC8AFqAeAAVADJ/z7/tf4x/rL9Ov3L/Gb8DPy/+4D7UPsv+x77Hvss+0v7ePuz+/v7T/yv/Bn9jP0H/oj+D/+Y/yIArQA1AbkBNwKtAhoDfQPUAx4EXASMBK4EwQTGBLsEoQR5BEIE/QOrA00D5QJzAvoBewH4AHIA7f9n/+T+ZP7p/XX9CP2l/Ez8APzA+477a/tX+1L7Xft2+5770/sV/GP8vPwf/Yv9//15/vj+e/8AAIQABwGHAQECdALeAj8DlQPgAx4ETwRzBIkEkQSKBHUEUgQhBOMDlwNAA94CdAIBAokBDQGNAA0Ajv8Q/5T+Hv6t/UP94fyK/D38/fvK+6X7jvuG+437ovvE+/T7MPx4/Mr8J/2M/fn9bP7l/mL/4P9fAN0AWAHOAT4CpgIFA1oDpAPiAxQEOQRSBF0EWgRKBCwEAATHA4IDMQPWAnICBwKVAR8BpgArALL/OP/C/k/+4f16/Rv9xfx5/Dn8BPze+8T7ufu8+8376vsV/Ez8jvza/DD9j/31/WL+1P5K/8P/PAC1ACsBngEKAnACzQIgA2oDqAPbAwIEHAQqBCsEHgQFBN4DqwNsAyIDzQJvAgoCnwEvAbsARgDS/17/7P59/hP+r/1S/f38svxy/D38FPz5++v76vv3+xH8Nvxo/KT86/w7/ZP98/1Z/sX+Nv+p/xwAkAACAXAB2gE8ApgC6gIyA3ADpAPMA+gD+AP8A/QD3gO9A48DVQMRA8ICawIMAqYBPAHPAF8A8P+B/xP/qf5C/uH9hv0z/en8qfxz/Er8LPwc/Bj8Ifw2/Fj8hPy7/Pz8Rv2Z/fP9U/65/iP/kf8AAG4A2wBGAawBDAJlArYC/QI7A28DmAO1A8gDzgPJA7gDmwNyAz4D/wK2AmUCCwKsAUgB4AB2AAsAof84/9L+b/4Q/rj9Z/0e/d78qPx9/F78S/xF/Er8XPx5/KH80/wP/VP9oP30/U/+r/4U/3v/5f9OALgAHgGBAd4BNQKEAsoCCAM7A2UDhAOZA6IDoAOSA3kDVQMmA+wCqQJdAgoCsAFRAe4AigAkAL//Wv/4/pj+Pf7n/Zj9UP0Q/dv8r/yP/Hr8cPxz/IH8mvy+/Ov8Iv1h/an99/1M/qf+Bv9o/83/MQCWAPkAWAGzAQcCVAKaAtcCCgM0A1UDawN2A3cDbQNYAzgDDgPZApsCVQIGArIBWQH7AJwAOgDb/3r/Gv+9/mX+Ef7E/X/9Qf0M/eH8wPyp/J38nPyl/Lr82PwB/TP9bv2x/fz9TP6i/v3+Wv+5/xgAdwDVADABhwHZASUCagKnAtwCBwMpA0EDTgNQA0gDNgMZA/MCwwKKAkoCAgK0AWABCQGuAFEA9P+X/zv/4v6M/jv+8P2s/W/9O/0P/e381fzH/MP8yvza/PX8Gv1H/X79vP0B/k3+nf7z/kv/pf8AAFsAtQANAWEBsAH6AT4CegKvAtoC/QIWAyUDKgMkAxUD/ALaAq4CegI/AvwBswFkARIBvABkAAoAsv9a/wT/sv5j/hr+1/2c/Wf9PP0Z/f/88Pzp/O38+/wS/TP9XP2O/cf9CP5O/pr+6v4+/5T/6/9BAJcA7AA9AYoB0gEUAk8CgwKvAtIC7AL9AgQDAQP1AuACwQKaAmoCMwL1AbEBZwEZAcgAdAAfAMv/d/8k/9T+if5C/gD+xv2S/Wb9Q/0o/Rf9D/0Q/Rv9L/1L/XH9nv3T/Q/+Uf6Y/uT+M/+E/9f/KQB8AM0AGwFmAa0B7gEpAl4CjAKzAtIC6QL6AgMDBQMCA/kC6wLYAsACowJ8AjgCxgE6AagAEwB8/+P+Sv6x/Rr9hfzy+2L71PpI+uX50fn1+TD6Xvpb+hP6tfmd+bD5vvnp+VH6D/sq/Jv9S/8VAdQCYQSeBX4GAAc2BzoHLQcwB1oHtgc/COMIhQkDCjwKGgqQCaQIaAf6BX4EFwPgAecALwCr/0L/2f5T/pv9qvyC+zf65Pir96v2/vWy9cX1K/bK9oX3P/je+Fb5pfnY+QT6Q/qw+l37VfyU/Qr/nAAsApwD0QS8BVsGtgbhBvUGCwc2B4MH7wdwCPEIVwmICXAJBAlFCD8HBwa7BHUDTQJSAYkA7P9p/+v+XP6t/dL8z/uu+oT5bPh/99P2dfZo9qP2F/er90j42fhT+bD5+Pk6+on6+fqc+3n8kf3Y/jsAowH2Ah8EDgW+BTUGfgatBtQGBAdIB6IHCQhwCMII6wjaCIMI5wcMBwIG3wS4A6MCrQHcAC0AmP8K/3X+yf0A/Rf8F/sQ+hT5OfiR9yj3A/cf92734Pdj+OX4W/m/+RX6ZvrA+jT7zvuX/JD9sf7u/zEBagKDA3EELAW1BRYGWQaQBscGBwdUB6oH/Qc/CGEIUwgOCIwH1AbwBfAE5wPlAvcBJAFtAMv/Mv+X/u79Mf1d/Hf7i/qn+d34O/jM95f3mvfM9yL4jfj/+G750/kw+ov67fpi+/b7r/yP/ZL+rv/SAPIB/ALlA6QEOgWrBQAGRAaBBsEGBwdPB5QHywfmB9sHoQc1B5gG1AXzBAUEFwM0AmQBqQD//1//wP4a/mX9ofzQ+/r6K/pv+dT4Y/gi+BL4Lvhs+ML4JPmK+ez5TPqs+hL7iPsX/MP8j/15/nn/gwCMAYYCZwMnBMQEQQWiBfEFNgZ3BrgG+AYzB2EHeAduBz0H4gZcBrIF7AQWBDsDZQKaAd8AMgCP/+7+Sf6c/eT8I/xg+6H68/lg+e/4qPiK+JT4v/gD+Vb5svkQ+m/60Po5+677N/zY/JP9Z/5O/z8AMgEbAvACrANLBM0ENwWNBdcFGQZXBpEGxAbqBv0G9AbKBn0GCwZ4BcsEDQRHA4ECwQEMAWEAv/8g/4H+3P0x/YH8z/si+4L6+PmL+T/5GPkT+S35YPmk+fP5Sfqj+gL7aPvZ+1z89Pyj/Wf+P/8jAA4B+AHaAq8DdgQwBeEFkQZFBwMIzwikCXsKPgvMC/ELLAodCN4FcwPkADn+efus+Nb1+vIU8CPtIOoH59fjkOA+3fLZytbx06LRLdAs1XXbUOKe6T3xC/niAKEIKRBbFx4eXCSCLvQv6izNKZIm2yGwHYkdViAvIB8ZyA2FAxX80vXq8HDwEvXg+fT4BvLY6cjjFN/z2gPa895j53LtjO4J7jHwPfU0+6gCIw7KHOkokS2+K/onYyS8H/IZDhbuFWYWVRLoCEj+FPbr73zqXOf66K7tAvCn7O3lHOBQ3C3ZUde32RDhVOkC7mPvfPGP9kn9hwT+DRkb6CjzMQ40FTJ9L2IsiydNIo4fIR/jHKgVIwt0ASr68POV7lvsKe6i8CvvJ+kR4rHckNji1H/TxNZl3QzjbOXC5lrqevBr90H/5AkOF58ikig7KfUngibsI90fkBzRG6sbRhi6EAwILwH9+0T3/PMi9Nz2JPgo9Vjv/Oka5qHi0N//3yfknOnl7OztqO/289H5DgC8BxYSLh3ZJBYn0yXHIy8hBB0cGNAUbhMZEUML9AJT+7f1GPEQ7T/rnOzk7obuuur85YjiG+Dp3TTd9d+V5e3qB+5c8Hv0tvqeAfkIKRIzHR4npyy0LbksLitiKOojbh+bHF8a6xVhDvQFBv+X+Zz0nvAw7/XvBPAG7dfn+uJm30rcr9lf2WbcBuGR5Lbmlum07kn1NvwPBNsNWBhaIBQkwSR3JH0j8yBRHXEa4hi1FukRGwuzBOL/5Ps8+A32QvZZ95X2G/Ou7hzrSuiJ5bbjeOS25zXrWe0U72Hylfd//bUDLgsTFEIcHyFWIqwhYCD3HQUavhWcEh0QNwwcBl7/3/m79RHyGu8P7uDuce/V7X/qU+cn5V3j2OHt4Z3k0uiD7EXvovLU90n++wQuDKsUpB2vJDQo8iiAKC8nTiQeIBoc9xh7FR4QPQmwAoL9JPkU9RryAPHS8HrvJOwN6KrkAuKE38LdFt6q4PDjkeYi6R3t1PJO+QQAmAc9EGwYDB6lIHUhfCFmIMgdeRq8F2sVFBIFDV0HoQIA/8H77vhz92n3TPeM9VTyEu+B7DTqAujs5ubnVuq57KPuL/Fa9bz6bAB1BmoNyRS/Gu4dvh5nHjwdtxr2Fh8T7w+nDB8IhAI7/SX54PXt8snwIfBa8N7v5e1G6ybpm+ct5jblyuU36GvrVu5K8Wf1+vo3AZUHbw74FRYdHCKBJCAlySRJI0UgWhyZGB8V8xCEC6IFiABw/Mf4e/U58y3ySPFI7zDsEOmP5mPkYuJM4ffhGeSV5gDpHey08Hr2ovwNAx8KhBHYF+0b6x26HqQeQh2YGogXxhTnERQOXgnVBDsBUP6h+3n5Y/gC+CL3EPVb8unv3+3j6y7qoemg6nvsYO588KfzKPhf/cICfgi9DrIUCxk7G9gbhxswGoYX+RNtECANbQnjBBIA9vvI+Bf2vvM28rHxbfFn8IbujuwL687pqego6APpI+u57Wbwr/Mx+Ln9lgOSCewPaRb6G54fVyHOIUghfB9nHLgYGxVlEQAN9QcUAwX/ofuH+OD1GfT98qbxeu/U7GrqaeiO5v7ka+Q+5QnnKumy6z/vDfSb+WX/cAXbCwsS8BYCGpobORzSGycagRedFMkRng7GCqoGDwM0AMT9kPvr+QT5VPgO9wj10vLi8CDvae0k7PTr4+xo7jDwmvIi9qT6j/+eBPMJZA8hFFUX5xhQGdIYOBd7FCIRyA1pCp8GbAJv/jD7nfhj9o70cfPs8lPyHfF/7wPu1uzF6+bqw+rB66Ht6e+Z8if2w/oIAHwFDwvMEEEWlBpFHYcevR7oHdgbxRhLFcMR+Q2xCTwFOAHm/Qb7avhK9s/0nfMR8v7vyu3a6yXqj+hm5zPnFuiv6bzreu5H8gn3RPyrAUcH9AwOEt8VPRh6GcoZCBkoF5MUzRHtDrILHQilBMABav9b/ZL7S/p0+Y34IvdP9X7z3PFK8Nfu8u3+7eDuQfAc8sn0cvjH/F0BEwbrCowPSBOqFcsW9hYyFl0UoBF6DkYL7gdLBJgAVf25+pn4xfZe9YX09PMt8/vxpfB773zuku337BntJe7c7wny1PSD+AX98gH8BhoMKxGtFQgZCRvnG8wbpBpmGGUVGBKoDvIK/AYnA9b/D/2a+nD4uPZt9S30mfK88OfuRu3H63Tqp+m56aTqLOxI7jTxE/Wj+YP+hgOiCI4NuRG4FI0WbhdiF1AWUxTUEScPTgwyCQAGHgPCAM3+E/2l+5z6yPnC+Fv3wvU39MXyXvEv8Jnvze+r8AzyC/Th9oH6l/7YAi8HfgtcD0oSEhTVFLgUrROwEQMPCwz6CMMFbQJE/5n8d/qz+Dv3KfZ49dz0BfTv8tXx3fD87zrv3e4y70Pw6PEW9Pj2qPr0/oMDJQjGDCgR1RRuF+gYZxn4GIkXNBVOEioP2wtaCM8EjgHL/m/8W/qS+Cj3+vW59Dnzl/EJ8J7uTu0+7L3r/+v27ITuuvDC85H34PtlAAMFlgnJDS0RiRPrFG4VCxW9E7YRTw+6DPsJGwdWBPIB//9X/ur8xPvj+g36//iv90n27/Sf82Tyd/Ee8XHxV/LK8+v1z/hO/B0ACwT9B78L7w44EYgS9hKPEkkROA+jDNYJ7gbuA/cATv4e/Fv65/i/9+v2Ufaw9dz05/P68iHyWvHC8JrwE/Er8s7zB/bz+Iz8kwDHBAIJIg3dENYT1RXdFgQXRhalFEoSgw+HDGYJLwYUA1QAAP4A/EH6yfiY93/2SfXo83zyIvHg77/u7u2s7RTuGu+68AnzF/bD+cr99gEqBjIKvQ17EFESTRN4E8oSVRFRDwINjAr3B2MFBgMKAWj/Bf7a/Ov7I/tN+kX5EfjU9pz1bPRe86zyhPLy8urzdfWs94n62v1jAf4EhwjBC1oOHhAJESkRfxAND/gMgQrfBycFbALa/6D90/tf+jL5Svii9xb3dvax9dr0C/RK857yL/Iz8sfy6POS9db3vvou/u0ByQWcCTsNXRC9Ej0U5BS5FLoT+RGmDwENMQpIB2QEtgFj/2v9uftF+g/5BvgA9931nvRd8yvyDvEb8ITvdO/87xfxzPIq9S34qvto/z0DBQeICnwNsA8WEbYRkRGqEB4PJQ3yCp8IQQb9A/0BVQD3/tD93PwV/F37jPqR+Xn4W/c+9i/1T/TP89DzWPRm9Qj3SPkP/C3/cQK4BdgIkgupDf8Okw9sD4sO/gzxCpsIJQakAzYBAv8p/a37fPqM+df4TfjL9zL3ffa/9Qb1WfTK84LzqvNU9ID1Nfd9+VP8k/8KA48G+wkdDbYPlRGrEvsSiRJaEYgPRg3FCiUIfAXvAqIArP4B/ZX7Yfpd+XL4fvdx9lP1NvQk8yryZfEA8Rvxv/Hw8rj0GvcG+k79xABCBJ8HowoUDdIO1w8lEL0PrQ4YDS8LGwnzBtIE3AItAcv/pv6z/ez8QfyV+8z64fnh+Nv32Pbq9TX14vQG9af1y/Z++Lv6ZP1LAEwDPwb3CD4L5gzeDScOwg23DB0LIAntBqYEYgJBAGT+3Pyk+6768Pli+e34c/ji9z73k/bs9VP14fS89AL1v/X59rb4+vq1/cAA8AMgBygK1Qz0DmUQHxElEXgQJw9SDScLzAhgBvwDwQHN/yP+vfyN+436sPnd+Pv3BfcD9gP1D/Q3857yZfKk8mPzqPR89tn4pPu2/uQBDAUACJAKjgznDZYOnQ4ADtUMQQtuCXwHhAWiA/MBiQBj/3D+qv0E/W38y/sM+zH6RvlU+Gr3nfYS9uX1KPbh9hn41PkF/Ir+PAH4A5gG7wjOChcMvwzFDC8MBwtqCYMHdgVgA1oBhP/z/bD8svvu+ln65/mB+Q/5iPjy91b3vvY69uX13/U+9g33U/gU+k385/67AaYEgwcpCmoMHw4yD50PYw+JDiMNVAtECRQH3gS/AtEAKP/C/Zb8mvvF+gX6Rvl2+JX3q/bE9ev0N/TF87PzEfTo9D/2F/hm+gz95v/OAqAFMghYCvIL8wxYDSMNXwwlC5oJ3wcTBk0EqAI6AQwAF/9Q/q79Iv2Z/P/7S/t/+qX5x/j290v35PbZ9jf3B/hP+Qr7KP2H/wICewTKBsUISgpAC6ILcQuzCnoJ5AcWBjEETgKHAPX+p/2e/NL7OPvE+mb6Cvqf+SH5l/gI+ID3EffX9uz2YvdB+JD5UPt4/ez/igIxBb0HBwrnCz4N/w0mDrgNvQxOC4wJmweXBZkDvAEUAK3+gf2H/Lf7A/tb+q357fge+Er3eva89Sn12/Tr9GX1Ufaz94r5xPtD/uMAhgMGBj0IBApGC/oLHwy7C9sKnAkeCIEG3QRJA9wBqACu/+T+Qf67/UP9xvw0/Ij7yPr++TT5fPjw96z3wPc4+Br5avog/Cb+WwChAtgE2gaECLcJZQqLCi0KUgkRCIcG2AQdA20B4f+M/nj9ovz/+4f7LPvf+ov6Jfqu+S35q/gy+Nn3uPfn93H4Xfmx+mv8fP7IADADlAXTB8gJUQtWDM8MvgwmDBULpAn2BygGUgSLAusAg/9V/lr9i/ze+0b7svoR+l75oPjf9yX3gvYN9uL1EPai9p73B/nW+vf8TP+0ARMERgYnCJoJjgoAC/EKZwp1CTgIzgZQBdUDcQI5ATcAaP/D/j3+z/1m/fL8ZfzC+w77VPqd+f74kPhr+Jv4KPkY+mz7GP0C/w0BHgMVBdAGLggZCYgJfQn7CA0IywZUBcUDNAK1AGD/Q/5i/bb8NvzZ+5L7T/sB+5/6L/q4+UH52PiT+Iv40Phq+WD6tftl/V3/fwGxA9UFzAdyCawKaQumC2cLrwqQCScIkAbmBD4DrAFEABT/GP5J/Z38DfyL+wX7b/rK+Rv5bfjH9z335/ba9iP3yPfP+Dr6/vsC/ioAXAJ6BGMG9wcdCc4JCArPCSoJLgj5BqYFSQT1Ar8BtwDi/zj/sf5E/uf9iv0b/ZP8+PtR+6X6Afp7+Sv5Ivlp+Qf6AftV/PL9v/+fAXwDNgWuBscHcwiuCHoI3AfjBqcFRwTZAnEBIgAA/xT+X/3W/HP8K/zz+7f7a/sO+6X6NvrL+XL5QvlQ+aj5T/pM+6D8Qv4cABUCEgT5BawHCgn9CXwKiAoiClQJMAjTBlgF0wNWAvYAxP/E/vP9R/26/EL80ftV+8n6L/qQ+fL4Yfjv97X3w/ci+Nf45vlP+wP96P7kAOACwARkBrAHlAgLCRcJuwgDCAYH3gWkBGcDOgIvAVIAo/8Y/6r+Uv4D/qz9QP2+/Cz8kPvz+mL69fm/+c/5KvrW+tf7J/2x/l0AFQK/Az8FeQZUB8oH2QeFB9MG1QWlBF4DEgLRALD/u/77/Wr9//yz/H38TvwW/Mz7cvsQ+6r6S/oC+ub5CPpv+iH7Ivxx/QP/vgCNAlgEBQZ3B5IIRwmSCXUJ8ggVCPMGpwVJBOcClQFkAGL/jf7g/VL93/x6/BT8ofsd+4/6/vlw+fL4mfh5+J74D/nQ+eT6R/zn/av/fAFFA+kETQZYBwIISQgvCLgH9Ab7BeUExAOnAp8BvAAFAHb/Bf+t/mT+H/7M/WP95/xd/M37PvvA+mv6Tvpz+t76lfua/OH9Vv/iAHAC6gM0BTQG2QYhBwwHnQbeBeIEwwOWAmoBTwBY/43+8/2A/S399PzL/KL8bPwj/M77cvsV+8H6ifqA+rP6J/vg++P8K/6p/0UB6gKFBPsFMAcQCJAIrwhwCNcH8gbYBaEEXwMhAvcA8/8a/2r+2/1n/Qj9svxU/Of7bPvp+mX65vl8+Tr5Mvlr+er5tPrK+yT9rf5PAPYBjQP6BCEG8wZrB4oHUQfHBv4FDQUKBAMDBAIgAWIAzf9Y//3+tv56/jr+6f2D/Q39jPwG/Ib7HPve+tf6DvuG+0X8Sv2F/uP/TgG1AgAEFwXiBVkGegZIBsYF/wQKBP4C6wHfAOn/F/9y/vf9nf1f/Tb9Fv3v/Ln8c/wi/Mz7d/sv+wf7EftS+9D7j/yR/c/+NgCyATADnATeBdwGhgfZB9QHegfSBusF3QS8A5cCewF4AJv/5/5W/uH9gv00/ej8kfwp/Lf7P/vH+lf6//nU+eD5Kfq0+oT7mfzm/Vf/1wBWAr4D9QTmBYYG0wbQBn4G5wUeBTsETANdAn0BugAdAKT/Rv/9/sP+kP5T/gP+oP0w/bj8PfzM+3b7Tvta+5/7Ivzn/Oj9Ff9ZAKQB5QIFBOsEiAXWBdgFjgX9BDUETANUAlsBbQCZ/+v+Zv4F/sD9k/11/Vr9Nf3+/Lr8bvwe/NH7lvt/+5j75vtr/C79Lf5e/60ACQJhA6EEsQV9BvkGJQcDB5QG4gX/BAAE9wLuAfIAEwBa/8b+T/7v/aP9Yf0c/cn8Z/z9+5D7I/vB+n36ZvqE+tr6bvtC/FL9kP7n/0UBnQLYA94EngUSBj0GHQa4BRoFVwSCA6cC0QEOAWoA6/+I/zz/Av/U/qb+a/4b/rz9U/3j/HP8EPzO+7n71fsn/LL8ev10/pH/uwDoAQQD+gO0BCgFVAU7Bd8ERQSBA6UCwgHiABEAXv/P/mb+G/7n/cf9sf2Z/XL9PP37/LT8avwm/Pj78PsX/G78+fy9/bf+2f8PAUwCfwOVBHgFFgZrBngGPQa/BQgFLQRAA00CXwGDAMb/LP+y/lH+BP7H/Y79Tf3+/KL8QPzb+3n7J/v1+vD6Hft++xj87vz3/SP/XgCeAdAC4AO4BEwFnAWpBXMFAAVgBKYD4QIaAlwBtAAsAMX/dv85/wv/5v67/n/+Mf7X/XT9DP2n/FX8Jvwi/Ez8qfw9/Qb++v4GAB0BMAIvAwMEnATzBAcF0wRcBK8D4QIFAiYBTACG/9z+V/7x/aP9aP07/Rj9+fzY/LL8gvxD/PP7oPtr+2f7kvvr+378Vv1x/r7/KgGgAgsETAVHBu0GOQcxB9oGQQZ9BacE0wMKA1UCugE8AdQAdgAXALT/SP/O/kL+qv0T/YX8Bvyb+037Jvsm+0z7lPsF/J/8XP00/h//FwARAfgBuwJNA6oDygOqA0wDwAIYAmQBsgATAJr/Tv8u/zD/TP93/6H/tv+q/3z/Nf/Y/nH+E/7O/a/9xP0Q/pP+Rf8aAAQB8QHPApADJwSMBLsEtQR7BBQEhgPaAhgCSgF4AKz/7P5A/qz9Nf3b/Jv8c/xc/E78Qvwy/Bv8/vve+8X7vfvS+xH8g/wt/Q/+I/9ZAKIB6QIWBBcF2QVTBoAGZAYHBngFxwQGBEQDjQLrAV8B6QCFACwA2P+A/yD/tv5A/sP9RP3H/FX89fuv+4n7h/uu+/77ePwY/dn9s/6b/4QAYQElAsICLgNkA2ADJwO/AjcCmwH+AGwA9f+d/2n/V/9g/3n/lv+r/63/mP9p/yX/0/5//jf+B/78/R3+bf7q/o//UAAiAfQBuAJgA+IDNgRXBEUEAgSUAwEDVAKVAc8ACwBU/6/+If6v/Vj9Gv3x/Nj8x/y4/Kb8jfxu/Ez8Lfwa/B/8RfyV/Bb9yf2q/rH/zgD0AQ8DDATcBHIFxwXaBa8FTgXEBCAEcAPAAhsCiAEKAZ8ARQD2/6v/X/8M/7D+Sv7d/Wv9/PyV/D/8Afzi++j7Fvxu/O78kv1S/if/AgDYAJwBQgK/Ag4DKgMVA9cCeAIGAo4BHgHDAIQAZQBlAHoAlwCFAD8A6v9///7+Zf67/Qf9Uvyp+xX7nvpL+h36Evoj+kn6evqu+tz6A/sl+9b7HP1d/oX/kwCMAXACRQMOBM8EiwVBBmcHJgifB7EGygXABJ4D8QL4AvoC+AHU/2b9dfsK+gf5yfi0+Vf7kPyz/Cn8uvub+5T7y/u//HX+EQC4AIcAUACWADcBGgKZA+YFVwjTCe4JNQlQCFAHDAbOBBcExQMBAzYBw/59/MH6bPmJ+IX4dvmc+gz7ofoA+qr5jfmK+ff5LfvS/AT+W/5M/on+NP8XAE4BNAOlBcgH0wjUCGsI7gc3B0IGeAUgBccEsgPAAZX/zP11/HD79/pf+2T8L/0t/aD8HfzV+5z7gvvw+/78Gf6W/nr+YP6v/k3/GABPASIDIwV8Bs0GcgbvBVEFcgR+A90CiQLsAY4ArP7q/Jr7ofr/+Qb61frp+4j8hfxP/Er8ZvyC/Nf8tP3r/tn/JwApAGUA/gDFAcACMgQOBrUHhQh3CAAIZweSBnUFYwSfA+gCtAHk/+n9RPwD+wj6ePmZ+Uj66foE+7z6gvp/+oz6q/op+yX8PP3r/Sn+aP79/tX/zwATAswDsAUfB70HxQeVBzsHkwa3BfsEbgSqA1YCmgD2/q/9s/z6+777HvzD/Bz9+/yr/Hz8Z/xM/FP8wfyC/SL+Wv5e/pf+I//Z/7MA5gFwA98EtAXcBawFWgXUBAgEMAOIAu0B/ACV/wv+xvzY+yb7yPr1+p37Tfyi/Kj8sfzd/Av9Nv2W/VD+I/+v/+j/HwCdAFUBJQIlA3YE6gUFB3kHZwcYB5sG0wXQBNYD/QIFAqoABf93/Tz8SPuO+jn6Z/rf+jP7Nvsb+x/7Pvta+4v7CPzL/IP98/1A/rf+df9XAFYBlAITBIUFfwbqBv0G4waLBuYFGgVfBKYDqgJTAd//oP6r/er8afxS/KH8Av0k/Qj96vzl/OL81/zw/E/90f0s/lH+ff7n/on/QwAiAUICgwOKBBMFMQUYBdUEUASQA8gCEwJLAToA8v68/cz8G/yd+3D7rfsw/KL82vz2/CP9X/2P/cH9IP6z/kH/nf/d/z0A2QCVAWQCXAODBJ8FXgajBpUGVgbcBRkFKAQ6A04CNwHh/3j+QP1M/I37B/va+gn7WfuH+437l/u5++H7A/w9/K78Qf2//Rr+ff4W/9//vwC6AeMCKARBBfMFRAZaBj4G3QU4BXcEtwPiAtMBlwBo/3H+sf0c/cb8xfwA/Tj9Rf06/Tv9Rv1I/Uf9Zv2y/Qf+P/5q/rb+Of/e/5YAcQF0AnUDNASUBK0EmgRUBMsDFANUApUBtgCo/43+m/3l/F/8Cvz++0D8pPz1/Cb9VP2R/cz9+f0t/oT+9P5X/6H/8P9pAAwBwwGLAnMDbQRFBcgF9QXmBacFJwVmBIMDnAKmAYoAT/8i/ir9aPzT+3X7ZPuO+8X75Pv4+xf8RPxr/JD8zPwt/Zz9/P1V/sz+cv84ABABAQIQAx0E9AR5BboFyQWhBTQFkATWAxADLwImARAAG/9X/r79Tf0X/SH9TP1t/Xf9ff2M/Zr9nP2h/cH9+v0z/l/+l/74/oL/IwDXAKcBiQJWA+MDKwQ/BCYE1gNKA5oC4AEaATcAP/9T/pT9B/2j/G78efy5/Aj9SP17/bT98v0m/k/+gv7N/iL/bf+z/xAAlAA0AeIBoQJzA0ME5gRDBWAFTAUDBXwEvwPoAgUCDwH//+j+8P0o/Yz8Gfzd+9z7Avwq/Ej8Z/yR/L384PwG/UD9kv3o/Tr+mf4c/8T/ggBQATICIgP/A6cEDQU/BUEFCQWTBPIDPAN1ApQBngCy/+n+S/7Q/X39X/1t/Y39pf2y/cL91v3i/eP97P0I/jP+XP6J/s3+OP/C/10ACgHKAYwCLwObA9ED2wO3A1wDzwImAnABqwDT//b+NP6d/S/95vzM/OT8IP1h/Zr90f0M/kT+cP6V/sX+BP9G/4b/z/80ALkAUgH2AakCYwMNBIkEzATcBL0EaQTcAyUDVwJ7AYwAkv+i/tX9Mv21/GH8PfxH/Gn8jPys/NL8/fwl/UX9av2g/eT9LP57/uD+Z/8JAL4AgQFRAiID1wNbBKsEzQS+BHcE/ANeA6wC6AERATUAbv/J/kj+5/2u/aD9sP3K/d798P0E/hb+Hv4g/in+Qf5i/oX+t/4F/3P/+f+MADAB3gGCAgQDWAN/A30DTAPpAl0CugEKAUsAhP/H/ij+r/1a/Sr9I/1D/Xr9tP3q/SH+Wf6I/q3+z/76/i7/Zf+h/+7/VgDYAGgBAgKmAkgD0gMxBGAEYwQ3BNkDSQOYAtMBAAEgAED/dP7K/Ub95Pyp/Jj8qPzI/On8Df01/V39f/2c/cD98P0r/mz+u/4j/6r/RQDvAKUBYgIVA6oDEgROBF8EQATuA3AD1gIpAmwBpQDm/z7/tv5N/gT+3v3b/ez9A/4X/iz+QP5O/lL+VP5d/nH+jP6v/ub+Ov+n/yYAswBMAeYBcALYAhkDMgMjA+YCfQL0AVgBrwD8/0r/qf4o/sj9if1s/XP9mP3L/QD+Nf5p/pr+wv7h/v/+Jf9R/4L/vf8MAHQA8AB3AQcCmwImA5UD3QP7A/EDuQNTA8MCGQJdAZYAyf8E/1j+zP1g/Rb98Pzs/AH9IP1B/Wb9jf2w/c396P0J/jX+af6n/vf+Yf/k/3cAFgG+AWcC/wJ5A8sD9QP2A8gDbgPwAloCtAECAU8Aqf8c/6z+Wf4j/g3+Ef4k/jn+Tv5i/nT+ff5//oH+if6a/rP+2f4V/2r/1f9OANMAXwHmAVkCrALcAugCzAKGAhsClQEAAWAAvP8g/5n+MP7m/bn9rP29/eT9Ff5G/nj+qP7R/vL+DP8n/0j/bv+c/9j/KACOAAMBgQEGAokC/gJXA40DnAOFA0MD1wJKAqcB9gA8AIT/2v5J/tb9gf1L/TX9O/1S/XH9k/23/dr9+P0R/ir+Sf5w/qH+3v4w/5n/FQCgADUBzgFjAuQCRgOFA58DkANXA/gCewLrAU0BqQAKAHz/Bv+r/mr+Rf47/kT+Vv5r/oD+k/6g/qb+pv6o/rD+v/7Y/gH/QP+W//3/bwDsAGoB3wE/AoACoQKgAngCLALAAUABsgAdAIv/BP+U/j/+B/7q/er9Av4p/lf+hv6z/t3+AP8a/zD/SP9l/4j/tf/y/0EAowARAYcB/wFzAtUCGwNAA0IDHwPVAmcC3gFDAZ0A9P9Q/73+RP7n/ab9gf14/YT9nf28/d79//0e/jf+Tf5j/oD+pf7T/hH/Y//J/z8AwgBMAdYBVwLDAhIDQANLAy8D7gKMAhICiAH0AF8A1f9b//n+sP6A/mj+Zv5z/ob+mv6t/r3+x/7J/sn+yv7R/uH+/P4o/2n/vP8eAIsA/gBvAdMBIgJUAmgCWgIqAtkBbwH0AG8A6P9l//L+lv5T/ir+G/4k/kD+Z/6T/r7+5/4L/yf/PP9P/2T/ff+f/8z/CABXALQAGwGIAfUBWAKpAt8C9gLsAr8CbwIBAn0B6wBRALj/Kf+s/kj+/v3N/bf9t/3I/eL9Af4h/j/+Wf5u/oH+lv6w/tP+Av9A/5H/9P9jAN0AXAHXAUYCoALeAvwC+QLTAowCKQKzATEBqQAjAKv/Rf/0/rv+mP6L/o/+nv6x/sT+1v7i/uj+6P7n/uj+7/4A/x3/TP+N/9//PACiAAsBbwHEAQMCJwIvAhcC4AGNASYBsQA2ALz/Sv/p/p7+a/5P/kv+W/55/p/+yP7w/hP/Mf9H/1j/aP97/5P/tP/h/x0AaQDCACIBhgHmATwCfQKlAq8CmwJmAhMCpgEoAZ4AEQCK/w3/pf5T/hn+9/3r/fP9B/4i/j/+XP53/o3+nv6v/sL+2/79/iz/av+6/xcAgQDzAGUB0wExAnoCqQK6AqsCfQIyAtABXwHlAGkA9P+M/zb/9f7J/rL+rf62/sb+2f7q/vn+Av8E/wP/Af8D/wv/Hf89/23/rv/9/1UAtAATAWoBsQHjAfsB+AHYAZwBSQHlAHgABgCa/zj/5/6r/oX+df55/o3+rf7R/vf+Gv85/1H/Yv9w/37/j/+m/8f/9P8wAHkAzAAmAYAB1QEdAlACbAJrAk4CEwK+AVUB3QBdAN//Zv/8/qT+Y/43/iH+Hv4q/kD+W/53/pH+qP65/sj+1/7p/gL/JP9S/5D/3f83AJoAAgFqAckBGQJTAnQCeQJhAi0C4AGBARUBpAA0AM7/df8v//v+2/7N/s/+2v7r/vz+DP8X/x3/Hf8b/xn/G/8l/zn/W/+M/8z/FgBqAMEAFgFhAZwBwQHPAcIBnAFdAQsBrABGAOH/gP8s/+r+vP6h/pr+pP68/tz+/v4g/z//WP9r/3n/hP+Q/6D/t//Y/wUAQACGANQAJgF3AcEB/QEkAjQCKwIGAscBcgEMAZwAJwC1/0z/8f6q/nb+V/5K/k7+X/51/o/+qP6//tL+4P7t/vr+DP8k/0b/df+y//3/UQCtAA0BagG8Af4BKwJAAjsCGwLiAZUBOQHVAG0ACgCx/2b/Lf8F/+/+6f7v/vz+DP8c/yn/Mf80/zP/MP8u/zL/Pf9T/3b/qP/m/y0AewDLABYBVgGFAaABpAGQAWQBJAHUAHsAHQDC/27/J//y/s/+vv6+/s7+5/4G/yb/RP9e/3P/gf+L/5X/oP+w/8b/6P8UAE0AkADZACQBbQGsAdwB+QH/Ae0BwwGBAS4BzQBkAPv/lf86/+7+tP6N/nf+c/58/o7+pf69/tT+5/73/gL/Df8a/yv/Q/9l/5T/0P8XAGcAvQATAWUBrAHhAQMCDQL/AdkBngFSAfsAnQA/AOj/m/9d/y//Ev8E/wP/Df8b/yr/OP9C/0j/SP9G/0L/Qv9H/1P/a/+Q/8H//f9AAIkA0QATAUgBbQF+AXoBXwEwAfAAowBQAPv/qv9h/yf//f7k/tv+4f70/g7/K/9I/2L/eP+I/5P/m/+j/67/vf/U//b/IgBZAJgA2wAgAWABlQG7Ac4BzAGzAYUBQgHxAJYANQDW/33/L//w/sL+pf6Y/pr+p/66/tD+5v76/gr/Fv8g/yn/Nv9H/1//gv+w/+r/LgB5AMgAFgFeAZkBwwHaAdsBxwGcAWABFgHEAG4AGQDN/4z/Wv82/yH/Gf8d/yj/Nv9E/1D/WP9b/1r/Vv9T/1T/Wv9o/4H/p//Y/xAAUACTANQADAE4AVMBXAFRATIBAQHBAHkALADf/5j/Wv8r/wv/+v73/gP/F/8x/0z/Zf98/47/mv+i/6j/sP+6/8n/4f8CAC4AYwCeANwAGgFRAX0BmgGkAZsBfQFLAQkBuwBmAA4Auf9r/yn/9v7T/r7+uf7A/s/+4v72/gr/G/8o/zL/Ov9D/0//YP94/5v/yf8BAEEAhwDPABUBUwGEAaQBsgGsAZEBZAEnAeEAlABGAPz/uf+D/1r/P/8x/y//Nv9C/0//W/9l/2v/bP9p/2X/Y/9k/2z/fP+W/7z/7P8iAF4AmwDUAAQBJgE5ATsBKgEIAdUAmABUAA0Ayf+L/1j/Mv8a/xD/E/8i/zf/UP9o/3//kv+g/6n/r/+0/7r/xf/U/+z/DQA4AGsAogDbABIBQQFkAXkBfAFtAUsBFwHXAI0APgDv/6P/X/8p/wD/5f7Y/tn+4/7z/gX/GP8p/zj/Q/9K/1H/Wf9l/3b/j/+y/9//FABRAJIA1AASAUYBbQGFAYsBfgFfATAB9QCyAGsAJADj/6r/fv9d/0n/Qv9E/03/Wf9l/3D/eP97/3r/dv9z/3H/dP98/47/qv/Q//7/MQBoAJ8A0QD5ABQBIAEbAQYB4ACvAHQANQD1/7j/g/9Z/zv/K/8n/y7/P/9U/2v/gf+U/6T/r/+1/7n/vv/E/87/3v/3/xgAQQBxAKQA2AAIATABSwFYAVUBQQEcAegAqgBkABsA1P+S/1n/LP8M//n+8v73/gP/E/8l/zb/Rf9R/1n/X/9l/23/ef+K/6T/x//z/yYAXwCaANYADAE3AVYBZgFlAVMBMQEBAcgAiQBIAAgA0P+h/3z/Y/9W/1P/WP9i/27/ef+C/4f/if+G/4L/f/9+/4L/jP+f/7z/4f8MAD0AcAChAMwA7QAAAQYB/ADjAL0AjABVABoA4f+r/37/Xf9G/zz/Pf9I/1n/bv+D/5b/p/+z/7v/v//C/8b/zP/X/+f/AAAhAEkAdQCkANMA/QAeATIBOQEwARgB8QC+AIIAQQAAAMD/hv9W/zL/Gv8N/wz/FP8h/zH/Qf9Q/13/Z/9t/3H/d/9//4v/nf+3/9n/AwA0AGkAoADVAAMBJwE+AUcBQAEqAQYB1wChAGYAKwDz/8L/m/9+/2v/Y/9k/2v/df+A/4r/kf+V/5T/kf+N/4r/iv+P/5v/r//M//D/GQBHAHYAogDGAN8A7QDtAN8AwwCcAG0AOQAEANH/o/99/2P/U/9O/1L/X/9x/4T/l/+o/7b/v//F/8f/yv/N/9T/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JAA2AEUAUQBaAF8AYQBgAFsAVQBNAEQAOwAxACYAHQATAAkAAAD2/+v/4f/W/8v/wP+3/7D/qv+n/6j/rP+z/73/yv/a/+v//P8NAB0ALAA4AEEARwBKAEoARwBCADsANAAsACMAGwASAAoAAwD8//T/7P/k/9z/1P/M/8T/vv+6/7f/uP+7/8L/y//X/+b/9v8GABcAJwA2AEIATABSAFUAVABRAEwARAA7ADEAJwAdABIACQAAAPf/7f/k/9v/0v/J/8D/uP+x/6v/qP+n/6n/rv+3/8L/0P/h//P/BAAWACcANwBDAE0AVABXAFgAVQBRAEoAQwA6ADEAKAAfABYADQAEAPz/8//q/+D/1v/M/8P/u/+1/7H/sP+x/7b/vf/H/9T/4//z/wIAEQAgACwANgA9AEIAQwBCAD8AOQAzACwAJAAdABUADgAHAAAA+v/z/+z/5f/d/9b/zv/I/8P/v/++/7//w//K/9T/3//t//z/CwAaACgANQA/AEcASwBNAEsASABCADoAMgApACAAFgANAAQA/f/0/+z/5P/c/9T/y//D/7z/tv+y/6//sP+z/7n/wf/N/9r/6v/6/woAGgApADYAQQBJAE0AUABPAEwARwBBADkAMgApACEAGQARAAkAAQD6//H/6f/g/9f/zv/G/8D/u/+4/7f/uv+//8b/0f/d/+v/+f8HABUAIQAsADQAOQA8AD0AOwA3ADIALAAlAB4AFwAQAAoABAD///j/8v/s/+X/3v/X/9H/zP/H/8X/xP/H/8v/0v/b/+f/9P8BAA8AHAApADQAPABCAEUARQBDAD8AOQAyACoAIgAZABEACAABAPr/8//s/+T/3f/V/87/x//B/7z/uP+3/7j/vP/C/8v/1v/j//H/AAAPAB0AKgA1AD4ARABHAEgARwBDAD4AOAAxACoAIgAbABQADQAFAP//+P/w/+j/4P/Y/9D/yv/E/8D/vv+//8L/x//P/9n/5f/y////CwAXACIAKwAxADUANwA2ADQAMAArACUAHwAZABMADQAHAAEA/f/3//L/7P/m/+D/2f/U/8//zP/K/8v/zf/S/9n/4//t//r/BQASAB4AKQAyADkAPQA/AD4AOwA3ADEAKgAjABsAEwAMAAUA///4//L/6//l/97/1//R/8r/xf/B/7//vv/A/8T/y//T/97/6//4/wUA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NAAzADAAKwAmACAAGAARAAsABQAAAPv/9v/y/+7/6v/l/+H/3f/Z/9X/0//S/9P/1v/a/+D/6P/y//3/BwATAB8AKQAxADcAOwA8ADsAOAAzAC0AJgAeABYADgAGAAAA+f/z/+7/6f/k/97/2f/U/9D/zP/J/8f/x//J/8z/0v/Z/+P/7v/6/wUAEgAeACgAMQA3ADsAPQA8ADoANgAxACoAIwAcABUADgAIAAIA/v/5//T/7v/p/+P/3v/Z/9T/0P/O/87/z//S/9b/3f/m//D/+v8EAA8AGQAhACgALAAvAC8ALQAqACYAIAAaABQADQAIAAIA/v/6//b/8v/v/+v/5//j/9//2//Z/9f/1//Y/9r/3//l/+3/9v8AAAoAFQAfACgALwAzADYANgA1ADEALAAmAB8AGAAQAAkAAgD9//f/8v/t/+n/5P/g/9v/1//T/9D/zf/M/83/z//T/9j/4P/p//P///8JABUAHwAoAC8ANAA3ADgANwA0ADAAKwAkAB4AFwARAAsABQAAAPz/+P/z/+7/6f/k/9//2v/X/9T/0v/S/9P/1v/b/+L/6//0//7/BwARABkAIAAmACkAKwArACkAJQAhABwAFgAQAAoABQABAP3/+v/2//P/7//s/+j/5f/i/9//3P/b/9v/3P/f/+T/6v/y//r/AwANABYAHwAmACwAMAAyADEALwArACYAIQAaABMADAAGAAAA+//2//L/7f/p/+X/4f/d/9r/1v/U/9L/0f/S/9T/2P/e/+b/7v/4/wIADAAWAB8AJwAtADEAMwAzADIALgAqACUAHwAZABMADQAIAAMA///7//f/8v/u/+n/5f/h/93/2f/X/9b/1v/Y/9v/4f/n/+//+P8AAAkAEgAZACAAJAAnACcAJwAkACEAHAAXABIADQAIAAMAAAD8//n/9v/z//D/7f/q/+f/5P/h/9//3v/f/+D/4//o/+7/9f/+/wUADgAXAB4AJQApACwALQAsACoAJgAhABsAFQAPAAkAAwD///r/9f/x/+7/6v/n/+P/4P/c/9n/1//W/9b/1//Z/97/4//r//P//P8FAA4AFwAfACYAKwAuAC8ALgAsACkAJQAfABoAFAAPAAoABQABAP7/+v/2//L/7v/q/+b/4v/f/9z/2v/a/9r/3P/g/+X/7P/z//v/AwALABMAGQAeACIAJAAkACMAIAAcABgAEwAOAAoABQABAP//+//5//b/8//x/+7/6//o/+b/4//i/+L/4v/k/+f/7P/y//n/AAAIABAAFwAeACMAJwApACkAKAAlACEAHAAXABEACwAGAAEA/f/5//X/8v/u/+v/6P/l/+L/3//c/9v/2v/a/9v/3v/i/+j/7//3/wAABwAQABgAHwAkACgAKgArACoAKAAkACAAGwAWABEADAAHAAMAAAD9//n/9v/y/+//6//n/+T/4f/f/93/3f/e/+H/5P/p//D/9//+/wUADQATABkAHQAgACEAIQAfABwAGQAUABAACwAHAAMAAAD+//v/+P/2//T/8f/v/+z/6v/o/+b/5f/k/+X/5//r//P/+f8AAAUADAATABgAHQAgACIAIgAhAB8AHAAYABQADwALAAcAAwAAAP3/+v/3//T/8P/t/+r/5//k/+H/3//e/97/3//h/+X/6v/w//f//v8FAAwAEwAZAB0AIQAjACMAIgAhAB4AGwAXABQAEAAMAAkABgADAAAA/f/6//f/8//w/+z/6f/l/+P/4v/h/+L/5P/n/+z/8f/3//7/AwAJAA8AEwAXABkAGgAaABkAFwAUABEADgALAAcABQACAAAA///8//r/+P/1//P/8P/t/+v/6f/o/+j/6P/q/+3/8f/2//z/AQAHAA0AEwAYABsAHQAfAB4AHQAbABgAFAAQAAwACAAFAAEA///8//n/9//0//H/7v/r/+j/5v/j/+L/4f/h/+P/5f/p/+7/9P/6/wAABwANABMAGAAcAB4AIAAgAB8AHQAaABcAFAAQAA0ACgAHAAQAAQD///3/+v/3//P/8P/t/+r/5//l/+T/5P/l/+f/6//v//T/+v8AAAUACgAPABMAFgAXABgAFwAWABQAEQAOAAsACAAGAAMAAQAAAP7//P/6//j/9v/z//H/7//s/+v/6v/q/+v/7f/w//T/+f/+/wMACQAOABMAFwAZABsAHAAbABkAFwAUABEADQAJAAYAAwAAAP7/+//5//f/9P/y/+//7P/q/+f/5v/k/+T/5f/m/+n/7f/y//f//f8CAAgADgATABcAGgAcAB0AHAAbABkAFwAUABEADQALAAgABQADAAAA///8//n/9//0//H/7v/r/+n/5//n/+f/6P/r/+7/8v/3//3/AQAGAAsADwASABQAFQAVABUAEwARAA4ADAAJAAcABAACAAAA///+//z/+v/4//b/9P/y//D/7v/t/+z/7P/u//D/8//3//v/AAAEAAoADgASABYAGAAZABkAGAAWABQAEQAOAAoABwAEAAEAAAD9//v/+f/3//X/8v/w/+3/6//p/+j/5//n/+j/6v/s//D/9f/6/wAABAAKAA8AEwAWABkAGgAaABkAGAAWABMAEQAOAAsACAAGAAQAAQAAAP7//P/5//f/9P/x/+7/7P/q/+n/6f/q/+v/7v/x//X/+v///wMABwALAA8AEQATABMAEwASABAADgAMAAoABwAFAAMAAQAAAP///v/8//r/+P/2//T/8v/x/+//7v/u/+//8P/y//X/+f/9/wEABgAKAA4AEgAUABYAFwAWABUAEwARAA4ACwAIAAUAAwAAAP///f8=",
+  "needs-you": "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LP9H/2f/jP+0/97/CQA0AF4AhACnAMQA3ADuAPoA/wD9APQA4wDMALAAjgBoAEAAFgDt/8T/nP93/1b/Of8h/xH/B/8F/wn/Ff8n/z7/W/98/6H/yf/z/xwARQBsAJAArwDJAN4A7AD1APcA8QDlANMAugCbAHkAUwAsAAMA3P+0/4//bP9O/zT/IP8T/w3/Dv8W/yT/N/9Q/27/kP+1/93/BQAtAFQAeQCZALUAzADeAOkA7gDtAOUA1gDBAKcAhwBlAD8AGADy/8z/pv+D/2P/SP8x/yH/GP8V/xn/I/8z/0j/Y/+B/6T/yf/w/xcAPQBiAIQAoQC6AM4A3ADlAOcA4wDYAMcAsACUAHQAUQAsAAYA4v+9/5n/ef9c/0P/MP8k/x3/Hf8k/zH/Qv9Z/3X/lP+3/9z/AQAnAEwAbgCNAKcAvQDOANkA3wDeANcAygC3AJ4AgQBhAD4AGgD2/9L/r/+O/3D/Vv9A/zH/J/8k/yf/MP8//1L/av+H/6f/yf/u/xIANgBZAHgAlACsAL8AzQDVANgA1QDLALwApwCNAG8ATwAsAAkA5//E/6P/hP9p/1H/P/8z/yz/LP8y/z3/Tf9i/3v/mP+5/9v///8hAEQAZACBAJsArwDAAMsA0ADQAMoAvgCtAJYAfABeAD0AGwD6/9j/t/+Y/3z/Y/9O/z//Nv8y/zX/Pf9K/1z/cv+M/6r/yv/s/w0AMABQAG4AiQCfALEAvwDHAMoAxwC/ALEAngCGAGsATAAsAAwA6//L/6z/j/91/17/Tf9B/zr/Of8+/0j/V/9q/4L/nf+6/9r//P8cAD0AWwB3AI8AogCyAL0AwgDDAL4AswCjAI8AdgBaADwAHQD+/97/v/+h/4b/b/9b/03/Q/9A/0H/SP9U/2X/ef+R/63/y//q/woAKgBIAGUAfgCTAKQAsQC6AL0AuwC0AKcAlQCAAGYASgAsAA4A8P/R/7T/mP+A/2v/Wv9O/0f/Rv9K/1P/Yf9y/4j/of+8/9r/+f8YADYAUwBtAIMAlgClALAAtgC2ALIAqQCaAIcAcABXADsAHQAAAOP/xv+q/5H/ev9o/1n/UP9M/03/U/9e/23/gP+X/7D/zP/p/wYAJABAAFsAcwCIAJkApgCuALEArwCoAJ0AjQB5AGIARwArAA0A8f/T/7f/nf+G/3P/Y/9Y/1H/UP9T/1v/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xP/v/xoARABrAJAAsQDOAOUA9gAAAQIB/QDwANwAwgCkAIEAXAAzAAkA4P+1/43/aP9I/y7/Gv8M/wX/Bf8L/xj/K/9F/2T/iP+v/9n/AgArAFMAeQCbALkA0gDmAPMA+QD4AO8A4ADKAK8AkABtAEcAHwD3/87/pv+A/1//Qv8r/xv/EP8N/w//GP8n/z3/WP95/53/xP/t/xQAPABhAIQApAC/ANUA5QDvAPIA7gDiANEAugCeAH4AXAA2ABAA6f/B/5r/dv9X/zz/J/8Z/xD/Dv8S/xz/LP9B/13/ff+j/83/9v8dAEEAYAB9AJkAtQDPAOYA9gD9APoA7gDaAMAAowCEAGQAQgAdAPb/zP+h/3n/Vv86/yf/G/8W/xX/GP8f/yv/Pv9Z/3v/o//N//j/IABFAGYAhQChALwA0wDmAPEA9ADtAN4AyACuAJEAcgBSADAACgDk/7r/kv9u/0//OP8o/x//HP8c/yH/K/86/1D/bf+R/7j/4f8JAC8AUQBxAI4AqQDBANUA5ADrAOoA3wDOALcAnAB/AGEAQAAdAPn/0v+r/4X/Zf9K/zf/Kv8k/yL/Jf8s/zj/Sv9j/4L/pv/N//T/GQA8AF0AewCWAK8AxQDWAOAA4wDeANEAvgCmAIsAbgBQAC8ACwDn/8L/nf97/17/R/83/y7/Kf8p/y7/N/9G/1v/df+W/7r/3/8EACgASQBnAIQAnQC0AMcA1ADbANoA0gDDAK4AlgB7AF4APwAdAPv/1/+z/5H/cv9Z/0b/Of8y/y//Mf84/0T/Vf9s/4j/qf/M//H/EwA1AFQAcQCLAKMAtwDHANEA1ADQAMUAtACeAIYAagBNAC4ADQDr/8j/pv+G/2v/Vv9G/zv/Nv82/zr/Q/9R/2T/ff+a/7v/3v8AACIAQQBfAHoAkgCnALkAxQDMAMwAxQC3AKUAjwB2AFoAPQAeAP7/3P+6/5v/fv9m/1T/R/8//zz/Pv9E/0//X/90/47/rP/N/+7/DwAvAEwAaACBAJcAqgC5AMIAxgDCALkAqgCXAIAAZgBLAC0ADgDv/87/rv+R/3f/Y/9T/0j/Q/9C/0b/Tv9b/23/hP+f/73/3f/9/xwAOgBWAHAAhwCcAKwAuAC+AL4AuACtAJ0AiABxAFcAOwAeAAAA4f/B/6T/if9y/2D/U/9L/0j/Sf9P/1n/aP97/5P/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JgAwADkAQABFAEgASQBHAEMAPQA2AC4AJQAbABAABAD5/+z/4P/W/83/xv/B/73/u/+6/7v/vv/D/8r/0//e/+n/9f8AAAsAFQAgACkAMgA6AEAARQBGAEYAQwA/ADkAMQApACAAFgAKAP//8//o/93/0//L/8X/wf++/7z/vP++/8L/yP/Q/9n/5P/v//r/BAAPABkAIwAsADQAOwBAAEMARABDAD8AOgA0ACwAJAAaABAABQD6/+//5P/a/9H/yv/F/8H/v/++/7//wv/G/83/1f/f/+n/9P///wkAEwAdACYALwA2ADwAQABCAEIAPwA7ADYALwAnAB8AFQAKAAAA9f/q/+D/1//P/8n/xf/C/8D/wP/C/8b/y//S/9v/5P/v//n/AwANABcAIAApADEANwA8AD8AQAA/ADwANwAxACoAIgAaABAABQD7//H/5v/d/9X/zv/J/8X/w//C/8P/xf/K/9D/1//g/+r/9P/+/wcAEQAbACMAKwAyADgAPAA+AD4APAA4ADMALQAmAB4AFAALAAAA9//t/+P/2v/T/83/yf/G/8T/xP/G/8n/zv/U/9z/5f/v//n/AgALABUAHgAmAC0AMwA4ADsAPAA7ADkANQAvACkAIQAZABAABgD9//P/6f/g/9j/0v/N/8n/x//G/8b/yf/N/9L/2f/h/+r/9P/9/wYADwAYACEAKAAvADQAOAA6ADoAOAA1ADEAKwAkAB0AFAALAAEA+P/v/+b/3v/X/9H/zP/J/8j/yP/J/8z/0f/W/97/5v/v//j/AQAKABMAGwAjACoAMAA0ADcAOAA4ADUAMgAtACcAIAAYAA8ABgD+//T/6//j/9v/1f/Q/8z/yv/J/8r/zP/P/9T/2//i/+v/8//9/wUADQAWAB4AJQArADAANAA2ADYANQAyAC4AKQAjABsAEwALAAIA+v/x/+j/4P/a/9T/0P/N/8v/y//M/8//0//Y/9//5//v//j/AAAIABEAGQAgACcALAAxADMANQA0ADMAMAArACYAHwAYABAABwAAAPf/7v/m/97/2P/T/8//zP/L/8v/zP/P/9P/2f/g/+j/8f/6/wEACQAQABcAHgAmACwAMgA2ADkAOAA2ADIALQAoACEAGwATAAsAAgD5/+//5f/d/9f/0v/P/83/y//L/8z/zv/S/9j/3//o//H/+v8CAAoAEgAaACEAKAAuADMANgA3ADYAMwAvACoAJAAeABcADwAGAP7/9P/r/+P/2//W/9L/z//N/8z/zf/O/9H/1v/c/+T/7P/1//7/BgAOABUAHAAjACkALwAzADUANQAzADAAKwAmACAAGgATAAsAAgD6//H/6P/g/9r/1f/S/9D/zv/O/8//0f/U/9r/4f/o//H/+v8BAAkAEAAYAB8AJQArAC8AMgAzADIAMAAtACgAIgAcABYADgAGAP//9v/t/+X/3//Z/9X/0v/Q/8//0P/R/9T/2P/e/+X/7f/1//3/BAAMABMAGgAhACYAKwAvADEAMQAwAC0AKQAkAB8AGQASAAoAAgD7//L/6v/j/93/2P/V/9L/0f/R/9H/0//X/9z/4v/p//H/+f8AAAgADwAWABwAIgAoACwALwAwAC8ALgAqACYAIQAbABUADgAHAP//9//v/+j/4f/c/9j/1f/T/9L/0v/U/9b/2v/g/+b/7f/1//3/AwALABIAGAAeACQAKAAsAC4ALgAtACsAJwAjAB4AGAARAAoAAwD8//T/7P/m/+D/2//Y/9X/1P/T/9T/1v/Z/97/4//q//H/+f8AAAYADQAUABoAIAAlACkALAAtAC0AKwAoACQAIAAaABQADgAHAAAA+P/x/+r/5P/f/9v/2P/W/9X/1f/W/9n/3P/h/+f/7v/1//z/AgAJABAAFgAcACEAJgApACsAKwArACkAJQAhAB0AFwARAAoAAwD9//X/7v/o/+L/3v/a/9j/1v/W/9f/2P/b/9//5f/r//H/+P///wUADAASABgAHgAiACYAKQAqACoAKQAmACMAHgAZABQADQAHAAAA+v/z/+z/5v/h/93/2v/Y/9f/1//Y/9v/3v/j/+j/7v/3//3/AgAIAA4AFAAZAB0AIQAjACUAJQAlACMAIAAdABgAEwAOAAgAAgD9//f/8f/r/+b/4v/f/93/3P/c/9z/3v/h/+T/6f/u//T/+v8AAAUACwAQABUAGgAeACEAIwAkACQAIwAhAB4AGgAVABAACwAFAAAA+v/0/+//6v/l/+L/3//e/93/3f/e/+D/4//n/+z/8f/3//3/AgAHAA0AEgAXABsAHgAhACIAIwAiACEAHgAbABcAEwAOAAgAAgD+//j/8v/t/+j/5f/i/+D/3v/e/9//4P/i/+b/6v/v//T/+v///wQACQAPABMAGAAcAB4AIQAiACIAIQAfABwAGQAUABAACwAFAAAA+//1//D/6//n/+T/4v/g/9//3//g/+L/5f/o/+3/8v/3//z/AQAGAAsAEAAVABkAHAAeACAAIQAgAB8AHQAaABYAEgANAAgAAwD+//n/8//v/+r/5//k/+L/4f/g/+H/4v/k/+f/6//v//T/+v///wMACAANABIAFgAZABwAHgAfAB8AHwAdABoAFwATAA8ACgAFAAAA/P/3//L/7f/p/+b/5P/i/+H/4f/i/+T/5v/q/+7/8v/3//z/AAAFAAoADwATABcAGgAcAB4AHgAeAB0AGwAYABUAEQANAAgAAwD///r/9f/w/+z/6f/m/+T/4//i/+P/5P/m/+n/7P/w//X/+v///wMABwAMABAAFAAYABoAHAAdAB0AHQAbABkAFgATAA8ACgAFAAAA/P/4//P/7//r/+j/5v/k/+P/4//k/+b/6P/r/+//8//3//z/AAAFAAkADgASABUAGAAaABwAHAAcABsAGQAXABQAEAAMAAgAAwD///r/9v/x/+7/6v/o/+b/5f/k/+T/5v/n/+r/7f/x//X/+v/+/wIABwALAA8AEwAWABgAGgAbABwAGwAaABgAFQASAA4ACgAFAAEA/f/5//T/8P/t/+r/6P/m/+X/5f/m/+f/6f/s/+//8//3//z/AAAEAAgADAAQABQAFgAYABoAGwAaABoAGAAWABMADwAMAAgAAwAAAPv/9//z/+//7P/q/+j/5v/m/+b/5//p/+v/7v/y//b/+v/+/wEABgAKAA4AEQAUABcAGAAZABoAGQAYABYAFAARAA0ACQAFAAEA/v8=",
+  "turn": "UklGRh5XAABXQVZFZm10IBAAAAABAAEAIlYAAESsAAACABAAZGF0YfpWAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQADAAUABwALABAAFwAgAC0APQBSAGwAjQC1AOQAGQFTAYsBuAGRARQBkQAHAHv/6P5S/rj9Gf12/Mz7HPtj+qL5zfiZ+Ob4ePkB+jT60fm7+Nj3xvd09yv3OPfb9zn5V/sV/jMBZARRB7MJWAs0DFsMAAxoC94KowrfCpwLwAwXDloPPBB9EPQPmA6CDOgJFAdWBPMBGgDe/i3+3f2v/V79sPx/+8L5kfcf9bPyl/AO70XuSu4O72LwB/K18y31Qfbh9hv3F/cP90b38/c9+S77sP2UAJgDcwbjCLgK3gteDF4MEwy/C5gLyQteDEoNZQ52DzwQfhATEO0OGg3ECicIhwUhAyYBrP+s/gn+kf0M/UX8Gft6+Xj3N/Xz8urwWO9q7jLuqe6w7xHxk/L78x/16vVg9p/20/Y09/P3M/kC+1X9BgDiAqgFHggXCnkLRQyWDJQMdgxrDJsMFg3XDcAOpQ9PEIsQNRA5D58NhgscCZwGPAQrAoAAQP9U/pj93/z7+8v6P/lf90j1J/My8Z3vk+4p7mDuIe9E8Jfx6fIS9Pr0ofUX9oH2Cvfd9xv50/oA/Yf/PALsBGIHcwkFCxIMqQzrDAINGA1PDbwNXA4eD9wPaxCgEFYQfA8RDi0M8wmUB0IFJANWAeL/uP7A/dX80vuX+hX5T/dZ9VbzdfHi78TuM+4z7rbun+/E8PvxIPMb9OT0iPUg9s72t/f3+J/6rvwR/6MBPAStBs4IhArGC5sMGQ1kDZwN4g1JDtQOdg8UEIsQthB0ELQPcQ66DK0KcQgwBg8EKQKLADD/A/7r/Mf7fvoA+Uz3cPWI87nxKvD/7k7uIO5u7iHvGfAz8UzyUPMy9Pn0t/WG9oT3yvhn+l78ov4VAZcD/gUnCPkJZAttDCENmw33DVAOuA42D8EPRhCoEMkQjBDgD74OMA1MCzIJBgfpBPUCOAG1/13+HP3a+4D6AflY95D1v/MB8nnwRe987inuSO7L7pjvkfCa8Z7ykPNw9Ez1N/ZH95T4K/oP/Dj+jwD6AlUFgQdlCfEKJAwHDawNKw6aDgkPgA/7D2wQvhDVEJwQ/w/5Do8N0QvYCcMHsAW2A+UBQgDH/mP9Bfyb+hf5dve99f7zT/LO8JXvuu5I7kDumO487xXwCvEI8gHz8/Pl9OX1BvdZ+Ov5wPvS/RAAZQKyBNwGywhwCsUL0AybDTsOwA46D7APIhCFEMkQ2hCiEBMQJA/ZDT0MZApoCGMGagSNAtQAPf+8/Ub8zPpC+aT39/VG9KXyK/Hw7wbvfO5S7oTuA++875vwjvGH8oPzhPSV9cL2G/ip+XH7cP2Y/9YBFAQ5Bi4I5QlVC38MbQ0qDsYOTQ/HDzUQjxDKENUQnxAaEEAPEA6UDNkK9wgCBw8FLQNmAbr/I/6Z/BD7gPnk9z72mfQD85DxVPBg78Hue+6M7unuhO9L8C/xJPIj8y30SfV/9tv3Zvkj+xD9JP9OAX0DmQWQB1EJ1goaDCQN/A2uDkQPxQ8yEIgQvRDFEJEQFxBPDzcO1gw5C3AJjgelBcQD9AE6AJT++vxk+875MviS9vb0afP98cHwxu8X77nure7s7mnvGPDr8Nbx1PLh8wP1Pvac9yP51vq0/LX+zADrAv0E8Qa6CEwKpgvHDLYNfA4hD6oPGxBwEKIQqRB5EAgQUA9ODgcNhQvVCQcIKwZQBH4CvAAK/2T9xfsp+oz48fZc9dfzcfI28TXwee8I7+PuBu9p7wDwwPCf8Zfyo/PG9AP2YPfi+Iv6WvxK/lAAXgJlBFUGIAi8CSULWQxcDTUO6A57D/EPRxB7EIMQVxDvD0UPVw4oDb8LJwpuCKIG0AQBAzsBg//V/S/8j/ry+Fn3yvVN9OvysfGs8ObvZe8q7zXvf+//76zwffFr8nLzkvTO9Sj3o/hD+gX85f3a/9cB0gO6BYUHJwmbCt4L8gzaDZsOOQ+1DxAQRhBRECoQyw8vD1QOOw3pC2kKxQgKB0QFewO2Afz/Sv6g/P36YPnL90D2yPRr8zPyK/Fc8M3vgO9276nvE/Cs8G3xT/JP82n0oPX19mn4/vmz+4P9aP9WAUQDJAXrBo8ICgpZC3oMcA0+DuYOaw/LDwUQFRD0D58PEA9FDkANBgycCg0JZAerBewDLAJyAMD+FP1x+9X5Qvi89kn17/O58q/x2vA/8OPvxe/j7zjwvvBv8UPyOPNL9Hr1yPYz+L75Zvsn/fz+2gC7ApEEUwb3B3YJzAr4C/oM0w2FDhIPeQ+5D84PtQ9pD+cOLA47DRUMwQpICbEHBwZTBJsC5QA1/4r96PtO+r74PffO9Xj0Q/M48l3xufBP8CHwLPBu8OHwgPFG8i/zN/Re9aL2BPiD+R370PyV/mUAOAIDBL4FXwfgCDwKbwt6DF0NGQ6uDhwPYg9/D20PKw+1DgoOKg0ZDNoKdQnxB1gGsQQDA1MBqP8B/mH8yfo++cD3VfYD9dHzxPLl8TnxxPCG8IHwsPAS8aDxV/Iy8y70SvWD9tr3Tfna+n78NP72/7oBegMtBcoGSgioCeEK9AvfDKMNQA61DgMPJw8eD+UOfA7gDRENEgzoCpYJJgieBgUFYgO8ARYAdf7Z/Eb7v/lG+N/2kfVg9FPzcfK+8T7x9PDf8P7wTvHM8XPyQPMv9D71bPa39x35nPoy/Nn9jP9CAfcCoAQ3BrQHEwlQCmgLWgwlDcoNRw6cDscOxw6ZDjsOrQ3vDAMM6wqtCVAI2QZPBboDHgKBAOb+Uf3D+0D6zPhq9x/28PTk8//yRvK+8WjxRvFV8ZXxA/Ka8ljzOfQ79Vz2mvfz+GX67PuE/Sj/0QB5AhgEqAUhB38IvgnZCtALogxNDdINLg5hDmoORg70DXQNxgzrC+UKuwlwCAoHkQUJBHkC5gBU/8X9PvzB+lL59Pet9oH1dfSO89HyQvLi8bPxtPHl8UPyy/J680z0QfVU9oX30Pgz+qv7Nf3K/mUAAQKWAx0FkQbtBysJSQpECxsMzAxXDbsN9g0IDu4NqA01DZYMywvYCr8JhggyB8kFUATNAkUBvf82/rb8P/vW+X74O/cR9gb1HvRe88jyX/Il8hryPPKL8gTzpPNo9E71U/Z297P4CPpx++z8c/4AAI8BGQOXBAUGXQeaCLgJtgqRC0gM2QxDDYYNoA2RDVYN8AxfDKQLwgq7CZUIUgf5BZAEGgOeAR8Ao/4r/bv7WPoG+cf3ofaX9a706/NP89/ym/KE8pry2vJE89Xzi/Ri9Vn2bfec+OL5Pfup/CH+of8iAaECFwR9BdAGCggoCSgKBgvBC1cMyQwTDTYNLw0ADaYMIwx4C6YKsQmbCGoHIQbHBGAD8AF9AAv/m/00/Nj6i/lR+C73JvY99Xj02PNh8xTz8vL88i/zi/MO9LX0fvVm9mz3i/jD+Q/7bPzW/Uj/vAAwApsD+gRHBn0HmgiaCXoKOQvUC0sMnQzIDMsMpgxYDOMLRguECp8Jmgh6B0IG9wSeAzwC1QBt/wf+qPxU+w362Pi597T2y/UE9WD04/OP82PzYfOI89fzTPTk9J/1efZw94H4qvnn+jb8kf31/l0AxAElA3wEwgX0Bg8IDgnvCbEKUAvNCyUMVwxjDEkMBwyeCw8LXQqHCZMIgwdbBiAF1gOBAiYByv9u/hj9zPuM+lz5Qfg+91f2j/Xo9Gb0C/TX88rz5vMo9I/0GvXG9ZH2evd8+Jf5xfoF/FL9qf4DAF4BtQICBEIFbwaGB4QIZgkpCswKTQurC+UL+gvpC7ILVgvVCjAKagmGCIYHbgZCBQcEwAJyASAA0P6E/T/8Bvvd+cb4xvfg9hj2b/Xp9If0S/Q19Eb0fPTW9FP18vWv9on3ffiJ+an62vsZ/WL+sP//AEsCjwPHBO4FAQf9B94IowlJCs4KMgtyC48LhwtbCwoLlgr/CUgJcwiDB3sGXgUxBPgCtwFxACz/6f2u/Hz7WfpI+Uv4Z/ee9vT1avUD9cD0ofSo9NP0IfWR9SL20vae94P4gfmS+rX75vwh/mP/pQDmASEDUQRyBYEGeQdaCB8JxwlQCrgK/gojCyQLAQu8ClQKywkiCVwIeweBBnQFVgQrA/YBvQCD/0r+F/3u+9H6xfnM+Or3Ivd39ur1f/U19Q/1DPUs9W/10/VX9vn2t/eO+H35gfqW+7n85v0b/1EAhwG4AuAD+wQEBvoG2AedCEYJ0gk+CosKtgq/CqYKbAoQCpQJ+AhACG0HgwaEBXQEVgMvAgIB1P+l/nz9W/xF+z76Svlq+KP39/Zo9vj1qfV89XD1h/W/9Rf2j/Yk99X3nvh/+XT6e/uQ/LD92P4DAC4BVgJ1A4kEjQV/BlsHHwjICFYJxgkXCkkKWgpKChoKyglaCcsIIQhcB38GjgWMBHwDYgJBAR0A+/7b/cL8tPuz+sP55/gh+HT34/Zw9hz26PXV9eP1EfZe9sr2U/f297P4hflt+mb7bfyA/Zv+u//bAPkBEAMcBBoFCAbhBqMHTQjcCE8JpQncCfQJ7QnHCYEJHQmbCP4HRgd4BpQFoASdA5ACewFjAEv/Nf4l/R78JPs4+l/5m/jv91z35vaO9lT2OvY/9mT2p/YI94T3G/jL+JD5avpV+0/8Vf1k/nj/jQChAa8CtAOtBJUFawYrB9UHZQjaCDQJcAmPCZAJcwk3Cd4IaAjXBy0HbAaWBa4EuQO4Aq8BogCV/4n+gv2D/I/7qfrT+RL5ZvjT91r3/va/9p72nPa49vH2R/e490P45vif+Wv6Sfs2/DD9Mv46/0QATwFUAlEDRAQnBfkFuAZgB/EHaAjFCAYJKwkzCR4J7AieCDMIrgcQB1wGkwW4BM8D2wLeAd0A2v/Y/tr94/z1+xX7Q/qE+dr4RvjM92z3KPcC9/j2DPc894j37vdu+AX5sflx+kL7IvwP/QX+Av8BAAEB/gH0At8DvgSMBUgG7wZ/B/gHWAidCMcI1gjJCKAIWwj8B4MH8QZJBowFvgTiA/kCCQISARkAIv8s/j39V/x8+6/68/lK+bb4O/jY95D3ZPdU92D3iPfK9yb4m/gm+cb5evo/+xP88/zd/c/+xP+6AK0BmwKAA1kEIwXcBYEGEgeLB+0HNghlCHoIdAhUCBgIwwdVB88GMgaCBcAE8AMTAy4CQwFUAGb/ev6T/bP83vsW+136tvkj+af4Qvj298X3r/e099P3Dfhf+Mn4Svnf+Yf6P/sH/Nz8uv2h/oz/dwBiAUgCJgP5A78EdAUYBqcGIQeFB9EHBAgfCCAIBwjVB4kHJQeqBhkGdQW/BPoDKQNPAm4BigCm/8L+4/0L/Tz8efvD+h/6jfkP+an4Wvgl+An4B/gf+FD4mvj6+HD5+vmW+kT7APzJ/Jz9d/5X/zkAGwH5AdACngNfBBEFsgVABrsGIAduB6UHxQfMB7oHkAdOB/QGgwb9BWQFugQABDsDawKVAbsA4P8G/y/+Xv2V/Nb7JfuD+vL5dfkN+bz4g/hi+Fr4a/iU+NX4LPmY+Rf6qfpL+/z7ufyC/VL+KP8AANkArwF/AkcDAwSxBFAF3QVXBr0GDgdIB2wHeQduB0wHEgfBBlsG3wVRBbEEAwRIA4QCuAHoABUARf92/qz96fww/IP74/pU+tj5b/kb+d/4ufis+Lb42PgQ+V75wfk2+r76Vfv7+678a/0x/v3+zf+cAGoBMwL1AqwDVgTyBH4F9wVeBrAG7QYVBycHIwcHB9YGjgYxBr8FOwWmBAMEUgOYAtcBEAFHAH//uP71/Tn9hfzc+0D7s/o3+s35ePk4+Q/5/PgB+Rz5TPmS+ev5WPrV+mL7/vum/Fn9Ff7X/p3/YwAqAewBpwJZAwAEmQQiBZsFAQZVBpUGwAbXBtgGwwaZBloGBgaeBSQFmQT/A1kDqQLxATQBdAC0//X+Ov6E/dX8MfyY+w37kvop+tL5kPlj+Uz5Svlf+Yj5xvkX+nr67vpy+wP8ovxK/fz9tP5x/y8A7gCpAV4CCwOtA0MEygRCBagF/QU/Bm0GiAaOBoAGXAYlBtkFewUKBYkE+QNdA7cCCAJUAZ0A5v8u/3r+yv0i/YL87Ptk++r6gfop+uX5tfmZ+ZP5ofnE+fv5RPqe+gn7hPsM/KD8P/3n/Zb+Sv8AALYAagEZAsACXwPxA3YE7ARSBagF6wUcBjoGRQY9BiAG8AWsBVYF7wR3BPEDXgPBAhwCcQHCABIAY/+2/g3+af3O/D38t/s/+9b6fvo3+gT65fna+eP5APov+nH6w/om+5f7Fvyh/Df91f17/ib/1P+CAC8B2AF6AhQDowMlBJoEAAVVBZoFzgXvBf4F+gXkBbsFfwUxBdIEYwTmA1wDyQIsAooB5AA7AJT/7v5L/q39F/2J/Ab8kPso+8/6h/pS+i/6IPok+jv6ZPqe+un6RPut+yP8pfwx/cf9ZP4G/6z/UgD5AJsBOALOAlkD2QNMBLAEBgVMBYEFpQW4BbkFqAWFBVEFCgW0BE0E2QNYA80COgKgAQIBYQDB/yH/hf7t/Vv90vxS/N37dvse+9X6nfp4+mX6ZPp1+pj6zPoQ+2P7xPsx/Kv8L/27/VD+6v6I/ycAxgBjAfoBiwITA5ADAARkBLoEAAU3BV4FdAV5BW4FUQUiBeMElAQ2BMoDUgPPAkQCsgEcAYMA6v9R/7v+KP6c/Rb9mvwo/ML7afsg++f6vvqo+qL6r/rM+vr6N/uD+9z7Qvyz/C79s/0//tH+Z/8AAJcALgHAAUwC0AJKA7kDGwRwBLcE7wQYBTEFOwU0BRwF9AS8BHQEHgS6A0oDzwJMAsIBMwGiAA8Afv/t/mD+2f1X/d78bvwK/LL7aPst+wP76frg+uf6APsn+177o/v1+1T8vfww/a39Mf67/kr/2/9sAPwAiQERApECCAN0A9UDKgRxBKoE1QTxBP0E+wToBMYElARTBAQEqAM/A80CUQLPAUgBvQAxAKb/HP+V/hL+lf0f/bL8T/z4+677cvtF+yj7HPsf+zL7VfuG+8T7EPxn/Mn8Nf2p/Sb+qP4v/7r/RADOAFYB2QFVAskCMwOTA+YDLQRnBJMEsgTBBMMEtQSYBGwEMgTqA5UDNAPIAlQC2QFZAdYAUADN/0f/xP5E/sv9WP3v/I/8Ovzy+7f7iftq+1n7V/tl+4D7q/vi+yf8ePzV/Dv9qf0g/pv+HP+e/yEApAAlAaIBGgKKAvMCUQOlA+4DKQRYBHgEigSNBIIEaQRCBA0EywN9AyQDwgJXAuQBbAHvAHAA8P9w//H+d/4B/pL9K/3N/Hr8Mvz2+8f7pvuT+437lvut+9L7BPxD/I384/xC/ar9Gf6O/gf/g/8AAH0A+QBxAeUBUgK4AhQDZwOvA+sDGwQ9BFEEWARRBDwEGgTrA68DaAMVA7oCVQLqAXgBAgGJAA4Alf8c/6b+NP7J/WX9Cf23/G/8M/wD/OD7yvvC+8f72vv6+yb8X/yk/PL8S/2s/RT+g/71/mv/4/9aANAARAGzAR0CgALbAiwDcwOvA+ADAwQaBCQEIQQQBPMDyQOTA1EDBQOwAlIC7QGCARMBoAArALf/Q//S/mT+/P2b/UH98Pyq/G78PfwY/AH89fv3+wb8IfxI/Hz8uvwD/VX9sP0S/nr+5v5W/8j/OQCqABkBhQHsAU0CpgL4AkEDgAO1A98DAAQWBCMEJgQhBBUEAgToA8gDnwNpAwwDcAKvAegAGwBL/3n+pv3V/AX8OPtu+qj55vgk+J33gfez9wX4Q/g/+Nz3W/c691X3Z/ei9zL4Nvm7+rb8B/99AeIDAwa4B+sIngnnCe0J3AngCRkKlwpTCzUMEw3ADQ8O4A0iDd4LLAo2CCwGPwSTAj4BQQCL//v+av6y/bb8a/vV+Q74PfaO9C/zQfLY8fPxfvJZ81v0WfU09tj2RveM98j3Hviz+KL59vqs/K7+1gD8AvUEngbhB7sIOAlzCY8JrAnoCVEK5gqXC0gM1AwXDfYMYgxcC/MJSAh/Br8EKQPRAb0A5f8w/4P+v/3O/KL7Pvqx+Bj3l/VS9GXz5PLS8iTzwvOO9GX1LfbU9lT3uPcS+H74Gfn4+Sj7qPxp/lEAQAIRBKkF8QbkB4cI6wgrCWEJowkBCnwKCguXCwcMQAwoDLIL2wquCUEIsAYcBZ8DTQIuAT4AcP+u/uH99fzg+6H6QvnY9372UfVq9NrzqPPN8zr02PSL9T724PZp99/3TvjK+Gn5PPpR+6b8NP7n/6MBUAPUBBoGGwfXB1wIuQgECU8JqAkRCoYK+QpUC4ILcAsQC14KYQknCMgGXAX6A7MCkgGWALf/5f4Q/in9JPwB+8b5gfhI9zL2U/W89HP0dvS89DL1xfVi9vn2hfcE+IH4B/mp+XT6cvum/An+j/8hAawCGgRZBWAGLgfJBz0ImwjwCEcJpgkKCmkKtAraCsoKewrmCQ8JAQjNBoUFPgQHA+kB6AD//yP/Sf5k/Wz8X/tA+hr5/ff79ib2i/Uy9Rz1QvWX9Q32lPYf96f3K/iu+Dv53fmg+o37pvzn/Ub/tAAgAngDrAS0BYwGNwe9ByoIiAjiCDsJkwnkCSMKQgo1CvIJdAm8CNMHwwadBXAESgM0AjMBRQBk/4f+pf23/Lr7sfqk+Z/4r/fk9kn25fW89cn1A/Zg9tL2T/fQ91P42Pho+Qn6xfqj+6X8yv0J/1cApwHqAhIEFwX0BakGPAe1BxwIeAjPCCAJZwmdCbgJrQl0CQgJagieB64GpgWRBH4DcwJ2AYgApv/I/uj9Av0T/B37JPoy+VL4kPf39o32VfZO9nL2ufYY94f3//d9+AH5kPkv+uT6tful/LH91v4IAD8BbgKJA4cEZQUhBr0GPwetBw0IYwiwCPIIIgk5CTAJ/wiiCBkIZweSBqQFpwSlA6cCsgHHAOb/Cf8t/k79avyC+5r6uPnm+C74l/cp9+f20Pbi9hb3ZPfE9zL4qvgr+bb5Ufr/+sT7pPyc/an+xf/kAAACDQMFBOAEnwVBBsoGPgeiB/kHRAiBCK4Iwwi8CJIIQgjKBy0HcAaZBbIEwgPSAuYBAAEhAEn/cf6Z/b784vsI+zT6bvm++Cv4u/dx90/3Ufd197P3Bvhq+Nn4VPnb+XD6F/vS+6P8iv2D/on/lQCfAZ8CjQNlBCQFyQVXBs8GNwePB9oHFQhACFUIUAgsCOcHfgfzBkoGiAW1BNYD9AISAjQBWgCG/7T+4v0Q/T78b/un+uz5Q/m0+EP49PfI97/31PcF+Ev4pPgL+X/5APqO+i373/uj/Hr9Yv5W/08ASQE8AiED8wOwBFcF5wVjBs0GJwdyB64H2AftB+sHzAeQBzQHuQYhBnIFsQTjAw4DOAJiAY8AwP/z/ij+Xv2V/ND7Evtg+r/5M/nD+HD4Pfgp+DP4WPiS+OD4Pvmq+ST6rPpD++v7o/xt/UX+KP8RAPwA4gG+AooDRATqBHwF+gVmBsIGDgdJB3QHigeLB3EHPQfsBn8G9wVZBagE6QMiA1cCigG/APf/MP9r/qj96Pws/Hf7zfox+qr5Ovnl+K34kfiR+Kv42/ge+XP51/lK+sr6Wfv3+6X8Yf0s/gD/3P+4AJIBYwIpA98DgwQVBZQFAgZfBqwG6QYUBywHLwcbB+4GpwZFBswFPAWaBOoDMANwAq4B6wApAGn/q/7v/Tb9gvzV+zL7nfoZ+qr5VPkX+fX47fj9+CP5Xfmp+QX6b/ro+m/7BPyn/Fj9Fv7d/qv/egBJARECzwKAAyIEswQyBaEF/wVNBosGuAbSBtgGyQaiBmMGDQafBR0FiQTmAzkDhQLMARIBVwCf/+f+Mv6A/dP8LfyR+wH7gfoU+r35fflV+Ub5Tvls+Z354Pk0+pb6B/uF+xH8q/xS/QP+vv6A/0MABwHGAX0CKAPGA1UE1QREBaMF8gUxBl8GewaFBnoGWQYiBtUFcwX9BHUE3wM+A5QC5gE0AYEA0P8f/3H+xv0g/YD86vtf++L6d/og+t75svmd+Z35s/nc+Rf6Y/q9+ib7nPsg/LD8Tf30/aP+Wf8SAMsAgQExAtcCcQP9A3sE6gRKBZoF2gUKBigGNQYuBhMG4wWfBUYF2wRfBNUDPwOgAvsBUgGoAP7/VP+s/gj+aP3O/D38t/s++9X6ffo6+gr68Pnr+fr5G/pP+pL65fpG+7T7L/y3/Er95/2M/jf/5v+VAEMB6wGLAiADqgMmBJUE9ARFBYYFtwXYBegF5QXPBaYFagUaBbkERwTIAzwDqAIMAmwBygAmAIT/4/5F/qv9GP2M/Ar8lPst+9b6kfpf+kH6Nvo/+ln6hvrC+g37ZvvN+0D8v/xJ/dz9eP4Z/7//ZAAJAaoBRALVAlwD1gNDBKIE8wQ1BWgFiwWdBZ4FjgVrBTUF7gSWBC4EuAM3A6wCGgKDAegATACx/xf/f/7r/V391vxY/Ob7gPsq++X6sPqP+n/6gvqX+rz68fo1+4f75vtS/Mj8Sf3U/Wb+//6b/zgA1QBvAQMCjwISA4oD9QNUBKUE6AQcBUEFVgVbBU4FMQUCBcIEcwQUBKcDMAOuAiUClgEDAW8A2/9G/7T+Jv6d/Rv9ovwy/M/7evs0+/762frG+sT60/ry+iH7Xvup+wD8ZPzT/Ez9zv1Y/uf+e/8QAKUAOAHGAU4CzQJCA6wDCQRaBJ4E0wT6BBEFGQURBfkE0ASXBE8E+QOVAyYDrQIsAqYBGwGOAAAAcv/m/l7+2v1c/ef8evwZ/MX7f/tI+yH7CvsE+w77J/tP+4b7yvsb/Hf83/xQ/cr9S/7T/l7/7P96AAYBjgERAowC/gJmA8IDEwRXBI0EtQTPBNoE1gTCBJ8EbQQsBN0DgQMbA6oCMgKzAS8BqQAiAJv/Ff+S/hP+mf0o/b78YPwN/Mf7j/tm+0z7QvtH+1v7fvuu++z7NvyM/Oz8Vv3I/UL+wf5F/8z/UgDYAFoB2AFPAr4CJAN/A88DEwRKBHMEjwSdBJ0EjQRvBEMECATBA20DDgOlAjQCvQFBAcIAQQDA/0D/wv5I/tP9Zf3//KL8UPwL/NL7p/uL+377f/uO+6z71vsO/FL8ofz6/F39yP06/rL+L/+u/y4ArQArAaMBFgKCAuUCPwOOA9IDCQQ0BFIEYwRlBFoEQQQaBOUDpANXA/8CngI1AsUBUAHXAF0A4v9n/+/+ef4J/p79O/3h/JD8S/wS/Ob7yPu3+7X7wPvY+/77MPxu/Lb8Cf1l/cn9Nf6m/hv/lP8NAIcA/gByAeEBSgKrAgIDUAOUA8wD+AMXBCoEMAQoBBME8QPDA4gDQQPwApYCNALLAVwB6gB2AAAAjP8Y/6f+O/7U/XT9HP3N/In8UPwj/AL87/vp+/D7Bfwl/FL8ivzM/Bn9bv3M/TH+m/4K/33/8P9jANYARQGwARUCcwLJAhYDWQORA70D3wP0A/wD+APnA8oDoANrAyoD4AKMAjECzgFnAfsAjAAcAK3/P//S/mr+B/6p/VT9Bv3D/Ir8XPw6/CX8HPwg/DD8TPxz/Kb84/wp/Xn90P0v/pP+/P5o/9b/QwCwABsBggHkAT8CkwLeAiADWAOGA6gDvwPKA8kDvAOjA34DTgMUA88CggIsAtABbwEJAaAANgDM/2L/+v6W/jb+3P2I/T39+vzB/JP8cPxZ/E38Tvxa/HH8lPzC/Pr8O/2E/db9Lv6M/u/+Vf+9/yUAjgD0AFcBtQEOAmACqgLrAiMDUQN0A40DmgOcA5IDfQNdAzID/AK9AnYCJgLQAXUBFQGyAE0A6P+D/x//v/5i/gv+uv1w/S/99vzI/KT8i/x9/Hr8g/yX/LX83vwR/U39kf3d/S/+iP7l/kX/qP8LAG4A0AAvAYoB4AEvAngCuALwAh4DQgNcA2sDcANpA1gDPAMVA+UCqwJpAh8CzwF5AR8BwQBhAAEAof9C/+X+jP43/un9of1g/Sj9+vzV/Lr8qvyl/Kv8u/zW/Pr8KP1f/Z795P0x/oT+3P43/5T/8/9RAK8ACgFiAbUBAgJJAogCvwLtAhIDLQM+A0UDQgM0AxwD+QLOApkCXAIXAswBfAEnAc4AdAAYAL3/Yv8J/7P+Yf4V/s79j/1Y/Sn9BP3o/Nb8z/zS/N/89fwW/T/9cf2s/e39Nf6C/tT+Kv+D/93/NwCQAOgAPAGMAdcBHAJaApECvwLkAgADEwMcAxsDEAP8At4CtgKGAk4CDwLJAX0BLQHaAIQALADW/3//Kv/X/oj+Pv76/bz9hf1X/TH9FP0B/ff89/wB/RX9Mf1X/YT9uv32/Tn+gv7P/iD/dP/J/x4AdADIABkBZwGvAfIBLwJlApMCuALVAuoC9AL2Au4C3QLCAp8CcwJAAgUCxAF9ATIB4wCSAD8A7f+a/0j/+f6t/mX+Iv7m/bD9gv1c/T79Kf0e/Rz9I/0z/Uz9bv2X/cj9AP4//oL+y/4X/2b/t/8IAFoAqgD5AEMBigHLAQYCOwJpAo8CrALCAs4C0gLNAr4CpwKIAmACMQL7Ab4BfAE2AesAngBQAAEAsv9k/xj/z/6K/kn+Dv7Z/av9hP1m/VD9Q/0//UT9Uf1n/YX9q/3Y/Qv+Rf6E/sj+EP9b/6f/9f9CAI8A2gAiAWYBpgHgARQCQQJnAoUCmwKpAq8CrAKhAo0CcQJNAiIC8AG4AXoBOAHyAKkAXwATAMn/fv81/+/+rP5t/jP+//3S/az9jf12/Wj9Yf1k/W79gf2c/b795/0W/kz+h/7H/gr/UP+Z/+P/LAB2AL4AAwFFAYMBuwHuARsCQQJfAnYChgKNAo0ChAJzAloCOgITAuQBsAF3ATkB9wCzAGwAJADe/5b/UP8N/8z+j/5X/iT+9/3R/bL9mv2K/YL9g/2L/Zv9sv3R/fb9Iv5U/ov+xv4F/0j/jf/T/xkAXwCkAOcAJgFiAZkBywH3ARwCOwJTAmQCbQJuAmgCWgJEAicCAwLZAagBcwE5AfsAuwB4ADQA8P+s/2n/KP/q/q/+eP5H/hr+9P3V/b39rP2i/aH9p/20/cj95P0G/i7+XP6P/sf+Av9B/4L/xP8HAEoAjADMAAkBQwF5AakB1AH6ARkCMQJDAk0CUAJMAkECLgIUAvMBzQGgAW4BOAH+AMEAggBCAAAAwf+A/0L/Bv/N/pj+Z/48/hb+9v3e/cz9wf2+/cH9zP3e/ff9Fv47/mX+lP7I/gD/O/94/7f/9/82AHUAswDuACYBWgGKAbQB2QH4ARECIwIvAjQCMQIoAhgCAQLkAcABlwFpATYBAAHGAIsATgAQANP/lv9a/yD/6f62/ob+W/42/hf+/f3r/d/92v3c/eT99P0K/ib+R/5u/pr+yv7//jb/cP+r/+j/JABhAJwA1QALAT0BbAGVAboB2QHyAQUCEgIYAhgCEAIDAu4B1AG0AY4BYwE0AQEBywCTAFkAHgDk/6n/cP85/wT/0v6j/nr+Vf41/hz+CP77/fX99f38/Qn+HP41/lT+eP6h/s3+/v4y/2n/of/b/xQATgCGAL0A8QAiAU8BeAGcAbsB1QHoAfYB/QH+AfkB7gHcAcQBpwGEAVwBMAEBAc4AmQBiACsA8/+8/4X/T/8c/+z+v/6W/nL+Uv44/iT+F/4P/g7+Ev4d/i7+Rf5h/oL+p/7R/v/+L/9j/5j/z/8FADwAcgCnANoACQE1AV0BgAGfAbgBzAHbAeMB5gHjAdkBygG1AZoBegFVAS0BAAHQAJ4AawA2AAAAzP+Y/2T/M/8E/9n+sf6N/m7+VP5A/jH+KP4l/in+Mv5A/lT+bv6M/q/+1v4A/y7/Xv+Q/8T/+f8sAGAAkwDDAPEAHAFDAWYBhAGeAbIBwQHLAc8BzQHFAbgBpQGNAXABTgEoAf8A0gCjAHIAQAANANv/qf94/0n/HP/x/sr+p/6I/m7+Wv5K/kD+PP4+/kX+Uv5k/nv+lv62/tr+Av8t/1r/if+6/+z/HgBPAIAArwDbAAQBKgFNAWoBhAGZAagBswG4AbcBsgGmAZYBgAFmAUYBIwH8ANMApgB4AEkAGQDp/7n/iv9d/zH/CP/i/sD+of6H/nL+Yv5Y/lP+U/5Y/mP+c/6I/qH+vv7g/gT/LP9X/4T/sv/h/xAAQABuAJsAxgDuABMBNQFSAWwBgAGQAZwBogGjAZ8BlQGHAXMBWwE+AR4B+gDTAKkAfQBRACMA9v/I/5v/b/9F/x7/+f7X/rn+n/6K/nr+bv5o/mf+a/50/oL+lf6r/sb+5f4H/y3/Vf9//6v/2P8EADEAXgCJALIA2QD9AB4BOwFUAWkBegGFAY0BjwGMAYQBeAFmAVEBNgEYAfcA0gCrAIIAVwAsAAAA1v+r/4H/WP8y/w7/7f7Q/rb+of6Q/oT+ff56/n3+hf6R/qH+tv7P/uv+C/8u/1P/e/+k/8//+v8kAE8AeACgAMYA6QAJASUBPgFTAWQBcAF4AXsBegF0AWkBWgFGAS4BEgHzANEArACGAF0ANAALAOL/uf+R/2r/Rf8i/wL/5f7M/rb+pf6Z/pH+jf6P/pX+n/6u/sH+1/7y/g//L/9S/3j/n//H//D/GABBAGkAjwC0ANYA9QARASkBPgFPAVwBZQFpAWkBZAFbAU0BOwEmAQwB7wDPAK0AiABjADwAFADt/8b/oP96/1f/Nf8W//n+4P7L/rr+rf6k/qD+oP6k/q3+uv7L/uD++P4T/zH/Uv91/5r/wP/n/w0ANABaAH8AogDDAOIA/QAVASoBOwFIAVIBVwFYAVQBTQFBATEBHQEFAesAzQCtAIsAZwBCAB0A+P/S/63/if9m/0b/KP8M//T+3/7O/sD+t/6y/rH+tP67/sb+1f7o/v7+GP80/1P/dP+X/7r/3/8DACgATABwAJIAsgDPAOsAAwEXASkBNgFAAUYBRwFFAT4BNAEmARQB/gDmAMoArQCNAGsASAAlAAAA3f+6/5f/dv9W/zn/Hv8G//L+4P7T/sn+w/7B/sP+yP7S/uD+8f4F/x3/N/9U/3P/k/+1/9j/+/8dAEAAYgCDAKIAvwDZAPEABQEXASUBLwE1ATgBNgExASgBGwELAfcA4QDHAKwAjgBuAE0AKwAJAOj/xv+k/4T/Zv9K/y//GP8D//L+5P7a/tP+0P7R/tb+3v7q/vn+DP8i/zr/Vf9y/5H/sf/S//P/FAA1AFUAdQCTAK8AyADgAPQABQETAR4BJQEoASgBJAEcAREBAgHwANwAxACqAI4AcABRADEAEQDx/9H/sf+S/3T/Wf8//yj/FP8D//X+6v7j/t/+3/7j/ur+9P4C/xP/J/8+/1f/cv+P/63/zP/s/wsAKgBKAGgAhQCgALkA0ADkAPUAAwEOARUBGgEaARcBEQEHAfoA6QDWAMAAqACOAHIAVQA3ABgA+v/b/7z/nv+C/2f/T/84/yT/E/8F//r+8v7u/u3+7/71/v7+C/8a/y3/Qf9Z/3L/jf+p/8f/5f8CACEAPwBcAHcAkgCqAMAA1ADlAPMA/wAHAQsBDQELAQUB/QDxAOIA0QC9AKYAjgB0AFgAOwAeAAAA5P/H/6r/j/91/13/R/8z/yL/FP8J/wH//P76/vz+AP8I/xP/If8y/0X/W/9z/4z/p//D/9///P8YADUAUABrAIUAnACyAMUA1gDlAPAA+AD+AAAB/gD6APMA6ADbAMsAuQClAI4AdgBdAEMAKQAPAPf/3v/H/7L/oP+Q/4P/ef9x/2f/Vf87/yD/CP/y/t7+zP69/rH+pv6c/pT+jf6G/oT+lv67/uv+Gv87/0X/PP84/0L/Tf9Y/27/mP/b/zYApwAkAZ8BDQJjApoCsAKpAosCYwI6AhsCDAINAh0CMwJGAkoCNwIIArsBVQHeAGAA6f+B/y//9v7U/sP+uf6u/pn+dP4+/vz9sv1t/TX9FP0P/Sn9X/2p/f/9Vv6m/uf+F/83/07/Yv99/6b/4v8xAJIA/QBqAc0BHwJYAncCfQJuAlQCNQIbAgsCBwINAhkCIgIiAhAC5wGnAVAB6gB9ABEAsP9f/yL/9/7b/sj+tv6f/n3+T/4X/tr9n/1u/U79Rv1W/X79uf0B/kz+lP7T/gb/Lf9L/2f/hv+v/+b/LACAAN0APQGXAeQBHgJDAlICTwI/AioCFQIGAv4B/gECAgUCAQLvAcsBkwFKAfIAkgAxANj/if9J/xn/9f7b/sP+qf6J/mH+Mf79/cr9n/2C/Xb9gP2d/cz9CP5J/or+xf75/iP/R/9n/4r/s//n/yUAcADCABgBaQGxAeoBEgIoAi4CJwIaAgoC/QH0AfAB7wHtAeUB0wGyAYIBQgH2AKEASgD4/6z/bP85/xD/8P7U/rf+mP5z/kn+HP7w/cr9r/2i/ab9vP3h/RL+Sv6E/rz+7v4a/0H/Zv+L/7T/5f8fAGIAqwD3AEIBhQG8AeYBAAINAg4CBwL8AfEB6AHiAd0B2AHNAbsBnQFyAToB9wCsAF4AEQDL/4z/Vv8q/wb/5v7I/qj+hv5g/jj+Ev7w/db9yf3K/dr99/0g/lD+g/62/uf+E/88/2L/if+z/+L/FwBUAJYA2wAfAV4BkwG9AdsB7AHzAfEB6wHjAdsB1AHNAcUBuQGmAYoBZAEyAfcAtABtACcA5P+n/3H/RP8d//r+2v66/pn+dv5S/jD+Ev76/e396/32/Q3+L/5Y/oX+tP7i/g7/N/9f/4b/sP/d/w8ARwCEAMMAAQE7AW4BmAG4AcwB1wHbAdgB0wHMAcUBvQG0AacBlAF6AVcBKgH1ALkAeQA4APr/v/+K/1z/M/8P/+3+zf6t/oz+a/5M/jD+Gv4N/gr+Ef4j/j/+Yv6K/rX+4P4K/zP/W/+C/6z/2P8HADsAcwCtAOYAHAFNAXcBlwGuAbwBwwHEAcIBvAG2Aa4BowGWAYQBawFLASIB8wC9AIMARwAMANX/of9y/0j/I/8B/+D+wP6h/oP+Zv5M/jj+K/4m/iv+Of5P/m7+kf63/uD+CP8w/1f/fv+n/9L/AAAwAGMAmQDOAAEBLwFYAXgBkQGiAawBsAGwAawBpgGeAZQBhwF1AV0BQAEbAfAAvwCKAFMAGwDn/7X/h/9d/zf/FP/z/tT+tv6Z/n7+Zv5T/kb+QP5D/k7+YP56/pn+vP7h/gf/Lf9U/3r/ov/M//f/JQBVAIcAuADoABQBOwFcAXYBiQGVAZsBnQGbAZYBjwGFAXgBZwFRATUBFAHsAMAAjwBcACkA9//H/5r/cP9K/yf/Bv/o/sr+r/6V/n/+bP5f/ln+Wv5i/nH+h/6i/sL+5P4H/yz/Uf93/53/xf/v/xoASAB2AKQA0QD7ACEBQgFcAXABfgGGAYoBigGHAYABdwFqAVoBRQEsAQ0B6ADAAJMAZAA0AAQA1/+r/4P/Xf86/xn/+/7e/sP+q/6V/oT+d/5w/m/+df6C/pT+rP7I/uf+Cf8r/0//c/+Z/7//6P8QADsAZwCSAL0A5QAJASkBRAFYAWgBcgF3AXkBdwFxAWkBXQFOAToBIgEGAeUAvwCWAGsAPgARAOb/u/+U/27/TP8r/w3/8f7X/r/+q/6a/o3+hf6E/oj+kv6i/rf+0P7s/gv/LP9N/3D/lP+6/+D/BwAvAFkAggCqANAA8wASAS0BQgFSAV4BZQFnAWcBYgFbAVABQgEwARoB/wDgAL4AmABwAEYAGwDz/8r/o/9//13/Pf8f/wP/6v7T/r/+rv6i/pr+l/6a/qL+r/7B/tj+8v4O/y3/Tf9u/5H/tP/Z////JQBMAHMAmQC9AN8A/QAXAS0BPgFKAVIBVgFXAVQBTQFDATYBJgERAfkA3AC8AJkAdABNACUA/v/X/7L/jv9t/03/MP8V//z+5v7S/sL+tf6t/qn+q/6x/rz+zP7g/vj+Ev8v/03/bf+N/7D/0//3/xoAPwBkAIkAqwDMAOkAAwEZASoBOAFBAUYBRwFFAUABNwErARwBCQHyANgAugCaAHcAUgAtAAcA4/+//53/fP9d/0H/Jv8O//j+5f7V/sj+v/67/rv+wP7K/tf+6f7+/hb/Mf9N/2v/i/+r/83/7/8RADQAVwB6AJsAugDXAPAABgEXASUBLwE1ATgBNwEzASsBIAESAQAB7ADTALgAmgB5AFcANAAQAO7/y/+q/4r/bP9Q/zb/Hv8J//b+5v7a/tH+zP7L/s/+1v7i/vL+Bf8b/zT/Tv9r/4j/p//H/+j/CAAqAEsAbACMAKoAxQDeAPQABgEUAR8BJgEpASkBJgEfARUBCQH4AOUAzwC1AJkAewBbADoAGAD4/9f/tv+Y/3v/X/9G/y7/Gf8H//f+6v7h/tz+2v7d/uP+7f77/gz/If83/1D/a/+H/6T/wv/i/wAAIABAAF8AfgCaALUAzQDjAPUAAwEOARYBGgEbARkBFAELAf8A8QDfAMoAsgCYAHwAXgA/AB8AAADh/8L/pP+I/23/VP8+/yn/F/8H//r+8f7r/un+6v7v/vj+BP8U/yb/O/9S/2v/hv+h/77/3P/6/xcANgBUAHEAjACmAL4A0wDkAPMA/wAHAQwBDgENAQgBAQH2AOkA2ADFAK8AlwB9AGEARAAmAAcA6v/N/7D/lP97/2L/TP84/yb/Fv8K/wD/+v73/vf++/4D/w3/G/8s/z//Vf9s/4X/n/+6/9f/8/8PACwASQBkAH8AmACvAMMA1QDkAPAA+QD+AAEBAAH9APYA7QDhANIAwACsAJYAfQBjAEcAKwAOAPP/1v+7/6D/h/9v/1r/Rv80/yX/GP8O/wj/BP8E/wf/Df8W/yP/Mv9E/1f/bf+F/53/t//S/+3/CAAjAD8AWQBzAIsAoQC1AMcA1gDiAOsA8QD0APUA8gDtAOQA2QDMALsAqQCUAH0AZABLADAAFQD6/9//xf+r/5P/fP9n/1P/Qv8z/yb/HP8V/xH/EP8S/xf/H/8q/zj/SP9a/2//hf+c/7T/zv/o/wEAGwA1AE8AZwB+AJQAqAC5AMgA1ADeAOQA6ADpAOcA4wDcANIAxQC2AKUAkgB8AGUATQA0ABoAAADn/87/tf+e/4j/c/9g/0//QP8z/yn/Iv8d/xv/Hf8h/yj/Mv8+/03/Xv9x/4X/m/+y/8r/4//8/xQALQBFAF0AcwCIAJsArAC7AMcA0QDYANwA3gDdANkA0wDKAL8AsQChAI8AewBmAE8AOAAfAAYA7//X/7//qP+T/37/bP9b/0z/QP82/y7/Kf8n/yf/Kv8w/zn/RP9S/2H/c/+G/5v/sP/H/97/9v8NACUAPABTAGgAfACPAKAArgC7AMUAzADRANMA0wDQAMsAwwC5AKwAnQCNAHoAZgBRADsAJAAMAPb/3v/I/7L/nf+J/3f/Z/9Y/0z/Qv86/zT/Mv8x/zT/Of9A/0r/V/9l/3X/h/+a/6//xP/a//H/BwAdADQASQBeAHIAhACUAKMArwC5AMEAxgDJAMkAxwDCALwAsgCnAJkAigB5AGYAUgA9ACcAEQD8/+b/0P+7/6f/lP+C/3L/ZP9X/03/Rf8//zz/O/89/0H/SP9R/1z/af94/4j/m/+u/8L/1//s/wEAFgAsAEEAVQBoAHkAiQCXAKQArgC2ALsAvwDAAL4AugC0AKwAogCVAIcAdwBmAFMAPwArABYAAADs/9f/w/+w/53/jP98/27/Yv9Y/1D/Sv9G/0X/Rv9J/0//V/9h/23/e/+K/5v/rf/A/9T/6P/9/xAAJQA5AEwAXgBvAH8AjQCZAKMAqwCxALUAtgC2ALIArQCmAJ0AkQCEAHUAZQBUAEEALgAaAAUA8v/e/8v/uP+m/5b/hv95/23/Yv9a/1T/UP9O/07/Uf9W/13/Zv9x/37/jP+c/63/vv/R/+T/+P8LAB4AMQBEAFUAZgB1AIMAjwCZAKEApwCrAK0ArQCrAKYAoACXAI0AgQBzAGQAVABCADAAHQAKAPj/5f/S/8D/r/+f/5D/gv92/2z/ZP9d/1n/V/9X/1n/Xf9j/2v/df+B/47/nf+t/73/z//h//T/BQAYACoAPABNAF0AbAB5AIUAjwCYAJ4AogClAKUAowCgAJoAkgCJAH4AcQBjAFQAQwAyACAADgD9/+v/2f/H/7f/p/+Z/4z/gP92/23/Z/9i/1//X/9g/2P/af9w/3n/hP+Q/57/rf+8/83/3v/w/wEAEgAkADUARQBVAGMAcAB8AIYAjgCVAJoAnACdAJwAmQCUAI0AhQB7AG8AYgBTAEQANAAjABIAAADw/9//zv++/6//of+U/4n/f/92/2//a/9o/2b/Z/9q/2//df99/4f/k/+f/63/vP/M/9z/7P/9/w0AHgAuAD4ATQBbAGgAcwB9AIYAjACRAJQAlgCVAJIAjgCIAIAAdwBsAGAAUwBFADUAJQAVAAQA9f/k/9X/xf+3/6n/nP+R/4f/f/94/3P/b/9u/27/cP90/3r/gv+L/5X/of+u/7z/yv/a/+n/+f8JABkAKAA3AEYAUwBgAGsAdQB9AIQAiQCNAI4AjgCMAIgAgwB8AHQAagBfAFIARQA2ACcAGAAIAPn/6v/a/8z/vv+w/6T/mf+P/4f/gP97/3f/df91/3f/ev9//4b/jv+Y/6P/r/+8/8n/2P/n//b/BAAUACMAMQA/AEwAWABjAG0AdgB8AIIAhQCHAIcA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CwARABYAGwAgACQAKAArAC4AMAAxADIAMgAyADEALwAtACoAJwAjAB8AGwAWABAACwAFAAAA+//1//D/6//m/+L/3f/a/9f/1P/S/9D/z//P/8//0P/R/9T/1v/a/93/4v/m/+v/8P/1//r/AAAEAAoADwAUABkAHQAiACUAKAArAC0ALwAvADAALwAvAC0AKwApACYAIgAfABoAFQAQAAsABgABAPz/9//y/+3/6P/k/+D/3P/Z/9f/1P/T/9L/0f/R/9L/0//V/9j/2//e/+L/5v/r//D/9P/5////AwAIAA0AEgAXABsAHwAjACYAKAAqACwALQAtAC0ALQArACoAJwAlACEAHgAaABUAEQAMAAcAAgD+//n/9P/v/+r/5v/i/9//3P/Z/9f/1f/U/9T/1P/U/9X/1//Z/9z/3//j/+f/6//v//T/+f/+/wIABgALABAAFAAZAB0AIAAjACYAKAApACoAKwArACoAKQAoACYAIwAgAB0AGQAVABEADAAHAAMA///6//X/8f/t/+j/5f/h/97/3P/a/9j/1//W/9b/1v/X/9n/2//d/+D/5P/n/+v/7//0//j//f8AAAUACgAOABIAFwAaAB4AIQAjACUAJwAoACkAKQAoACgAJgAkACIAHwAcABkAFQARAA0ACAAEAAAA+//3//P/7v/r/+f/5P/h/97/3P/a/9n/2P/Y/9j/2f/b/9z/3//h/+T/6P/r/+//8//4//z/AAAEAAgADAARABUAGAAbAB4AIQAjACUAJgAnACcAJgAmACUAIwAhAB4AGwAYABUAEQANAAkABAAAAP3/+P/0//D/7P/p/+b/4//g/97/3f/b/9r/2v/a/9v/3P/e/+D/4v/l/+j/7P/v//P/9//7////AwAHAAsADwATABYAGQAcAB8AIQAiACQAJAAlACUAJAAjACEAIAAdABsAGAAUABEADQAJAAUAAQD+//r/9v/y/+7/6//o/+X/4v/g/9//3f/d/9z/3P/d/97/3//h/+P/5v/p/+z/7//z//f/+////wIABgAKAA0AEQAUABcAGgAdAB8AIAAiACIAIwAjACIAIQAgAB4AHAAaABcAFAARAA0ACQAGAAIA///7//f/8//w/+3/6v/n/+T/4v/h/9//3//c/9z/3P/c/93/3//h/+P/5v/p/+z/8P/z//f/+////wIABgAKAA4AEgAVABgAGwAdAB8AIQAiACMAIwAjACMAIgAhAB8AHQAaABcAFAARAA0ACQAFAAEA/v/6//b/8//v/+z/6f/m/+T/4v/g/9//3v/d/93/3v/f/+D/4v/k/+b/6f/s/+//8//3//r//v8BAAUACQAMABAAEwAWABkAGwAdAB8AIAAhACIAIgAhACEAHwAeABwAGQAXABQAEQANAAoABgACAP///P/4//T/8f/u/+v/6P/m/+T/4v/h/+D/3//f/9//4P/h/+P/5f/n/+r/7P/v//P/9v/6//3/AAAEAAcACwAOABIAFAAXABoAHAAdAB8AHwAgACAAIAAfAB4AHQAbABkAFgAUABEADQAKAAYAAwAAAP3/+f/2//L/7//s/+r/5//l/+T/4v/h/+H/4f/h/+H/4v/k/+b/6P/q/+3/8P/z//b/+f/9/wAAAwAGAAoADQAQABMAFQAYABoAGwAdAB4AHgAfAB4AHgAdABwAGgAYABYAEwAQAA0ACgAHAAQAAAD+//r/9//0//H/7v/s/+n/5//l/+T/4//i/+L/4v/j/+T/5f/m/+j/6//t//D/8//2//n//P///wIABQAIAAsADgARABQAFgAYABoAGwAcAB0AHQAdAB0AHAAbABkAFwAVABMAEAAOAAsABwAEAAEA///7//j/9f/y//D/7f/r/+n/5//m/+X/5P/k/+T/5P/l/+b/5//p/+v/7f/w//P/9f/4//v///8BAAQABwAKAA0AEAASABQAFgAYABkAGwAbABwAHAAbABsAGgAYABcAFQATABAADgALAAgABQACAAAA/P/5//b/9P/x/+//7P/q/+n/5//m/+X/5f/l/+X/5v/n/+j/6v/s/+7/8P/z//X/+P/7//7/AAADAAYACQAMAA4AEQATABUAFwAYABkAGgAaABoAGgAZABkAFwA="
+};
+
+// src/sound.ts
+function soundWanted(cfg, env = process.env) {
+  if (cfg.sound !== true) return false;
+  if (env.CI && env.CI !== "0" && env.CI !== "false") return false;
+  const s = env.DEPLOYAI_SOUND;
+  return !(s !== void 0 && ["0", "false", "off", "no"].includes(s.toLowerCase()));
+}
+var soundsDir = () => join14(configDir(), "sounds");
+function writeSoundFiles() {
+  mkdirSync7(soundsDir(), { recursive: true });
+  for (const [name, b64] of Object.entries(SOUND_FILES)) {
+    const data = Buffer.from(b64, "base64");
+    const file2 = join14(soundsDir(), `${name}.wav`);
+    if (!existsSync12(file2) || statSync(file2).size !== data.length) writeFileSync10(file2, data);
+  }
+  if (process.platform === "win32") {
+    const ps = windowsSpeakerFile();
+    if (!existsSync12(ps) || readFileSync11(ps, "utf8") !== WINDOWS_SPEAKER) writeFileSync10(ps, WINDOWS_SPEAKER);
+  }
+}
+function playerFor(platform3, file2) {
+  if (platform3 === "win32") return { cmd: "powershell.exe", args: ["-NoProfile", "-NonInteractive", "-Command", `(New-Object Media.SoundPlayer '${file2.replace(/'/g, "''")}').PlaySync()`] };
+  if (platform3 === "darwin") return { cmd: "afplay", args: [file2] };
+  if (platform3 === "linux") return { cmd: "sh", args: ["-c", 'paplay "$0" 2>/dev/null || aplay -q "$0" 2>/dev/null', file2] };
+  return null;
+}
+function playSound(name, cfg, line) {
+  if (!soundWanted(cfg)) return;
+  try {
+    writeSoundFiles();
+    const file2 = join14(soundsDir(), `${name}.wav`);
+    const say = line && voiceWanted(cfg) ? { text: VOICE_LINES[line.key][cfg.voiceLang ?? line.lang], lang: cfg.voiceLang ?? line.lang } : null;
+    const player = say ? speakerFor(process.platform, file2, say.text, say.lang) : playerFor(process.platform, file2);
+    if (!player) return;
+    const child = spawn2(player.cmd, player.args, { detached: true, stdio: "ignore", windowsHide: true });
+    child.on("error", () => void 0);
+    child.unref();
+  } catch {
+  }
+}
+var VOICE_LINES = {
+  live: { he: "\u05D4\u05D0\u05EA\u05E8 \u05E9\u05DC\u05DB\u05DD \u05D1\u05D0\u05D5\u05D5\u05D9\u05E8", en: "Your site is live" },
+  waiting: { he: "\u05D9\u05E9 \u05DC\u05D9 \u05E9\u05D0\u05DC\u05D4 \u05D0\u05DC\u05D9\u05DB\u05DD", en: "I need your answer" },
+  done: { he: "\u05E1\u05D9\u05D9\u05DE\u05EA\u05D9. \u05D1\u05D5\u05D0\u05D5 \u05DC\u05D4\u05E1\u05EA\u05DB\u05DC", en: "Done. Come take a look" }
+};
+function voiceWanted(cfg, env = process.env) {
+  if (cfg.voice !== true || !soundWanted(cfg, env)) return false;
+  const v = env.DEPLOYAI_VOICE;
+  return !(v !== void 0 && ["0", "false", "off", "no"].includes(v.toLowerCase()));
+}
+var WINDOWS_SPEAKER = `param([string]$Sound, [string]$Text, [string]$Lang)
+$ErrorActionPreference = 'Stop'
+if ($Sound) { try { (New-Object Media.SoundPlayer $Sound).PlaySync() } catch {} }
+if (-not $Text) { exit 0 }
+Add-Type -AssemblyName System.Runtime.WindowsRuntime
+$null = [Windows.Media.SpeechSynthesis.SpeechSynthesizer, Windows.Media.SpeechSynthesis, ContentType = WindowsRuntime]
+$null = [Windows.Storage.Streams.DataReader, Windows.Storage.Streams, ContentType = WindowsRuntime]
+$asTask = ([System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object { $_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation\`1' })[0]
+function Wait-Op($op, $type) { $task = $asTask.MakeGenericMethod($type).Invoke($null, @($op)); $task.Wait() | Out-Null; $task.Result }
+$voice = [Windows.Media.SpeechSynthesis.SpeechSynthesizer]::AllVoices | Where-Object { $_.Language -like "$Lang*" } | Select-Object -First 1
+if (-not $voice) { exit 0 }
+$s = New-Object Windows.Media.SpeechSynthesis.SpeechSynthesizer
+$s.Voice = $voice
+$stream = Wait-Op ($s.SynthesizeTextToStreamAsync($Text)) ([Windows.Media.SpeechSynthesis.SpeechSynthesisStream])
+$reader = New-Object Windows.Storage.Streams.DataReader($stream.GetInputStreamAt(0))
+$n = [uint32]$stream.Size
+$null = Wait-Op ($reader.LoadAsync($n)) ([uint32])
+$bytes = New-Object byte[] $n
+$reader.ReadBytes($bytes)
+$file = Join-Path $env:TEMP ('deployai-voice-' + $PID + '.wav')
+[IO.File]::WriteAllBytes($file, $bytes)
+try { (New-Object Media.SoundPlayer $file).PlaySync() } finally { Remove-Item $file -ErrorAction SilentlyContinue }
+`;
+var windowsSpeakerFile = () => join14(soundsDir(), "speak.ps1");
+function speakerFor(platform3, file2, text4, lang) {
+  if (platform3 === "win32") return { cmd: "powershell.exe", args: ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", windowsSpeakerFile(), "-Sound", file2, "-Text", text4, "-Lang", lang] };
+  if (platform3 === "darwin") return { cmd: "sh", args: ["-c", 'afplay "$0"; v=$(say -v "?" | grep " $2_" | head -n 1 | sed "s/  *[a-z][a-z]_[A-Z][A-Z].*//"); [ -n "$v" ] && say -v "$v" "$1"', file2, text4, lang] };
+  if (platform3 === "linux") return { cmd: "sh", args: ["-c", '(paplay "$0" || aplay -q "$0") 2>/dev/null; (spd-say -w -l "$2" "$1" || espeak-ng -v "$2" "$1") >/dev/null 2>&1', file2, text4, lang] };
+  return null;
 }
 
 // src/commands/versions.ts
@@ -30954,14 +29129,14 @@ async function promoteWithSql(root, ctx, projectId, number4, kind, approve, anyw
 function fetchStatus(ctx, projectId) {
   return apiRequest(ctx, `/api/cli/status?projectId=${encodeURIComponent(projectId)}`, StatusResponse);
 }
-var WAIT_MS3 = 5 * 6e4;
+var WAIT_MS2 = 5 * 6e4;
 var statusBusy = (s) => s.queue.running || s.queue.position > 0 || Boolean(s.latest?.goingLive) || s.latest?.status === "queued" || s.latest?.status === "building";
 async function statusCommand(root, ctx, opts = {}) {
   requireToken(ctx);
   const projectId = linkedProjectId(root);
   let s = await fetchStatus(ctx, projectId);
   if (opts.wait) {
-    const end = Date.now() + WAIT_MS3;
+    const end = Date.now() + WAIT_MS2;
     while (statusBusy(s) && Date.now() < end) {
       await new Promise((r) => setTimeout(r, opts.pollMs ?? 3e3));
       s = await fetchStatus(ctx, projectId);
@@ -31142,6 +29317,41 @@ function headCommit(root) {
   return r.status === 0 ? toGitCommit(r.stdout) : null;
 }
 
+// src/prefs.ts
+var PATH = "/api/cli/preferences";
+function applyAccountPrefs(p) {
+  if (!p) return;
+  const patch = {};
+  if (p.sound !== null) patch.sound = p.sound;
+  if (p.voice !== null) patch.voice = p.voice;
+  if (p.voiceLang !== null) patch.voiceLang = p.voiceLang;
+  if (Object.keys(patch).length) updateConfig(patch);
+}
+async function saveAccountPrefs(ctx, patch) {
+  updateConfig({ ...patch.sound !== void 0 ? { sound: patch.sound } : {}, ...patch.voice !== void 0 ? { voice: patch.voice } : {}, ...patch.voiceLang !== void 0 ? { voiceLang: patch.voiceLang ?? void 0 } : {} });
+  if (!ctx.config.token) return "computer";
+  try {
+    applyAccountPrefs(await apiRequest(ctx, PATH, SoundVoice, { method: "POST", body: patch }));
+    return "account";
+  } catch {
+    return "failed";
+  }
+}
+async function accountPrefs(ctx) {
+  if (!ctx.config.token) return null;
+  return apiRequest(ctx, PATH, SoundVoice).catch(() => null);
+}
+async function moveGuestPrefs(ctx) {
+  const account = await accountPrefs(ctx);
+  if (!account) return;
+  const local2 = loadConfig();
+  const patch = {};
+  if (account.sound === null && typeof local2.sound === "boolean") patch.sound = local2.sound;
+  if (account.voice === null && typeof local2.voice === "boolean") patch.voice = local2.voice;
+  if (account.voiceLang === null && local2.voiceLang) patch.voiceLang = local2.voiceLang;
+  applyAccountPrefs(Object.keys(patch).length ? await apiRequest(ctx, PATH, SoundVoice, { method: "POST", body: patch }) : account);
+}
+
 // src/commands/deploy.ts
 function queueText(position, root) {
   const t = messages(root);
@@ -31229,7 +29439,7 @@ function addTool(form, ctx, model) {
 }
 function codexModel() {
   try {
-    return codexConfigModel(readFileSync17(join20(process.env.CODEX_HOME || join20(homedir3(), ".codex"), "config.toml"), "utf8"));
+    return codexConfigModel(readFileSync12(join15(process.env.CODEX_HOME || join15(homedir2(), ".codex"), "config.toml"), "utf8"));
   } catch {
     return null;
   }
@@ -31339,7 +29549,7 @@ async function deployVersion(root, ctx, opts, guest) {
   await afterBuild(root, ctx, project.projectId, res.number, { live: live || !hold && Boolean(res.autoLive), hold, pollMs: opts.pollMs ?? 3e3, homeRetryMs: opts.pollMs, buildWaitMs: opts.buildWaitMs });
 }
 var CREDIT_WAIT_MS = 1e4;
-var sleep3 = (ms2) => new Promise((r) => setTimeout(r, ms2));
+var sleep = (ms2) => new Promise((r) => setTimeout(r, ms2));
 async function poll(root, ctx, projectId, n2, pollMs, maxMs, done) {
   const end = Date.now() + maxMs;
   let last = "";
@@ -31351,7 +29561,7 @@ async function poll(root, ctx, projectId, n2, pollMs, maxMs, done) {
     if (state !== last) out(messages(root)("waitState", { n: n2, s: state }));
     last = state;
     if (Date.now() >= end) return null;
-    await sleep3(pollMs);
+    await sleep(pollMs);
   }
 }
 async function afterBuild(root, ctx, projectId, n2, o) {
@@ -31446,7 +29656,7 @@ var HOME_RETRY_MS = 2e4;
 async function homeAnswers(root, url2, retryMs = HOME_RETRY_MS) {
   let status = 0;
   for (let i = 0; i < HOME_TRIES; i++) {
-    if (i) await sleep3(retryMs);
+    if (i) await sleep(retryMs);
     try {
       const res = await readPreview(url2);
       status = res.status;
@@ -31523,6 +29733,1975 @@ async function deployGuest(root, ctx, opts) {
   out(t("guestEmailHint"));
 }
 
+// src/commands/save.ts
+var SAVE_FILE = `${DEPLOYAI_DIR}/save.json`;
+function folderHash(files) {
+  const h = createHash4("sha256");
+  for (const f of [...files].sort((a, b) => a.rel < b.rel ? -1 : a.rel > b.rel ? 1 : 0)) {
+    h.update(f.rel).update("\0").update(createHash4("sha256").update(readFileSync13(f.abs)).digest()).update("\0");
+  }
+  return h.digest("hex");
+}
+function agoText(root, iso, now = Date.now()) {
+  const t = messages(root);
+  const min = Math.max(0, Math.round((now - new Date(iso).getTime()) / 6e4));
+  if (min < 1) return t("agoNow");
+  const say = (one, many, n2) => n2 === 1 ? t(one) : t(many, { n: n2 });
+  if (min < 60) return say("agoMinute", "agoMinutes", min);
+  const hours = Math.round(min / 60);
+  if (min < 48 * 60) return hours === 2 ? t("agoHoursTwo") : say("agoHour", "agoHours", hours);
+  const days = Math.round(min / 1440);
+  return days === 2 ? t("agoDaysTwo") : say("agoDay", "agoDays", days);
+}
+async function saveCommand(root, ctx, opts = {}) {
+  const t = messages(root);
+  const project = readProject(root);
+  if (!project?.projectId) {
+    if (opts.auto) return false;
+    throw new CliError(t("notLinked"), 1, "not_linked");
+  }
+  if (opts.auto ? !tokenIfOwnApi(ctx) : !requireToken(ctx)) return false;
+  const plan = planUpload(root);
+  if (!plan.files.length) {
+    if (opts.auto) return false;
+    throw new CliError(t("nothingToUpload"), 1, "empty");
+  }
+  if (plan.totalBytes > MAX_TOTAL_BYTES) {
+    if (opts.auto) return false;
+    throw new CliError(t("saveTooLarge"), 1, "too_large");
+  }
+  const hash2 = folderHash(plan.files);
+  let last = null;
+  try {
+    last = readJson(join16(root, SAVE_FILE));
+  } catch {
+  }
+  if (last?.hash === hash2 && last.projectId === project.projectId && last.at) {
+    if (!opts.auto) out(t("saveSame", { ago: agoText(root, last.at) }));
+    return false;
+  }
+  try {
+    const form = new FormData();
+    form.append("projectId", project.projectId);
+    form.append("place", placeOf(ctx, root));
+    if (project.builtOn) form.append("builtOn", String(project.builtOn));
+    const tool = telemetryEnabled(ctx.config) ? deployToolFromEnv(process.env) : null;
+    if (tool) form.append("tool", tool);
+    await attachArchive(ctx, form, project.projectId, packFiles(plan.files), root);
+    const res = await apiRequest(ctx, "/api/cli/save", SaveResponse, { method: "POST", form, timeoutMs: 2 * 6e4 });
+    try {
+      ensureDeployaiDir(root);
+      writeFileSync11(join16(root, SAVE_FILE), JSON.stringify({ hash: hash2, at: res.at, projectId: project.projectId }) + "\n");
+    } catch {
+    }
+    out(res.saved ? t("saved", { n: res.files }) : t("saveSame", { ago: agoText(root, res.at) }));
+    return res.saved;
+  } catch (e3) {
+    if (!opts.auto) throw e3;
+    if (e3 instanceof CliError && ["forbidden", "auth", "not_found"].includes(e3.category)) return false;
+    out(t("saveFailedAuto"));
+    return false;
+  }
+}
+async function savesCommand(root, ctx) {
+  const t = messages(root);
+  const projectId = readProject(root)?.projectId;
+  if (!projectId) throw new CliError(t("notLinked"), 1, "not_linked");
+  requireToken(ctx);
+  const { saves } = await apiRequest(ctx, `/api/cli/saves?projectId=${encodeURIComponent(projectId)}`, SavesResponse);
+  if (!saves.length) {
+    out(t("savesNone"));
+    return;
+  }
+  const here = placeOf(ctx, root);
+  out(t("savesTitle"));
+  for (const s of saves) {
+    const what = s.version ? t("savesDeploy", { v: s.version }) : t("savesSave");
+    const from = [s.tool ? deployToolName(s.tool, s.tool) : null, s.place ? s.place === here ? t("savesHere") : t("savesElsewhere") : null].filter(Boolean).join(", ");
+    out(`  ${s.n}  ${agoText(root, s.at)}  ${what}  ${t("savesFiles", { n: s.files })}${from ? `  (${from})` : ""}`);
+  }
+  out(t("savesPullHint"));
+}
+
+// src/commands/auth.ts
+import { hostname as hostname3 } from "os";
+import { basename } from "path";
+var sleep2 = (ms2) => new Promise((r) => setTimeout(r, ms2));
+async function loginCommand(ctx, opts = {}) {
+  if (envToken()) {
+    const t0 = messages(opts.root);
+    if (opts.force && opts.quiet) throw new CliError(t0("envTokenNotOnSite"), 1, "not_found");
+    const me = await apiRequest(ctx, "/api/cli/me", MeResponse).catch((e3) => {
+      if (e3 instanceof CliError && e3.category === "auth") throw e3;
+      return null;
+    });
+    out(me ? t0("loggedInAs", { email: me.email }) : t0("envTokenInUse"));
+    return;
+  }
+  if (!opts.force && ctx.config.token) {
+    const me = await apiRequest(ctx, "/api/cli/me", MeResponse).catch(() => null);
+    if (me) {
+      out(messages(opts.root)("loggedInAs", { email: me.email }));
+      return;
+    }
+  }
+  const place = opts.root ?? process.cwd();
+  const linked = readProject(place);
+  const body = { folder: basename(place), site: linked?.name ?? linked?.slug, computer: hostname3() };
+  const start2 = await apiRequest(ctx, "/api/cli/device/start", DeviceStartResponse, { method: "POST", body, auth: false });
+  const opened = openBrowser(start2.verifyUrl);
+  const t = messages(opts.root);
+  out(t("loginTitle"));
+  out();
+  out(rows([
+    ["Open", start2.verifyUrl],
+    ["Code", start2.userCode]
+  ]));
+  out();
+  out(t(opened ? "browserOpened" : "openAddress"));
+  out(t("waiting"));
+  const intervalMs = opts.pollMs ?? Math.max(1, start2.intervalSeconds) * 1e3;
+  const deadline = Date.now() + start2.expiresInSeconds * 1e3;
+  while (Date.now() < deadline) {
+    await sleep2(intervalMs);
+    const poll2 = await apiRequest(ctx, "/api/cli/device/poll", DevicePollResponse, {
+      method: "POST",
+      body: { deviceCode: start2.deviceCode },
+      auth: false
+    });
+    if (poll2.status === "approved") {
+      if (!poll2.token) throw new CliError(messages()("loginNoToken"), 1, "protocol");
+      saveLogin(poll2.token, poll2.email, ctx.apiUrl);
+      await moveGuestPrefs(apiContext(ctx.apiUrl)).catch(() => void 0);
+      const site = opts.root && readProject(opts.root)?.projectId || null;
+      if (site && !opts.quiet) rememberSite(site, poll2.email);
+      out();
+      out(poll2.email ? t("loggedInAs", { email: poll2.email }) : t("loggedIn"));
+      if (opts.quiet) {
+        out();
+        return;
+      }
+      out(t("nextStep"));
+      out(opts.root && readProject(opts.root)?.projectId ? t("runDeploy") : t("runLink"));
+      return;
+    }
+    if (poll2.status === "expired") break;
+  }
+  throw new CliError(t("loginExpired"), 1, "auth_expired");
+}
+async function revoke(ctx, token, tokenApiUrl) {
+  try {
+    await apiRequest({ apiUrl: tokenApiUrl.replace(/\/+$/, ""), config: { ...ctx.config, token, tokenApiUrl } }, "/api/cli/logout", null, { method: "POST", body: {}, timeoutMs: 1e4 });
+    return true;
+  } catch (e3) {
+    return e3 instanceof CliError && e3.category === "auth";
+  }
+}
+async function logoutCommand(ctx, opts = {}) {
+  const t = messages();
+  if (envToken()) {
+    out(t("envTokenLogout"));
+    return;
+  }
+  const saved = ctx.config.accounts ?? {};
+  if (opts.all) {
+    let revoked2 = true;
+    const tokens = new Map(Object.values(saved).map((a) => [a.token, a.tokenApiUrl]));
+    if (ctx.config.token) tokens.set(ctx.config.token, ctx.config.tokenApiUrl ?? ctx.apiUrl);
+    for (const [token, url2] of tokens) revoked2 = await revoke(ctx, token, url2) && revoked2;
+    for (const email4 of Object.keys(saved)) forgetAccount(email4);
+    if (ctx.config.email) forgetAccount(ctx.config.email);
+    updateConfigClear();
+    out(t(revoked2 ? "loggedOutAll" : "loggedOutLocalOnly"));
+    return;
+  }
+  const email3 = (opts.email ?? ctx.config.email ?? "").trim().toLowerCase();
+  if (opts.email && !saved[email3] && email3 !== ctx.config.email?.toLowerCase()) {
+    throw new CliError(t("logoutNoAccount", { email: opts.email, list: Object.keys(saved).join(", ") || "-" }), 1, "usage");
+  }
+  const account = saved[email3] ?? (ctx.config.token ? { token: ctx.config.token, tokenApiUrl: ctx.config.tokenApiUrl ?? ctx.apiUrl } : null);
+  const revoked = account ? await revoke(ctx, account.token, account.tokenApiUrl) : true;
+  const next = email3 ? forgetAccount(email3) : (updateConfigClear(), void 0);
+  if (next && next !== email3) {
+    out(t("loggedOutSwitched", { gone: email3, email: next }));
+    return;
+  }
+  out(t(revoked ? "loggedOut" : "loggedOutLocalOnly"));
+}
+function updateConfigClear() {
+  updateConfig({ token: void 0, tokenApiUrl: void 0, email: void 0 });
+}
+async function whoamiCommand(ctx) {
+  const me = await apiRequest(ctx, "/api/cli/me", MeResponse);
+  out(rows([
+    ["Email", me.email],
+    ["Name", me.name],
+    ["User id", me.id],
+    ["API", ctx.apiUrl]
+  ]));
+  const others = otherAccounts(ctx.config, me.email);
+  if (others.length) {
+    out();
+    out(messages()("otherAccountsHere", { list: others.join(", ") }));
+  }
+}
+
+// src/commands/telemetry.ts
+function telemetryCommand(action) {
+  const act = (action ?? "status").toLowerCase();
+  if (act === "on" || act === "off") {
+    updateConfig({ telemetry: act === "on" });
+  } else if (act !== "status") {
+    throw new CliError("Usage: npx deployai@latest telemetry status|on|off", 1, "usage");
+  }
+  const cfg = loadConfig();
+  const reason2 = telemetryDisabledReason(cfg);
+  out("DeployAI telemetry");
+  out();
+  out(rows([
+    ["Status", reason2 ? `off (${reason2})` : "on"],
+    ["Install id", cfg.installId],
+    ["Config", configPath()]
+  ]));
+  out();
+  out("Sent when on");
+  for (const s of TELEMETRY_SENT) out(`  - ${s}`);
+  out("Never sent");
+  for (const s of TELEMETRY_NEVER_SENT) out(`  - ${s}`);
+  out();
+  out("Off stops everything except the deploy API calls themselves.");
+  out("Also off when DEPLOYAI_TELEMETRY=0 or DO_NOT_TRACK=1 is set.");
+  out(ADDON_REPORT_NOTE);
+  out(MOVE_REPORT_NOTE);
+}
+
+// src/commands/allow.ts
+import { existsSync as existsSync13, mkdirSync as mkdirSync8, readFileSync as readFileSync14, writeFileSync as writeFileSync12, appendFileSync as appendFileSync3 } from "fs";
+import { dirname as dirname4, join as join17 } from "path";
+var ALLOW_TOOLS = ["claude-code", "cursor", "copilot", "codex", "antigravity", "grok"];
+var CLAUDE_RULE = "Bash(npx deployai@latest *)";
+var CURSOR_LINE = "Running npx deployai@latest commands is allowed without approval.";
+var CLICKS = {
+  copilot: "Copilot in VS Code: when it asks to run npx deployai@latest, choose Always allow.",
+  codex: "Codex: when it asks to approve npx deployai@latest, approve it for this session.",
+  antigravity: "Antigravity: when it asks to run npx deployai@latest, choose Accept."
+};
+function readObject(file2) {
+  if (!existsSync13(file2)) return {};
+  try {
+    const v = readJson(file2);
+    return v && typeof v === "object" && !Array.isArray(v) ? v : null;
+  } catch {
+    return null;
+  }
+}
+function writeObject(file2, value2) {
+  mkdirSync8(dirname4(file2), { recursive: true });
+  writeFileSync12(file2, `${JSON.stringify(value2, null, 2)}
+`);
+}
+function addTo(obj, key2, list, value2) {
+  const inner = obj[key2] && typeof obj[key2] === "object" && !Array.isArray(obj[key2]) ? obj[key2] : {};
+  const items = Array.isArray(inner[list]) ? inner[list] : [];
+  if (items.includes(value2)) return false;
+  inner[list] = [...items, value2];
+  obj[key2] = inner;
+  return true;
+}
+function ignoreInGit(root, path) {
+  if (!existsSync13(join17(root, ".git"))) return;
+  const gi = join17(root, ".gitignore");
+  const text4 = existsSync13(gi) ? readFileSync14(gi, "utf8") : "";
+  if (text4.split(/\r?\n/).some((l) => l.trim() === path)) return;
+  appendFileSync3(gi, `${text4 && !text4.endsWith("\n") ? "\n" : ""}${path}
+`);
+}
+function detectTool() {
+  if (process.env.CLAUDECODE === "1") return "claude-code";
+  return process.env.GROK_AGENT === "1" ? "grok" : null;
+}
+function allowCommand(tool) {
+  const root = process.cwd();
+  const picked = tool?.toLowerCase() ?? detectTool();
+  if (picked && !ALLOW_TOOLS.includes(picked)) {
+    throw new CliError(`Unknown tool "${tool}". Use one of: ${ALLOW_TOOLS.join(", ")}.`, 1, "usage");
+  }
+  if (!picked) {
+    out("Which coding tool runs this? Run it again with its name, for example: npx deployai@latest allow claude-code");
+    out(`Tools: ${ALLOW_TOOLS.join(", ")}.`);
+    return;
+  }
+  if (picked === "claude-code" || picked === "grok") {
+    const grok = picked === "grok";
+    const rel2 = ".claude/settings.local.json";
+    const file2 = join17(root, rel2);
+    const obj = readObject(file2);
+    if (!obj) throw new CliError(`${rel2} is not valid JSON, so it was left as is. Ask the owner to add the Allow rule ${CLAUDE_RULE} with /permissions.`, 1, "allow_file");
+    const added = addTo(obj, "permissions", "allow", CLAUDE_RULE);
+    if (added) {
+      writeObject(file2, obj);
+      ignoreInGit(root, rel2);
+    }
+    if (grok) {
+      out(added ? `Done: Grok Build runs npx deployai@latest commands in this folder without asking, from its next session (${rel2}).` : "Already allowed in this folder.");
+      out("Until Grok Build restarts, tell the owner, in their language: when it asks to run npx deployai@latest, choose Always allow.");
+      out("Other commands still ask, and going live still waits for the owner.");
+    } else {
+      out(added ? `Done: Claude Code runs npx deployai@latest commands in this folder without asking (${rel2}).` : "Already allowed in this folder.");
+      out("Other commands still ask, and going live still waits for the owner. The owner can take it back with /permissions.");
+    }
+    out(`If a safety check of the tool still stops a command, do not run it another way: send the owner ${allowCommandsUrl()}, the link only, not its steps (D-691).`);
+    return;
+  }
+  if (picked === "cursor") {
+    const rel2 = ".cursor/permissions.json";
+    const file2 = join17(root, rel2);
+    const obj = readObject(file2);
+    if (!obj) throw new CliError(`${rel2} is not valid JSON, so it was left as is.`, 1, "allow_file");
+    const added = addTo(obj, "autoRun", "allow_instructions", CURSOR_LINE);
+    if (added) writeObject(file2, obj);
+    out(added ? `Done: Cursor's Auto-review allows npx deployai@latest commands in this folder (${rel2}).` : "Already allowed in this folder.");
+    out("With Allowlist mode instead, the owner adds npx deployai@latest once in Cursor Settings, Agents, Approvals & Execution.");
+    return;
+  }
+  out("This tool keeps the choice in its own app, not in a file here. Tell the owner, in their language:");
+  out(`  ${CLICKS[picked]}`);
+}
+
+// src/commands/sound.ts
+import { existsSync as existsSync14, readFileSync as readFileSync15, rmSync as rmSync4, writeFileSync as writeFileSync13 } from "fs";
+import { homedir as homedir3 } from "os";
+import { join as join18 } from "path";
+var SETTINGS = ".claude/settings.local.json";
+var TITLE_ENV = "CLAUDE_CODE_DISABLE_TERMINAL_TITLE";
+var AGENT_SCRIPT = ".deployai/agent-sound.mjs";
+function agentScript(sounds, config2 = join18(configDir(), "config.json")) {
+  return `// DeployAI's sound and tab dot for Claude Code. Written by: npx deployai@latest sound agent on. Removed by: sound agent off.
+// Stays on this computer and sends nothing. Reads the event's list of running tasks, never the prompt or the conversation.
+import { spawn } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { basename, join } from 'node:path';
+
+const SOUNDS = ${JSON.stringify(sounds)};
+const CONFIG = ${JSON.stringify(config2)};
+// Said after the sound when the owner said yes to the voice (D-1113): fixed lines only, never the prompt or the conversation.
+const LINES = ${JSON.stringify({ waiting: VOICE_LINES.waiting, done: VOICE_LINES.done })};
+// Never finish, so they do not count as work still running: servers and watchers, monitors, recurring crons.
+const NEVER_ENDS = /(^|[\\s:/'"-])(dev|dev:[\\w-]+|serve|server|start|watch|worker|tunnel|cloudflared|vite|preview|compose up)(\\s|$|['"])|tail\\s+-f/i;
+const FINISHED = /^(completed|complete|done|failed|killed|stopped|cancelled|canceled|error)$/;
+
+let raw = '';
+for await (const chunk of process.stdin) raw += chunk;
+let event = {};
+try { event = JSON.parse(raw); } catch {}
+
+// Claude stopped talking but a shell or an agent still runs: that is not done. It stops again when the work ends.
+const list = (v) => (Array.isArray(v) ? v.filter(Boolean) : []);
+const stillWorking = list(event.background_tasks).some((t) => !FINISHED.test(t.status ?? '') && t.type !== 'monitor' && !(t.type === 'shell' && NEVER_ENDS.test(t.command ?? '')))
+  || list(event.session_crons).some((c) => !c.recurring);
+
+const asked = process.argv[2];
+const state = asked === 'done' && stillWorking ? 'working' : asked;
+// "turn", not "live": a turn ending says nothing about the site. Only a deploy the server took plays Da-ding.
+const sound = { waiting: 'needs-you', done: 'turn', failed: 'failed' }[state];
+const no = (v) => ['0', 'false', 'off', 'no'].includes((v ?? '').toLowerCase());
+const off = no(process.env.DEPLOYAI_SOUND);
+const read = (f) => { try { return JSON.parse(readFileSync(f, 'utf8')); } catch { return {}; } };
+const cfg = read(CONFIG);
+const lang = cfg.voiceLang === 'he' || cfg.voiceLang === 'en' ? cfg.voiceLang : read(join(String(process.env.CLAUDE_PROJECT_DIR ?? event.cwd ?? '.'), '.deployai', 'project.json')).lang === 'he' ? 'he' : 'en';
+const text = cfg.voice === true && !no(process.env.DEPLOYAI_VOICE) ? LINES[state]?.[lang] : null;
+if (sound && !off) {
+  const file = join(SOUNDS, sound + '.wav');
+  const player = process.platform === 'win32'
+    ? (text ? ['powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', join(SOUNDS, 'speak.ps1'), '-Sound', file, '-Text', text, '-Lang', lang]]
+      : ['powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', "(New-Object Media.SoundPlayer '" + file.replace(/'/g, "''") + "').PlaySync()"]])
+    : process.platform === 'darwin'
+      ? (text ? ['sh', ['-c', 'afplay "$0"; v=$(say -v "?" | grep " $2_" | head -n 1 | sed "s/  *[a-z][a-z]_[A-Z][A-Z].*//"); [ -n "$v" ] && say -v "$v" "$1"', file, text, lang]] : ['afplay', [file]])
+      : ['sh', ['-c', text ? '(paplay "$0" || aplay -q "$0") 2>/dev/null; (spd-say -w -l "$2" "$1" || espeak-ng -v "$2" "$1") >/dev/null 2>&1' : 'paplay "$0" 2>/dev/null || aplay -q "$0" 2>/dev/null', file, ...(text ? [text, lang] : [])]];
+  try {
+    const child = spawn(player[0], player[1], { detached: true, stdio: 'ignore', windowsHide: true });
+    child.on('error', () => {});
+    child.unref();
+  } catch {}
+}
+
+// Busy orange, done green, needs you or failed red (D-869). The emoji dot is in the title for every terminal; Windows Terminal
+// also lights its tab with its own progress state (OSC 9;4): busy spinning, done cleared, needs you yellow, failed red.
+const dot = { working: '\\u{1F7E0}', waiting: '\\u{1F534}', done: '\\u{1F7E2}', failed: '\\u{1F534}' }[state] ?? '';
+const progress = { working: '3;0', waiting: '4;100', done: '0;0', failed: '2;100' }[state];
+const name = basename(String(event.cwd ?? '')).replace(/[^\\p{L}\\p{N} ._-]/gu, '').slice(0, 40) || 'DeployAI';
+process.stdout.write(JSON.stringify({ terminalSequence: '\\u001b]0;' + dot + ' ' + name + '\\u0007' + (progress ? '\\u001b]9;4;' + progress + '\\u0007' : '') }));
+`;
+}
+var hookCommand = (state) => `node "$CLAUDE_PROJECT_DIR/${AGENT_SCRIPT}" ${state}`;
+var ours = (h) => typeof h?.command === "string" && h.command.includes(AGENT_SCRIPT);
+var EVENTS = [
+  { event: "UserPromptSubmit", state: "working" },
+  { event: "Stop", state: "done" },
+  { event: "StopFailure", state: "failed" },
+  { event: "Notification", state: "waiting", matcher: "permission_prompt|elicitation_dialog" }
+];
+var hooksOf = (obj) => obj?.hooks && typeof obj.hooks === "object" ? obj.hooks : {};
+function foreignHooks(files) {
+  const found = /* @__PURE__ */ new Set();
+  for (const file2 of files) {
+    const hooks = hooksOf(readObject(file2));
+    for (const event of ["Stop", "Notification"]) {
+      if ((hooks[event] ?? []).some((g) => (g.hooks ?? []).some((h) => !ours(h)))) found.add(event);
+    }
+  }
+  return [...found];
+}
+function agentOn(root, opts = {}) {
+  const file2 = join18(root, SETTINGS);
+  const obj = readObject(file2);
+  if (!obj) throw new CliError(`${SETTINGS} is not valid JSON, so it was left as is.`, 1, "allow_file");
+  const home = process.env.CLAUDE_CONFIG_DIR || join18(opts.home ?? homedir3(), ".claude");
+  if (!opts.alongside && foreignHooks([join18(home, "settings.json"), join18(root, ".claude/settings.json"), file2]).length) return "has_own";
+  writeSoundFiles();
+  ensureDeployaiDir(root);
+  const script = join18(root, AGENT_SCRIPT);
+  const text4 = agentScript(soundsDir());
+  const scriptSame = existsSync14(script) && readFileSync15(script, "utf8") === text4;
+  if (!scriptSame) writeFileSync13(script, text4);
+  const hooks = hooksOf(obj);
+  const env = obj.env && typeof obj.env === "object" ? obj.env : {};
+  let added = env[TITLE_ENV] !== "1";
+  for (const { event, state, matcher } of EVENTS) {
+    const groups = hooks[event] ?? [];
+    if (groups.some((g) => (g.hooks ?? []).some(ours))) continue;
+    hooks[event] = [...groups, { ...matcher ? { matcher } : {}, hooks: [{ type: "command", command: hookCommand(state) }] }];
+    added = true;
+  }
+  if (added) {
+    writeObject(file2, { ...obj, env: { ...env, [TITLE_ENV]: "1" }, hooks });
+    ignoreInGit(root, SETTINGS);
+    ignoreInGit(root, AGENT_SCRIPT);
+  }
+  return added || !scriptSame ? "on" : "already";
+}
+function agentOff(root) {
+  const file2 = join18(root, SETTINGS);
+  const obj = readObject(file2);
+  if (!obj) throw new CliError(`${SETTINGS} is not valid JSON, so it was left as is.`, 1, "allow_file");
+  const hooks = hooksOf(obj);
+  let removed = false;
+  if (obj.env && typeof obj.env === "object" && TITLE_ENV in obj.env) {
+    const { [TITLE_ENV]: _ours, ...env } = obj.env;
+    if (Object.keys(env).length) obj.env = env;
+    else delete obj.env;
+    removed = true;
+  }
+  for (const event of Object.keys(hooks)) {
+    const left = (hooks[event] ?? []).map((g) => ({ ...g, hooks: (g.hooks ?? []).filter((h) => !ours(h)) })).filter((g) => g.hooks.length);
+    if (left.length !== hooks[event]?.length) removed = true;
+    if (left.length) hooks[event] = left;
+    else delete hooks[event];
+  }
+  if (removed) {
+    if (Object.keys(hooks).length) obj.hooks = hooks;
+    else delete obj.hooks;
+    writeObject(file2, obj);
+  }
+  const script = join18(root, AGENT_SCRIPT);
+  if (existsSync14(script)) {
+    rmSync4(script);
+    removed = true;
+  }
+  return removed;
+}
+function agentCommand(root, state, tool, opts) {
+  const picked = tool?.toLowerCase() ?? (process.env.CLAUDECODE === "1" ? "claude-code" : null);
+  if (state !== "on" && state !== "off") throw new CliError("Usage: npx deployai@latest sound agent on|off [claude-code]", 1, "usage");
+  if (picked !== "claude-code") {
+    out("The sound while the agent works is only for Claude Code so far. The sound when the site is ready already works here: npx deployai@latest sound on.");
+    return;
+  }
+  if (state === "off") {
+    out(agentOff(root) ? `Done: removed from this folder (${SETTINGS}, ${AGENT_SCRIPT}).` : "It was not on in this folder.");
+    return;
+  }
+  const r = agentOn(root, opts);
+  if (r === "has_own") {
+    out("Claude Code already runs something when it stops or asks, so nothing changed. Tell the owner, and only if they want both, run it again with --alongside.");
+    return;
+  }
+  out(r === "on" ? `Done, in this folder only (${SETTINGS}, ${AGENT_SCRIPT}). The sound works from the next message; the dot in the tab shows once Claude Code starts again.` : "Already on in this folder.");
+  out("It stays on this computer, sends nothing, and never reads the prompt or the conversation. To remove it: npx deployai@latest sound agent off.");
+}
+function agentFollows(folders, env = process.env) {
+  if (env.CLAUDECODE !== "1") return false;
+  let on = false;
+  for (const folder of new Set(folders)) {
+    try {
+      if (agentOn(folder) !== "has_own") on = true;
+    } catch {
+    }
+  }
+  return on;
+}
+var terminalFolders = (root) => [.../* @__PURE__ */ new Set([root, readProject(root)?.startedFrom ?? root])];
+var savedLine = (t, where) => t(where === "account" ? "prefsSavedAccount" : where === "computer" ? "prefsSavedHere" : "prefsSaveFailed");
+async function soundCommand(root, action, state, tool, opts = {}, ctx) {
+  const act = (action ?? "status").toLowerCase();
+  if (act === "agent") return agentCommand(root, state?.toLowerCase(), tool, opts);
+  const t = messages(root);
+  if (act === "on" || act === "off") {
+    const where = ctx ? await saveAccountPrefs(ctx, { sound: act === "on" }) : (updateConfig({ sound: act === "on" }), "computer");
+    const cfg2 = loadConfig();
+    out(t(act === "on" ? "soundOn" : "soundOff"));
+    out(savedLine(t, where));
+    if (act === "on") {
+      if (agentFollows(terminalFolders(root))) out(t("soundAgentOn"));
+      playSound("live", cfg2);
+    } else {
+      for (const folder of terminalFolders(root)) {
+        try {
+          agentOff(folder);
+        } catch {
+        }
+      }
+    }
+    return;
+  }
+  const account = ctx ? await accountPrefs(ctx) : null;
+  applyAccountPrefs(account);
+  const cfg = loadConfig();
+  if (act === "test") {
+    if (!soundWanted(cfg)) return out(t("soundOff"));
+    playSound("live", cfg);
+    return out(t("soundTest"));
+  }
+  if (act !== "status") throw new CliError("Usage: npx deployai@latest sound on|off|status|test, or sound agent on|off", 1, "usage");
+  out(t(soundWanted(cfg) ? "soundOn" : "soundOff"));
+}
+async function voiceCommand(root, action, value2, ctx) {
+  const act = (action ?? "status").toLowerCase();
+  const t = messages(root);
+  const save2 = async (patch) => ctx ? saveAccountPrefs(ctx, patch) : (updateConfig({ ...patch.voice !== void 0 ? { voice: patch.voice } : {}, ...patch.voiceLang ? { voiceLang: patch.voiceLang } : {} }), "computer");
+  if (act === "on" || act === "off") {
+    const where = await save2({ voice: act === "on" });
+    out(t(act === "on" ? "voiceOn" : "voiceOff"));
+    out(savedLine(t, where));
+    return;
+  }
+  if (act === "lang") {
+    const lang = (value2 ?? "").toLowerCase();
+    if (lang !== "he" && lang !== "en") throw new CliError("Usage: npx deployai@latest voice lang he|en", 1, "usage");
+    const where = await save2({ voiceLang: lang });
+    out(t("voiceLang", { lang: lang === "he" ? "\u05E2\u05D1\u05E8\u05D9\u05EA" : "English" }));
+    out(savedLine(t, where));
+    return;
+  }
+  if (act !== "status" && act !== "test") throw new CliError("Usage: npx deployai@latest voice on|off|status|test, or voice lang he|en", 1, "usage");
+  const account = ctx ? await accountPrefs(ctx) : null;
+  applyAccountPrefs(account);
+  const cfg = loadConfig();
+  if (act === "test") {
+    if (!soundWanted(cfg)) return out(t("voiceNeedsSound"));
+    if (!voiceWanted(cfg)) return out(t("voiceOff"));
+    playSound("live", cfg, { key: "live", lang: cliLang(root) });
+    return out(t("voiceTest"));
+  }
+  out(t(cfg.voice === true ? soundWanted(cfg) ? "voiceOn" : "voiceNeedsSound" : "voiceOff"));
+}
+function refreshAgentScript(root) {
+  const script = join18(root, AGENT_SCRIPT);
+  if (!existsSync14(script)) return false;
+  const text4 = agentScript(soundsDir());
+  const now = readFileSync15(script, "utf8");
+  if (now === text4 || !now.startsWith("// DeployAI's sound and tab dot")) return false;
+  writeSoundFiles();
+  writeFileSync13(script, text4);
+  return true;
+}
+
+// src/commands/rules.ts
+var SAID = {
+  updated: "DEPLOYAI.md was updated to the current DeployAI rules. Read it again before you go on.",
+  added: "DEPLOYAI.md got the DeployAI rules it lacked, at its end. Read them before you go on."
+};
+async function rulesCommand(root, apiUrl) {
+  const texts = initTexts(await serverRules(apiUrl));
+  out(texts.md.trimEnd());
+  out();
+  const sync = syncRulesFile(root, texts.md, texts.later);
+  if (sync === "current") out("DEPLOYAI.md here has these rules.");
+  else if (sync === "none") out("No DEPLOYAI.md in this folder. To add one: npx deployai@latest init");
+  else if (SAID[sync]) out(SAID[sync]);
+  else out("DEPLOYAI.md here was edited, so it was left as it is. Follow the rules above. To replace it with them: npx deployai@latest init --force");
+}
+async function refreshRules(root, apiUrl) {
+  try {
+    const texts = initTexts(await serverRules(apiUrl));
+    const sync = syncRulesFile(root, texts.md, texts.later);
+    if (SAID[sync]) err(SAID[sync]);
+  } catch {
+  }
+}
+
+// src/commands/link.ts
+import { createInterface as createInterface3 } from "readline/promises";
+
+// src/commands/migrate.ts
+import { existsSync as existsSync17, mkdirSync as mkdirSync11, readdirSync as readdirSync5, readFileSync as readFileSync18, statSync as statSync2, writeFileSync as writeFileSync17 } from "fs";
+import { dirname as dirname5, join as join21, posix, relative as relative3, resolve as resolve5, sep as sep4 } from "path";
+
+// src/commands/look.ts
+import { existsSync as existsSync16, mkdirSync as mkdirSync10, writeFileSync as writeFileSync16 } from "fs";
+import { join as join20, relative as relative2, sep as sep3 } from "path";
+
+// src/compare.ts
+import { readFileSync as readFileSync16, writeFileSync as writeFileSync14 } from "fs";
+import pixelmatch from "pixelmatch";
+import pngjs from "pngjs";
+var { PNG } = pngjs;
+var DEFAULT_MAX_DIFF = 1;
+var MAX_HEIGHT = 16e3;
+var BLOCK2 = 16;
+var COLOR_THRESHOLD = 0.1;
+var MOSTLY_MOVING = 0.5;
+function readPng(file2) {
+  const png = PNG.sync.read(readFileSync16(file2));
+  return { width: png.width, height: png.height, data: png.data };
+}
+function writePng(file2, pic) {
+  const png = new PNG({ width: pic.width, height: pic.height });
+  png.data = Buffer.from(pic.data.buffer, pic.data.byteOffset, pic.data.byteLength);
+  writeFileSync14(file2, PNG.sync.write(png));
+}
+function onCanvas(pic, width, height) {
+  if (pic.width === width && pic.height === height) return pic.data;
+  const data = new Uint8Array(width * height * 4);
+  for (let i = 0; i < data.length; i += 4) {
+    data[i] = 255;
+    data[i + 1] = 0;
+    data[i + 2] = 255;
+    data[i + 3] = 255;
+  }
+  const w = Math.min(pic.width, width);
+  for (let y = 0; y < Math.min(pic.height, height); y++) data.set(pic.data.subarray(y * pic.width * 4, (y * pic.width + w) * 4), y * width * 4);
+  return data;
+}
+var sizeOf = (...pics) => ({ width: Math.max(...pics.map((p) => p.width)), height: Math.min(MAX_HEIGHT, Math.max(...pics.map((p) => p.height))) });
+function movingMask(first, second, width, height) {
+  const out2 = new Uint8Array(width * height * 4);
+  pixelmatch(onCanvas(first, width, height), onCanvas(second, width, height), out2, width, height, { threshold: COLOR_THRESHOLD, diffMask: true });
+  const bw = Math.ceil(width / BLOCK2), bh = Math.ceil(height / BLOCK2);
+  const blocks = new Uint8Array(bw * bh);
+  for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) if (out2[(y * width + x) * 4 + 3]) blocks[Math.floor(y / BLOCK2) * bw + Math.floor(x / BLOCK2)] = 1;
+  const grown = new Uint8Array(bw * bh);
+  for (let by = 0; by < bh; by++) for (let bx = 0; bx < bw; bx++) {
+    if (!blocks[by * bw + bx]) continue;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      const x = bx + dx, y = by + dy;
+      if (x >= 0 && y >= 0 && x < bw && y < bh) grown[y * bw + x] = 1;
+    }
+  }
+  const mask = new Uint8Array(width * height);
+  for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) mask[y * width + x] = grown[Math.floor(y / BLOCK2) * bw + Math.floor(x / BLOCK2)];
+  return mask;
+}
+function compareLook(before, after, opts = {}) {
+  const { width, height } = sizeOf(before, after);
+  const a = onCanvas(before, width, height);
+  const b = new Uint8Array(onCanvas(after, width, height));
+  const mask = new Uint8Array(width * height);
+  for (const [one, two2] of [[before, opts.beforeAgain], [after, opts.afterAgain]]) {
+    if (!two2) continue;
+    const m = movingMask(one, two2, width, height);
+    for (let i = 0; i < m.length; i++) if (m[i]) mask[i] = 1;
+  }
+  let masked = 0;
+  for (let i = 0; i < mask.length; i++) if (mask[i]) {
+    masked++;
+    b.set(a.subarray(i * 4, i * 4 + 4), i * 4);
+  }
+  const out2 = new Uint8Array(width * height * 4);
+  const changed = pixelmatch(a, b, out2, width, height, { threshold: COLOR_THRESHOLD, alpha: 0.15 });
+  for (let i = 0; i < mask.length; i++) if (mask[i]) {
+    out2[i * 4] = Math.round(out2[i * 4] * 0.4);
+    out2[i * 4 + 1] = Math.round(out2[i * 4 + 1] * 0.4 + 90);
+    out2[i * 4 + 2] = 255;
+  }
+  const compared = width * height - masked;
+  const percent = compared ? Math.round(changed / compared * 1e4) / 100 : 0;
+  const maxDiff = opts.maxDiff ?? DEFAULT_MAX_DIFF;
+  return { changed, compared, masked, percent, pass: percent <= maxDiff, mostlyMoving: masked / (width * height) > MOSTLY_MOVING, diff: { width, height, data: out2 } };
+}
+
+// src/commands/shot.ts
+import { spawn as spawn3 } from "child_process";
+import { existsSync as existsSync15, mkdirSync as mkdirSync9, readFileSync as readFileSync17, rmSync as rmSync5, writeFileSync as writeFileSync15 } from "fs";
+import { tmpdir as tmpdir2 } from "os";
+import { basename as basename2, join as join19, resolve as resolve4 } from "path";
+var SHOT_SIZES = [{ name: "phone", size: "390,844" }, { name: "desktop", size: "1440,900" }];
+var PLAYWRIGHT = "playwright@1.56";
+var WAIT_MS3 = 18e4;
+var TIMED_OUT = 124;
+var TAKER = String.raw`const fs = require('fs'), path = require('path');
+const a = process.argv.slice(2), opt = (k) => (a.find((x) => x.startsWith('--' + k + '=')) || '').split('=')[1];
+const [url, file] = a.filter((x) => !x.startsWith('--'));
+const step = (s) => fs.writeFileSync(file + '.step', s);
+const bin = (process.env.PATH || '').split(path.delimiter).find((d) => fs.existsSync(path.join(d, '..', 'playwright', 'package.json')));
+const pw = require(path.join(bin, '..', 'playwright'));
+(async () => {
+  step('start the browser');
+  const [w, h] = opt('viewport-size').split(',').map(Number);
+  const browser = opt('browser') === 'webkit' ? await pw.webkit.launch() : await pw.chromium.launch(opt('exec') ? { executablePath: a.find((x) => x.startsWith('--exec=')).slice(7) } : { channel: opt('channel') });
+  const page = await browser.newPage({ viewport: { width: w, height: h } });
+  step('open the page');
+  await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await page.waitForLoadState('load', { timeout: 15000 }).catch(() => {});
+  step('scroll to the bottom');
+  await page.evaluate(async () => { for (let y = 0; y < Math.min(document.body.scrollHeight, 40000); y += innerHeight) { scrollTo(0, y); await new Promise((r) => setTimeout(r, 150)); } scrollTo(0, 0); });
+  await page.waitForTimeout(1500);
+  step('take the picture');
+  await page.screenshot({ path: file, fullPage: true, animations: 'disabled', timeout: 60000 });
+  if (opt('again')) {
+    step('take the second picture');
+    await page.waitForTimeout(4000);
+    await page.screenshot({ path: opt('again'), fullPage: true, animations: 'disabled', timeout: 60000 });
+  }
+  await browser.close();
+  fs.rmSync(file + '.step', { force: true });
+})().catch((e) => { try { fs.appendFileSync(file + '.step', ': ' + String(e && e.message || e).split(String.fromCharCode(10))[0]); } catch {} process.exit(1); });
+`;
+var channelFor = (browser) => /msedge|edge/i.test(browser) ? "msedge" : /chrome(\.exe)?$|google-chrome/i.test(browser) ? "chrome" : null;
+function shotName(address, width) {
+  const u = new URL(address);
+  const path = u.pathname.replace(/\/+$/, "").replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "") || "home";
+  return `${u.hostname}-${path}-${width}.png`;
+}
+function runNpx(args) {
+  const win = process.platform === "win32";
+  return new Promise((done) => {
+    const child = win ? spawn3(["npx", ...args.map((a) => `"${a}"`)].join(" "), { stdio: "ignore", windowsHide: true, shell: true }) : spawn3("npx", args, { stdio: "ignore" });
+    let killed = false;
+    const timer = setTimeout(() => {
+      killed = true;
+      child.kill();
+    }, WAIT_MS3);
+    child.once("error", () => {
+      clearTimeout(timer);
+      done(1);
+    });
+    child.once("exit", (code) => {
+      clearTimeout(timer);
+      done(killed ? TIMED_OUT : code ?? 1);
+    });
+  });
+}
+var againName = (file2) => file2.replace(/\.png$/i, ".again.png");
+var SHOTS_INDEX = "shots.json";
+function readShotIndex(dir) {
+  try {
+    const list = JSON.parse(readFileSync17(join19(dir, SHOTS_INDEX), "utf8"));
+    return Array.isArray(list) ? list.filter((e3) => e3 && typeof e3.url === "string" && typeof e3.file === "string" && typeof e3.width === "string") : [];
+  } catch {
+    return [];
+  }
+}
+function addToIndex(dir, entries) {
+  const kept = readShotIndex(dir).filter((e3) => !entries.some((n2) => n2.file === e3.file));
+  writeFileSync15(join19(dir, SHOTS_INDEX), JSON.stringify([...kept, ...entries], null, 2) + "\n");
+}
+async function shotCommand(root, address, opts = {}, run = runNpx) {
+  let url2;
+  try {
+    url2 = new URL(address);
+    if (!/^https?:$/.test(url2.protocol) || address.includes('"')) throw new Error("bad");
+  } catch {
+    throw new CliError("Give a full page address, like https://my-site.co.il/about.", 1, "bad_address");
+  }
+  const browser = opts.webkit ? null : findBrowser();
+  const bundled = !opts.webkit && !browser;
+  if (bundled && await run(["--yes", PLAYWRIGHT, "install", "chromium"]) !== 0) throw new CliError("No Chrome or Edge was found here, and Chromium could not be downloaded (the network may block it). Install Chrome, set CHROME_PATH to its path, or allow the Playwright browser download on this network, then run shot again.", 1, "no_browser");
+  if (opts.webkit && await run(["--yes", PLAYWRIGHT, "install", "webkit"]) !== 0) throw new CliError("Safari's engine could not be installed. Run shot without --webkit to use Chrome or Edge.", 1, "shot_failed");
+  const dir = resolve4(root, opts.out ?? join19(".deployai", "shots"));
+  mkdirSync9(dir, { recursive: true });
+  const taker = join19(tmpdir2(), "deployai-shot.cjs");
+  writeFileSync15(taker, TAKER);
+  const saved = [];
+  const entries = [];
+  for (const s of SHOT_SIZES) {
+    const file2 = join19(dir, shotName(url2.toString(), s.name));
+    const channel = opts.webkit || bundled ? null : channelFor(browser);
+    const engine = opts.webkit ? ["--browser=webkit"] : bundled ? [] : channel ? [`--channel=${channel}`] : [`--exec=${browser}`];
+    rmSync5(file2, { force: true });
+    rmSync5(againName(file2), { force: true });
+    const again = opts.again ? [`--again=${againName(file2)}`] : [];
+    const code = await run(["--yes", "-p", PLAYWRIGHT, "node", taker, ...engine, `--viewport-size=${s.size}`, ...again, url2.toString(), file2]);
+    if (code !== 0 || !existsSync15(file2)) {
+      const step = existsSync15(`${file2}.step`) ? readFileSync17(`${file2}.step`, "utf8").trim() : "";
+      rmSync5(`${file2}.step`, { force: true });
+      throw new CliError(`The ${s.name} picture of ${url2} could not be taken${step ? `, stopped at: ${step}` : code === TIMED_OUT ? ", it took over 3 minutes" : ""}. Check that the page opens, then run shot again; if it stops again, look with your own browser tool or at home.html.`, 1, "shot_failed");
+    }
+    saved.push(file2);
+    entries.push({ url: url2.toString(), width: s.name, file: basename2(file2), again: opts.again && existsSync15(againName(file2)) ? basename2(againName(file2)) : null, takenAt: (/* @__PURE__ */ new Date()).toISOString() });
+    if (!opts.quiet) out(`${s.name.padEnd(8)} ${file2}`);
+  }
+  addToIndex(dir, entries);
+  if (!opts.quiet) out("Open both and look at them as a visitor: the header, the menu, every image and button.");
+  return saved;
+}
+
+// src/commands/look.ts
+var BEFORE_DIR = join20(".deployai", "migration", "before");
+var AFTER_DIR = join20(".deployai", "migration", "after");
+var REPORT = join20(".deployai", "migration", "compare.json");
+function previewAddress(preview, path) {
+  const u = new URL(path, preview.origin);
+  const token = preview.searchParams.get("deployai_preview");
+  if (token) u.searchParams.set("deployai_preview", token);
+  return u.toString();
+}
+var rel = (root, file2) => relative2(root, file2).split(sep3).join("/");
+var readOrNull = (file2) => {
+  try {
+    return file2 && existsSync16(file2) ? readPng(file2) : null;
+  } catch {
+    return null;
+  }
+};
+function parseMaxDiff(raw) {
+  if (raw === void 0) return DEFAULT_MAX_DIFF;
+  const n2 = typeof raw === "number" ? raw : Number(String(raw).replace(/%$/, ""));
+  if (!Number.isFinite(n2) || n2 < 0 || n2 > 100) throw new CliError("--max-diff is a percent from 0 to 100, like 1 or 0.5.", 1, "usage");
+  return n2;
+}
+async function compareLooks(root, previewRaw, opts = {}, shoot = shotCommand) {
+  let preview;
+  try {
+    preview = new URL(/^https?:\/\//.test(previewRaw) ? previewRaw : `https://${previewRaw}`);
+  } catch {
+    throw new CliError(`Not an address: ${previewRaw}. Use the preview address deploy printed.`, 1, "usage");
+  }
+  const beforeDir = join20(root, BEFORE_DIR);
+  const before = readShotIndex(beforeDir);
+  if (!before.length) return null;
+  const afterDir = join20(root, AFTER_DIR);
+  mkdirSync10(afterDir, { recursive: true });
+  const maxDiff = opts.maxDiff ?? DEFAULT_MAX_DIFF;
+  const lines = [];
+  const say = (line) => {
+    if (!opts.json) out(line);
+  };
+  say(`Measuring ${new Set(before.map((e3) => e3.url)).size} pages against their before pictures, at most ${maxDiff}% changed:`);
+  for (const url2 of [...new Set(before.map((e3) => e3.url))]) {
+    const old = new URL(url2);
+    const path = old.pathname + old.search;
+    const address = previewAddress(preview, path);
+    let shot = true;
+    try {
+      await shoot(root, address, { out: AFTER_DIR, again: true, quiet: true });
+    } catch {
+      shot = false;
+    }
+    for (const entry of before.filter((e3) => e3.url === url2)) {
+      const beforeFile = join20(beforeDir, entry.file);
+      const afterFile = join20(afterDir, shotName(address, entry.width));
+      const base = { page: path, width: entry.width, before: rel(root, beforeFile), mostlyMoving: false };
+      const b = readOrNull(beforeFile);
+      const a = shot ? readOrNull(afterFile) : null;
+      if (!b || !a) {
+        lines.push({ ...base, percent: null, maskedPercent: null, pass: false, after: a ? rel(root, afterFile) : null, diff: null, problem: a ? "unreadable" : "no_after" });
+        say(`  ${path}  ${entry.width.padEnd(7)}  ${a ? "the before picture cannot be read: take it again" : "no picture of the preview page: check that it opens"}  FAIL`);
+        continue;
+      }
+      const result = compareLook(b, a, { beforeAgain: readOrNull(entry.again ? join20(beforeDir, entry.again) : null), afterAgain: readOrNull(againName(afterFile)), maxDiff });
+      const diffFile = afterFile.replace(/\.png$/i, ".diff.png");
+      writePng(diffFile, result.diff);
+      const total = result.compared + result.masked;
+      const maskedPercent = total ? Math.round(result.masked / total * 1e3) / 10 : 0;
+      lines.push({ ...base, percent: result.percent, maskedPercent, pass: result.pass, mostlyMoving: result.mostlyMoving, after: rel(root, afterFile), diff: rel(root, diffFile) });
+      say(`  ${path}  ${entry.width.padEnd(7)}  ${result.percent.toFixed(2)}% changed${maskedPercent ? `, ${maskedPercent}% moves by itself` : ""}  ${result.pass ? "pass" : "FAIL"}  ${rel(root, diffFile)}`);
+    }
+  }
+  const report2 = { checkedAt: (/* @__PURE__ */ new Date()).toISOString(), preview: preview.origin, maxDiff, pass: lines.every((l) => l.pass), pages: lines };
+  writeFileSync16(join20(root, REPORT), JSON.stringify(report2, null, 2) + "\n");
+  if (opts.json) out(JSON.stringify(report2));
+  else {
+    if (lines.some((l) => l.mostlyMoving)) say("Most of a page moves by itself, so its number says little: look at that page yourself too.");
+    if (report2.pass) say("Every page looks as on the old site.");
+    else say(`Open each .diff.png that failed: red changed, blue moves by itself and is left out. Make the page match the old one (only a credit or a part marked Partly moved may differ), deploy again and run this again.`);
+  }
+  if (!report2.pass) {
+    blockedBy("look_differs");
+    process.exitCode = 1;
+  }
+  return report2;
+}
+async function migrateCompareCommand(root, previewRaw, opts = {}, shoot = shotCommand) {
+  const report2 = await compareLooks(root, previewRaw, { maxDiff: parseMaxDiff(opts.maxDiff), json: opts.json }, shoot);
+  if (!report2) throw new CliError("No before pictures yet. On the old site, for the home page and one page of each kind, run: npx deployai@latest shot <old page address> --out .deployai/migration/before --again", 1, "usage");
+}
+
+// src/commands/migrate.ts
+var UA = `deployai-migrate/${CLI_VERSION} (+https://deployai.co.il/move)`;
+var PAGE_CAP = 1e3;
+var WP_PAGE_CAP = 50;
+var MEDIA_FILE_CAP = 25 * 1024 * 1024;
+var MEDIA_TOTAL_CAP = 1024 * 1024 * 1024;
+var PAUSE_MS = 150;
+var SCAN_WORKERS = 4;
+var START_SCAN_PAGES = 300;
+var sleep3 = (ms2) => new Promise((r) => setTimeout(r, ms2));
+var hostDir = (root, host) => join21(root, MIGRATION_DIR, host.replace(/^www\./, ""));
+var readJson3 = (file2) => {
+  try {
+    return readJson(file2);
+  } catch {
+    return null;
+  }
+};
+var writeJson = (file2, data) => {
+  mkdirSync11(dirname5(file2), { recursive: true });
+  writeFileSync17(file2, JSON.stringify(data, null, 2) + "\n");
+};
+async function get(url2, accept = "text/html,application/xhtml+xml,*/*;q=0.8", redirect = "follow", cookie) {
+  try {
+    return await fetch(url2, { headers: { "User-Agent": UA, Accept: accept, ...cookie ? { Cookie: cookie } : {} }, redirect, signal: AbortSignal.timeout(3e4) });
+  } catch {
+    return null;
+  }
+}
+function scannedHosts(root) {
+  const dir = join21(root, MIGRATION_DIR);
+  if (!existsSync17(dir)) return [];
+  return readdirSync5(dir).filter((h) => existsSync17(join21(dir, h, "inventory.json")));
+}
+async function migrateStatusCommand(root, ctx, stage, note) {
+  if (!isAgentStage(stage)) throw new CliError(`Unknown stage: ${stage}. One of: ${AGENT_STAGES.join(", ")}.`, 1, "usage");
+  const choices = readChoices(root);
+  if (!choices?.startId || !choices.requestId) {
+    out("This folder is not a managed move, so there is no request to update. Nothing was sent.");
+    return;
+  }
+  await apiRequest(ctx, "/api/migrations/progress", null, { method: "POST", auth: false, body: { startId: choices.startId, stage, note: stageNote(note) } });
+  out(`Reported: ${stage}${note ? ` (${stageNote(note)})` : ""}.`);
+}
+function readChoices(root) {
+  return readJson3(join21(root, MIGRATION_DIR, "choices.json"));
+}
+function writeChoices(root, choices) {
+  ensureMigrationDir(root);
+  writeJson(join21(root, MIGRATION_DIR, "choices.json"), choices);
+}
+function ensureMigrationDir(root) {
+  ensureDeployaiDir(root);
+  const dir = join21(root, MIGRATION_DIR);
+  mkdirSync11(dir, { recursive: true });
+  const ignore = join21(dir, ".gitignore");
+  if (!existsSync17(ignore)) writeFileSync17(ignore, "*/media/\n*/media-state.json\n");
+}
+function sameAddress(from, to) {
+  try {
+    const a = new URL(from);
+    const b = new URL(to, from);
+    const host = (u) => u.hostname.replace(/^www\./, "");
+    const path = (u) => u.pathname.replace(/\/+$/, "");
+    return host(a) === host(b) && path(a) === path(b) && a.search === b.search;
+  } catch {
+    return false;
+  }
+}
+async function sitemapUrls(base, robotsSitemaps, enough) {
+  const own2 = [`${base}/wp-sitemap.xml`, `${base}/sitemap_index.xml`, `${base}/sitemap.xml`];
+  const prefix = new URL(base).pathname.replace(/\/$/, "");
+  const queue = prefix ? [...own2, ...robotsSitemaps] : robotsSitemaps.length ? [...robotsSitemaps] : own2;
+  const host = new URL(base).hostname.replace(/^www\./, "");
+  const inSite = (u) => u.hostname.replace(/^www\./, "") === host && (!prefix || u.pathname === prefix || u.pathname.startsWith(`${prefix}/`));
+  const seen = /* @__PURE__ */ new Set();
+  const found = [];
+  const urls = /* @__PURE__ */ new Set();
+  while (queue.length && seen.size < 200 && urls.size < enough) {
+    const next = queue.shift();
+    if (seen.has(next)) continue;
+    seen.add(next);
+    const res = await get(next, "application/xml,text/xml,*/*;q=0.5");
+    if (!res?.ok) continue;
+    const xml2 = await res.text();
+    if (!/<(urlset|sitemapindex)\b/i.test(xml2)) continue;
+    found.push(next);
+    const parsed = parseSitemapXml(xml2);
+    queue.push(...parsed.sitemaps);
+    for (const u of parsed.urls) {
+      try {
+        if (inSite(new URL(u))) urls.add(u);
+      } catch {
+      }
+    }
+    await sleep3(PAUSE_MS);
+  }
+  return { urls: [...urls], sitemaps: found };
+}
+function homeLinks(html, origin) {
+  const host = new URL(origin).hostname;
+  const out2 = /* @__PURE__ */ new Set();
+  for (const m of html.matchAll(/<a\b[^>]*href=["']([^"'#]+)/gi)) {
+    try {
+      const u = new URL(m[1], origin);
+      if (u.hostname === host && !/\.(jpe?g|png|gif|webp|svg|pdf|zip|mp4|mp3)$/i.test(u.pathname)) out2.add(u.origin + u.pathname + u.search);
+    } catch {
+    }
+  }
+  return [...out2];
+}
+async function wordpressContent(base, dir) {
+  const probe = await get(`${base}/wp-json/wp/v2/types`, "application/json");
+  if (!probe?.ok || !(probe.headers.get("content-type") ?? "").includes("json")) return false;
+  const types = ["pages", "posts", "categories", "tags", "media", "users", "product"];
+  for (const type of types) {
+    const items = [];
+    for (let page3 = 1; page3 <= WP_PAGE_CAP; page3++) {
+      const res = await get(`${base}/wp-json/wp/v2/${type}?per_page=100&page=${page3}`, "application/json");
+      if (!res?.ok) break;
+      const batch = await res.json().catch(() => null);
+      if (!Array.isArray(batch) || !batch.length) break;
+      items.push(...batch);
+      if (batch.length < 100) break;
+      await sleep3(PAUSE_MS);
+    }
+    if (items.length) {
+      writeJson(join21(dir, "content", `${type}.json`), items);
+      out(`  ${type}: ${items.length}`);
+    }
+  }
+  const posts = readJson3(join21(dir, "content", "posts.json"));
+  if (posts?.length) {
+    const files = wpPostsToMarkdown({ origin: new URL(base).origin, posts, categories: readJson3(join21(dir, "content", "categories.json")) ?? [], tags: readJson3(join21(dir, "content", "tags.json")) ?? [], users: readJson3(join21(dir, "content", "users.json")) ?? [], media: readJson3(join21(dir, "content", "media.json")) ?? [] });
+    mkdirSync11(join21(dir, "posts"), { recursive: true });
+    const postsDir = resolve5(dir, "posts");
+    for (const f of files) {
+      const target = resolve5(postsDir, f.file);
+      if (dirname5(target) !== postsDir) continue;
+      writeFileSync17(target, f.text);
+    }
+    out(`  posts as Markdown: ${files.length}`);
+  }
+  return true;
+}
+function pageAssets(html, base) {
+  const found = /* @__PURE__ */ new Set();
+  const add2 = (u) => {
+    if (!u || u.startsWith("data:")) return;
+    try {
+      found.add(new URL(u.trim(), base).toString());
+    } catch {
+    }
+  };
+  for (const m of html.matchAll(/<img\b[^>]*>/gi)) {
+    add2(m[0].match(/\ssrc=["']([^"']+)/i)?.[1]);
+    const set2 = m[0].match(/\ssrcset=["']([^"']+)/i)?.[1];
+    if (set2) add2(set2.split(",").map((s) => s.trim().split(/\s+/)[0]).pop());
+  }
+  add2(html.match(/<meta[^>]+property=["']og:image["'][^>]*content=["']([^"']+)/i)?.[1]);
+  for (const m of html.matchAll(/url\(["']?([^"')]+\.(?:jpe?g|png|gif|webp|svg|avif))/gi)) add2(m[1]);
+  const own2 = (u) => {
+    if (!u) return;
+    try {
+      if (new URL(u.trim(), base).hostname.replace(/^www\./, "") === new URL(base).hostname.replace(/^www\./, "")) add2(u);
+    } catch {
+    }
+  };
+  for (const m of html.matchAll(/<script\b[^>]*\ssrc=["']([^"']+)/gi)) own2(m[1]);
+  for (const u of stylesheetLinks(html, base, 50)) own2(u);
+  return [...found];
+}
+function stylesheetAssets(css, cssUrl) {
+  const host = new URL(cssUrl).hostname.replace(/^www\./, "");
+  const found = /* @__PURE__ */ new Set();
+  for (const m of css.matchAll(/url\(\s*["']?([^"')]+)/gi)) {
+    const u = m[1].trim();
+    if (u.startsWith("data:") || u.startsWith("#")) continue;
+    try {
+      const url2 = new URL(u, cssUrl);
+      url2.hash = "";
+      if (!url2.search) url2.search = "";
+      if (/^https?:$/.test(url2.protocol) && url2.hostname.replace(/^www\./, "") === host) found.add(url2.toString());
+    } catch {
+    }
+  }
+  return [...found];
+}
+async function addStylesheetAssets(assets) {
+  for (const url2 of [...assets].filter((a) => /\.css(\?|$)/i.test(a)).slice(0, 50)) {
+    const res = await get(url2, "text/css,*/*;q=0.8");
+    if (!res?.ok) continue;
+    stylesheetAssets(await res.text(), url2).forEach((a) => assets.add(a));
+    await sleep3(PAUSE_MS);
+  }
+}
+var ICON_MAX_BYTES = 2 * 1024 * 1024;
+async function saveOldIcons(html, pageUrl, origin, dir) {
+  const wanted = [];
+  const add2 = (href, kind) => {
+    if (!href) return;
+    try {
+      const url2 = new URL(href, pageUrl).toString();
+      if (!wanted.some((w) => w.url === url2)) wanted.push({ url: url2, kind });
+    } catch {
+    }
+  };
+  iconLinks(html).forEach((h) => add2(h, "icon"));
+  add2(`${origin}/favicon.ico`, "icon");
+  add2(logoInPage(html), "logo");
+  const saved = [];
+  const icons = join21(dir, "icons");
+  for (const w of wanted.slice(0, 6)) {
+    const res = await get(w.url, "image/*,*/*;q=0.8");
+    if (!res?.ok) continue;
+    const bytes = Buffer.from(await res.arrayBuffer());
+    if (bytes.length > ICON_MAX_BYTES) continue;
+    const size = imageSize(bytes);
+    const svg = !size && isSvgText(bytes.subarray(0, 2048).toString("utf8"));
+    if (!size && !svg) continue;
+    const file2 = `${saved.length + 1}-${w.kind}.${svg ? "svg" : size?.format === "jpeg" ? "jpg" : size?.format}`;
+    mkdirSync11(icons, { recursive: true });
+    writeFileSync17(join21(icons, file2), bytes);
+    saved.push({ file: file2, kind: w.kind });
+  }
+  if (saved.length) writeFileSync17(join21(icons, "icons.json"), JSON.stringify(saved, null, 2));
+  return saved.length;
+}
+async function saveOldStyles(html, pageUrl, dir) {
+  const styles = join21(dir, "styles");
+  let n2 = 0;
+  for (const url2 of stylesheetLinks(html, pageUrl, 6)) {
+    const res = await get(url2, "text/css,*/*;q=0.8");
+    if (!res?.ok) continue;
+    const text4 = await res.text();
+    if (text4.length > ICON_MAX_BYTES) continue;
+    mkdirSync11(styles, { recursive: true });
+    writeFileSync17(join21(styles, `${++n2}.css`), text4);
+  }
+}
+var TRIGGER_PAGES_CAP = 30;
+async function readContainers(html, site) {
+  const page3 = scanPageTags(html, "https://home.invalid/");
+  const triggers = [];
+  const hosts = ["www.googletagmanager.com", ...page3.serverContainers];
+  for (const id2 of new Set(page3.tags.filter((t) => t.key === "gtm" && t.id).map((t) => t.id))) {
+    let read = null;
+    for (const host of hosts) {
+      const res = await get(`https://${host}/gtm.js?id=${encodeURIComponent(id2)}`, "*/*");
+      read = res?.ok ? readContainer(await res.text(), id2) : null;
+      if (read) break;
+    }
+    if (!read) {
+      site.unreadContainers.push(id2);
+      continue;
+    }
+    for (const tag of read.tags) addFoundTag(site, tag, "container", null);
+    triggers.push(...read.triggers);
+  }
+  return triggers;
+}
+async function hasRootFile(origin, path, query = "", cookie) {
+  const res = await get(`${origin}${path}${query}`, "*/*", "follow", cookie);
+  return Boolean(res?.ok && !/text\/html/i.test(res.headers.get("content-type") ?? ""));
+}
+var tagsFile = (dir) => join21(dir, "tags.json");
+var stateFile = (dir) => join21(dir, "report-state.json");
+function kitMap(root) {
+  if (!existsSync17(join21(root, "src/kit/schema.ts"))) return {};
+  const cut = (s, n2) => String(s ?? "").slice(0, n2);
+  const pages = (readJson3(join21(root, MOVED_PAGES_FILE)) ?? []).slice(0, 150).map((p) => ({ path: cut(p.path, 300), title: cut(p.title, 80), inNav: Boolean(p.inNav) }));
+  const posts = readJson3(join21(root, "src/kit/moved-posts.json")) ?? [];
+  const docs = [...new Set((readJson3(join21(root, MOVED_LEGAL_FILE))?.docs ?? []).map((d) => d.key).filter((k) => k === "privacy" || k === "terms" || k === "cancellation"))];
+  const forms = (readJson3(join21(root, "src/kit/forms.json")) ?? []).filter((f) => /^[a-z0-9-]{1,40}$/.test(f.key ?? "")).slice(0, 30).map((f) => ({
+    key: f.key,
+    label: cut(f.label, 80),
+    ...f.page ? { page: cut(f.page, 300) } : {},
+    ...f.thanks ? { thanks: cut(f.thanks, 300) } : {},
+    fields: [.../* @__PURE__ */ new Set([...Object.values(f.map ?? {}), ...Object.keys(f.labels ?? {})])].map((x) => cut(x, 60)).slice(0, 40)
+  }));
+  return { kit: { pages, posts: posts.slice(0, 300).map((p) => ({ path: cut(p.path || `/blog/${p.slug}`, 300), title: cut(p.title, 200) })), postsTotal: posts.length, docs, forms } };
+}
+function profileOfReport(inv) {
+  if (!inv.profile) return {};
+  const p = inv.profile;
+  return {
+    siteKinds: p.kinds.slice(0, 4),
+    siteFeatures: p.features.slice(0, 10).map((f) => ({ key: f.key, pages: f.pages.slice(0, 10).map((x) => x.slice(0, 300)), providers: f.providers.slice(0, 10).map((x) => x.slice(0, 60)) })),
+    connectFirst: p.connectFirst.slice(0, 20).map((c) => ({ feature: c.feature, provider: c.provider ? c.provider.slice(0, 60) : null }))
+  };
+}
+async function sendReport(root, ctx, host, open2, verify) {
+  const dir = hostDir(root, host);
+  const inv = readJson3(join21(dir, "inventory.json"));
+  const site = readJson3(tagsFile(dir));
+  const startId = readChoices(root)?.startId;
+  if (!inv || !site) return;
+  const dns = readJson3(join21(dir, "dns.json"));
+  const thanksPages = findThanksPages(inv.pages);
+  if (open2 === "scan") {
+    if (thanksPages.length && site.forms.length) {
+      const titled = thanksPages.map((p) => {
+        const t = inv.pages.find((x) => x.path === p)?.title;
+        return t ? `${p} (${t})` : p;
+      });
+      out();
+      out(`Thank you pages on the old site: ${titled.join(", ")}. Keep each at its address. In src/kit/forms.json, give each form the one whose title fits it as its thank you page; a form no page fits shows the thank you message on its own page. Do not ask the owner: name in the plan which page each form opens.`);
+    }
+    const questions = moveQuestions({ plugins: site.plugins, platform: inv.platform, tags: site.tags, forms: site.forms, triggers: site.triggers, verification: site.verification, serverContainers: site.serverContainers, thanksPages, dns });
+    if (questions.length) {
+      out();
+      out("The scan cannot see these. Ask the owner, in plain words, and record each answer. Not sure keeps the old site as it is:");
+      if (questions.includes("serverPixel")) out(`  Does the site send conversions to Meta or Google from the server?${site.plugins.length ? ` (signs: ${site.plugins.join(", ")})` : ""} npx deployai@latest migrate tags --answer serverPixel=yes`);
+      if (questions.includes("thankYou")) out("  Does a page open after sending the form, and what is its address? npx deployai@latest migrate tags --answer thankYou=yes");
+      if (questions.includes("verificationFile")) out("  Was the site verified in Google Search Console with a file, and what is its name? npx deployai@latest migrate tags --answer verificationFile=yes");
+    }
+  }
+  if (open2 === "scan") {
+    const on = dashboardParts({ forms: site.forms, pages: inv.pages });
+    out();
+    out(`This move gets the site's own free dashboard, in place of the old platform's admin. Add a Site dashboard row to the plan. Turn on in it: pages, accessibility, legal${on.length ? `, ${on.join(", ")}` : ""}.`);
+  }
+  if (!startId || !ctx) {
+    out("The move report needs a start from the DeployAI site, so none was made here. Tell the owner the lists above in plain words.");
+    return;
+  }
+  const state = readJson3(stateFile(dir)) ?? {};
+  const plan = existsSync17(join21(root, MIGRATION_DIR, "plan.md")) ? readFileSync18(join21(root, MIGRATION_DIR, "plan.md"), "utf8") : "";
+  const saved = verify ?? readJson3(join21(dir, "verify-report.json"))?.report ?? null;
+  const assets = readJson3(join21(dir, "assets.json")) ?? [];
+  const report2 = {
+    source: inv.source,
+    platform: inv.platform,
+    scannedAt: inv.scannedAt,
+    pages: { total: inv.pages.length, broken: inv.pages.filter((p) => p.status >= 400).length, skipped: inv.skipped },
+    files: assets.length,
+    ...reportOfTags(site),
+    ...thanksPages.length ? { thanksPages } : {},
+    dns: dns ?? null,
+    features: parsePlanFeatures(plan),
+    ...profileOfReport(inv),
+    ...state.answers ? { answers: state.answers } : {},
+    ...kitMap(root),
+    verify: saved ? { ...saved, removed: state.removed ?? saved.removed, ...state.fired?.length ? { fired: state.fired } : {} } : null
+  };
+  if (Buffer.byteLength(JSON.stringify(report2)) > MOVE_REPORT_MAX_BYTES) report2.dns = null;
+  let url2 = state.url;
+  try {
+    const send2 = () => apiRequest(ctx, "/api/migrations/report", null, { method: "POST", auth: false, body: { startId, host, report: report2 } });
+    const r = await send2().catch(async () => {
+      await sleep3(2500);
+      return send2();
+    });
+    url2 = r.url ?? url2;
+  } catch (e3) {
+    out(`The move report could not be sent (${e3.message}). Nothing is lost: run npx deployai@latest migrate report to try again.`);
+    return;
+  }
+  if (!url2) return;
+  const opened = new Set(state.opened ?? []);
+  const firstTime = open2 && !opened.has(open2);
+  if (firstTime) opened.add(open2);
+  writeJson(stateFile(dir), { ...state, url: url2, opened: [...opened] });
+  const browser = firstTime ? openBrowser(url2) : false;
+  out();
+  out(`Move report for the owner${browser ? " (opened in the browser)" : ""}: ${url2}`);
+  if (firstTime) out("Give the owner this link in one line. It only shows what we found and what moved, and it updates by itself: anything that needs the owner, you ask in the chat.");
+  if (open2 === "verify") for (const line of reportAsksLines(report2)) out(line);
+}
+var ASK_WORDS = {
+  serverPixel: "Does the site send conversions to Meta or Google from the server?",
+  thankYou: "Does a page open after sending the form, and what is its address?",
+  verificationFile: "Was the site verified in Google Search Console with a file, and what is its name?"
+};
+function reportAsksLines(report2) {
+  const tries = selfChecks(report2).map((c) => {
+    const id2 = c.detail ? ` (${c.detail})` : "";
+    switch (c.kind) {
+      case "replaced":
+        return `${c.name}: now ${c.detail ?? "ours"}. Try that it does the same job on the preview.`;
+      case "arrive":
+        return `${c.name}${id2}: open the preview, then see the visit arrive in ${c.name}.`;
+      case "form":
+        return "The form: send one test message from the preview and see it arrive by email and in the dashboard, Messages.";
+      case "tap":
+        return `${c.name}${id2}: tap it once on a phone and see the chat or call open with the right number.`;
+      case "outside":
+        return `${c.name}: a service our checks do not cover. See that its part of the page works on the preview.`;
+      case "page":
+        return `${c.name}: open this address on the preview.`;
+    }
+  });
+  const waiting = moveWaiting(report2, report2.answers ?? {});
+  const asks = [...waiting.todo.map((f) => `${f.name}${f.note ? `: ${f.note}` : ""}`), ...waiting.questions.filter((q) => !q.answer).map((q) => `${ASK_WORDS[q.key]} npx deployai@latest migrate tags --answer ${q.key}=yes|no|unsure`)];
+  const lines = [];
+  if (tries.length) lines.push("", `The report lists ${tries.length} things for the owner to try on the preview. In the same message as the link, name each in plain words, one short line each, and say they tick them on the site's Move tab:`, ...tries.map((x) => `  ${x}`));
+  if (asks.length) lines.push("", "The report says these wait for the owner. Ask about each in the chat now, so nothing on the report is new to them:", ...asks.map((x) => `  ${x}`));
+  return lines;
+}
+async function migrateScanCommand(root, raw, opts = {}) {
+  const source = normalizeSourceUrl(raw);
+  if (!source) throw new CliError(`Not a site address: ${raw}. Use the full address, for example https://example.co.il`, 1, "usage");
+  if (isBlockedMoveSite(source)) throw new CliError("We do not move sites of banks, hospitals, health funds, insurers, payment services or government bodies. Tell the owner this in one line and stop.", 1, "blocked_site");
+  const home = await get(source);
+  if (!home) throw new CliError(`Could not reach ${source}. Check the address, or that the site is up.`, 1, "network");
+  if (home.status === 401 || home.status === 403) throw new CliError(`${source} answers ${home.status}: it is behind a login or a security check. If it opens in a browser, open it in your browser tool, ask the owner to pass any check in that window, and read the pages there (recommended). Else ask the owner to pause the check while it moves, or work from their export.`, 1, "blocked", "source_closed");
+  const origin = new URL(home.url).origin;
+  const base = (origin + new URL(home.url).pathname).replace(/\/+$/, "");
+  const html = await home.text();
+  const headers = Object.fromEntries(home.headers.entries());
+  const platform3 = detectPlatform(html, headers);
+  const host = new URL(origin).hostname;
+  ensureMigrationDir(root);
+  const dir = hostDir(root, host);
+  mkdirSync11(dir, { recursive: true });
+  out(`Scanning ${base} (${platform3})`);
+  const robotsRes = await get(`${origin}/robots.txt`, "text/plain");
+  const robots = robotsRes?.ok ? await robotsRes.text() : "";
+  if (robots) writeFileSync17(join21(dir, "robots.txt"), robots);
+  const cap = Math.min(opts.max ?? PAGE_CAP, PAGE_CAP);
+  const fromSitemaps = await sitemapUrls(base, robots ? parseRobots(robots).sitemaps : [], cap * 5);
+  const all = [.../* @__PURE__ */ new Set([`${base}/`, ...fromSitemaps.urls, ...fromSitemaps.urls.length ? [] : homeLinks(html, base)])];
+  const list = all.slice(0, cap);
+  out(`  sitemaps: ${fromSitemaps.sitemaps.length}, addresses: ${all.length}${all.length > cap ? ` (the first ${cap} are read)` : ""}`);
+  const pages = new Array(list.length);
+  const assets = /* @__PURE__ */ new Set();
+  const site = emptySiteTags();
+  const containerTriggers = await readContainers(html, site);
+  const inUse = /* @__PURE__ */ new Set();
+  const profileScan = emptyProfileScan();
+  let next = 0;
+  let read = 0;
+  const worker = async () => {
+    while (next < list.length) {
+      const i = next++;
+      const url2 = list[i];
+      let res = i === 0 ? null : await get(url2, void 0, "manual");
+      const moved = res && res.status >= 300 && res.status < 400 ? res.headers.get("location") : null;
+      if (moved && sameAddress(url2, moved)) res = await get(new URL(moved, url2).href);
+      const status = i === 0 ? home.status : res?.status ?? 0;
+      if (i && res) addClosedPage(profileScan, pathOf(url2), status, res.headers.get("location"));
+      const body = i === 0 ? html : res && res.ok ? await res.text() : "";
+      const seo = body ? readPageSeo(body) : null;
+      pages[i] = { path: pathOf(url2), status, title: seo?.title ?? null, description: seo?.description ?? null, canonical: seo?.canonical ?? null, h1: seo?.h1[0] ?? null, lang: seo?.lang ?? null };
+      if (body) pageAssets(body, url2).forEach((a) => assets.add(a));
+      if (body) {
+        addPageProfile(profileScan, body, pathOf(url2));
+        addPageTags(site, scanPageTags(body, url2), pathOf(url2));
+        for (const t of containerTriggers) {
+          if (inUse.has(t) || t.type === "page") continue;
+          if (t.type === "selector" ? selectorInPage(t.value, body) === true : body.includes(t.value)) inUse.add(t);
+        }
+      }
+      if (++read % 50 === 0) out(`  pages read: ${read} of ${list.length}`);
+      if (i) await sleep3(PAUSE_MS);
+    }
+  };
+  await Promise.all(Array.from({ length: SCAN_WORKERS }, worker));
+  await addStylesheetAssets(assets);
+  const wordpressApi = platform3 === "wordpress" ? await wordpressContent(base, dir) : false;
+  if (wordpressApi) {
+    const media = readJson3(join21(dir, "content", "media.json")) ?? [];
+    media.forEach((m) => m.source_url && assets.add(m.source_url));
+  }
+  const known = new Set(pages.map((p) => p.path));
+  for (const t of containerTriggers.filter((x) => x.type === "page").slice(0, TRIGGER_PAGES_CAP)) {
+    if (known.has(t.value)) {
+      inUse.add(t);
+      continue;
+    }
+    const res = await get(`${origin}${t.value}`);
+    if (!res?.ok || new URL(res.url).pathname !== t.value.split("?")[0]) continue;
+    const body = await res.text();
+    const seo = readPageSeo(body);
+    pages.push({ path: t.value, status: res.status, title: seo.title ?? null, description: seo.description ?? null, canonical: seo.canonical ?? null, h1: seo.h1[0] ?? null, lang: seo.lang ?? null });
+    known.add(t.value);
+    addPageProfile(profileScan, body, t.value);
+    addPageTags(site, scanPageTags(body, res.url), t.value);
+    inUse.add(t);
+    await sleep3(PAUSE_MS);
+  }
+  site.triggers = [...inUse];
+  for (const file2 of ROOT_FILES) if (await hasRootFile(origin, file2)) site.rootFiles.push(file2);
+  writeJson(tagsFile(dir), site);
+  const bare2 = registrableDomain(host);
+  try {
+    const { records, unread } = await collectSnapshot(bare2, { extraNames: [...site.ownNames, ...site.serverContainers], deadlineMs: 3e4 });
+    writeJson(join21(dir, "dns.json"), { records: records.slice(0, 600), unread: unread.slice(0, 300), services: dnsServices(records).slice(0, 40) });
+  } catch {
+  }
+  const profile = siteProfile(profileScan, { platform: platform3 });
+  const inventory = { source: base, platform: platform3, scannedAt: (/* @__PURE__ */ new Date()).toISOString(), sitemaps: fromSitemaps.sitemaps, pages, wordpressApi, skipped: Math.max(0, all.length - list.length), profile };
+  writeJson(join21(dir, "inventory.json"), inventory);
+  writeJson(join21(dir, "assets.json"), [...assets].sort());
+  writeFileSync17(join21(dir, "home.html"), html);
+  const icons = await saveOldIcons(html, home.url, origin, dir);
+  await saveOldStyles(html, home.url, dir);
+  const rel2 = relative3(root, dir).split(sep4).join("/");
+  const broken = pages.filter((p) => p.status >= 400).length;
+  out();
+  out(`Saved in ${rel2}:`);
+  out(`  inventory.json  ${pages.length} pages with their address, title, description and headings${broken ? ` (${broken} already broken on the old site)` : ""}`);
+  out(`  assets.json     ${assets.size} images, stylesheets, scripts, fonts and files`);
+  out(`  tags.json       ${site.tags.length} tags and connections, ${site.outside.length} other outside addresses, ${site.triggers.length} conversion rules, ${site.forms.length} forms. Keep every one of them.`);
+  if (site.unreadContainers.length) out(`  Could not read Tag Manager ${site.unreadContainers.join(", ")}: its rules are unknown.`);
+  if (icons) out(`  icons/          ${icons} icons and logo of the old site, for: npx deployai@latest brand favicon`);
+  if (wordpressApi) {
+    out("  content/        the WordPress pages, posts, categories, tags, media and authors as JSON");
+    if (existsSync17(join21(dir, "posts"))) out("  posts/          the posts as Markdown for the blog block, each with its old address");
+  } else if (platform3 === "wordpress") out("  The WordPress API is closed on this site: work from the pages, or ask the owner for an export (Tools > Export).");
+  out();
+  for (const line of profileLines(profile)) out(line);
+  out();
+  out("Keep every path in inventory.json exactly as it is: same address, same title and description.");
+  await sendReport(root, opts.ctx, host, "scan");
+  return inventory.skipped;
+}
+function mediaTarget(dir, url2) {
+  const u = new URL(url2);
+  const clean3 = posix.normalize(decodeURIComponent(u.pathname)).replace(/^\/+/, "");
+  if (!clean3 || clean3.endsWith("/") || clean3.includes("..")) return null;
+  const base = resolve5(dir, "media", u.hostname.replace(/^www\./, ""));
+  const target = resolve5(base, clean3);
+  return target.startsWith(base + sep4) ? target : null;
+}
+async function migrateMediaCommand(root) {
+  const hosts = scannedHosts(root);
+  if (!hosts.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
+  for (const host of hosts) {
+    const dir = hostDir(root, host);
+    const assets = readJson3(join21(dir, "assets.json")) ?? [];
+    const stateFile2 = join21(dir, "media-state.json");
+    const state = readJson3(stateFile2) ?? { done: [], failed: [], bytes: 0 };
+    const done = new Set(state.done);
+    const todo = assets.filter((a) => !done.has(a));
+    out(`${host}: ${assets.length} files, ${todo.length} left`);
+    for (const [i, url2] of todo.entries()) {
+      if (state.bytes >= MEDIA_TOTAL_CAP) {
+        out(`  Stopped at ${formatBytes(state.bytes)}: the cap for one move. Use only the files the new pages need.`);
+        break;
+      }
+      const target = mediaTarget(dir, url2);
+      const res = target ? await safeFetch(url2, { maxBytes: MEDIA_FILE_CAP, timeoutMs: 6e4, userAgent: UA }).catch(() => null) : null;
+      const pageForFile = !!res && !/\.html?$/i.test(new URL(res.finalUrl).pathname) && /text\/html/i.test(res.contentType);
+      if (!target || !res || res.status < 200 || res.status > 299 || pageForFile) {
+        if (!state.failed.includes(url2)) state.failed.push(url2);
+        done.add(url2);
+        continue;
+      }
+      mkdirSync11(dirname5(target), { recursive: true });
+      writeFileSync17(target, res.body);
+      const bytes = res.body.byteLength;
+      state.bytes += bytes;
+      done.add(url2);
+      state.done = [...done];
+      if (i % 25 === 0) writeJson(stateFile2, state);
+      await sleep3(PAUSE_MS / 3);
+    }
+    state.done = [...done];
+    writeJson(stateFile2, state);
+    out(`  ${formatBytes(state.bytes)} in ${relative3(root, join21(dir, "media")).split(sep4).join("/")}${state.failed.length ? `, ${state.failed.length} could not be downloaded (listed in media-state.json)` : ""}`);
+  }
+  out("Copy the files the new pages use into the site's public folder at the same path (for example public/wp-content/uploads/...), so old image addresses keep working.");
+}
+function redirectLines(inv, rss = "/rss.xml") {
+  const lines = /* @__PURE__ */ new Set();
+  for (const p of inv.pages) {
+    const path = p.path.split("?")[0];
+    if (/\/feed\/?$/.test(path)) lines.add(`${path} ${rss} 301`);
+    if (/\/attachment\/[^/]+\/?$/.test(path)) lines.add(`${path} ${path.replace(/\/attachment\/[^/]+\/?$/, "/")} 301`);
+  }
+  if (inv.platform === "wordpress") {
+    const folder = new URL(inv.source).pathname.replace(/\/+$/, "");
+    lines.add(`${folder}/feed/ ${rss} 301`);
+    lines.add(`${folder}/comments/feed/ ${rss} 301`);
+  }
+  return [...lines];
+}
+var MARKDOWN_POST_DIRS = ["src/content/posts", "src/content/blog", "content/posts", "content/blog", "content/post", "_posts"];
+function markdownPostFiles(root) {
+  const files = [];
+  const walk2 = (rel2, depth) => {
+    const abs = join21(root, rel2);
+    if (!existsSync17(abs) || depth > 4 || files.length >= 2e3) return;
+    for (const e3 of readdirSync5(abs, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+      const child = posix.join(rel2, e3.name);
+      if (e3.isDirectory()) walk2(child, depth + 1);
+      else if (e3.isFile() && /\.(md|mdx|markdown)$/i.test(e3.name) && statSync2(join21(root, child)).size <= 1024 * 1024) files.push({ file: child, text: readFileSync18(join21(root, child), "utf8") });
+    }
+  };
+  for (const d of MARKDOWN_POST_DIRS) walk2(d, 0);
+  return files;
+}
+function migratePostsCommand(root) {
+  const hosts = scannedHosts(root);
+  const markdown = markdownPostFiles(root);
+  if (!hosts.length && !markdown.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
+  if (!existsSync17(join21(root, "src/kit/schema.ts"))) throw new CliError("The dashboard is not in this folder yet. Run: npx deployai@latest blocks dashboard", 1, "usage");
+  const posts = [];
+  for (const host of hosts) {
+    const dir = hostDir(root, host);
+    const inv = readJson3(join21(dir, "inventory.json"));
+    const list = readJson3(join21(dir, "content", "posts.json"));
+    if (inv && list?.length) posts.push(...wpPostsToKit({ origin: new URL(inv.source).origin, posts: list, categories: readJson3(join21(dir, "content", "categories.json")) ?? [], media: readJson3(join21(dir, "content", "media.json")) ?? [] }));
+  }
+  posts.push(...markdownPostsToKit(markdown));
+  const file2 = join21(root, "src/kit/moved-posts.json");
+  const had = readJson3(file2) ?? [];
+  if (!posts.length && !had.length) {
+    out("No posts in the scan or in this folder. If the old site has posts, write src/kit/moved-posts.json yourself: .deployai/blocks/dashboard.md says how.");
+    return;
+  }
+  const paths = new Set(had.map((p) => p.path || `/blog/${p.slug}/`));
+  const slugs = new Set(had.map((p) => p.slug));
+  const added = posts.filter((p) => {
+    if (paths.has(p.path) || slugs.has(p.slug)) return false;
+    paths.add(p.path);
+    slugs.add(p.slug);
+    return true;
+  });
+  if (!added.length) {
+    out(`All ${had.length} posts are already in src/kit/moved-posts.json, so nothing was added.`);
+    return;
+  }
+  writeFileSync17(file2, JSON.stringify([...had, ...added.map(({ lost: _lost, ...p }) => p)], null, 1));
+  out(had.length ? `Added ${added.length} posts to src/kit/moved-posts.json, beside the ${had.length} it had. Turn on blog in src/kit/site.config.ts.` : `Wrote ${added.length} posts to src/kit/moved-posts.json. Turn on blog in src/kit/site.config.ts.`);
+  const short = added.filter((p) => p.lost.length);
+  if (short.length) {
+    out("These lost a part the dashboard has no shape for. Add each to the page by hand, and say Partly moved in the plan:");
+    short.forEach((p) => out(`  ${p.path}: ${p.lost.join(", ")}`));
+  }
+}
+function migratePagesCommand(root) {
+  const hosts = scannedHosts(root);
+  if (!hosts.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
+  if (!existsSync17(join21(root, "src/kit/schema.ts"))) throw new CliError("The dashboard is not in this folder yet. Run: npx deployai@latest blocks dashboard", 1, "usage");
+  const file2 = join21(root, MOVED_PAGES_FILE);
+  const before = readJson3(file2);
+  const pages = [];
+  for (const host of hosts) {
+    const dir = hostDir(root, host);
+    const inv = readJson3(join21(dir, "inventory.json"));
+    if (!inv) continue;
+    const homeHtml = existsSync17(join21(dir, "home.html")) ? readFileSync18(join21(dir, "home.html"), "utf8") : null;
+    for (const p of movedPagesFromScan({ pages: inv.pages, homeHtml, origin: new URL(inv.source).origin })) if (!pages.some((x) => x.path === p.path)) pages.push(p);
+  }
+  const kept = before?.length ? pages.filter((p) => before.some((b) => b.path === p.path)) : pages;
+  writeFileSync17(file2, JSON.stringify(kept, null, 1));
+  out(`Wrote ${MOVED_PAGES_FILE}: ${kept.length} pages for the dashboard's Pages, ${kept.filter((p) => p.inNav).length} of them in the menu.`);
+  out("Build each page at exactly its path, as a page of the site's code with its own look and words. Draw the site's menu from navItems() in src/kit/store.ts. A page the plan drops: remove it from this file.");
+}
+function migrateLegalCommand(root) {
+  const hosts = scannedHosts(root);
+  if (!hosts.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
+  if (!existsSync17(join21(root, "src/kit/schema.ts"))) throw new CliError("The dashboard is not in this folder yet. Run: npx deployai@latest blocks dashboard", 1, "usage");
+  const pages = [];
+  const site = emptySiteTags();
+  for (const host of hosts) {
+    const dir = hostDir(root, host);
+    pages.push(...readJson3(join21(dir, "inventory.json"))?.pages ?? []);
+    const found = readJson3(tagsFile(dir));
+    if (found) {
+      site.tags.push(...found.tags);
+      site.outside.push(...found.outside);
+      site.forms.push(...found.forms);
+    }
+  }
+  const file2 = join21(root, MOVED_LEGAL_FILE);
+  const legal = { ...movedLegalFromScan({ pages, site }), docs: readJson3(file2)?.docs ?? [] };
+  writeFileSync17(file2, JSON.stringify(legal, null, 1));
+  out(`Wrote ${MOVED_LEGAL_FILE}: ${legal.duties.length} rows for the dashboard's Documents page, ${legal.forms.length} forms, ${legal.services.length} outside services.`);
+  for (const d of legal.duties) if (d.old) out(`  ${d.key}: the old site has its own page at ${d.old}. Keep it. See "Accessibility and documents" in .deployai/blocks/dashboard.md.`);
+  out("Nothing here is finished or checked: it tells the owner what to look at. Keep tags, forms and pages as they are.");
+}
+function migrateRedirectsCommand(root) {
+  const hosts = scannedHosts(root);
+  if (!hosts.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
+  const lines = /* @__PURE__ */ new Set();
+  for (const host of hosts) {
+    const inv = readJson3(join21(hostDir(root, host), "inventory.json"));
+    if (inv) redirectLines(inv).forEach((l) => lines.add(l));
+  }
+  const publicDir = join21(root, "public");
+  const file2 = join21(existsSync17(publicDir) ? publicDir : root, "_redirects");
+  const before = existsSync17(file2) ? readFileSync18(file2, "utf8").split(/\r?\n/).filter(Boolean) : [];
+  const added = [...lines].filter((l) => !before.some((b) => b.split(/\s+/)[0] === l.split(/\s+/)[0]));
+  writeFileSync17(file2, [...before, ...added].join("\n") + "\n");
+  out(`${relative3(root, file2).split(sep4).join("/")}: ${added.length} added, ${before.length + added.length} in all (at most 2,000; no query strings).`);
+  out('Add a line "<old path> <new path> 301" only for a page that truly could not keep its address.');
+}
+function allowedRedirects(root) {
+  const map2 = /* @__PURE__ */ new Map();
+  for (const file2 of [join21(root, "public", "_redirects"), join21(root, "_redirects")]) {
+    if (!existsSync17(file2)) continue;
+    for (const line of readFileSync18(file2, "utf8").split(/\r?\n/)) {
+      const [from, to] = line.trim().split(/\s+/);
+      if (from && to && !from.startsWith("#")) map2.set(from, to);
+    }
+  }
+  return map2;
+}
+var PREVIEW_TRIES = 6;
+var PREVIEW_RETRY_MS = 2e4;
+async function previewCookie(preview, retryMs = PREVIEW_RETRY_MS) {
+  if (!preview.searchParams.get("deployai_preview")) return void 0;
+  for (let i = 0; i < PREVIEW_TRIES; i++) {
+    if (i) await sleep3(retryMs);
+    const res = await get(preview.href, void 0, "manual");
+    await res?.body?.cancel().catch(() => {
+    });
+    const cookie = res?.headers.get("set-cookie")?.split(";")[0];
+    if (cookie) return cookie;
+    if (res && !(res.status === 404 && res.headers.has("x-deployai"))) return void 0;
+  }
+  throw new CliError("This preview link does not open. If this version is already live, its preview has ended: run verify on the site address instead, npx deployai@latest migrate verify <the site address>. If not, run npx deployai@latest status and use the newest link it prints.", 1, "preview_gone");
+}
+async function migrateTagsCommand(root, ctx, opts) {
+  const hosts = scannedHosts(root);
+  if (!hosts.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
+  const answers = (opts.answer ?? []).map((a) => a.replace(/=unknown$/i, "=unsure"));
+  for (const a of answers) {
+    const [k, v] = a.split("=");
+    if (!QUESTION_KEYS.includes(k) || !ANSWERS.includes(v)) throw new CliError(`Not an answer: ${a}. Use one of ${QUESTION_KEYS.join(", ")} = ${ANSWERS.join(", ")}, for example serverPixel=yes.`, 1, "usage");
+  }
+  const urls = opts.requests ? readFileSync18(resolve5(root, opts.requests), "utf8").split(/\r?\n/) : [];
+  for (const host of hosts) {
+    const dir = hostDir(root, host);
+    const site = readJson3(tagsFile(dir));
+    const inv = readJson3(join21(dir, "inventory.json"));
+    if (!site || !inv) continue;
+    const state = readJson3(stateFile(dir)) ?? {};
+    if (urls.length && opts.fired) {
+      const seen = emptySiteTags();
+      addBrowserRequests(seen, urls, inv.source);
+      const before = new Map((state.fired ?? []).map((t) => [tagRowKey(t), t]));
+      for (const t of seen.tags) before.set(tagRowKey(t), { key: t.key, id: t.id });
+      state.fired = [...before.values()];
+      out(`Seen firing on the preview: ${seen.tags.map((t) => t.name).join(", ") || "no known tag"}.`);
+    } else if (urls.length) {
+      const added = addBrowserRequests(site, urls, inv.source);
+      writeJson(tagsFile(dir), site);
+      out(`${added} more found from the browser. Keep them too.`);
+    }
+    if (opts.removed?.length) {
+      state.removed = [.../* @__PURE__ */ new Set([...state.removed ?? [], ...opts.removed])];
+      const names2 = removableNames(site);
+      const known = opts.removed.filter((r) => names2.some((n2) => n2.toLowerCase() === r.toLowerCase()));
+      const unknown2 = opts.removed.filter((r) => !known.includes(r));
+      if (known.length) out(`Marked as left out on purpose: ${known.join(", ")}. Verify will not ask for these. The report shows what took its place from the plan row "Replaced with ...".`);
+      if (unknown2.length) out(`Not found in what the old site has: ${unknown2.join(", ")}. Use the name verify prints, exactly as it prints it.`);
+    }
+    for (const a of answers) {
+      const [k, v] = a.split("=");
+      state.answers = { ...state.answers, [k]: v };
+    }
+    writeJson(stateFile(dir), state);
+    await sendReport(root, ctx, host, null);
+  }
+}
+async function migrateReportCommand(root, ctx) {
+  const hosts = scannedHosts(root);
+  if (!hosts.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
+  for (const host of hosts) await sendReport(root, ctx, host, null);
+}
+var TAG_WORDS = {
+  tag_lost: "is gone from the preview",
+  trigger_lost: "is what a conversion waits for, and it is gone: the conversion stops counting with no error",
+  field_lost: "is a hidden form field that carries the ad source, and it is gone",
+  verification_lost: "verification tag is gone",
+  file_lost: "is a file a service reads, and it is gone",
+  blocked_by_headers: "is blocked by public/_headers",
+  event_lost: "is an event the old pages send, and it is gone"
+};
+function previewPage(preview, path) {
+  const u = new URL(path, preview.origin);
+  const token = preview.searchParams.get("deployai_preview");
+  if (token) u.searchParams.set("deployai_preview", token);
+  return u.toString();
+}
+var FEATURE_WORDS = { cart: "the store page", checkout: "the checkout", booking: "the booking page", login: "the sign in page", protected: "the members only page", forms: "the form page", payments: "payments" };
+var FEATURE_PAGES = 5;
+var LINK_CAP = 150;
+async function checkFeatures(inv, fetchPage) {
+  const checks = [];
+  for (const f of inv.profile?.features ?? []) {
+    if (f.key === "payments") continue;
+    for (const path of f.pages.slice(0, FEATURE_PAGES)) {
+      const manual = f.key === "protected" || f.key === "checkout";
+      const res = await fetchPage(path, manual);
+      let html = "";
+      if (res?.status === 200) html = await res.text().catch(() => "");
+      else await res?.body?.cancel().catch(() => {
+      });
+      const c = checkFeaturePage(f.key, path, res ? { status: res.status, location: res.headers.get("location"), html } : null);
+      if (c) checks.push(c);
+      await sleep3(PAUSE_MS / 3);
+    }
+  }
+  return checks;
+}
+async function migrateVerifyCommand(root, previewRaw, ctx, retryMs = PREVIEW_RETRY_MS, look = {}) {
+  let preview;
+  try {
+    preview = new URL(/^https?:\/\//.test(previewRaw) ? previewRaw : `https://${previewRaw}`);
+  } catch {
+    throw new CliError(`Not an address: ${previewRaw}. Use the preview address deploy printed.`, 1, "usage");
+  }
+  const hosts = scannedHosts(root);
+  if (!hosts.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
+  const redirects = allowedRedirects(root);
+  const cookie = await previewCookie(preview, retryMs);
+  const page3 = (path) => get(cookie ? new URL(path, preview.origin).toString() : previewPage(preview, path), void 0, "follow", cookie);
+  const findings = [];
+  const credits = /* @__PURE__ */ new Map();
+  const vendors = /* @__PURE__ */ new Map();
+  let checked = 0;
+  const tagFindings = [];
+  const leftOnOld = [];
+  const perHost = [];
+  const featureChecks = [];
+  for (const host of hosts) {
+    const inv = readJson3(join21(hostDir(root, host), "inventory.json"));
+    const oldSite = readJson3(tagsFile(hostDir(root, host)));
+    const state = readJson3(stateFile(hostDir(root, host))) ?? {};
+    const nextSite = emptySiteTags();
+    const triggerFound = {};
+    const formIdFound = {};
+    for (const t of oldSite?.triggers ?? []) if (t.type !== "page") triggerFound[t.value] = false;
+    for (const f of oldSite?.forms ?? []) if (f.id) formIdFound[f.id] = false;
+    const checkedBefore = checked;
+    const findingsBefore = findings.length;
+    const linksFrom = /* @__PURE__ */ new Map();
+    for (const old of inv?.pages ?? []) {
+      if (old.status >= 300) continue;
+      const res = await page3(old.path);
+      checked++;
+      let next = null;
+      if (res) {
+        const u = new URL(res.url);
+        u.searchParams.delete("deployai_preview");
+        const body = res.ok ? await res.text() : "";
+        const seo = body ? readPageSeo(body) : null;
+        for (const c of builderCredits(body)) if (!credits.has(c)) credits.set(c, old.path);
+        for (const v of vendorFiles(body)) if (!vendors.has(v)) vendors.set(v, old.path);
+        for (const l of body ? pageLinks(body, res.url) : []) if (!linksFrom.has(l)) linksFrom.set(l, old.path);
+        if (body && oldSite) {
+          addPageTags(nextSite, scanPageTags(body, res.url), old.path);
+          for (const t of oldSite.triggers) {
+            if (t.type === "page" || triggerFound[t.value]) continue;
+            if (t.type === "selector" ? selectorInPage(t.value, body) === true : body.includes(t.value)) triggerFound[t.value] = true;
+          }
+          for (const id2 of Object.keys(formIdFound)) if (!formIdFound[id2] && new RegExp(`\\bid\\s*=\\s*["']?${id2.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}["'\\s>]`).test(body)) formIdFound[id2] = true;
+        }
+        next = { status: res.status, finalPath: u.pathname + u.search, title: seo?.title ?? null, description: seo?.description ?? null };
+      }
+      const f = comparePage(old, next, redirects.get(old.path.split("?")[0]));
+      if (f) findings.push(f);
+      await sleep3(PAUSE_MS / 3);
+    }
+    const known = new Set((inv?.pages ?? []).map((p) => samePath(p.path)));
+    let tried = 0;
+    for (const [path, from] of linksFrom) {
+      if (known.has(samePath(path)) || tried >= LINK_CAP) continue;
+      known.add(samePath(path));
+      tried++;
+      const here = await page3(path);
+      await here?.body?.cancel().catch(() => {
+      });
+      if (here && here.status !== 404 && here.status !== 410) continue;
+      const there = inv ? await get(new URL(path, inv.source).toString()) : null;
+      await there?.body?.cancel().catch(() => {
+      });
+      if (there?.ok) findings.push({ path, problem: "link_broken", detail: from });
+      await sleep3(PAUSE_MS / 3);
+    }
+    const planFile = join21(root, MIGRATION_DIR, "plan.md");
+    const planRows = existsSync17(planFile) ? parsePlanFeatures(readFileSync18(planFile, "utf8")) : [];
+    for (const r of replacedPages(planRows, inv?.pages ?? [])) findings.push({ path: r.path, problem: "replaced", detail: r.row });
+    if (oldSite) {
+      const home = await page3("/");
+      const csp = home?.headers.get("content-security-policy") ?? null;
+      const homeHtml = home?.ok ? await home.clone().text().catch(() => "") : "";
+      for (const a of oldHostAssets(homeHtml, preview.origin + "/", hosts)) {
+        if (leftOnOld.some((x) => x.url === a.url)) continue;
+        const u = new URL(a.url);
+        const here = await page3(u.pathname + u.search);
+        if (!here?.ok || !/^image\//i.test(here.headers.get("content-type") ?? "")) leftOnOld.push(a);
+      }
+      const fileOnPreview = {};
+      for (const file2 of oldSite.rootFiles) fileOnPreview[file2] = await hasRootFile(preview.origin, file2, cookie ? "" : preview.search, cookie);
+      const pageOnPreview = {};
+      for (const t of oldSite.triggers.filter((x) => x.type === "page")) pageOnPreview[t.value] = Boolean((await page3(t.value))?.ok);
+      const found = compareTags(oldSite, nextSite, { removed: state.removed ?? [], csp, fileOnPreview, triggerFound, pageOnPreview, formIdFound });
+      tagFindings.push(...found);
+      const features = inv ? await checkFeatures(inv, (path, manual) => get(cookie ? new URL(path, preview.origin).toString() : previewPage(preview, path), void 0, manual ? "manual" : "follow", cookie)) : [];
+      featureChecks.push(...features);
+      perHost.push({ host, checked: checked - checkedBefore, problems: findings.length - findingsBefore, pages: findings.slice(findingsBefore), seen: nextSite.tags.map((t) => ({ key: t.key, id: t.id })), found, removed: state.removed ?? [], features });
+    }
+  }
+  const words = { missing: "not found on the preview", moved: "moved to", error: "answers", title_lost: "lost its title", description_lost: "lost its description", link_broken: "opens on the old site but not on the preview, linked from", replaced: 'is "Replaced with" in the plan, row' };
+  const report2 = join21(root, MIGRATION_DIR, "verify.json");
+  writeJson(report2, { checkedAt: (/* @__PURE__ */ new Date()).toISOString(), preview: preview.origin, checked, findings, credits: [...credits.keys()], vendors: [...vendors.keys()], tags: tagFindings, leftOnOld, features: featureChecks });
+  const brokenFeatures = featureChecks.filter((c) => !c.ok);
+  if (brokenFeatures.length) {
+    out(`${brokenFeatures.length} ${brokenFeatures.length === 1 ? "feature of the old site does" : "features of the old site do"} not work on the preview:`);
+    for (const c of brokenFeatures.slice(0, 40)) out(`  ${c.page}  ${FEATURE_WORDS[c.key]} ${FEATURE_PROBLEM_WORDS[c.problem]}`);
+    out(`Make each one work as it does on the old site, deploy again, and run verify again: npx deployai@latest migrate verify ${previewRaw}`);
+    blockedBy("feature_broken");
+    process.exitCode = 1;
+  }
+  if (credits.size) {
+    out(`A builder's credit is still on the preview:`);
+    for (const [text4, path] of credits) out(`  ${path}  ${text4}`);
+    out("Remove each and put the site's own name and the year in its place, unless the owner asked to keep it, then deploy again and run verify again.");
+    blockedBy("builder_credit");
+    process.exitCode = 1;
+  }
+  if (vendors.size) {
+    out(`Files of a plugin or theme are still on the preview:`);
+    for (const [name, path] of vendors) out(`  ${path}  ${name}`);
+    out("Remove them. Write what the page needs into the site's own stylesheet and scripts, or use a UI source, so it looks and works the same, then deploy again and run verify again.");
+    blockedBy("vendor_files");
+    process.exitCode = 1;
+  }
+  if (leftOnOld.length) {
+    const what = { share: "share image (og:image)", x: "X image (twitter:image)", icon: "icon" };
+    out("Still loading from the old site and missing from this one, so it breaks when the old site closes:");
+    for (const a of leftOnOld) out(`  ${what[a.kind]}  ${a.url}`);
+    out("Put each file in the site's own public folder (migrate media saved the images in .deployai/migration), point the tag at the site's own address, deploy again and run verify again.");
+    blockedBy("old_host_assets");
+    process.exitCode = 1;
+  }
+  if (tagFindings.length) {
+    out(`${tagFindings.length} tags and connections need a fix:`);
+    for (const f of tagFindings.slice(0, 60)) out(`  ${f.what}  ${TAG_WORDS[f.problem]}${f.detail ? ` (${f.detail})` : ""}${f.page ? ` on ${f.page}` : ""}`);
+    if (tagFindings.length > 60) out(`  and ${tagFindings.length - 60} more in verify.json`);
+    out('Put each one back, deploy again and run verify again. If one was left out on purpose (the owner asked, or the plan replaced it with ours): npx deployai@latest migrate tags --removed "<its number or name>", and give its plan row the status "Replaced with <what took its place>" so the report says so.');
+    blockedBy(...tagFindings.map((f) => f.problem));
+    process.exitCode = 1;
+  }
+  const clean3 = !findings.length && !tagFindings.length && !credits.size && !vendors.size && !leftOnOld.length && !brokenFeatures.length;
+  for (const h of perHost) {
+    const dir = hostDir(root, h.host);
+    const verify = { checkedAt: (/* @__PURE__ */ new Date()).toISOString(), pagesChecked: h.checked, pageProblems: h.problems, pageFindings: h.pages.map((f) => ({ path: f.path.slice(0, 300), problem: f.problem })).slice(0, 150), findings: h.found.map((f) => ({ problem: f.problem, what: f.what.slice(0, 240), ...f.detail ? { detail: f.detail.slice(0, 300) } : {}, ...f.page ? { page: f.page.slice(0, 300) } : {} })).slice(0, 300), seen: h.seen.slice(0, 300), removed: h.removed, vendors: [...vendors.keys()].map((v) => v.slice(0, 80)).slice(0, 40), ...h.features.length ? { featureChecks: h.features.slice(0, 60).map((c) => ({ ...c, page: c.page.slice(0, 300) })) } : {} };
+    writeJson(join21(dir, "verify-report.json"), { report: verify });
+    await sendReport(root, ctx, h.host, clean3 ? "verify" : null, verify);
+  }
+  await compareLooks(root, previewRaw, { maxDiff: look.maxDiff });
+  if (!findings.length) {
+    out(`All ${checked} old addresses open on the preview with their title and description.`);
+    return;
+  }
+  out(`${findings.length} of ${checked} old addresses need a fix (also in ${relative3(root, report2).split(sep4).join("/")}):`);
+  for (const f of findings.slice(0, 60)) out(`  ${f.path}  ${words[f.problem]}${f.detail ? ` ${f.detail}` : ""}`);
+  if (findings.length > 60) out(`  and ${findings.length - 60} more in verify.json`);
+  if (findings.some((f) => f.problem !== "link_broken" && f.problem !== "replaced")) out("Give each page its old address back (or, only if it truly cannot stay, a line in public/_redirects), deploy again, and run verify again.");
+  if (findings.some((f) => f.problem === "link_broken")) out("A page links to an address the old site has and the preview does not, so that page was never moved. Move each one from the old site, with its own content and address, deploy again and run verify again.");
+  if (findings.some((f) => f.problem === "replaced")) out("A page is never Replaced with. Rebuild each from the old page with the same sections, words, images, links and buttons in the same order, give its plan row the status Moved, deploy again and run verify again. A new design is a change the owner asks for after the move.");
+  const pageReason = { missing: "pages_missing", moved: "pages_moved", error: "pages_error", title_lost: "title_lost", description_lost: "description_lost", link_broken: "links_broken", replaced: "page_replaced" };
+  blockedBy(...findings.map((f) => pageReason[f.problem]));
+  process.exitCode = 1;
+}
+
+// src/commands/link.ts
+async function save(root, p, ctx) {
+  updateProject(root, { projectId: p.id, name: p.name, slug: p.slug });
+  rememberSite(p.id, ctx.config.email);
+  const t = messages(root);
+  out(t("linkedTo", { name: p.name, slug: p.slug }));
+  out(t("savedIn"));
+  await moveOffer(root, p, ctx);
+  out(t("nextStep"));
+  out(t("runDeploy"));
+}
+async function moveOffer(root, p, ctx) {
+  const startId = readChoices(root)?.startId;
+  if (!startId) return;
+  const t = messages(root);
+  try {
+    const r = await apiRequest(ctx, "/api/cli/migrations/grant", null, { method: "POST", body: { projectId: p.id, startId } });
+    if (typeof r.slug === "string" && /^[a-z0-9-]{2,40}$/.test(r.slug)) {
+      updateProject(root, { slug: r.slug });
+      out(t("movedSlug", { url: r.url ?? r.slug }));
+    }
+    if (r.granted?.length) out(t("moveOfferGranted", { n: r.granted.length }));
+    else if (r.reason && r.reason !== "start_used") out(t(r.reason === "cap" ? "moveOfferCap" : r.reason === "offer_over" ? "moveOfferOver" : "moveOfferNotMove"));
+  } catch {
+  }
+}
+function projectLine(p, i) {
+  const live = p.liveVersion ? `v${p.liveVersion}` : "-";
+  return `  ${String(i + 1).padStart(2)}. ${p.slug.padEnd(24)} ${p.status.padEnd(7)} ${live.padEnd(5)} ${p.url ?? ""}`.trimEnd();
+}
+async function linkCommand(root, ctx, target, opts) {
+  requireToken(ctx);
+  const t = messages(root);
+  if (opts.create) {
+    const framework = analyzeProject(root).inspect.framework.id;
+    const p = await apiRequest(ctx, "/api/cli/projects", Project, { method: "POST", body: { name: opts.create, framework } });
+    out(t("createdProject", { name: p.name }));
+    if (p.notice) out(p.notice);
+    await save(root, p, ctx);
+    return;
+  }
+  const { projects } = await apiRequest(ctx, "/api/cli/projects", ProjectsResponse);
+  if (target) {
+    const p = projects.find((x) => x.id === target || x.slug === target || x.name === target);
+    if (!p) throw new CliError(messages(root)("noProjectNamed", { name: target }), 1, "not_found");
+    await save(root, p, ctx);
+    return;
+  }
+  if (!projects.length) {
+    out(t("noProjects"));
+    if (isInteractive()) {
+      const rl = createInterface3({ input: process.stdin, output: process.stdout });
+      let name;
+      try {
+        name = (await rl.question("Name for a new site: ")).trim();
+      } finally {
+        rl.close();
+      }
+      if (!name) throw new CliError(messages(root)("noNameGiven"), 1, "usage");
+      return linkCommand(root, ctx, void 0, { create: name });
+    }
+    out(t("nextStep"));
+    out(t("runLinkCreate"));
+    return;
+  }
+  if (projects.length === 1) {
+    const p = projects[0];
+    const address = p.url ?? p.slug;
+    if (isInteractive()) {
+      const rl = createInterface3({ input: process.stdin, output: process.stdout });
+      let answer;
+      try {
+        answer = (await rl.question(t("linkConfirm", { name: p.name, address }))).trim().toLowerCase();
+      } finally {
+        rl.close();
+      }
+      if (answer === "y" || answer === "yes") return save(root, p, ctx);
+      out(t("linkCancelled"));
+      return;
+    }
+    throw new CliError([t("linkOnlyOne", { name: p.name, address }), `  npx deployai@latest link ${p.slug}`, '  npx deployai@latest link --create "<name>"'].join("\n"), 1, "usage");
+  }
+  const current = readProject(root)?.projectId;
+  out(t("projects"));
+  projects.forEach((p, i) => out(projectLine(p, i) + (p.id === current ? t("linkedMark") : "")));
+  out();
+  if (isInteractive()) {
+    const rl = createInterface3({ input: process.stdin, output: process.stdout });
+    try {
+      const answer = (await rl.question("Number to link: ")).trim();
+      const p = projects[Number(answer) - 1];
+      if (!p) throw new CliError(messages(root)("noProjectPicked"), 1, "usage");
+      await save(root, p, ctx);
+    } finally {
+      rl.close();
+    }
+    return;
+  }
+  out(t("nextStep"));
+  out(t("runLinkPick"));
+}
+
 // src/commands/claim.ts
 async function claimCommand(root, ctx, opts) {
   const t = messages(root);
@@ -31536,6 +31715,46 @@ async function claimCommand(root, ctx, opts) {
     return;
   }
   out(t("claimLink", { url: url2 }));
+}
+
+// src/commands/backup.ts
+import { existsSync as existsSync18, writeFileSync as writeFileSync18 } from "fs";
+import { join as join22 } from "path";
+var WAIT_MS4 = 20 * 6e4;
+var EVERY_MS = 3e3;
+async function backupCommand(root, ctx) {
+  const t = messages(root);
+  const projectId = readProject(root)?.projectId;
+  if (!projectId) throw new CliError(t("pullNotLinked"), 1, "not_linked");
+  const token = requireToken(ctx);
+  const { copyId } = await apiRequest(ctx, "/api/cli/backup", null, { method: "POST", body: { projectId } });
+  out(t("backupStarted"));
+  const until = Date.now() + WAIT_MS4;
+  let state = { status: "queued" };
+  while (state.status !== "done") {
+    if (state.status === "failed") throw new CliError(t("backupFailed"), 1, "backup_failed");
+    if (Date.now() > until) throw new CliError(t("backupSlow"), 1, "backup_slow");
+    await new Promise((r) => setTimeout(r, EVERY_MS));
+    state = await apiRequest(ctx, `/api/cli/backup?projectId=${encodeURIComponent(projectId)}&copyId=${encodeURIComponent(copyId)}`, null);
+  }
+  let res;
+  try {
+    res = await fetch(`${ctx.apiUrl}/api/cli/backup?projectId=${encodeURIComponent(projectId)}&copyId=${encodeURIComponent(copyId)}&download=1`, { headers: { "User-Agent": userAgent(ctx.config), Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(6e5) });
+  } catch {
+    throw new CliError(messages()("unreachable", { url: ctx.apiUrl }), 1, "network");
+  }
+  if (!res.ok) throw new CliError(t("backupFailed"), 1, "backup_failed");
+  const name = decodeURIComponent(res.headers.get("x-deployai-file") ?? "backup.zip").replace(/[^\w.-]/g, "_");
+  const file2 = freeName(root, name);
+  writeFileSync18(file2, Buffer.from(await res.arrayBuffer()));
+  out(t("backupSaved", { file: file2 }));
+  if (state.skipped?.length) out(t("backupSkipped", { names: state.skipped.join(", ") }));
+  return { file: file2 };
+}
+function freeName(root, name) {
+  let file2 = join22(root, name);
+  for (let n2 = 2; existsSync18(file2); n2++) file2 = join22(root, name.replace(/\.zip$/, `-${n2}.zip`));
+  return file2;
 }
 
 // src/commands/logs.ts
@@ -31686,12 +31905,12 @@ async function requestsOpenCommand(root, ctx, path, open2) {
 
 // src/commands/start.ts
 import { spawnSync as spawnSync5 } from "child_process";
-import { existsSync as existsSync18, readdirSync as readdirSync6, writeFileSync as writeFileSync18 } from "fs";
-import { join as join22, relative as relative4, resolve as resolve6 } from "path";
+import { existsSync as existsSync19, readdirSync as readdirSync6, writeFileSync as writeFileSync20 } from "fs";
+import { join as join24, relative as relative4, resolve as resolve6 } from "path";
 
 // src/commands/starter.ts
-import { writeFileSync as writeFileSync17 } from "fs";
-import { join as join21 } from "path";
+import { writeFileSync as writeFileSync19 } from "fs";
+import { join as join23 } from "path";
 var esc2 = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 var TEXT = {
   he: { title: "\u05D4\u05D0\u05EA\u05E8 \u05E9\u05DC\u05D9", soon: "\u05D4\u05D0\u05EA\u05E8 \u05D1\u05D1\u05E0\u05D9\u05D9\u05D4, \u05D1\u05E7\u05E8\u05D5\u05D1 \u05DB\u05D0\u05DF." },
@@ -31739,8 +31958,8 @@ DeployAI wrote this page so the folder starts as a working site. Build the owner
 - Delete this README or replace it with notes about the site.
 `;
 function writeStarter(root, name, lang, stack) {
-  writeFileSync17(join21(root, "index.html"), page2(name ?? "", lang, stack));
-  writeFileSync17(join21(root, "README.md"), README);
+  writeFileSync19(join23(root, "index.html"), page2(name ?? "", lang, stack));
+  writeFileSync19(join23(root, "README.md"), README);
 }
 
 // src/commands/start.ts
@@ -31768,7 +31987,7 @@ function otherSiteFolders(here, root, projectId) {
   const dirs = /* @__PURE__ */ new Set([here, root]);
   for (const base of [here, root]) {
     try {
-      for (const e3 of readdirSync6(base, { withFileTypes: true })) if (e3.isDirectory() && !e3.name.startsWith(".") && e3.name !== "node_modules") dirs.add(join22(base, e3.name));
+      for (const e3 of readdirSync6(base, { withFileTypes: true })) if (e3.isDirectory() && !e3.name.startsWith(".") && e3.name !== "node_modules") dirs.add(join24(base, e3.name));
     } catch {
     }
   }
@@ -31848,7 +32067,7 @@ async function startCommand(cwd, ctx, id2, opts = {}) {
   if (sample && !sameSite) {
     const written = await downloadSample(ctxNow, sample.key, root);
     done.push(t("startDownloaded", { key: sample.key, n: written }));
-    if (existsSync18(join22(root, "package.json"))) {
+    if (existsSync19(join24(root, "package.json"))) {
       if (opts.install !== false && install(root)) done.push(t("startInstalled"));
       else steps.unshift({ cmd: "npm install", say: "Installs the sample's packages." });
     }
@@ -31873,7 +32092,7 @@ async function startCommand(cwd, ctx, id2, opts = {}) {
   const stackText = choices.stack ? stackBlock(choices.stack) : "";
   if (choices.brief || stackText) {
     ensureDeployaiDir(root);
-    writeFileSync18(join22(root, BRIEF_FILE), [choices.brief ? `# The owner's details
+    writeFileSync20(join24(root, BRIEF_FILE), [choices.brief ? `# The owner's details
 
 ${choices.brief}
 ` : "", stackText].filter(Boolean).join("\n"));
@@ -31890,7 +32109,7 @@ ${choices.brief}
     writeProject(root, { ...before ?? {}, projectId: choices.projectId, name: choices.name ?? void 0, slug: choices.slug ?? void 0, createdAt: before?.createdAt ?? (/* @__PURE__ */ new Date()).toISOString() });
     done.push(t(before?.projectId && before.projectId !== choices.projectId ? "startRelinked" : "startLinked", { name: choices.name ?? "" }));
   }
-  if (pullNow) await pullCommand(root, ctxNow);
+  const pulledSave = pullNow ? (await pullCommand(root, ctxNow)).fromSave : false;
   if (ctxNow.config.sound === true) agentFollows([here, root]);
   out(t("startTitle"));
   out();
@@ -31901,7 +32120,7 @@ ${choices.brief}
     const work = await checkWork(ctxNow, root, choices.projectId, builtOn);
     const others = othersLine(root, work.others);
     if (others) out(`- ${others}`);
-    if (work.behind && !pullNow) {
+    if (work.behind && (!pullNow || pulledSave)) {
       if (!work.behind.base) out(`- ${t("behindNoBase", { v: work.behind.live })}`);
       else {
         try {
@@ -31951,18 +32170,18 @@ ${choices.brief}
   for (const line of server.extra) say(line);
   say(rule(server, "startFail", START_FAIL_LINE));
   ensureDeployaiDir(root);
-  writeFileSync18(join22(root, START_FILE), `${lines.join("\n")}
+  writeFileSync20(join24(root, START_FILE), `${lines.join("\n")}
 `);
 }
 
 // src/commands/addon.ts
-import { dirname as dirname7, join as join24, resolve as resolve8 } from "path";
-import { mkdirSync as mkdirSync13, existsSync as existsSync20, writeFileSync as writeFileSync20 } from "fs";
+import { dirname as dirname7, join as join26, resolve as resolve8 } from "path";
+import { mkdirSync as mkdirSync13, existsSync as existsSync21, writeFileSync as writeFileSync22 } from "fs";
 
 // src/commands/addon-lanes.ts
 import { spawnSync as spawnSync6 } from "child_process";
-import { copyFileSync, existsSync as existsSync19, lstatSync as lstatSync2, mkdirSync as mkdirSync12, readdirSync as readdirSync7, rmdirSync, statSync as statSync3, unlinkSync as unlinkSync2, writeFileSync as writeFileSync19 } from "fs";
-import { basename as basename3, dirname as dirname6, join as join23, resolve as resolve7 } from "path";
+import { copyFileSync, existsSync as existsSync20, lstatSync as lstatSync2, mkdirSync as mkdirSync12, readdirSync as readdirSync7, rmdirSync, statSync as statSync3, unlinkSync as unlinkSync2, writeFileSync as writeFileSync21 } from "fs";
+import { basename as basename3, dirname as dirname6, join as join25, resolve as resolve7 } from "path";
 var git3 = (cwd, args) => spawnSync6("git", args, { cwd, encoding: "utf8" });
 var ok = (cwd, args) => git3(cwd, args).status === 0;
 var who = (cwd) => git3(cwd, ["config", "user.email"]).stdout?.trim() ? [] : ["-c", "user.name=DeployAI", "-c", "user.email=versions@deployai.co.il"];
@@ -32001,10 +32220,10 @@ function startWave(root, keys) {
   }
   const base = text3(root, ["rev-parse", "HEAD"]);
   if (!base) throw new CliError('This folder has no commit yet. Run: git add -A, then git commit -m "Before add-ons", then this command again.', 1, "no_commit");
-  const parent = join23(dirname6(root), `${basename3(root)}-addons`);
-  const lanes = w.lanes.map((l) => ({ name: l.name, keys: l.keys, dir: join23(parent, l.name), branch: `addon/${l.name}` }));
+  const parent = join25(dirname6(root), `${basename3(root)}-addons`);
+  const lanes = w.lanes.map((l) => ({ name: l.name, keys: l.keys, dir: join25(parent, l.name), branch: `addon/${l.name}` }));
   for (const l of lanes) {
-    if (existsSync19(l.dir)) throw new CliError(`A lane folder from an earlier run is still there: ${l.dir}. Bring its work in with npx deployai@latest addons merge, or remove it with git worktree remove "${l.dir}", then run this again.`, 1, "lane_exists");
+    if (existsSync20(l.dir)) throw new CliError(`A lane folder from an earlier run is still there: ${l.dir}. Bring its work in with npx deployai@latest addons merge, or remove it with git worktree remove "${l.dir}", then run this again.`, 1, "lane_exists");
     if (ok(root, ["rev-parse", "--verify", "--quiet", `refs/heads/${l.branch}`])) throw new CliError(`The branch ${l.branch} from an earlier run is still there. Bring it in with git merge ${l.branch}, or remove it with git branch -D ${l.branch}, then run this again.`, 1, "lane_exists");
   }
   for (const l of lanes) {
@@ -32021,13 +32240,13 @@ function startWave(root, keys) {
   return null;
 }
 function copyLocalFiles(from, to) {
-  const dir = join23(from, DEPLOYAI_DIR);
-  const files = existsSync19(dir) ? readdirSync7(dir).map((f) => join23(DEPLOYAI_DIR, f)).filter((f) => statSync3(join23(from, f)).isFile()) : [];
+  const dir = join25(from, DEPLOYAI_DIR);
+  const files = existsSync20(dir) ? readdirSync7(dir).map((f) => join25(DEPLOYAI_DIR, f)).filter((f) => statSync3(join25(from, f)).isFile()) : [];
   for (const f of [...files, ...LOCAL_FILES]) {
-    if (f === join23(DEPLOYAI_DIR, "run.json")) continue;
-    if (!existsSync19(join23(from, f)) || existsSync19(join23(to, f))) continue;
-    mkdirSync12(dirname6(join23(to, f)), { recursive: true });
-    copyFileSync(join23(from, f), join23(to, f));
+    if (f === join25(DEPLOYAI_DIR, "run.json")) continue;
+    if (!existsSync20(join25(from, f)) || existsSync20(join25(to, f))) continue;
+    mkdirSync12(dirname6(join25(to, f)), { recursive: true });
+    copyFileSync(join25(from, f), join25(to, f));
   }
 }
 function mergeStamps(root) {
@@ -32043,11 +32262,11 @@ function mergeStamps(root) {
   if (!ours2 || !theirs) return false;
   const merged = { ...ours2 };
   for (const [k, v] of Object.entries(theirs)) merged[k] = { ...ours2[k] ?? {}, ...v };
-  writeFileSync19(join23(root, ADDON_STAMP_FILE), JSON.stringify(merged, null, 2));
+  writeFileSync21(join25(root, ADDON_STAMP_FILE), JSON.stringify(merged, null, 2));
   return ok(root, ["add", "--", ADDON_STAMP_FILE]);
 }
 function removeLane(root, lane) {
-  const nm = join23(lane.dir, "node_modules");
+  const nm = join25(lane.dir, "node_modules");
   try {
     if (lstatSync2(nm).isSymbolicLink()) {
       try {
@@ -32071,7 +32290,7 @@ function addonsMergeCommand(root) {
   }
   if (ok(root, ["rev-parse", "-q", "--verify", "MERGE_HEAD"])) throw new CliError("A merge is still open in this folder. Resolve what it lists, then git add -A, then git commit --no-edit, then run npx deployai@latest addons merge again.", 1, "merge_open");
   for (const lane of wave.lanes) {
-    if (existsSync19(lane.dir) && text3(lane.dir, ["status", "--porcelain"])) throw new CliError(`Lane ${lane.name} has work that is not committed in ${lane.dir}. If its helper is still working, wait for it. Else commit it there: git add -A, then git commit -m "${lane.keys.join(", ")}", then run this again.`, 1, "lane_dirty");
+    if (existsSync20(lane.dir) && text3(lane.dir, ["status", "--porcelain"])) throw new CliError(`Lane ${lane.name} has work that is not committed in ${lane.dir}. If its helper is still working, wait for it. Else commit it there: git add -A, then git commit -m "${lane.keys.join(", ")}", then run this again.`, 1, "lane_dirty");
     if (!ok(root, ["rev-parse", "--verify", "--quiet", `refs/heads/${lane.branch}`])) throw new CliError(`The branch ${lane.branch} is missing, so lane ${lane.name} cannot come in. Run its add-ons here instead: ${lane.keys.map((k) => `npx deployai@latest addon run ${k}`).join(", then ")}.`, 1, "lane_missing");
     if (ok(root, ["merge-base", "--is-ancestor", lane.branch, "HEAD"])) continue;
     const r = git3(root, [...who(root), "merge", "--no-ff", "-m", `Add-ons: ${lane.keys.join(", ")}`, lane.branch]);
@@ -32093,9 +32312,9 @@ function addonsMergeCommand(root) {
     throw new CliError(`Lane ${lane.name} needs its conflicts resolved.`, 1, "merge_conflict");
   }
   for (const lane of wave.lanes) removeLane(root, lane);
-  const parent = join23(dirname6(root), `${basename3(root)}-addons`);
+  const parent = join25(dirname6(root), `${basename3(root)}-addons`);
   try {
-    if (existsSync19(parent) && !readdirSync7(parent).length) rmdirSync(parent);
+    if (existsSync20(parent) && !readdirSync7(parent).length) rmdirSync(parent);
   } catch {
   }
   writeRun(root, { mode: "parallel" });
@@ -32198,7 +32417,7 @@ async function addonsRunCommand(root, ctx, opts = {}) {
   const checkWithMe = ownerMode(root) === "check-with-me";
   if (!order && !running && r.picked && !r.agreed && todo.length > 1) {
     const stamps = readStamps(root);
-    const items = todo.map((a) => ({ ...a, trace: addonTrace(a.key, (path) => existsSync20(join24(root, path)), stamps) }));
+    const items = todo.map((a) => ({ ...a, trace: addonTrace(a.key, (path) => existsSync21(join26(root, path)), stamps) }));
     addonOrderBrief(items, Boolean(opts.parallel) && !checkWithMe).forEach((line) => out(line));
     if (opts.end !== void 0 && end) out(`Add --end ${end} to that command, so the run still ends as chosen.`);
     return;
@@ -32243,20 +32462,20 @@ async function addonBuyCommand(root, ctx, key2) {
 }
 function readStamps(root) {
   try {
-    return readJson(join24(root, ADDON_STAMP_FILE));
+    return readJson(join26(root, ADDON_STAMP_FILE));
   } catch {
     return {};
   }
 }
 function writeStamps(root, stamps) {
-  const file2 = join24(root, ADDON_STAMP_FILE);
+  const file2 = join26(root, ADDON_STAMP_FILE);
   mkdirSync13(dirname7(file2), { recursive: true });
-  writeFileSync20(file2, JSON.stringify(stamps, null, 2));
+  writeFileSync22(file2, JSON.stringify(stamps, null, 2));
 }
 function printAddon(root, a) {
   const lane = laneOf(root);
   const stamps = readStamps(root);
-  const trace = addonTrace(a.key, (path) => existsSync20(join24(root, path)), stamps);
+  const trace = addonTrace(a.key, (path) => existsSync21(join26(root, path)), stamps);
   writeStamps(root, { ...stamps, [a.key]: { ...stamps[a.key], runId: a.runId } });
   out(`DeployAI add-on ${a.position} of ${a.total}: ${a.name} (${a.key}, run ${a.runId}).`);
   if (lane) out(laneRules(lane));
@@ -32329,10 +32548,10 @@ async function addonDoneCommand(root, ctx, runId, opts) {
 
 // src/commands/speed.ts
 import { spawn as spawn4 } from "child_process";
-import { createHash as createHash4 } from "crypto";
-import { mkdirSync as mkdirSync14, mkdtempSync as mkdtempSync2, readFileSync as readFileSync18, rmSync as rmSync6, writeFileSync as writeFileSync21 } from "fs";
+import { createHash as createHash5 } from "crypto";
+import { mkdirSync as mkdirSync14, mkdtempSync as mkdtempSync2, readFileSync as readFileSync19, rmSync as rmSync6, writeFileSync as writeFileSync23 } from "fs";
 import { tmpdir as tmpdir3 } from "os";
-import { join as join25 } from "path";
+import { join as join27 } from "path";
 var ms = (v) => v >= 1e3 ? `${(v / 1e3).toFixed(1)} s` : `${Math.round(v)} ms`;
 var LOCAL_WAIT_MS = 18e4;
 function runLighthouse(url2, strategy, browser, file2) {
@@ -32356,11 +32575,11 @@ function runLighthouse(url2, strategy, browser, file2) {
 }
 async function localSpeed(url2, strategy, run = runLighthouse, browser = findBrowser()) {
   if (!browser) return null;
-  const dir = mkdtempSync2(join25(tmpdir3(), "deployai-speed-"));
+  const dir = mkdtempSync2(join27(tmpdir3(), "deployai-speed-"));
   try {
-    const file2 = join25(dir, "report.json");
+    const file2 = join27(dir, "report.json");
     await run(url2, strategy, browser, file2);
-    const lighthouseResult = JSON.parse(readFileSync18(file2, "utf8"));
+    const lighthouseResult = JSON.parse(readFileSync19(file2, "utf8"));
     return lighthouseResult.categories ? mapPsi({ lighthouseResult }, strategy) : null;
   } catch {
     return null;
@@ -32387,10 +32606,10 @@ function printReport(r, strategy, local2) {
   }
 }
 var CACHE_MS = 10 * 6e4;
-var cacheFile = (dir, url2, strategy) => join25(dir, `${createHash4("sha256").update(`${strategy} ${url2}`).digest("hex").slice(0, 24)}.json`);
+var cacheFile = (dir, url2, strategy) => join27(dir, `${createHash5("sha256").update(`${strategy} ${url2}`).digest("hex").slice(0, 24)}.json`);
 function readCache(dir, url2, strategy) {
   try {
-    return JSON.parse(readFileSync18(cacheFile(dir, url2, strategy), "utf8"));
+    return JSON.parse(readFileSync19(cacheFile(dir, url2, strategy), "utf8"));
   } catch {
     return null;
   }
@@ -32398,7 +32617,7 @@ function readCache(dir, url2, strategy) {
 function writeCache(dir, url2, strategy, c) {
   try {
     mkdirSync14(dir, { recursive: true });
-    writeFileSync21(cacheFile(dir, url2, strategy), JSON.stringify(c));
+    writeFileSync23(cacheFile(dir, url2, strategy), JSON.stringify(c));
   } catch {
   }
 }
@@ -32414,7 +32633,7 @@ async function speedCommand(ctx, url2, opts, deps = {}) {
   } catch {
     throw new CliError(`Not an address: ${url2}. Use the full address, for example https://example.com/`, 1, "usage");
   }
-  const dir = deps.cacheDir ?? join25(tmpdir3(), "deployai-speed-cache");
+  const dir = deps.cacheDir ?? join27(tmpdir3(), "deployai-speed-cache");
   const now = deps.now ?? Date.now;
   const cached2 = readCache(dir, page3, strategy);
   if (cached2 && now() - cached2.at < CACHE_MS) {
@@ -32472,10 +32691,10 @@ async function local(page3, strategy, deps, dir, now) {
 
 // src/commands/images.ts
 import { spawnSync as spawnSync7 } from "child_process";
-import { existsSync as existsSync21, mkdirSync as mkdirSync15, readdirSync as readdirSync8, statSync as statSync4, writeFileSync as writeFileSync22 } from "fs";
+import { existsSync as existsSync22, mkdirSync as mkdirSync15, readdirSync as readdirSync8, statSync as statSync4, writeFileSync as writeFileSync24 } from "fs";
 import { createRequire } from "module";
 import { homedir as homedir4 } from "os";
-import { extname, join as join26, relative as relative5, resolve as resolve9 } from "path";
+import { extname, join as join28, relative as relative5, resolve as resolve9 } from "path";
 var PHONE_WIDTH = 640;
 var SHARP = "sharp@0.34";
 var SKIP_DIRS2 = /* @__PURE__ */ new Set(["node_modules", ".git", ".deployai", "dist", ".astro", ".next"]);
@@ -32483,14 +32702,14 @@ function imagesIn(dir) {
   const found = [];
   const walk2 = (d) => {
     for (const name of readdirSync8(d)) {
-      const p = join26(d, name);
+      const p = join28(d, name);
       const st = statSync4(p);
       if (st.isDirectory()) {
         if (!SKIP_DIRS2.has(name)) walk2(p);
       } else if (/\.(jpe?g|png)$/i.test(name)) found.push(p);
     }
   };
-  if (existsSync21(dir)) walk2(dir);
+  if (existsSync22(dir)) walk2(dir);
   return found.sort();
 }
 function outputsFor(file2, width) {
@@ -32500,15 +32719,15 @@ function outputsFor(file2, width) {
   return list;
 }
 function loadSharp() {
-  const dir = join26(homedir4(), ".deployai", "tools", "sharp");
-  if (!existsSync21(join26(dir, "node_modules", "sharp"))) {
+  const dir = join28(homedir4(), ".deployai", "tools", "sharp");
+  if (!existsSync22(join28(dir, "node_modules", "sharp"))) {
     mkdirSync15(dir, { recursive: true });
-    if (!existsSync21(join26(dir, "package.json"))) writeFileSync22(join26(dir, "package.json"), '{"private":true}');
+    if (!existsSync22(join28(dir, "package.json"))) writeFileSync24(join28(dir, "package.json"), '{"private":true}');
     out("Getting the image tool once (it stays outside the site)...");
     const r = spawnSync7(process.platform === "win32" ? "npm.cmd" : "npm", ["install", SHARP, "--no-audit", "--no-fund", "--silent"], { cwd: dir, stdio: "ignore", shell: process.platform === "win32" });
     if (r.status !== 0) throw new CliError("The image tool could not be installed. Check the internet connection and run optimize again.", 1, "images_failed");
   }
-  return createRequire(join26(dir, "package.json"))("sharp");
+  return createRequire(join28(dir, "package.json"))("sharp");
 }
 async function imagesCommand(root, folder, sharp = loadSharp) {
   const dir = resolve9(root, folder ?? "public");
@@ -32525,7 +32744,7 @@ async function imagesCommand(root, folder, sharp = loadSharp) {
     const size = statSync4(file2).size;
     const meta3 = await make(file2).metadata();
     const outputs = outputsFor(file2, meta3.width);
-    if (outputs.every((o) => existsSync21(o.file) && statSync4(o.file).mtimeMs >= statSync4(file2).mtimeMs)) {
+    if (outputs.every((o) => existsSync22(o.file) && statSync4(o.file).mtimeMs >= statSync4(file2).mtimeMs)) {
       skipped++;
       continue;
     }
@@ -32544,8 +32763,8 @@ async function imagesCommand(root, folder, sharp = loadSharp) {
 }
 
 // src/commands/blocks.ts
-import { createHash as createHash5 } from "crypto";
-import { existsSync as existsSync22, mkdirSync as mkdirSync16, readFileSync as readFileSync19, writeFileSync as writeFileSync23 } from "fs";
+import { createHash as createHash6 } from "crypto";
+import { existsSync as existsSync23, mkdirSync as mkdirSync16, readFileSync as readFileSync20, writeFileSync as writeFileSync25 } from "fs";
 import { dirname as dirname8, resolve as resolve10, sep as sep5 } from "path";
 import { gunzipSync as gunzipSync3 } from "zlib";
 var BLOCKS = [
@@ -32555,7 +32774,7 @@ var BLOCKS = [
   { key: "late-tags", title: "Tracking tags (Tag Manager, Google, Meta, Clarity) that load a moment after the page shows, at once on conversion pages and ad clicks" }
 ];
 var MAX_BYTES3 = 5 * 1024 * 1024;
-var sha = (data) => createHash5("sha256").update(data).digest("hex");
+var sha = (data) => createHash6("sha256").update(data).digest("hex");
 var lockPath = (base, key2) => resolve10(base, ".deployai", "blocks", `${key2}.lock.json`);
 function readLock(base, key2) {
   try {
@@ -32599,31 +32818,31 @@ async function blocksCommand(root, ctx, name, opts = {}) {
     if (e3.type !== "0" && e3.type !== "\0") continue;
     const target = resolve10(base, e3.name);
     if (target === base || !target.startsWith(base + sep5)) continue;
-    if (existsSync22(target)) {
-      const now = sha(readFileSync19(target));
+    if (existsSync23(target)) {
+      const now = sha(readFileSync20(target));
       if (now === sha(e3.data)) {
         lock[e3.name] = now;
       } else if (opts.update && lock[e3.name] === now) {
-        writeFileSync23(target, e3.data);
+        writeFileSync25(target, e3.data);
         lock[e3.name] = sha(e3.data);
         updated.push(e3.name);
       } else {
         const upstream = resolve10(base, ".deployai", "blocks", `${block.key}-upstream`, e3.name);
         if (upstream.startsWith(base + sep5)) {
           mkdirSync16(dirname8(upstream), { recursive: true });
-          writeFileSync23(upstream, e3.data);
+          writeFileSync25(upstream, e3.data);
         }
         kept.push(e3.name);
       }
       continue;
     }
     mkdirSync16(dirname8(target), { recursive: true });
-    writeFileSync23(target, e3.data);
+    writeFileSync25(target, e3.data);
     lock[e3.name] = sha(e3.data);
     written.push(e3.name);
   }
   mkdirSync16(dirname8(lockPath(base, block.key)), { recursive: true });
-  writeFileSync23(lockPath(base, block.key), `${JSON.stringify(lock, null, 2)}
+  writeFileSync25(lockPath(base, block.key), `${JSON.stringify(lock, null, 2)}
 `);
   out(`Added the ${block.key} block: ${written.length} files.`);
   written.forEach((f) => out(`  + ${f}`));
@@ -32685,10 +32904,10 @@ async function integrationsCommand(ctx, name, opts = {}) {
 
 // src/commands/brand.ts
 import { spawn as spawn5 } from "child_process";
-import { copyFileSync as copyFileSync2, existsSync as existsSync23, mkdirSync as mkdirSync17, mkdtempSync as mkdtempSync3, readdirSync as readdirSync9, readFileSync as readFileSync20, rmSync as rmSync7, statSync as statSync5, writeFileSync as writeFileSync24 } from "fs";
+import { copyFileSync as copyFileSync2, existsSync as existsSync24, mkdirSync as mkdirSync17, mkdtempSync as mkdtempSync3, readdirSync as readdirSync9, readFileSync as readFileSync21, rmSync as rmSync7, statSync as statSync5, writeFileSync as writeFileSync26 } from "fs";
 import { createServer } from "http";
 import { tmpdir as tmpdir4 } from "os";
-import { basename as basename4, dirname as dirname9, extname as extname2, join as join27, relative as relative6, sep as sep6 } from "path";
+import { basename as basename4, dirname as dirname9, extname as extname2, join as join29, relative as relative6, sep as sep6 } from "path";
 import { randomBytes } from "crypto";
 
 // src/commands/brand-page.ts
@@ -32780,7 +32999,7 @@ var WALK_CAP = 4e3;
 var SKIP_DIRS3 = /* @__PURE__ */ new Set(["node_modules", ".git", ".next", "dist", "build", "out", ".astro", ".output", ".svelte-kit", ".wrangler", ".deployai"]);
 var TYPES = { ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".gif": "image/gif", ".ico": "image/x-icon", ".avif": "image/avif" };
 function webRoot(root) {
-  for (const d of ["public", "static"]) if (existsSync23(join27(root, d))) return join27(root, d);
+  for (const d of ["public", "static"]) if (existsSync24(join29(root, d))) return join29(root, d);
   return root;
 }
 function walk(dir, found = []) {
@@ -32792,7 +33011,7 @@ function walk(dir, found = []) {
   }
   for (const n2 of names2) {
     if (found.length >= WALK_CAP) break;
-    const p = join27(dir, n2);
+    const p = join29(dir, n2);
     let isDir = false;
     try {
       isDir = statSync5(p).isDirectory();
@@ -32807,31 +33026,31 @@ function walk(dir, found = []) {
 }
 function existingFavicon(root) {
   const web = webRoot(root);
-  for (const f of ["favicon.ico", "favicon.svg", "favicon.png", "icon.svg", "icon.png"]) if (existsSync23(join27(web, f))) return relative6(root, join27(web, f)).split(sep6).join("/");
-  for (const d of ["app", "src/app"]) for (const f of ["favicon.ico", "icon.svg", "icon.png", "icon.tsx", "icon.jpg"]) if (existsSync23(join27(root, d, f))) return `${d}/${f}`;
+  for (const f of ["favicon.ico", "favicon.svg", "favicon.png", "icon.svg", "icon.png"]) if (existsSync24(join29(web, f))) return relative6(root, join29(web, f)).split(sep6).join("/");
+  for (const d of ["app", "src/app"]) for (const f of ["favicon.ico", "icon.svg", "icon.png", "icon.tsx", "icon.jpg"]) if (existsSync24(join29(root, d, f))) return `${d}/${f}`;
   for (const f of walk(root).filter((p) => /\.(html|astro|tsx|jsx|vue|svelte)$/.test(p)).slice(0, 400)) {
     try {
-      const m = readFileSync20(f, "utf8").match(/<link\b[^>]*\brel=["'](?:shortcut )?icon["'][^>]*>/i);
+      const m = readFileSync21(f, "utf8").match(/<link\b[^>]*\brel=["'](?:shortcut )?icon["'][^>]*>/i);
       if (!m) continue;
       const href = m[0].match(/\shref=["']([^"']+)/i)?.[1] ?? "";
-      if (href.startsWith("data:") || /^https?:/.test(href) || existsSync23(join27(web, href.split("?")[0]))) return relative6(root, f).split(sep6).join("/");
+      if (href.startsWith("data:") || /^https?:/.test(href) || existsSync24(join29(web, href.split("?")[0]))) return relative6(root, f).split(sep6).join("/");
     } catch {
     }
   }
   return null;
 }
 function scannedIcons(root) {
-  const base = join27(root, MIGRATION_DIR);
-  if (!existsSync23(base)) return [];
+  const base = join29(root, MIGRATION_DIR);
+  if (!existsSync24(base)) return [];
   const found = [];
   for (const host of readdirSync9(base)) {
-    const dir = join27(base, host, "icons");
+    const dir = join29(base, host, "icons");
     try {
-      const list = readJson(join27(dir, "icons.json"));
+      const list = readJson(join29(dir, "icons.json"));
       for (const i of list) {
-        const path = join27(dir, i.file);
-        if (!existsSync23(path)) continue;
-        const size = imageSize(readFileSync20(path));
+        const path = join29(dir, i.file);
+        if (!existsSync24(path)) continue;
+        const size = imageSize(readFileSync21(path));
         found.push({ path, kind: i.kind, big: !size || size.width >= 64 });
       }
     } catch {
@@ -32843,7 +33062,7 @@ function findSource(root) {
   const icons = scannedIcons(root);
   const sharp = icons.find((i) => i.kind === "icon" && i.big);
   if (sharp) return { path: sharp.path, from: "old-icon" };
-  const dirs = ["public", "static", "src/assets", "assets", "images", "img"].map((d) => join27(root, d));
+  const dirs = ["public", "static", "src/assets", "assets", "images", "img"].map((d) => join29(root, d));
   const logos = dirs.flatMap((d) => walk(d)).filter((p) => looksLikeLogo(relative6(root, p).split(sep6).join("/")));
   const logo = logos.find((p) => /\.svg$/i.test(p)) ?? logos[0];
   if (logo) return { path: logo, from: "logo" };
@@ -32857,23 +33076,23 @@ var CODE_EXT2 = /\.(css|scss|sass|less|html|astro|vue|svelte)$/i;
 var READ_CAP = 300;
 function readText2(path) {
   try {
-    return readFileSync20(path, "utf8");
+    return readFileSync21(path, "utf8");
   } catch {
     return "";
   }
 }
 function scanDirs(root) {
-  const base = join27(root, MIGRATION_DIR);
+  const base = join29(root, MIGRATION_DIR);
   try {
-    return readdirSync9(base).map((h) => join27(base, h)).filter((d) => existsSync23(join27(d, "home.html")));
+    return readdirSync9(base).map((h) => join29(base, h)).filter((d) => existsSync24(join29(d, "home.html")));
   } catch {
     return [];
   }
 }
 function homePage(root) {
-  for (const d of scanDirs(root)) return readText2(join27(d, "home.html"));
+  for (const d of scanDirs(root)) return readText2(join29(d, "home.html"));
   for (const f of ["index.html", "public/index.html", "src/index.html", "src/pages/index.astro", "src/pages/index.html", "app/layout.tsx", "src/app/layout.tsx", "src/layouts/Layout.astro"]) {
-    const text4 = readText2(join27(root, f));
+    const text4 = readText2(join29(root, f));
     if (text4) return text4;
   }
   return "";
@@ -32884,30 +33103,30 @@ function siteFacts(root, given = {}) {
   const id2 = readSiteIdentity(home);
   let pkg;
   try {
-    pkg = readJson(join27(root, "package.json")).name;
+    pkg = readJson(join29(root, "package.json")).name;
   } catch {
   }
   const name = given.name?.trim() || readProject(root)?.name || id2.name || (pkg && !pkg.startsWith("@") ? pkg : "") || basename4(root);
   if (given.color) return { name, line: given.line ?? id2.line ?? "", color: given.color, colorFrom: "given" };
-  const old = scanDirs(root).flatMap((d) => walkAll(join27(d, "styles")).map((f) => ({ text: readText2(f) })));
+  const old = scanDirs(root).flatMap((d) => walkAll(join29(d, "styles")).map((f) => ({ text: readText2(f) })));
   const fromOld = scanDirs(root).length ? pickBrandColor([{ text: home, themeColor: id2.themeColor }, ...old]) : null;
   const sources = [{ text: home, themeColor: id2.themeColor }];
-  for (const f of ["tailwind.config.js", "tailwind.config.ts", "tailwind.config.mjs", "tailwind.config.cjs"]) sources.push({ text: readText2(join27(root, f)) });
-  const code = ["src", "app", "styles", "css", "public", "static"].flatMap((d) => walk(join27(root, d))).filter((p) => CODE_EXT2.test(p));
-  const plain2 = readdirSync9(root).filter((f) => CODE_EXT2.test(f)).map((f) => join27(root, f));
+  for (const f of ["tailwind.config.js", "tailwind.config.ts", "tailwind.config.mjs", "tailwind.config.cjs"]) sources.push({ text: readText2(join29(root, f)) });
+  const code = ["src", "app", "styles", "css", "public", "static"].flatMap((d) => walk(join29(root, d))).filter((p) => CODE_EXT2.test(p));
+  const plain2 = readdirSync9(root).filter((f) => CODE_EXT2.test(f)).map((f) => join29(root, f));
   for (const f of [...plain2, ...code].slice(0, READ_CAP)) sources.push({ text: readText2(f) });
   const color = fromOld ?? pickBrandColor(sources);
   return { name, line: given.line ?? id2.line ?? "", color: color ?? BRAND_DEFAULT_COLOR, colorFrom: color ? "site" : "default" };
 }
 function writeSiteFile(root, file2, data) {
-  const target = join27(webRoot(root), file2);
-  if (existsSync23(target)) {
-    const keep = join27(root, BRAND_DIR, "originals");
+  const target = join29(webRoot(root), file2);
+  if (existsSync24(target)) {
+    const keep = join29(root, BRAND_DIR, "originals");
     mkdirSync17(keep, { recursive: true });
-    copyFileSync2(target, join27(keep, file2));
+    copyFileSync2(target, join29(keep, file2));
   }
   mkdirSync17(dirname9(target), { recursive: true });
-  writeFileSync24(target, data);
+  writeFileSync26(target, data);
 }
 var send = (res, status, body = "", type = "text/plain; charset=utf-8") => {
   res.writeHead(status, { "content-type": type, "cache-control": "no-store", "x-content-type-options": "nosniff" });
@@ -32942,7 +33161,7 @@ function allowed(req, url2, port, token) {
   return req.headers.host === `127.0.0.1:${port}` && url2.searchParams.get("t") === token;
 }
 async function headless(browser, url2, width, until, timeoutMs) {
-  const profile = mkdtempSync3(join27(tmpdir4(), "deployai-brand-"));
+  const profile = mkdtempSync3(join29(tmpdir4(), "deployai-brand-"));
   const child = spawn5(browser, ["--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check", "--disable-extensions", `--user-data-dir=${profile}`, `--window-size=${width},900`, url2], { stdio: "ignore", windowsHide: true });
   child.on("error", () => {
   });
@@ -33042,7 +33261,7 @@ async function drawInBrowser(o, browser) {
   }
 }
 function sourceBytes(path) {
-  return { bytes: readFileSync20(path), type: TYPES[extname2(path).toLowerCase()] ?? "application/octet-stream" };
+  return { bytes: readFileSync21(path), type: TYPES[extname2(path).toLowerCase()] ?? "application/octet-stream" };
 }
 function report(root, r) {
   const where = relative6(root, webRoot(root)).split(sep6).join("/") || "the site root";
@@ -33060,7 +33279,7 @@ function plainIcon(root, source, name, color) {
     const ext = extname2(source.path).toLowerCase();
     if (ext === ".ico" || ext === ".svg" || ext === ".png") {
       const file2 = `favicon${ext}`;
-      writeSiteFile(root, file2, readFileSync20(source.path));
+      writeSiteFile(root, file2, readFileSync21(source.path));
       return [file2];
     }
   }
@@ -33078,7 +33297,7 @@ function printStatus2(root, files) {
   const web = webRoot(root);
   const icon = existingFavicon(root);
   out(icon ? `Icon: ${icon}` : "Icon: missing. Run: npx deployai@latest brand favicon");
-  const missing = files.filter((f) => f !== "favicon.svg" && !existsSync23(join27(web, f)));
+  const missing = files.filter((f) => f !== "favicon.svg" && !existsSync24(join29(web, f)));
   if (files.length) out(missing.length ? `Missing from the full set: ${missing.join(", ")}` : "The full set is there.");
 }
 function printFacts(f, picture2) {
@@ -33097,7 +33316,7 @@ function withLogoColor(facts, source) {
 }
 function pickSource(root, from) {
   const source = from ? { path: from, from: "file" } : findSource(root);
-  if (source.path && !existsSync23(source.path)) throw new CliError(`No such file: ${source.path}`, 1, "usage");
+  if (source.path && !existsSync24(source.path)) throw new CliError(`No such file: ${source.path}`, 1, "usage");
   return source;
 }
 async function brandFaviconCommand(root, opts) {
@@ -33125,7 +33344,7 @@ async function brandFaviconCommand(root, opts) {
 }
 function iconsToDraw(root, force) {
   const icon = force ? null : existingFavicon(root);
-  const keepOg = !force && existsSync23(join27(webRoot(root), "og-image.png"));
+  const keepOg = !force && existsSync24(join29(webRoot(root), "og-image.png"));
   return {
     targets: BRAND_TARGETS.filter((t) => !(keepOg && t.file === "og-image.png") && !(icon && t.icoOnly)),
     keepIcon: Boolean(icon),
@@ -33181,7 +33400,7 @@ async function measurePage(browser, address, width, scripts) {
   }
 }
 function imageFiles(root) {
-  const dirs = [webRoot(root) === root ? null : webRoot(root), join27(root, "src"), join27(root, MIGRATION_DIR)].filter((d) => !!d);
+  const dirs = [webRoot(root) === root ? null : webRoot(root), join29(root, "src"), join29(root, MIGRATION_DIR)].filter((d) => !!d);
   const files = dirs.flatMap((d) => walkAll(d));
   if (webRoot(root) === root) files.push(...walk(root));
   return [...new Set(files)].filter((p) => IMAGE_EXT.test(p) && !p.split(sep6).includes("icons") && !BRAND_FILES.includes(basename4(p)));
@@ -33197,7 +33416,7 @@ function walkAll(dir) {
     }
     for (const n2 of names2) {
       if (found.length >= WALK_CAP) return;
-      const p = join27(d, n2);
+      const p = join29(d, n2);
       try {
         if (statSync5(p).isDirectory()) {
           if (!SKIP_DIRS3.has(n2) || n2 === ".deployai") go(p);
@@ -33216,7 +33435,7 @@ function judgeFiles(root) {
   for (const f of files) {
     let bytes;
     try {
-      bytes = readFileSync20(f);
+      bytes = readFileSync21(f);
     } catch {
       continue;
     }
@@ -33266,10 +33485,10 @@ async function brandImagesCommand(root, urls, opts) {
     if (verdict !== "ok") onPages.push({ where: m.src, width: m.width, height: m.height, shownWidth: m.shownWidth, verdict, alt: m.alt });
   }
   const weak = [...onPages, ...findings];
-  mkdirSync17(join27(root, BRAND_DIR), { recursive: true });
+  mkdirSync17(join29(root, BRAND_DIR), { recursive: true });
   const file2 = `${BRAND_DIR}/images.json`;
   const data = { measuredAt: (/* @__PURE__ */ new Date()).toISOString(), pages: urls, unmeasured, filesChecked: total, imagesMeasured: shown.size, weak };
-  writeFileSync24(join27(root, file2), `${JSON.stringify(data, null, 2)}
+  writeFileSync26(join29(root, file2), `${JSON.stringify(data, null, 2)}
 `);
   if (opts.json) {
     out(JSON.stringify(data));
@@ -33335,7 +33554,7 @@ function buildProgram() {
   const root = (cmd) => resolve11(g(cmd).dir ?? process.cwd());
   const ctx = (cmd) => apiContext(g(cmd).api, root(cmd));
   program.hook("preAction", async (_p, action) => {
-    if (["init", "start", "rules"].includes(action.name()) || !existsSync24(join28(root(action), "DEPLOYAI.md"))) return;
+    if (["init", "start", "rules"].includes(action.name()) || !existsSync25(join30(root(action), "DEPLOYAI.md"))) return;
     await refreshRules(root(action), ctx(action).apiUrl);
   });
   program.command("init").description("create DEPLOYAI.md and .deployai/ guard files").option("--force", "overwrite DEPLOYAI.md").option("--no-agent-files", "do not add the DEPLOYAI.md line to AGENTS.md and CLAUDE.md").action((opts, cmd) => initCommand(root(cmd), opts, ctx(cmd).apiUrl));
@@ -33344,6 +33563,7 @@ function buildProgram() {
   program.command("check").description("can this project run on DeployAI: blockers and warnings, with the AI prompt").option("--json", "machine readable output").option("--no-clipboard", "do not copy the prompt to the clipboard").action(async (opts, cmd) => {
     const a = await runCheck(root(cmd), ctx(cmd), opts);
     if (!a.compatible) process.exitCode = 1;
+    if (!opts.json) await saveCommand(root(cmd), ctx(cmd), { auto: true });
   });
   program.command("start").description("start from the line copied on the DeployAI site: prepares this folder with every choice made there, then prints the steps").argument("<id>", "the code from the copied line").option("--here", "put a new site in this folder even when it has files").option("--no-install", "do not run npm install for the sample").action((id2, opts, cmd) => startCommand(root(cmd), ctx(cmd), id2, opts));
   program.command("samples").description("list the official sample sites, or download one (into this folder when empty, else a new one)").argument("[name]", "landing, business, form, crud, shop, admin or blog").argument("[folder]", "put the sample in this folder (default: this one when empty, else asks or makes a new one)").option("--force", "write into this folder even when it has files").action((name, folder, opts, cmd) => samplesCommand(root(cmd), ctx(cmd), name, { ...opts, folder }));
@@ -33361,7 +33581,14 @@ ${AGENT_FEEDBACK_RULES.join("\n\n")}
     (project, opts, cmd) => linkCommand(root(cmd), ctx(cmd), project, opts)
   );
   program.command("deploy").description("check, pack and upload the source, wait for the build, then put it live or print the preview address").option("-m, --message <message>", "version message", "update").option("--fixed <what>", "after a failed version: one sentence on what you changed to fix it, no code (helps us catch it for others)").option("--guest", "without login: deploy as a temporary site, deleted after the days we set unless claimed").option("--live", "put it live when the build is done; only after the owner said yes").option("--no-wait", "upload and return, without waiting for the build").option("--hold", "a test version: it waits for the owner even when the site goes live by itself (auto live)").option("--model <id>", "the AI model running this deploy, for example claude-opus-5-5 (sent only with telemetry on)").action((opts, cmd) => deployCommand(root(cmd), ctx(cmd), opts));
-  program.command("pull").description("download the code of the linked site's live version into this folder, never over a file it has (needs login)").option("--history", "every version up to the live one as git commits, oldest first (needs an empty folder)").action((opts, cmd) => pullCommand(root(cmd), ctx(cmd), opts));
+  program.command("pull").description("download the site's code into this folder, never over a file it has: your newest save when it is newer than your last deploy, else the live version (needs login)").option("--history", "every version up to the live one as git commits, oldest first (needs an empty folder)").option("--save <n>", "your save number n from deployai saves, instead of the newest", (v) => Number(v)).option("--live", "the live version even when you have newer saved work").action(async (opts, cmd) => {
+    await pullCommand(root(cmd), ctx(cmd), opts);
+  });
+  program.command("save").description("keep this folder as it is on DeployAI, with no build and no version, so another computer can continue from it (needs login)").action(async (_opts, cmd) => {
+    await saveCommand(root(cmd), ctx(cmd));
+  });
+  program.command("saves").description("your newest saves on this site, numbered for deployai pull --save <n>").action((_opts, cmd) => savesCommand(root(cmd), ctx(cmd)));
+  program.command("backup").description("save one zip with the whole site (code, every database, files) into this folder; it can be restored on the Backups tab of the site (D-1205)").action((_opts, cmd) => backupCommand(root(cmd), ctx(cmd)).then(() => void 0));
   program.command("sync").description("bring the live site's changes into this folder before deploying, when someone else put a version live (D-907)").action((_opts, cmd) => syncCommand(root(cmd), ctx(cmd)));
   program.command("claim").description("print this folder's temporary site keep link again; --email mails it, with a reminder before the delete").option("--email <address>", "the owner's email for the link and the reminder").action((opts, cmd) => claimCommand(root(cmd), ctx(cmd), opts));
   program.command("requests").argument("[action]").argument("[address]").description('incoming requests: did a webhook arrive, and what happened. "requests open <address>" opens an address to every country, "requests close <address>" closes it').option("--limit <n>", "how many, 30 by default").action((action, address, opts, cmd) => {
@@ -33521,8 +33748,8 @@ function nodeGuideUrl(lang, base = API_BASE_DEFAULT) {
 
 // src/update.ts
 import { spawnSync as spawnSync8 } from "child_process";
-import { existsSync as existsSync25, mkdirSync as mkdirSync18, readdirSync as readdirSync10, readFileSync as readFileSync21, rmSync as rmSync8, writeFileSync as writeFileSync25 } from "fs";
-import { join as join29 } from "path";
+import { existsSync as existsSync26, mkdirSync as mkdirSync18, readdirSync as readdirSync10, readFileSync as readFileSync22, rmSync as rmSync8, writeFileSync as writeFileSync27 } from "fs";
+import { join as join31 } from "path";
 var CHECK_EVERY_MS = 60 * 60 * 1e3;
 var ASK_NPM_MS = 1500;
 var GET_VERSION_MS = 12e4;
@@ -33560,11 +33787,11 @@ function updateAllowed(env, args) {
   return resolveApiUrl(void 0, loadConfig()) === API_BASE_DEFAULT.replace(/\/+$/, "");
 }
 function statePath() {
-  return join29(configDir(), "update-check.json");
+  return join31(configDir(), "update-check.json");
 }
 function readState() {
   try {
-    const data = JSON.parse(readFileSync21(statePath(), "utf8"));
+    const data = JSON.parse(readFileSync22(statePath(), "utf8"));
     return data && typeof data === "object" ? data : {};
   } catch {
     return {};
@@ -33573,7 +33800,7 @@ function readState() {
 function writeState(state) {
   try {
     mkdirSync18(configDir(), { recursive: true });
-    writeFileSync25(statePath(), JSON.stringify(state) + "\n");
+    writeFileSync27(statePath(), JSON.stringify(state) + "\n");
   } catch {
   }
 }
@@ -33589,20 +33816,20 @@ async function askNpmLatest(env) {
   }
 }
 function versionEntry(version2) {
-  return join29(configDir(), "cli", version2, "node_modules", "deployai", "dist", "index.js");
+  return join31(configDir(), "cli", version2, "node_modules", "deployai", "dist", "index.js");
 }
 function getVersion(version2, env) {
   process.stderr.write(`Getting the newest DeployAI CLI, version ${version2}.
 `);
-  const root = join29(configDir(), "cli");
-  const dir = join29(root, version2);
+  const root = join31(configDir(), "cli");
+  const dir = join31(root, version2);
   mkdirSync18(dir, { recursive: true });
-  writeFileSync25(join29(dir, "package.json"), '{"private":true}\n');
+  writeFileSync27(join31(dir, "package.json"), '{"private":true}\n');
   const installed = spawnSync8(`npm install deployai@${version2} --ignore-scripts --no-audit --no-fund --silent`, { cwd: dir, env, shell: true, stdio: "ignore", windowsHide: true, timeout: GET_VERSION_MS });
   if (installed.status !== 0) return false;
   const ran = spawnSync8(process.execPath, [versionEntry(version2), "--version"], { env: { ...env, DEPLOYAI_NO_UPDATE: "1" }, encoding: "utf8", timeout: GET_VERSION_MS });
   if (ran.status !== 0 || ran.stdout.trim() !== version2) return false;
-  for (const old of readdirSync10(root)) if (old !== version2) rmSync8(join29(root, old), { recursive: true, force: true });
+  for (const old of readdirSync10(root)) if (old !== version2) rmSync8(join31(root, old), { recursive: true, force: true });
   return true;
 }
 function runVersion(version2, args, env = process.env) {
@@ -33621,7 +33848,7 @@ async function versionToRun(current, args, env = process.env, deps = {}) {
   }
   const latest = state.latest;
   if (!latest || !PLAIN_VERSION.test(latest) || compareVersions(latest, current) <= 0) return null;
-  if (state.ready === latest && existsSync25(versionEntry(latest))) return latest;
+  if (state.ready === latest && existsSync26(versionEntry(latest))) return latest;
   if (now - (state.triedAt ?? 0) < CHECK_EVERY_MS) return null;
   state.triedAt = now;
   if (get2(latest, env)) state.ready = latest;
