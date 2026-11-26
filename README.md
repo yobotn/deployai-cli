@@ -46,6 +46,7 @@ It stays up to date by itself. `npx deployai@latest` always runs the newest vers
 | `deployai login` | Logs in through the browser (device code). The token lasts 30 days and is stored in `~/.deployai/config.json` with the API address that issued it; it is never sent to another address. |
 | `deployai logout` | Cancels the token on DeployAI and removes it from this computer. |
 | `deployai whoami` | Shows the logged in user. |
+| `deployai hosts` | Lists the hosts the work in this folder needs and tries each from this machine: reachable, blocked by this machine or no answer. Inside a sandbox, ask whoever runs it to allow the blocked ones. |
 | `deployai link [project]` | Links this folder to a project (slug, id or name). `--create "<name>"` makes a new project. With no name it never links on its own: in a terminal it asks first, an agent gets the exact `link <slug>` command. |
 | `deployai deploy -m "<message>"` | Runs the check, packs the source and uploads it, then waits for the build. At a terminal it asks whether to put it live right away or show the preview first. `--live` puts it live after the build without asking (only on the owner's yes), `--no-wait` returns after the upload. |
 | `deployai versions` | Lists versions: number, live or not, status ("replaced by a newer upload" for one that never built), date, size, message, and the `sql vN` command when its SQL waits for approval. |

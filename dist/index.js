@@ -7,7 +7,7 @@ var __export = (target, all) => {
 
 // src/cli.ts
 import { existsSync as existsSync29 } from "fs";
-import { join as join33, resolve as resolve12 } from "path";
+import { join as join34, resolve as resolve12 } from "path";
 import { Command, CommanderError } from "commander";
 
 // ../shared/src/plans.ts
@@ -136,7 +136,7 @@ var ISSUES = [
     titleEn: "Project is too large to upload",
     titleHe: "\u05D4\u05E4\u05E8\u05D5\u05D9\u05E7\u05D8 \u05D2\u05D3\u05D5\u05DC \u05DE\u05D3\u05D9 \u05DC\u05D4\u05E2\u05DC\u05D0\u05D4",
     agentLine: "The project upload is too large{detail}.",
-    fixForAgent: "Keep the upload under 50 MB. Move large media files out of the project, compress images, and list generated or unused folders in .deployaiignore."
+    fixForAgent: "Keep the site under 200 MB in all (D-1259). Move large media files out of the project, compress images, and list generated or unused folders in .deployaiignore."
   },
   // Supported or beta framework without its official Cloudflare adapter (D-075). The build cannot
   // produce a Worker without it. The CLI never adds it: the agent does, with the user's approval.
@@ -1159,14 +1159,14 @@ var ISSUE_HELP = {
   },
   bundle_too_large: {
     he: {
-      what: "\u05D4\u05E7\u05D1\u05E6\u05D9\u05DD \u05E9\u05E2\u05D5\u05DC\u05D9\u05DD \u05D9\u05D7\u05D3 \u05E2\u05DD \u05D4\u05D0\u05EA\u05E8 \u05E9\u05D5\u05E7\u05DC\u05D9\u05DD \u05D9\u05D5\u05EA\u05E8 \u05DE 50MB.",
-      why: "\u05D6\u05D4 \u05D4\u05D2\u05D1\u05D5\u05DC \u05DC\u05D4\u05E2\u05DC\u05D0\u05D4 \u05D0\u05D7\u05EA. \u05D1\u05D3\u05E8\u05DA \u05DB\u05DC\u05DC \u05D4\u05E1\u05D9\u05D1\u05D4 \u05D4\u05D9\u05D0 \u05E1\u05E8\u05D8\u05D5\u05E0\u05D9\u05DD, \u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05D2\u05D3\u05D5\u05DC\u05D5\u05EA \u05D0\u05D5 \u05EA\u05D9\u05E7\u05D9\u05D5\u05EA \u05E9\u05DC\u05D0 \u05E6\u05E8\u05D9\u05DB\u05D5\u05EA \u05DC\u05E2\u05DC\u05D5\u05EA \u05D1\u05DB\u05DC\u05DC.",
+      what: "\u05D4\u05E7\u05D1\u05E6\u05D9\u05DD \u05E9\u05E2\u05D5\u05DC\u05D9\u05DD \u05D9\u05D7\u05D3 \u05E2\u05DD \u05D4\u05D0\u05EA\u05E8 \u05E9\u05D5\u05E7\u05DC\u05D9\u05DD \u05D9\u05D5\u05EA\u05E8 \u05DE\u05BE200MB.",
+      why: "\u05D6\u05D4 \u05D4\u05D2\u05D1\u05D5\u05DC \u05DC\u05DB\u05DC \u05D4\u05E7\u05D1\u05E6\u05D9\u05DD \u05E9\u05DC \u05D2\u05E8\u05E1\u05D4 \u05D0\u05D7\u05EA. \u05D1\u05D3\u05E8\u05DA \u05DB\u05DC\u05DC \u05D4\u05E1\u05D9\u05D1\u05D4 \u05D4\u05D9\u05D0 \u05E1\u05E8\u05D8\u05D5\u05E0\u05D9\u05DD, \u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05D2\u05D3\u05D5\u05DC\u05D5\u05EA \u05D0\u05D5 \u05EA\u05D9\u05E7\u05D9\u05D5\u05EA \u05E9\u05DC\u05D0 \u05E6\u05E8\u05D9\u05DB\u05D5\u05EA \u05DC\u05E2\u05DC\u05D5\u05EA \u05D1\u05DB\u05DC\u05DC.",
       fix: ["\u05DE\u05D5\u05E6\u05D9\u05D0\u05D9\u05DD \u05DE\u05D4\u05E4\u05E8\u05D5\u05D9\u05E7\u05D8 \u05E1\u05E8\u05D8\u05D5\u05E0\u05D9\u05DD \u05D5\u05E7\u05D1\u05E6\u05D9 \u05DE\u05D3\u05D9\u05D4 \u05D2\u05D3\u05D5\u05DC\u05D9\u05DD.", "\u05DE\u05DB\u05D5\u05D5\u05E6\u05D9\u05DD \u05EA\u05DE\u05D5\u05E0\u05D5\u05EA.", "\u05DE\u05D5\u05E1\u05D9\u05E4\u05D9\u05DD \u05DC\u05E7\u05D5\u05D1\u05E5 .deployaiignore \u05EA\u05D9\u05E7\u05D9\u05D5\u05EA \u05E9\u05E0\u05D5\u05E6\u05E8\u05D5\u05EA \u05DC\u05D1\u05D3 \u05D0\u05D5 \u05E9\u05DC\u05D0 \u05DE\u05E9\u05EA\u05DE\u05E9\u05D9\u05DD \u05D1\u05D4\u05DF."],
-      prompt: "\u05E9\u05DE\u05D5\u05E8 \u05E2\u05DC \u05D4\u05D4\u05E2\u05DC\u05D0\u05D4 \u05DE\u05EA\u05D7\u05EA \u05DC 50MB. \u05D4\u05D5\u05E6\u05D0 \u05E7\u05D1\u05E6\u05D9 \u05DE\u05D3\u05D9\u05D4 \u05D2\u05D3\u05D5\u05DC\u05D9\u05DD \u05DE\u05D4\u05E4\u05E8\u05D5\u05D9\u05E7\u05D8, \u05DB\u05D5\u05D5\u05E5 \u05EA\u05DE\u05D5\u05E0\u05D5\u05EA, \u05D5\u05D4\u05D5\u05E1\u05E3 \u05DC .deployaiignore \u05EA\u05D9\u05E7\u05D9\u05D5\u05EA \u05E9\u05E0\u05D5\u05E6\u05E8\u05D5\u05EA \u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9\u05EA \u05D0\u05D5 \u05E9\u05DC\u05D0 \u05D1\u05E9\u05D9\u05DE\u05D5\u05E9."
+      prompt: "\u05E9\u05DE\u05D5\u05E8 \u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05DE\u05EA\u05D7\u05EA \u05DC\u05BE200MB. \u05D4\u05D5\u05E6\u05D0 \u05E7\u05D1\u05E6\u05D9 \u05DE\u05D3\u05D9\u05D4 \u05D2\u05D3\u05D5\u05DC\u05D9\u05DD \u05DE\u05D4\u05E4\u05E8\u05D5\u05D9\u05E7\u05D8, \u05DB\u05D5\u05D5\u05E5 \u05EA\u05DE\u05D5\u05E0\u05D5\u05EA, \u05D5\u05D4\u05D5\u05E1\u05E3 \u05DC .deployaiignore \u05EA\u05D9\u05E7\u05D9\u05D5\u05EA \u05E9\u05E0\u05D5\u05E6\u05E8\u05D5\u05EA \u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9\u05EA \u05D0\u05D5 \u05E9\u05DC\u05D0 \u05D1\u05E9\u05D9\u05DE\u05D5\u05E9."
     },
     en: {
-      what: "The files that upload with the site weigh more than 50 MB.",
-      why: "That is the limit for one upload. Usually the cause is videos, large images or folders that do not need to upload at all.",
+      what: "The files that upload with the site weigh more than 200 MB.",
+      why: "That is the limit for all the files of one version. Usually the cause is videos, large images or folders that do not need to upload at all.",
       fix: ["Move videos and large media files out of the project.", "Compress images.", "List folders that are generated or unused in .deployaiignore."]
     }
   },
@@ -21457,6 +21457,11 @@ var UPLOAD_PART_BYTES = 4 * 1024 * 1024;
 var MAX_DEPLOY_BYTES = 50 * 1024 * 1024;
 var MAX_UPLOAD_PARTS = Math.ceil(MAX_DEPLOY_BYTES / UPLOAD_PART_BYTES);
 var UploadPartResponse = external_exports.object({ ok: external_exports.literal(true) });
+var MAX_SITE_FILES_BYTES = 200 * 1024 * 1024;
+var MAX_FILE_LIST = 2e4;
+var HaveFilesResponse = external_exports.object({ have: external_exports.array(external_exports.string()) });
+var UploadFilesResponse = external_exports.object({ stored: external_exports.number() });
+var DeployFileList = external_exports.array(external_exports.object({ p: external_exports.string().min(1).max(1024), h: external_exports.string().regex(/^[0-9a-f]{64}$/), s: external_exports.number().int().nonnegative() })).max(MAX_FILE_LIST);
 var VoiceLang = external_exports.enum(["he", "en"]);
 var SoundVoice = external_exports.object({ sound: external_exports.boolean().nullable(), voice: external_exports.boolean().nullable(), voiceLang: VoiceLang.nullable() });
 var SoundVoicePatch = external_exports.object({ sound: external_exports.boolean().optional(), voice: external_exports.boolean().optional(), voiceLang: VoiceLang.nullable().optional() }).strict();
@@ -21759,7 +21764,7 @@ var ARCH_NODES = [
   { id: "local-scripts", kind: "actor", zone: "outside", label: "Local scripts", summary: "\u05E4\u05E7\u05D5\u05D3\u05D5\u05EA \u05E9\u05D4\u05E6\u05D5\u05D5\u05EA \u05DE\u05E8\u05D9\u05E5 \u05DE\u05D4\u05DE\u05D7\u05E9\u05D1: prompts:pull \u05D5\u05BEprompts:push (\u05E7\u05D5\u05D1\u05E5 \u05E4\u05E8\u05D5\u05DE\u05E4\u05D8 \u05DE\u05D5\u05DC \u05D4\u05D8\u05E7\u05E1\u05D8 \u05D4\u05D7\u05D9), costs:push (\u05DE\u05D7\u05D9\u05E8\u05D9 Cloudflare), content:push \u05D5\u05BEcontent:pull (\u05D4\u05EA\u05D5\u05DB\u05DF \u05D1\u05D9\u05DF \u05DE\u05E1\u05D3 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05E9\u05DC \u05D4\u05DE\u05D7\u05E9\u05D1 \u05DC\u05D6\u05D4 \u05E9\u05DC \u05D4\u05E9\u05E8\u05EA, \u05D3\u05E8\u05DA SSH). LOCAL_SCRIPTS_TOKEN \u05E4\u05D5\u05EA\u05D7 \u05D0\u05EA \u05D4\u05BEAPI \u05E9\u05DC \u05D4\u05E4\u05E7\u05D5\u05D3\u05D5\u05EA \u05D4\u05D0\u05DC\u05D4 \u05D5\u05E9\u05DC \u05D4\u05BEBoard watcher, \u05D5\u05D9\u05DB\u05D5\u05DC \u05DC\u05E9\u05E0\u05D5\u05EA \u05E4\u05E8\u05D5\u05DE\u05E4\u05D8\u05D9\u05DD \u05D5\u05DE\u05D7\u05D9\u05E8\u05D9\u05DD \u05D7\u05D9\u05D9\u05DD.", summaryEn: "Commands the team runs from the computer: prompts:pull and prompts:push (a prompt file against the live text), costs:push (Cloudflare prices), content:push and content:pull (content between the computer's database and the server's, over SSH). LOCAL_SCRIPTS_TOKEN opens the API of these commands and of the Board watcher, and can change live prompts and prices.", code: ["scripts/prompts-sync.ts", "scripts/costs-push.ts", "scripts/content-sync.ts"], env: ["LOCAL_SCRIPTS_TOKEN", "BOARD_URL"], docs: ["docs/13-run-locally.md"], decisions: ["D-204", "D-471", "D-677", "D-696"] },
   { id: "visitor", kind: "actor", zone: "outside", label: "\u05DE\u05D1\u05E7\u05E8 \u05D1\u05D0\u05EA\u05E8", labelEn: "Site visitor", summary: "\u05DE\u05D1\u05E7\u05E8 \u05D1\u05D0\u05EA\u05E8 \u05E9\u05DC \u05DC\u05E7\u05D5\u05D7 \u05D1\u05DB\u05EA\u05D5\u05D1\u05EA <slug>.<\u05D3\u05D5\u05DE\u05D9\u05D9\u05DF \u05D0\u05EA\u05E8\u05D9\u05DD> (\u05DB\u05DE\u05D5 deploy-net.com \u05D0\u05D5 freesite.click) \u05D0\u05D5 \u05D1\u05D3\u05D5\u05DE\u05D9\u05D9\u05DF \u05DE\u05E9\u05DC\u05D5.", summaryEn: "A visitor on a customer site at <slug>.<a sites domain> (like deploy-net.com or freesite.click) or on their own domain." },
   // Platform
-  { id: "web", kind: "app", zone: "platform", label: "Web app (Next.js)", summary: "\u05D0\u05EA\u05E8 \u05D4\u05E9\u05D9\u05D5\u05D5\u05E7, \u05DC\u05D5\u05D7 \u05D4\u05D1\u05E7\u05E8\u05D4, \u05D4\u05D0\u05D3\u05DE\u05D9\u05DF \u05D5\u05D4\u05BEAPI \u05E9\u05DC \u05D4\u05BECLI. \u05DE\u05DB\u05E0\u05D9\u05E1 \u05E2\u05D1\u05D5\u05D3\u05D5\u05EA \u05DC\u05EA\u05D5\u05E8.", summaryEn: "The marketing site, the dashboard, the admin and the CLI API. Puts jobs in the queue.", code: ["apps/web/src/app", "apps/web/src/server"], env: ["DEPLOYAI_SPACE", "BETTER_AUTH_SECRET", "NEXT_PUBLIC_SUPPORT_WHATSAPP", "DEV_SUPERADMIN_PASSWORD", "OPENAI_APPS_CHALLENGE", "POSTHOG_PROJECT_KEY", "POSTHOG_PROJECT_ID", "FLEET_GITHUB_TOKEN"], portability: "Our app (site, dashboard, API, builds)", docs: ["docs/04-architecture.md"], decisions: ["D-020", "D-057", "D-104", "D-149", "D-238", "D-293"] },
+  { id: "web", kind: "app", zone: "platform", label: "Web app (Next.js)", summary: "\u05D0\u05EA\u05E8 \u05D4\u05E9\u05D9\u05D5\u05D5\u05E7, \u05DC\u05D5\u05D7 \u05D4\u05D1\u05E7\u05E8\u05D4, \u05D4\u05D0\u05D3\u05DE\u05D9\u05DF \u05D5\u05D4\u05BEAPI \u05E9\u05DC \u05D4\u05BECLI. \u05DE\u05DB\u05E0\u05D9\u05E1 \u05E2\u05D1\u05D5\u05D3\u05D5\u05EA \u05DC\u05EA\u05D5\u05E8.", summaryEn: "The marketing site, the dashboard, the admin and the CLI API. Puts jobs in the queue.", code: ["apps/web/src/app", "apps/web/src/server"], env: ["DEPLOYAI_SPACE", "BETTER_AUTH_SECRET", "DEV_SUPERADMIN_PASSWORD", "OPENAI_APPS_CHALLENGE", "POSTHOG_PROJECT_KEY", "POSTHOG_PROJECT_ID", "FLEET_GITHUB_TOKEN"], portability: "Our app (site, dashboard, API, builds)", docs: ["docs/04-architecture.md"], decisions: ["D-020", "D-057", "D-104", "D-149", "D-238", "D-293"] },
   { id: "queue", kind: "db", zone: "platform", label: "pg-boss queue", summary: "\u05DB\u05DC \u05DE\u05D4 \u05E9\u05D0\u05D9\u05D8\u05D9 \u05D0\u05D5 \u05E0\u05D5\u05D2\u05E2 \u05D1\u05BECloudflare \u05E8\u05E5 \u05DB\u05E2\u05D1\u05D5\u05D3\u05D4 \u05D1\u05EA\u05D5\u05E8.", summaryEn: "Everything slow or that touches Cloudflare runs as a job in the queue.", code: ["apps/web/src/server/queue.ts"], portability: "Job queue", decisions: ["D-058"] },
   { id: "worker", kind: "app", zone: "platform", label: "Job worker", summary: "\u05EA\u05D4\u05DC\u05D9\u05DA \u05E0\u05E4\u05E8\u05D3 \u05E9\u05DE\u05E8\u05D9\u05E5 \u05D0\u05EA \u05D4\u05E2\u05D1\u05D5\u05D3\u05D5\u05EA \u05DE\u05D4\u05EA\u05D5\u05E8: \u05D1\u05E0\u05D9\u05D9\u05D4, \u05D4\u05E2\u05DC\u05D0\u05D4, \u05E0\u05D9\u05EA\u05D5\u05D1, \u05D1\u05D9\u05E7\u05D5\u05E8\u05D9\u05DD, \u05E2\u05DC\u05D5\u05D9\u05D5\u05EA \u05D5\u05DE\u05D9\u05D9\u05DC\u05D9\u05DD \u05DC\u05DE\u05E9\u05E4\u05DA (pnpm worker, \u05D0\u05D5 pnpm worker:public \u05DE\u05D0\u05D7\u05D5\u05E8\u05D9 \u05D4\u05BEtunnel).", summaryEn: "A separate process that runs the queued jobs: build, upload, routing, visits, costs and lifecycle emails (pnpm worker, or pnpm worker:public behind the tunnel).", code: ["apps/web/src/server/worker.ts", "apps/web/src/server/jobs.ts", "apps/web/src/server/site-data.ts", "apps/web/src/server/lifecycle", "apps/web/src/server/host-report.ts"], env: ["BUILD_SLOTS", "LIFECYCLE_NOW", "A11Y_RENDER", "DOCKER_HOST", "HOST_REPORT_PATH", "APP_SHOTS_SITES"], decisions: ["D-058", "D-148", "D-180", "D-340"] },
   { id: "build", kind: "app", zone: "platform", label: "Build service (Docker)", summary: "\u05E7\u05D5\u05E0\u05D8\u05D9\u05D9\u05E0\u05E8 \u05D7\u05D3\u05E9 \u05DC\u05DB\u05DC \u05E9\u05DC\u05D1, \u05D1\u05DC\u05D9 \u05E1\u05D5\u05D3\u05D5\u05EA. \u05D1\u05D5\u05E0\u05D4 \u05D0\u05EA \u05D4\u05E7\u05D5\u05D3 \u05E9\u05DC \u05D4\u05DC\u05E7\u05D5\u05D7 \u05DC\u05E7\u05D5\u05D1\u05E5 Worker.", summaryEn: "A fresh container for every step, with no secrets. Builds the customer's code into a Worker file.", code: ["apps/web/src/server/build.ts"], env: ["BUILD_MODE"] },
@@ -21789,7 +21794,7 @@ var ARCH_NODES = [
   { id: "app-cron", kind: "worker", zone: "customer", label: "Cron Trigger app site", summary: "\u05D0\u05EA\u05E8 \u05EA\u05D6\u05DE\u05D5\u05DF \u05DE\u05E9\u05D9\u05DE\u05D5\u05EA \u05E9\u05DC \u05DC\u05E7\u05D5\u05D7: \u05D0\u05EA\u05E8 \u05D1\u05E4\u05E0\u05D9 \u05E2\u05E6\u05DE\u05D5 (site-<slug> \u05D1\u05DE\u05E8\u05D7\u05D1 \u05D4\u05E9\u05DE\u05D5\u05EA) \u05E2\u05DD \u05D4\u05E7\u05D5\u05D3 \u05E9\u05DC\u05E0\u05D5 \u05D1\u05DC\u05D1\u05D3. Durable Object \u05E2\u05DD SQLite \u05D1\u05D0\u05D5\u05EA\u05D5 Worker \u05E9\u05D5\u05DE\u05E8 \u05D0\u05EA \u05D4\u05DE\u05E9\u05D9\u05DE\u05D5\u05EA \u05D5\u05DE\u05E8\u05D9\u05E5 \u05D0\u05D5\u05EA\u05DF \u05DE\u05E9\u05E2\u05D5\u05DF \u05DE\u05E2\u05D5\u05E8\u05E8 \u05DE\u05E9\u05DC\u05D5 \u05DC\u05E4\u05D9 \u05DC\u05D5\u05D7 \u05D6\u05DE\u05E0\u05D9\u05DD \u05D1\u05E9\u05E2\u05D5\u05DF \u05D9\u05E9\u05E8\u05D0\u05DC, \u05E2\u05DD \u05DE\u05D2\u05D1\u05DC\u05EA \u05D6\u05DE\u05DF \u05DC\u05DB\u05DC \u05E8\u05D9\u05E6\u05D4 (10 \u05E9\u05E0\u05D9\u05D5\u05EA, 3 \u05D0\u05D7\u05E8\u05D9 \u05E1\u05E3 \u05D4\u05E8\u05D9\u05E6\u05D5\u05EA \u05D4\u05D0\u05D9\u05D8\u05D9\u05D5\u05EA \u05E9\u05DC \u05D4\u05D7\u05D5\u05D3\u05E9), \u05E9\u05D5\u05DE\u05E8 \u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D4 \u05D5\u05E9\u05D5\u05DC\u05D7 \u05DE\u05D9\u05D9\u05DC \u05D3\u05E8\u05DA \u05D4\u05D0\u05E4\u05DC\u05D9\u05E7\u05E6\u05D9\u05D4 \u05D5\u05BEwebhook \u05D7\u05EA\u05D5\u05DD \u05D1\u05BEPro.", summaryEn: "A customer's Cron Trigger site: a site of its own (site-<slug> in the namespace) that runs only our code. A SQLite Durable Object in the same Worker keeps the jobs and runs them from its own alarm on a schedule in Israel time, with a time limit per run (10 seconds, 3 after the month's slow-run threshold), keeps their history, and emails through the app and sends a signed webhook with Pro.", code: ["workers/app-cron/src", "scripts/build-app-cron.ts", "apps/web/src/server/apps.ts", "apps/web/src/server/apps-notify.ts", "packages/shared/src/cron.ts"], decisions: ["D-567", "D-568"] },
   { id: "app-links", kind: "worker", zone: "customer", label: "Links app site", summary: "\u05D3\u05E3 \u05D4\u05DC\u05D9\u05E0\u05E7\u05D9\u05DD \u05E9\u05DC \u05DC\u05E7\u05D5\u05D7: \u05D0\u05EA\u05E8 \u05D1\u05E4\u05E0\u05D9 \u05E2\u05E6\u05DE\u05D5 (site-<slug> \u05D1\u05DE\u05E8\u05D7\u05D1 \u05D4\u05E9\u05DE\u05D5\u05EA) \u05E2\u05DD \u05D4\u05E7\u05D5\u05D3 \u05E9\u05DC\u05E0\u05D5 \u05D1\u05DC\u05D1\u05D3. Durable Object \u05E2\u05DD SQLite \u05D1\u05D0\u05D5\u05EA\u05D5 Worker \u05E9\u05D5\u05DE\u05E8 \u05D0\u05EA \u05D4\u05DC\u05D9\u05E0\u05E7\u05D9\u05DD, \u05D4\u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05D5\u05E1\u05E4\u05D9\u05E8\u05D5\u05EA \u05D9\u05D5\u05DE\u05D9\u05D5\u05EA. \u05D3\u05E3 \u05E6\u05D9\u05D1\u05D5\u05E8\u05D9 \u05E4\u05EA\u05D5\u05D7 \u05DC\u05DB\u05D5\u05DC\u05DD, \u05D5\u05DB\u05EA\u05D5\u05D1\u05EA \u05E7\u05E6\u05E8\u05D4 \u05DC\u05DB\u05DC \u05DC\u05D9\u05E0\u05E7 \u05E9\u05DE\u05E4\u05E0\u05D4 \u05DC\u05D9\u05E2\u05D3 \u05D5\u05E1\u05D5\u05E4\u05E8\u05EA \u05DC\u05D7\u05D9\u05E6\u05D4 \u05D1\u05DC\u05D9 \u05E2\u05D5\u05D2\u05D9\u05D5\u05EA.", summaryEn: "A customer's Links page: a site of its own (site-<slug> in the namespace) running only our code. A SQLite Durable Object in the same Worker keeps the links, pictures and daily counts. The public page is open to everyone, and each link has a short address that redirects and counts the tap with no cookies." },
   { id: "app-files", kind: "worker", zone: "customer", label: "Files app site", summary: "\u05D0\u05E4\u05DC\u05D9\u05E7\u05E6\u05D9\u05D9\u05EA \u05D4\u05E7\u05D1\u05E6\u05D9\u05DD \u05E9\u05DC \u05DC\u05E7\u05D5\u05D7: \u05D0\u05EA\u05E8 \u05D1\u05E4\u05E0\u05D9 \u05E2\u05E6\u05DE\u05D5 (site-<slug> \u05D1\u05DE\u05E8\u05D7\u05D1 \u05D4\u05E9\u05DE\u05D5\u05EA) \u05E2\u05DD \u05D4\u05E7\u05D5\u05D3 \u05E9\u05DC\u05E0\u05D5 \u05D1\u05DC\u05D1\u05D3 \u05D5\u05D3\u05DC\u05D9 R2 \u05DE\u05E9\u05DC\u05D5. Durable Object \u05E2\u05DD SQLite \u05D1\u05D0\u05D5\u05EA\u05D5 Worker \u05E9\u05D5\u05DE\u05E8 \u05D0\u05EA \u05E8\u05E9\u05D9\u05DE\u05EA \u05D4\u05E7\u05D1\u05E6\u05D9\u05DD, \u05D4\u05DE\u05E4\u05EA\u05D7\u05D5\u05EA \u05D5\u05D4\u05DE\u05D5\u05E0\u05D9\u05DD \u05E9\u05DC \u05DB\u05DC \u05DE\u05D2\u05D1\u05DC\u05D4, \u05D5\u05DE\u05D5\u05D7\u05E7 \u05E7\u05D5\u05D1\u05E5 \u05D1\u05D6\u05DE\u05DF \u05D4\u05EA\u05E4\u05D5\u05D2\u05D4 \u05E9\u05DC\u05D5 \u05DE\u05E9\u05E2\u05D5\u05DF \u05DE\u05E2\u05D5\u05E8\u05E8; \u05DB\u05DC\u05DC \u05D2\u05D9\u05DC \u05E2\u05DC \u05D4\u05D3\u05DC\u05D9 \u05DE\u05D5\u05D7\u05E7 \u05E9\u05D5\u05D1 \u05D0\u05D7\u05E8\u05D9 31 \u05D9\u05D5\u05DD. \u05DB\u05DC \u05E7\u05D9\u05E9\u05D5\u05E8 \u05D4\u05D5\u05E8\u05D3\u05D4 \u05D7\u05EA\u05D5\u05DD \u05D1\u05DE\u05E4\u05EA\u05D7 \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D5\u05E0\u05D2\u05DE\u05E8 \u05D1\u05D6\u05DE\u05DF \u05E9\u05D4\u05DE\u05D1\u05E7\u05E9 \u05E7\u05D1\u05E2; \u05E7\u05D5\u05D1\u05E5 \u05EA\u05DE\u05D9\u05D3 \u05D9\u05D5\u05E8\u05D3 \u05D5\u05DC\u05D0 \u05E0\u05E4\u05EA\u05D7 \u05DB\u05D3\u05E3.", summaryEn: "A customer's Files app: a site of its own (site-<slug> in the namespace) running only our code, with its own R2 bucket. A SQLite Durable Object in the same Worker keeps the file list, the API keys and the counter of every limit, and deletes a file at its expiry from its own alarm; an age rule on the bucket deletes again after 31 days. Every download link is signed with the site's key and ends when the caller said; a file always downloads, never opens as a page.", code: ["workers/app-files/src", "scripts/build-app-files.ts", "apps/web/src/server/apps.ts", "apps/web/src/server/apps-notify.ts", "packages/shared/src/files.ts"], decisions: ["D-958"] },
-  { id: "dispatch", kind: "worker", zone: "cloudflare", label: "deployai-dispatch", summary: 'Worker \u05D0\u05D7\u05D3 \u05E2\u05DC */* \u05E9\u05DE\u05E0\u05EA\u05D1 \u05DB\u05DC \u05DB\u05EA\u05D5\u05D1\u05EA \u05DC\u05D0\u05EA\u05E8, \u05E1\u05D5\u05E4\u05E8 \u05D1\u05D9\u05E7\u05D5\u05E8\u05D9\u05DD, \u05DE\u05D2\u05D1\u05D9\u05DC \u05E7\u05E6\u05D1 \u05D5\u05DE\u05D5\u05E1\u05D9\u05E3 \u05D0\u05EA \u05D4\u05EA\u05D2 "\u05DE\u05D0\u05D5\u05D7\u05E1\u05DF \u05D1\u05BEDeployAI" \u05DC\u05D0\u05EA\u05E8\u05D9\u05DD \u05E9\u05D1\u05D7\u05D1\u05D9\u05DC\u05D4 \u05E9\u05DC\u05D4\u05DD \u05D9\u05E9 \u05EA\u05D2, \u05D0\u05E3 \u05E4\u05E2\u05DD \u05DC\u05D0 \u05DC\u05D0\u05EA\u05E8 \u05D6\u05DE\u05E0\u05D9.', summaryEn: 'One Worker on */* that routes every address to its site, counts visits, limits the rate and adds the "Hosted by DeployAI" badge to sites whose plan has the badge, never to a temporary site.', code: ["workers/dispatch/src", "scripts/deploy-dispatch.ts"], env: ["DISPATCH_RATE_LIMIT_PERIOD", "PROBE_SECRET", "APP_GATE_SECRET"], docs: ["workers/dispatch/README.md"], decisions: ["D-087", "D-113", "D-179", "D-238", "D-245", "D-528"] },
+  { id: "dispatch", kind: "worker", zone: "cloudflare", label: "deployai-dispatch", summary: 'Worker \u05D0\u05D7\u05D3 \u05E2\u05DC */* \u05E9\u05DE\u05E0\u05EA\u05D1 \u05DB\u05DC \u05DB\u05EA\u05D5\u05D1\u05EA \u05DC\u05D0\u05EA\u05E8, \u05E1\u05D5\u05E4\u05E8 \u05D1\u05D9\u05E7\u05D5\u05E8\u05D9\u05DD, \u05DE\u05D2\u05D1\u05D9\u05DC \u05E7\u05E6\u05D1 \u05D5\u05DE\u05D5\u05E1\u05D9\u05E3 \u05D0\u05EA \u05D4\u05EA\u05D2 "\u05DE\u05D0\u05D5\u05D7\u05E1\u05DF \u05D1\u05BEDeployAI" \u05DC\u05D0\u05EA\u05E8\u05D9\u05DD \u05E9\u05D1\u05DE\u05E1\u05DC\u05D5\u05DC \u05E9\u05DC\u05D4\u05DD \u05D9\u05E9 \u05EA\u05D2, \u05D0\u05E3 \u05E4\u05E2\u05DD \u05DC\u05D0 \u05DC\u05D0\u05EA\u05E8 \u05D6\u05DE\u05E0\u05D9.', summaryEn: 'One Worker on */* that routes every address to its site, counts visits, limits the rate and adds the "Hosted by DeployAI" badge to sites whose plan has the badge, never to a temporary site.', code: ["workers/dispatch/src", "scripts/deploy-dispatch.ts"], env: ["DISPATCH_RATE_LIMIT_PERIOD", "PROBE_SECRET", "APP_GATE_SECRET"], docs: ["workers/dispatch/README.md"], decisions: ["D-087", "D-113", "D-179", "D-238", "D-245", "D-528"] },
   // Customer sites
   { id: "site", kind: "worker", zone: "customer", label: SITE, summary: "\u05D4\u05D0\u05EA\u05E8 \u05E9\u05DC \u05D4\u05DC\u05E7\u05D5\u05D7: Worker \u05DC\u05DB\u05DC \u05D0\u05EA\u05E8, \u05E2\u05DD \u05D4\u05E7\u05D1\u05E6\u05D9\u05DD \u05D5\u05D4\u05E7\u05D5\u05D3 \u05E9\u05DC\u05D5.", summaryEn: "The customer's site: a Worker per site, with its files and code.", portability: "Customer sites", decisions: ["D-113", "D-245"] },
   { id: "site-d1", kind: "db", zone: "customer", label: `D1 ${SITE_DATA}`, summary: "\u05DE\u05E1\u05D3 \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05DC\u05DB\u05DC \u05D0\u05EA\u05E8, \u05E0\u05D5\u05E6\u05E8 \u05E4\u05E2\u05DD \u05D0\u05D7\u05EA \u05D5\u05DE\u05D7\u05D5\u05D1\u05E8 \u05D1\u05DB\u05DC \u05D4\u05E2\u05DC\u05D0\u05D4.", summaryEn: "A database per site, created once and bound on every upload.", code: ["apps/web/src/server/site-data.ts"], portability: "Customer site data", decisions: ["D-076"] },
@@ -22542,6 +22547,8 @@ var SITE_MACHINE = defineMachine({
     team_resume_online: { from: ["paused"], to: "online" },
     team_resume_new: { from: ["paused"], to: "new" },
     go_live: { from: ["new", "online"], to: "online" },
+    // Start over (D-1254): the site is empty again until the next upload. A team hold stays: a paused site cannot start over.
+    start_over: { from: ["new", "online", "off"], to: "new" },
     delete: { from: ANY, to: "off" },
     restore_new: { from: ["off"], to: "new" },
     restore_online: { from: ["off"], to: "online" },
@@ -23206,6 +23213,7 @@ var PLAN_FEATURES = [
   { key: "whatsapp", soon: true }
 ];
 var KEYS = new Set(PLAN_FEATURES.map((f) => f.key));
+var ORDER = new Map(PLAN_FEATURES.map((f, i) => [f.key, i]));
 
 // ../shared/src/let-through.ts
 var LET_THROUGH_BOTS = {
@@ -23548,6 +23556,7 @@ var CLI_MAP_NODES = [
   n("cmd-iphone", "cli", "iphone [url]", "\u05DE\u05D4 \u05E0\u05E9\u05D1\u05E8 \u05D1\u05D0\u05D9\u05D9\u05E4\u05D5\u05DF: \u05E1\u05E8\u05D9\u05E7\u05EA \u05D4\u05E7\u05D5\u05D3, \u05D5\u05D0\u05D6 \u05D4\u05E2\u05DE\u05D5\u05D3 \u05D1\u05DE\u05E0\u05D5\u05E2 \u05E9\u05DC \u05E1\u05E4\u05D0\u05E8\u05D9 \u05D1\u05DE\u05E1\u05DA \u05E9\u05DC \u05D0\u05D9\u05D9\u05E4\u05D5\u05DF 15.", "What breaks on an iPhone: a code scan, then the page in Safari's engine on an iPhone 15 screen."),
   n("cmd-optimize", "cli", "optimize [folder]", "AVIF \u05D5\u05BEWebP \u05DC\u05D9\u05D3 \u05DB\u05DC \u05EA\u05DE\u05D5\u05E0\u05D4, \u05D1\u05DC\u05D9 \u05DC\u05D2\u05E2\u05EA \u05D1\u05DE\u05E7\u05D5\u05E8.", "AVIF and WebP next to each image, originals untouched."),
   n("cmd-allow", "cli", "allow [tool]", "\u05D0\u05D7\u05E8\u05D9 \u05E9\u05D4\u05D1\u05E2\u05DC\u05D9\u05DD \u05D0\u05D9\u05E9\u05E8: \u05DB\u05DC\u05D9 \u05D4\u05E7\u05D5\u05D3 \u05DE\u05E4\u05E1\u05D9\u05E7 \u05DC\u05E9\u05D0\u05D5\u05DC \u05DC\u05E4\u05E0\u05D9 \u05DB\u05DC \u05E4\u05E7\u05D5\u05D3\u05EA DeployAI, \u05E8\u05E7 \u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5.", "After the owner says yes: the coding tool stops asking before every DeployAI command, in this folder only."),
+  n("cmd-hosts", "cli", "hosts", "\u05D4\u05DB\u05EA\u05D5\u05D1\u05D5\u05EA \u05E9\u05D4\u05E2\u05D1\u05D5\u05D3\u05D4 \u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05E6\u05E8\u05D9\u05DB\u05D4: DeployAI, \u05D4\u05D0\u05EA\u05E8, npm \u05D5\u05D1\u05D4\u05E2\u05D1\u05E8\u05D4 \u05D2\u05DD \u05D4\u05D0\u05EA\u05E8 \u05D4\u05D9\u05E9\u05DF. \u05DB\u05DC \u05D0\u05D7\u05EA \u05E0\u05D1\u05D3\u05E7\u05EA \u05DE\u05D4\u05DE\u05D7\u05E9\u05D1 \u05D4\u05D6\u05D4: \u05D9\u05E9 \u05D2\u05D9\u05E9\u05D4, \u05D7\u05E1\u05D5\u05DE\u05D4 \u05D1\u05DE\u05D7\u05E9\u05D1 \u05D4\u05D6\u05D4 \u05D0\u05D5 \u05D0\u05D9\u05DF \u05EA\u05E9\u05D5\u05D1\u05D4, \u05D5\u05DE\u05D4 \u05DC\u05D1\u05E7\u05E9 \u05DC\u05D0\u05E9\u05E8 (D-1246).", "The hosts the work in this folder needs: DeployAI, the site, npm, and in a move the old site. Each is tried from this machine: reachable, blocked by this machine or no answer, and what to ask to allow (D-1246)."),
   n("cmd-rules", "cli", "rules", "\u05DE\u05D3\u05E4\u05D9\u05E1 \u05D0\u05EA \u05D4\u05DB\u05DC\u05DC\u05D9\u05DD \u05D4\u05E2\u05D3\u05DB\u05E0\u05D9\u05D9\u05DD \u05DC\u05E1\u05D5\u05DB\u05DF \u05DE\u05D4\u05E9\u05E8\u05EA \u05D5\u05DE\u05E2\u05D3\u05DB\u05DF \u05D0\u05DC\u05D9\u05D4\u05DD \u05D0\u05EA DEPLOYAI.md. \u05DB\u05DC \u05E4\u05E7\u05D5\u05D3\u05D4 \u05D0\u05D7\u05E8\u05EA \u05DE\u05E2\u05D3\u05DB\u05E0\u05EA \u05D0\u05EA DEPLOYAI.md \u05D1\u05E2\u05E6\u05DE\u05D4, \u05D0\u05DD \u05DC\u05D0 \u05E0\u05E2\u05E8\u05DA.", "Prints the current agent rules from the server and brings DEPLOYAI.md up to them. Every other command updates DEPLOYAI.md too, unless it was edited."),
   n("cmd-sound", "cli", "sound", "\u05E6\u05DC\u05D9\u05DC \u05D1\u05DE\u05D7\u05E9\u05D1 \u05DB\u05E9\u05D4\u05D0\u05EA\u05E8 \u05DE\u05D5\u05DB\u05DF, \u05D0\u05D7\u05E8\u05D9 \u05E9\u05D4\u05D1\u05E2\u05DC\u05D9\u05DD \u05D0\u05D9\u05E9\u05E8. \u05D1-Claude Code \u05D4\u05D0\u05D9\u05E9\u05D5\u05E8 \u05D4\u05D6\u05D4 \u05DE\u05D5\u05E1\u05D9\u05E3 \u05D2\u05DD \u05E6\u05DC\u05D9\u05DC \u05D5\u05E0\u05E7\u05D5\u05D3\u05D4 \u05D1\u05DC\u05E9\u05D5\u05E0\u05D9\u05EA \u05E9\u05DC \u05D4\u05D8\u05E8\u05DE\u05D9\u05E0\u05DC.", "A sound on this computer when the site is ready, after the owner says yes. In Claude Code that yes also adds a sound and a tab dot in the terminal."),
   n("cmd-voice", "cli", "voice", "\u05D4\u05E7\u05E8\u05D0\u05D4 \u05D1\u05E7\u05D5\u05DC \u05D5\u05E9\u05E4\u05EA \u05D4\u05E7\u05D5\u05DC, \u05E9\u05E0\u05E9\u05DE\u05E8\u05D5\u05EA \u05D1\u05D7\u05E9\u05D1\u05D5\u05DF \u05DB\u05DE\u05D5 \u05D4\u05E6\u05DC\u05D9\u05DC. \u05D4\u05D2\u05E8\u05E1\u05D4 \u05D4\u05D6\u05D5 \u05E2\u05D5\u05D3 \u05DC\u05D0 \u05DE\u05E7\u05E8\u05D9\u05D0\u05D4 \u05D3\u05D1\u05E8.", "Say it out loud and its language, kept on the account like the sound. This version speaks nothing yet."),
@@ -23638,6 +23647,7 @@ var CLI_MAP_EDGES = [
   e("cmd-sql", "api-sql"),
   e("cmd-deploy", "api-sql"),
   e("cmd-rollback", "api-promote"),
+  e("cmd-start", "cmd-hosts"),
   e("cmd-start", "cmd-brand"),
   e("page-move-url", "cmd-start"),
   e("cmd-start", "text-migrate-keep"),
@@ -23937,8 +23947,8 @@ function addPageTags(site, page3, path) {
     if (!same4 && site.forms.length < FORMS_KEPT) site.forms.push({ ...f, page: path });
   }
 }
-function addBrowserRequests(site, urls, siteUrl) {
-  const own2 = bareHost(new URL(siteUrl).hostname);
+function addBrowserRequests(site, urls, siteUrl2) {
+  const own2 = bareHost(new URL(siteUrl2).hostname);
   const before = site.tags.length + site.outside.length;
   const known = new Set(TAG_CATALOG.flatMap((c) => c.domains));
   for (const raw of urls) {
@@ -23951,7 +23961,7 @@ function addBrowserRequests(site, urls, siteUrl) {
       continue;
     }
     if (bareHost(host) === own2 || host.endsWith(`.${own2}`)) continue;
-    const seen = scanPageTags(`"${line}"`, siteUrl);
+    const seen = scanPageTags(`"${line}"`, siteUrl2);
     for (const tag of seen.tags) addFoundTag(site, tag, "browser", null);
     if (!seen.tags.length && !known.has(host) && !site.outside.some((o) => o.host === host)) site.outside.push({ host, pages: [] });
   }
@@ -24355,13 +24365,13 @@ function parsePlanFeatures(md) {
 var HOME_ROW = /^(the\s+)?home\s*page$|^homepage$|^home$|^(דף|עמוד)\s+(ה)?בית$|^ראשי$/i;
 function replacedPages(features, pages) {
   const clean3 = (s) => s.replace(/\s+/g, " ").trim().toLowerCase();
-  const read2 = readableUrl;
+  const read3 = readableUrl;
   const titleOf2 = (t) => clean3(t.split(/\s[-|–]\s/)[0] ?? t);
   const out2 = [];
   for (const f of features) {
     if (!f.status.toLowerCase().startsWith("replaced with")) continue;
     const name = clean3(f.name);
-    const path = HOME_ROW.test(name) ? "/" : pages.find((p) => clean3(read2(p.path)).replace(/\/+$/, "") === name.replace(/\/+$/, "") || p.title && (clean3(p.title) === name || titleOf2(p.title) === name))?.path;
+    const path = HOME_ROW.test(name) ? "/" : pages.find((p) => clean3(read3(p.path)).replace(/\/+$/, "") === name.replace(/\/+$/, "") || p.title && (clean3(p.title) === name || titleOf2(p.title) === name))?.path;
     if (path) out2.push({ path, row: f.name });
   }
   return out2;
@@ -24369,8 +24379,8 @@ function replacedPages(features, pages) {
 var THANKS_PATH = /(^|[/_-])(thank|thanks|thankyou|toda|todah|תודה)([/_.-]|$)/i;
 var THANKS_TITLE = /^\s*(thank you|thanks|תודה)/i;
 function findThanksPages(pages) {
-  const read2 = readableUrl;
-  return pages.filter((p) => THANKS_PATH.test(read2(p.path)) || THANKS_TITLE.test(p.title ?? "")).map((p) => p.path).slice(0, 20);
+  const read3 = readableUrl;
+  return pages.filter((p) => THANKS_PATH.test(read3(p.path)) || THANKS_TITLE.test(p.title ?? "")).map((p) => p.path).slice(0, 20);
 }
 function moveQuestions(r) {
   const out2 = [];
@@ -24467,7 +24477,6 @@ var ENV_KEYS = {
   DEV_SUPERADMIN_PASSWORD: { scope: "local", section: "app", about: "The superadmin password after every local wipe. Without it the one in apps/web/local-logins.md is kept (D-100)." },
   POSTHOG_PROJECT_KEY: { scope: "own", section: "app", about: "PostHog project key (phc_..., EU cloud) for session replay on our own sign up, move and pay pages, Israel only (D-999). Read by the server at request time, so no rebuild. A separate project for dev and prod. Empty records nothing." },
   POSTHOG_PROJECT_ID: { scope: "own", section: "app", about: "The number of that PostHog project (the digits in eu.posthog.com/project/<number>), for the Watch session link on each Self moves row (D-1050). Not a secret. Empty, or no POSTHOG_PROJECT_KEY: no link." },
-  NEXT_PUBLIC_SUPPORT_WHATSAPP: { scope: "same", section: "app", about: "The WhatsApp number people reach us on, digits with the country code (972...). Empty shows only the email (D-237)." },
   OPENAI_APPS_CHALLENGE: { scope: "server", section: "app", about: "The domain check token from the OpenAI platform portal (Plugins, domain verification), served as plain text at /.well-known/openai-apps-challenge (D-474). Unset: that page is a 404." },
   TUNNEL_ORIGIN_CERT: { scope: "local", section: "app", about: "The cloudflared login certificate pnpm dev:public checks. Default ~/.cloudflared/cert.pem." },
   CF_API_TOKEN: { scope: "own", section: "cloudflare", required: ["server"], about: "Cloudflare token (pnpm cf:token-link): sites, KV, D1, R2, routes, custom hostnames and our emails. Each machine its own. Without it everything Cloudflare is a dry run." },
@@ -25956,6 +25965,108 @@ function gitDependencyIn(pkg) {
 var TAG_RE = /^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8}){0,3}$/;
 var DATE_TAG_PATTERN = TAG_RE.source;
 
+// ../shared/src/net-hosts.ts
+var NPM_REGISTRY_HOST = "registry.npmjs.org";
+var HOST_REASONS = ["api", "site", "npm", "old_site", "media"];
+function hostOf(raw) {
+  const s = raw.trim();
+  if (!s) return null;
+  try {
+    const u = new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(s) ? s : `https://${s}`);
+    return u.protocol === "http:" || u.protocol === "https:" ? u.host.toLowerCase() || null : null;
+  } catch {
+    return null;
+  }
+}
+var wwwTwin = (host) => host.startsWith("www.") ? host.slice(4) : `www.${host}`;
+function neededHosts(input2) {
+  const found = /* @__PURE__ */ new Map();
+  const add2 = (host, reason2) => {
+    if (!host) return;
+    const reasons2 = found.get(host) ?? /* @__PURE__ */ new Set();
+    reasons2.add(reason2);
+    found.set(host, reasons2);
+  };
+  add2(hostOf(input2.apiUrl), "api");
+  if (input2.siteUrl) add2(hostOf(input2.siteUrl), "site");
+  add2(NPM_REGISTRY_HOST, "npm");
+  for (const source of input2.moveSources ?? []) {
+    const host = hostOf(source);
+    if (!host) continue;
+    add2(host, "old_site");
+    add2(wwwTwin(host), "old_site");
+  }
+  for (const url2 of input2.mediaUrls ?? []) if (/^https?:\/\//i.test(url2.trim())) add2(hostOf(url2), "media");
+  return [...found.entries()].sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0).map(([host, reasons2]) => ({ host, reasons: HOST_REASONS.filter((r) => reasons2.has(r)) }));
+}
+var hostsLine = (hosts) => [...new Set(hosts)].sort().join(", ");
+function chain(e3) {
+  const out2 = [];
+  let c = e3;
+  while (c && typeof c === "object" && out2.length < 8) {
+    out2.push(c);
+    c = c.cause;
+  }
+  if (typeof e3 === "string") out2.push({ message: e3 });
+  return out2;
+}
+var PROXY_REFUSED = /Proxy response \((403|405|407)\)/i;
+var TUNNEL_FAILED = /ERR_TUNNEL_CONNECTION_FAILED|tunnel(?:ing)? (?:connection )?failed|CONNECT tunnel failed/i;
+var PROXY_WORDS = /request blocked|no rule (?:or network setting )?allows|blocked by (?:the )?(?:proxy|network policy|sandbox)|agent proxy|not in (?:the )?allowlist|host not allowed/i;
+var TLS_CODE = /^(ERR_TLS_|ERR_SSL_|CERT_|UNABLE_TO_|SELF_SIGNED_|DEPTH_ZERO_|EPROTO$)/;
+function proxyAddress(proxy) {
+  if (!proxy) return null;
+  try {
+    const u = new URL(proxy);
+    return { host: u.hostname.replace(/^\[|\]$/g, ""), port: Number(u.port) || (u.protocol === "https:" ? 443 : 80) };
+  } catch {
+    return null;
+  }
+}
+function classifyNetError(e3, opts = {}) {
+  const links = chain(e3);
+  const text4 = links.map((l) => typeof l.message === "string" ? l.message : "").join(" | ");
+  const codes = links.map((l) => typeof l.code === "string" ? l.code : "").filter(Boolean);
+  if (PROXY_REFUSED.test(text4) || TUNNEL_FAILED.test(text4) || PROXY_WORDS.test(text4) || codes.includes("UND_ERR_PRX_TLS")) return "blocked";
+  const proxy = proxyAddress(opts.proxy);
+  if (proxy && links.some((l) => l.code === "ECONNREFUSED" && l.address === proxy.host && Number(l.port) === proxy.port)) return "blocked";
+  if (codes.some((c) => c === "ENOTFOUND" || c === "EAI_AGAIN" || c === "EAI_NONAME")) return "dns";
+  if (links.some((l) => l.name === "TimeoutError") || codes.some((c) => c === "ETIMEDOUT" || c === "UND_ERR_CONNECT_TIMEOUT" || c === "UND_ERR_HEADERS_TIMEOUT")) return "timeout";
+  if (codes.some((c) => TLS_CODE.test(c))) return "tls";
+  return "no_answer";
+}
+function blockedAnswer(status, text4) {
+  if (status === 407) return true;
+  return (status === 403 || status === 405) && PROXY_WORDS.test(text4);
+}
+function inCidr(ip, cidr) {
+  const [base, bitsRaw] = cidr.split("/");
+  const bits = Number(bitsRaw);
+  const toInt = (s) => s.split(".").reduce((n2, p) => (n2 << 8) + Number(p), 0) >>> 0;
+  if (!/^\d+\.\d+\.\d+\.\d+$/.test(ip) || !/^\d+\.\d+\.\d+\.\d+$/.test(base ?? "") || !(bits >= 0 && bits <= 32)) return false;
+  const mask = bits === 0 ? 0 : ~0 << 32 - bits >>> 0;
+  return (toInt(ip) & mask) === (toInt(base) & mask);
+}
+function proxyFor(url2, env) {
+  let u;
+  try {
+    u = new URL(url2);
+  } catch {
+    return null;
+  }
+  const proxy = u.protocol === "https:" ? env.HTTPS_PROXY || env.https_proxy : env.HTTP_PROXY || env.http_proxy;
+  if (!proxy) return null;
+  const host = u.hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  const skip = (env.NO_PROXY || env.no_proxy || "").split(/[\s,]+/).map((s) => s.trim().toLowerCase()).filter(Boolean);
+  for (const raw of skip) {
+    if (raw === "*") return null;
+    const entry = raw.replace(/^\*?\./, "").replace(/:\d+$/, "");
+    if (entry.includes("/") ? inCidr(host, entry) : host === entry || host.endsWith(`.${entry}`)) return null;
+  }
+  return proxy;
+}
+var SANDBOX_HOSTS_RULE = "If you work inside a sandbox (a cloud computer whose network is allowed host by host, like Claude Code on the web or Grok), run npx deployai@latest hosts before the steps below, and again whenever a command says this machine blocks a host. If it lists a blocked host, stop: ask the owner in one plain line to allow the hosts it printed, and go on only after they say it is done.";
+
 // src/api.ts
 import { arch, platform } from "os";
 import { lookup } from "dns/promises";
@@ -26249,6 +26360,9 @@ var M = {
     guestTitle: "DeployAI deploy (no account)",
     uploading: "Uploading...",
     uploadingPart: "Uploading part {n} of {total}...",
+    uploadingNewFiles: "Sending {count} new or changed files ({size}), {n} of {total}...",
+    nothingNewToSend: "No new files: the site already holds every file.",
+    filesMissing: "Some files did not arrive. Sending them again.",
     project: "Project",
     message: "Message",
     version: "Version",
@@ -26456,8 +26570,25 @@ var M = {
     timeout: "DeployAI did not answer in time at {url}. Check the connection and run the same command again.",
     unreachable: "Cannot reach DeployAI at {url}. Check the connection and run the same command again.",
     offline: "This computer seems to have no internet connection. Check it, then run the same command again.",
-    cloudBlocked: "This cloud computer lets npm through but blocks DeployAI at {host}. Allow {host} in its network settings and run the same command again, or run it on your own computer.",
-    cloudBlockedClaude: "Claude Code on the web blocks DeployAI at {host}. In this environment's settings, set Network access to Limited and add {host} under Allowed domains, then start a new session and paste the same line. Or open Claude Code on your own computer.",
+    cloudBlocked: "This cloud computer lets npm through but blocks DeployAI at {host}. Allow {host} in its network settings and run the same command again, or run it on your own computer. Every host the work needs: npx deployai@latest hosts",
+    cloudBlockedClaude: "Claude Code on the web blocks DeployAI at {host}. In this environment's settings, set Network access to Limited and add {host} under Allowed domains, then start a new session and paste the same line. Or open Claude Code on your own computer. Every host the work needs: npx deployai@latest hosts",
+    machineBlocked: "This machine blocks {host}. To see every host the work needs, run: npx deployai@latest hosts",
+    hostsTitle: "Hosts this work needs",
+    hostReachable: "reachable",
+    hostBlocked: "blocked by this machine",
+    hostNoAnswer: "no answer",
+    hostNoAnswerDns: "no answer (name not found)",
+    hostNoAnswerTimeout: "no answer (timed out)",
+    hostNoAnswerTls: "no answer (secure connection failed)",
+    hostForApi: "DeployAI",
+    hostForSite: "your site",
+    hostForNpm: "npm, for npx",
+    hostForOldSite: "the old site",
+    hostForMedia: "the old site's images and files",
+    hostsAsk: "Ask whoever runs this machine to allow the blocked hosts, then run the same command again:",
+    hostsAskClaude: "In this environment's settings, set Network access to Limited and add the blocked hosts under Allowed domains, then start a new session and run the same command again:",
+    hostsAllReachable: "This machine reaches every host the work needs.",
+    hostsNoneBlocked: "This machine blocks none of them. A host with no answer may be down, or its address may be wrong.",
     retrying: "The connection dropped, trying again ({n} of {max}).",
     noProjectNamed: "No site named {name}. Run: npx deployai@latest link",
     noNameGiven: "No name given.",
@@ -26609,6 +26740,9 @@ var M = {
     guestTitle: "DeployAI deploy (\u05D1\u05DC\u05D9 \u05D7\u05E9\u05D1\u05D5\u05DF)",
     uploading: "\u05DE\u05E2\u05DC\u05D9\u05DD...",
     uploadingPart: "\u05DE\u05E2\u05DC\u05D9\u05DD \u05D7\u05DC\u05E7 {n} \u05DE\u05EA\u05D5\u05DA {total}...",
+    uploadingNewFiles: "\u05E9\u05D5\u05DC\u05D7\u05D9\u05DD {count} \u05E7\u05D1\u05E6\u05D9\u05DD \u05D7\u05D3\u05E9\u05D9\u05DD \u05D0\u05D5 \u05E9\u05E9\u05D5\u05E0\u05D5 ({size}), {n} \u05DE\u05EA\u05D5\u05DA {total}...",
+    nothingNewToSend: "\u05D0\u05D9\u05DF \u05E7\u05D1\u05E6\u05D9\u05DD \u05D7\u05D3\u05E9\u05D9\u05DD: \u05DB\u05DC \u05D4\u05E7\u05D1\u05E6\u05D9\u05DD \u05DB\u05D1\u05E8 \u05E9\u05DE\u05D5\u05E8\u05D9\u05DD \u05D1\u05D0\u05EA\u05E8.",
+    filesMissing: "\u05D7\u05DC\u05E7 \u05DE\u05D4\u05E7\u05D1\u05E6\u05D9\u05DD \u05DC\u05D0 \u05D4\u05D2\u05D9\u05E2\u05D5. \u05E9\u05D5\u05DC\u05D7\u05D9\u05DD \u05D0\u05D5\u05EA\u05DD \u05E9\u05D5\u05D1.",
     project: "\u05D0\u05EA\u05E8",
     message: "\u05D4\u05D5\u05D3\u05E2\u05D4",
     version: "\u05D2\u05E8\u05E1\u05D4",
@@ -26816,8 +26950,25 @@ var M = {
     timeout: "DeployAI \u05DC\u05D0 \u05E2\u05E0\u05D4 \u05D1\u05D6\u05DE\u05DF \u05D1\u05BE{url}. \u05D1\u05D3\u05E7\u05D5 \u05D0\u05EA \u05D4\u05D7\u05D9\u05D1\u05D5\u05E8 \u05D5\u05D4\u05E8\u05D9\u05E6\u05D5 \u05E9\u05D5\u05D1 \u05D0\u05EA \u05D0\u05D5\u05EA\u05D4 \u05E4\u05E7\u05D5\u05D3\u05D4.",
     unreachable: "\u05D0\u05D9\u05DF \u05D7\u05D9\u05D1\u05D5\u05E8 \u05DC\u05BEDeployAI \u05D1\u05BE{url}. \u05D1\u05D3\u05E7\u05D5 \u05D0\u05EA \u05D4\u05D7\u05D9\u05D1\u05D5\u05E8 \u05D5\u05D4\u05E8\u05D9\u05E6\u05D5 \u05E9\u05D5\u05D1 \u05D0\u05EA \u05D0\u05D5\u05EA\u05D4 \u05E4\u05E7\u05D5\u05D3\u05D4.",
     offline: "\u05E0\u05E8\u05D0\u05D4 \u05E9\u05D0\u05D9\u05DF \u05DC\u05DE\u05D7\u05E9\u05D1 \u05D7\u05D9\u05D1\u05D5\u05E8 \u05DC\u05D0\u05D9\u05E0\u05D8\u05E8\u05E0\u05D8. \u05D1\u05D3\u05E7\u05D5 \u05D0\u05D5\u05EA\u05D5 \u05D5\u05D4\u05E8\u05D9\u05E6\u05D5 \u05E9\u05D5\u05D1 \u05D0\u05EA \u05D0\u05D5\u05EA\u05D4 \u05E4\u05E7\u05D5\u05D3\u05D4.",
-    cloudBlocked: "\u05D4\u05DE\u05D7\u05E9\u05D1 \u05D1\u05E2\u05E0\u05DF \u05D4\u05D6\u05D4 \u05DE\u05D0\u05E4\u05E9\u05E8 \u05D2\u05D9\u05E9\u05D4 \u05DC\u05BEnpm \u05D0\u05D1\u05DC \u05D7\u05D5\u05E1\u05DD \u05D0\u05EA DeployAI \u05D1\u05DB\u05EA\u05D5\u05D1\u05EA {host}. \u05D0\u05E9\u05E8\u05D5 \u05D0\u05EA {host} \u05D1\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA \u05D4\u05E8\u05E9\u05EA \u05E9\u05DC\u05D5 \u05D5\u05D4\u05E8\u05D9\u05E6\u05D5 \u05E9\u05D5\u05D1 \u05D0\u05EA \u05D0\u05D5\u05EA\u05D4 \u05E4\u05E7\u05D5\u05D3\u05D4, \u05D0\u05D5 \u05D4\u05E8\u05D9\u05E6\u05D5 \u05D0\u05D5\u05EA\u05D4 \u05D1\u05DE\u05D7\u05E9\u05D1 \u05E9\u05DC\u05DB\u05DD.",
-    cloudBlockedClaude: "Claude Code \u05D1\u05D3\u05E4\u05D3\u05E4\u05DF \u05D7\u05D5\u05E1\u05DD \u05D0\u05EA DeployAI \u05D1\u05DB\u05EA\u05D5\u05D1\u05EA {host}. \u05D1\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA \u05D4\u05E1\u05D1\u05D9\u05D1\u05D4, \u05D1\u05D7\u05E8\u05D5 Limited \u05EA\u05D7\u05EA Network access \u05D5\u05D4\u05D5\u05E1\u05D9\u05E4\u05D5 \u05D0\u05EA {host} \u05EA\u05D7\u05EA Allowed domains, \u05D5\u05D0\u05D6 \u05E4\u05EA\u05D7\u05D5 \u05E1\u05E9\u05DF \u05D7\u05D3\u05E9 \u05D5\u05D4\u05D3\u05D1\u05D9\u05E7\u05D5 \u05E9\u05D5\u05D1 \u05D0\u05EA \u05D0\u05D5\u05EA\u05D4 \u05E9\u05D5\u05E8\u05D4. \u05D0\u05D5 \u05E4\u05EA\u05D7\u05D5 \u05D0\u05EA Claude Code \u05D1\u05DE\u05D7\u05E9\u05D1 \u05E9\u05DC\u05DB\u05DD.",
+    cloudBlocked: "\u05D4\u05DE\u05D7\u05E9\u05D1 \u05D1\u05E2\u05E0\u05DF \u05D4\u05D6\u05D4 \u05DE\u05D0\u05E4\u05E9\u05E8 \u05D2\u05D9\u05E9\u05D4 \u05DC\u05BEnpm \u05D0\u05D1\u05DC \u05D7\u05D5\u05E1\u05DD \u05D0\u05EA DeployAI \u05D1\u05DB\u05EA\u05D5\u05D1\u05EA {host}. \u05D0\u05E9\u05E8\u05D5 \u05D0\u05EA {host} \u05D1\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA \u05D4\u05E8\u05E9\u05EA \u05E9\u05DC\u05D5 \u05D5\u05D4\u05E8\u05D9\u05E6\u05D5 \u05E9\u05D5\u05D1 \u05D0\u05EA \u05D0\u05D5\u05EA\u05D4 \u05E4\u05E7\u05D5\u05D3\u05D4, \u05D0\u05D5 \u05D4\u05E8\u05D9\u05E6\u05D5 \u05D0\u05D5\u05EA\u05D4 \u05D1\u05DE\u05D7\u05E9\u05D1 \u05E9\u05DC\u05DB\u05DD. \u05DB\u05DC \u05D4\u05DB\u05EA\u05D5\u05D1\u05D5\u05EA \u05E9\u05D4\u05E2\u05D1\u05D5\u05D3\u05D4 \u05E6\u05E8\u05D9\u05DB\u05D4: npx deployai@latest hosts",
+    cloudBlockedClaude: "Claude Code \u05D1\u05D3\u05E4\u05D3\u05E4\u05DF \u05D7\u05D5\u05E1\u05DD \u05D0\u05EA DeployAI \u05D1\u05DB\u05EA\u05D5\u05D1\u05EA {host}. \u05D1\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA \u05D4\u05E1\u05D1\u05D9\u05D1\u05D4, \u05D1\u05D7\u05E8\u05D5 Limited \u05EA\u05D7\u05EA Network access \u05D5\u05D4\u05D5\u05E1\u05D9\u05E4\u05D5 \u05D0\u05EA {host} \u05EA\u05D7\u05EA Allowed domains, \u05D5\u05D0\u05D6 \u05E4\u05EA\u05D7\u05D5 \u05E1\u05E9\u05DF \u05D7\u05D3\u05E9 \u05D5\u05D4\u05D3\u05D1\u05D9\u05E7\u05D5 \u05E9\u05D5\u05D1 \u05D0\u05EA \u05D0\u05D5\u05EA\u05D4 \u05E9\u05D5\u05E8\u05D4. \u05D0\u05D5 \u05E4\u05EA\u05D7\u05D5 \u05D0\u05EA Claude Code \u05D1\u05DE\u05D7\u05E9\u05D1 \u05E9\u05DC\u05DB\u05DD. \u05DB\u05DC \u05D4\u05DB\u05EA\u05D5\u05D1\u05D5\u05EA \u05E9\u05D4\u05E2\u05D1\u05D5\u05D3\u05D4 \u05E6\u05E8\u05D9\u05DB\u05D4: npx deployai@latest hosts",
+    machineBlocked: "\u05D4\u05DE\u05D7\u05E9\u05D1 \u05D4\u05D6\u05D4 \u05D7\u05D5\u05E1\u05DD \u05D0\u05EA {host}. \u05DB\u05D3\u05D9 \u05DC\u05E8\u05D0\u05D5\u05EA \u05D0\u05EA \u05DB\u05DC \u05D4\u05DB\u05EA\u05D5\u05D1\u05D5\u05EA \u05E9\u05D4\u05E2\u05D1\u05D5\u05D3\u05D4 \u05E6\u05E8\u05D9\u05DB\u05D4, \u05D4\u05E8\u05D9\u05E6\u05D5: npx deployai@latest hosts",
+    hostsTitle: "\u05D4\u05DB\u05EA\u05D5\u05D1\u05D5\u05EA \u05E9\u05D4\u05E2\u05D1\u05D5\u05D3\u05D4 \u05E6\u05E8\u05D9\u05DB\u05D4",
+    hostReachable: "\u05D9\u05E9 \u05D2\u05D9\u05E9\u05D4",
+    hostBlocked: "\u05D7\u05E1\u05D5\u05DD \u05D1\u05DE\u05D7\u05E9\u05D1 \u05D4\u05D6\u05D4",
+    hostNoAnswer: "\u05D0\u05D9\u05DF \u05EA\u05E9\u05D5\u05D1\u05D4",
+    hostNoAnswerDns: "\u05D0\u05D9\u05DF \u05EA\u05E9\u05D5\u05D1\u05D4 (\u05D4\u05E9\u05DD \u05DC\u05D0 \u05E0\u05DE\u05E6\u05D0)",
+    hostNoAnswerTimeout: "\u05D0\u05D9\u05DF \u05EA\u05E9\u05D5\u05D1\u05D4 (\u05DC\u05D0 \u05E2\u05E0\u05D4 \u05D1\u05D6\u05DE\u05DF)",
+    hostNoAnswerTls: "\u05D0\u05D9\u05DF \u05EA\u05E9\u05D5\u05D1\u05D4 (\u05D4\u05D7\u05D9\u05D1\u05D5\u05E8 \u05D4\u05DE\u05D0\u05D5\u05D1\u05D8\u05D7 \u05E0\u05DB\u05E9\u05DC)",
+    hostForApi: "DeployAI",
+    hostForSite: "\u05D4\u05D0\u05EA\u05E8 \u05E9\u05DC\u05DB\u05DD",
+    hostForNpm: "npm, \u05D1\u05E9\u05D1\u05D9\u05DC npx",
+    hostForOldSite: "\u05D4\u05D0\u05EA\u05E8 \u05D4\u05D9\u05E9\u05DF",
+    hostForMedia: "\u05D4\u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05D5\u05D4\u05E7\u05D1\u05E6\u05D9\u05DD \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D4\u05D9\u05E9\u05DF",
+    hostsAsk: "\u05D1\u05E7\u05E9\u05D5 \u05DE\u05DE\u05D9 \u05E9\u05DE\u05E0\u05D4\u05DC \u05D0\u05EA \u05D4\u05DE\u05D7\u05E9\u05D1 \u05D4\u05D6\u05D4 \u05DC\u05D0\u05E9\u05E8 \u05D0\u05EA \u05D4\u05DB\u05EA\u05D5\u05D1\u05D5\u05EA \u05D4\u05D7\u05E1\u05D5\u05DE\u05D5\u05EA, \u05D5\u05D0\u05D6 \u05D4\u05E8\u05D9\u05E6\u05D5 \u05E9\u05D5\u05D1 \u05D0\u05EA \u05D0\u05D5\u05EA\u05D4 \u05E4\u05E7\u05D5\u05D3\u05D4:",
+    hostsAskClaude: "\u05D1\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA \u05D4\u05E1\u05D1\u05D9\u05D1\u05D4, \u05D1\u05D7\u05E8\u05D5 Limited \u05EA\u05D7\u05EA Network access \u05D5\u05D4\u05D5\u05E1\u05D9\u05E4\u05D5 \u05D0\u05EA \u05D4\u05DB\u05EA\u05D5\u05D1\u05D5\u05EA \u05D4\u05D7\u05E1\u05D5\u05DE\u05D5\u05EA \u05EA\u05D7\u05EA Allowed domains, \u05D5\u05D0\u05D6 \u05E4\u05EA\u05D7\u05D5 \u05E1\u05E9\u05DF \u05D7\u05D3\u05E9 \u05D5\u05D4\u05E8\u05D9\u05E6\u05D5 \u05E9\u05D5\u05D1 \u05D0\u05EA \u05D0\u05D5\u05EA\u05D4 \u05E4\u05E7\u05D5\u05D3\u05D4:",
+    hostsAllReachable: "\u05D4\u05DE\u05D7\u05E9\u05D1 \u05D4\u05D6\u05D4 \u05DE\u05D2\u05D9\u05E2 \u05DC\u05DB\u05DC \u05D4\u05DB\u05EA\u05D5\u05D1\u05D5\u05EA \u05E9\u05D4\u05E2\u05D1\u05D5\u05D3\u05D4 \u05E6\u05E8\u05D9\u05DB\u05D4.",
+    hostsNoneBlocked: "\u05D4\u05DE\u05D7\u05E9\u05D1 \u05D4\u05D6\u05D4 \u05DC\u05D0 \u05D7\u05D5\u05E1\u05DD \u05D0\u05E3 \u05D0\u05D7\u05EA \u05DE\u05D4\u05DF. \u05DB\u05EA\u05D5\u05D1\u05EA \u05E9\u05DC\u05D0 \u05E2\u05E0\u05EA\u05D4 \u05D0\u05D5\u05DC\u05D9 \u05DC\u05D0 \u05E4\u05E2\u05D9\u05DC\u05D4, \u05D0\u05D5 \u05E9\u05D4\u05D9\u05D0 \u05E9\u05D2\u05D5\u05D9\u05D4.",
     retrying: "\u05D4\u05D7\u05D9\u05D1\u05D5\u05E8 \u05E0\u05E4\u05DC, \u05DE\u05E0\u05E1\u05D9\u05DD \u05E9\u05D5\u05D1 ({n} \u05DE\u05EA\u05D5\u05DA {max}).",
     noProjectNamed: "\u05D0\u05D9\u05DF \u05D0\u05EA\u05E8 \u05D1\u05E9\u05DD {name}. \u05D4\u05E8\u05D9\u05E6\u05D5: npx deployai@latest link",
     noNameGiven: "\u05DC\u05D0 \u05E0\u05D1\u05D7\u05E8 \u05E9\u05DD.",
@@ -26960,7 +27111,7 @@ function formatBytes(n2) {
 }
 
 // src/version.ts
-var CLI_VERSION = "0.1.0-beta.59";
+var CLI_VERSION = "0.1.0-beta.60";
 
 // src/api.ts
 function apiContext(apiFlag, root) {
@@ -27020,7 +27171,23 @@ function shouldRetry(method, failure2, idempotent = false) {
   if (!get2) return false;
   return failure2?.name === "TimeoutError" || code !== void 0 && DROPPED.has(code);
 }
+function blockedHostError(e3, url2, opts = {}) {
+  return classifyNetError(e3, { proxy: proxyFor(url2, process.env) }) === "blocked" ? machineBlockedError(url2, opts) : null;
+}
+function machineBlockedError(url2, opts = {}) {
+  if (opts.api && process.env.CLAUDE_CODE_REMOTE === "true") return cloudBlockedError(url2);
+  const host = (() => {
+    try {
+      return new URL(url2).host;
+    } catch {
+      return url2;
+    }
+  })();
+  return new CliError(messages(process.cwd())("machineBlocked", { host }), 1, "cloud_blocked");
+}
 async function networkError(e3, url2) {
+  const blocked = blockedHostError(e3, url2, { api: true });
+  if (blocked) return blocked;
   if (placeHere() === "cloud") return cloudBlockedError(url2);
   const t = messages(process.cwd());
   const name = e3?.name;
@@ -27078,6 +27245,7 @@ async function apiRequest(ctx, path, schema, opts = {}) {
     }
     if (parsed2.success && parsed2.data.error === "not_on_site") throw new CliError(t("notOnSite"), 1, "not_found");
     if (parsed2.success && parsed2.data.error === "view_only") throw new CliError(t("viewOnly"), 1, "forbidden");
+    if (parsed2.success && parsed2.data.error === "files_missing") throw new CliError(t("filesMissing"), 1, "files_missing");
     if (parsed2.success && parsed2.data.error === "not_entitled") {
       throw new CliError(t("notEntitled", { url: parsed2.data.buyUrl ?? ctx.apiUrl }), 1, "not_entitled");
     }
@@ -27413,7 +27581,7 @@ function rootBuilds(root) {
   }
 }
 var MAX_FILE_BYTES = 10 * 1024 * 1024;
-var MAX_TOTAL_BYTES = 50 * 1024 * 1024;
+var MAX_TOTAL_BYTES = MAX_SITE_FILES_BYTES;
 function isEnvFile(name) {
   return name === ".env" || name.startsWith(".env.");
 }
@@ -28547,8 +28715,8 @@ function inspectCommand(root, opts) {
 }
 
 // src/commands/save.ts
-import { createHash as createHash4 } from "crypto";
-import { readFileSync as readFileSync16, writeFileSync as writeFileSync13 } from "fs";
+import { createHash as createHash5 } from "crypto";
+import { readFileSync as readFileSync17, writeFileSync as writeFileSync13 } from "fs";
 import { join as join19 } from "path";
 
 // src/tar.ts
@@ -28720,7 +28888,7 @@ function othersLine(root, others) {
 
 // src/commands/deploy.ts
 import { randomUUID as randomUUID2 } from "crypto";
-import { readFileSync as readFileSync15 } from "fs";
+import { readFileSync as readFileSync16 } from "fs";
 import { homedir as homedir3 } from "os";
 import { join as join18 } from "path";
 
@@ -28740,14 +28908,68 @@ async function askYes(question) {
   return answer === "y" || answer === "yes";
 }
 
-// src/same-name.ts
+// src/send-files.ts
 import { createHash as createHash3 } from "crypto";
-import { mkdirSync as mkdirSync4, readFileSync as readFileSync9, writeFileSync as writeFileSync7 } from "fs";
+import { readFileSync as readFileSync9 } from "fs";
+function hashFiles(files) {
+  return files.map((f) => {
+    const data = readFileSync9(f.abs);
+    return { rel: f.rel, abs: f.abs, size: data.length, hash: createHash3("sha256").update(data).digest("hex") };
+  });
+}
+var fileList = (files) => files.map((f) => ({ p: f.rel, h: f.hash, s: f.size }));
+function batches(files, max = UPLOAD_PART_BYTES) {
+  const out2 = [];
+  let cur = [];
+  let size = 0;
+  for (const f of [...files].sort((a, b) => a.size - b.size)) {
+    if (cur.length && size + f.size > max) {
+      out2.push(cur);
+      cur = [];
+      size = 0;
+    }
+    cur.push(f);
+    size += f.size;
+  }
+  if (cur.length) out2.push(cur);
+  return out2;
+}
+async function sendNewFiles(ctx, projectId, files, root) {
+  const t = messages(root);
+  const unique = [...new Map(files.map((f) => [f.hash, f])).values()];
+  let have;
+  try {
+    const res = await apiRequest(ctx, "/api/cli/deploy/have", HaveFilesResponse, { method: "POST", body: { projectId, hashes: unique.map((f) => f.hash) }, idempotent: true });
+    have = new Set(res.have);
+  } catch (e3) {
+    if (e3 instanceof CliError && e3.category === "not_found") return false;
+    throw e3;
+  }
+  const missing = unique.filter((f) => !have.has(f.hash));
+  if (!missing.length) {
+    out(t("nothingNewToSend"));
+    return true;
+  }
+  const groups = batches(missing);
+  const size = formatBytes(missing.reduce((n2, f) => n2 + f.size, 0));
+  for (const [i, group] of groups.entries()) {
+    out(t("uploadingNewFiles", { count: missing.length, size, n: i + 1, total: groups.length }));
+    const form = new FormData();
+    form.append("projectId", projectId);
+    for (const f of group) form.append(f.hash, new Blob([new Uint8Array(readFileSync9(f.abs))], { type: "application/octet-stream" }), f.hash);
+    await apiRequest(ctx, "/api/cli/deploy/files", UploadFilesResponse, { method: "POST", form, idempotent: true, timeoutMs: 2 * 6e4 });
+  }
+  return true;
+}
+
+// src/same-name.ts
+import { createHash as createHash4 } from "crypto";
+import { mkdirSync as mkdirSync4, readFileSync as readFileSync10, writeFileSync as writeFileSync7 } from "fs";
 import { dirname, join as join10 } from "path";
 var LAST_FILES = ".deployai/last-files.json";
 var KEPT = /^(public|static)\/.*\.(avif|webp|png|jpe?g|gif|svg|ico|woff2?|ttf|otf|mp4|webm|css|js|mjs)$/i;
 var HASHED = /[.-][A-Za-z0-9_]{6,20}\.[a-z0-9]+$/;
-var digest = (abs) => createHash3("sha1").update(readFileSync9(abs)).digest("hex").slice(0, 16);
+var digest = (abs) => createHash4("sha1").update(readFileSync10(abs)).digest("hex").slice(0, 16);
 function changedUnderSameName(root, files) {
   const now = {};
   for (const f of files) if (KEPT.test(f.rel) && !HASHED.test(f.rel.split("/").pop() ?? "")) now[f.rel] = digest(f.abs);
@@ -28767,7 +28989,7 @@ function changedUnderSameName(root, files) {
 
 // src/commands/sync.ts
 import { spawnSync as spawnSync3 } from "child_process";
-import { existsSync as existsSync12, mkdirSync as mkdirSync6, mkdtempSync, readFileSync as readFileSync10, rmSync as rmSync3, unlinkSync, writeFileSync as writeFileSync9 } from "fs";
+import { existsSync as existsSync12, mkdirSync as mkdirSync6, mkdtempSync, readFileSync as readFileSync11, rmSync as rmSync3, unlinkSync, writeFileSync as writeFileSync9 } from "fs";
 import { tmpdir } from "os";
 import { dirname as dirname3, join as join13, resolve as resolve3, sep as sep2 } from "path";
 import { gunzipSync as gunzipSync2 } from "zlib";
@@ -29050,7 +29272,7 @@ async function bringIn(root, ctx, projectId, behind) {
   const liveFiles = filesOf(await fetchSource(root, ctx, projectId, live));
   const baseFiles = filesOf(await fetchSource(root, ctx, projectId, behind.base));
   const plan = planUpload(root);
-  const ourFiles = new Map(plan.files.map((f) => [f.rel, readFileSync10(f.abs)]));
+  const ourFiles = new Map(plan.files.map((f) => [f.rel, readFileSync11(f.abs)]));
   if (!existsSync12(join13(root, ".git")) && git2(root, ["init", "-q"]).status !== 0) throw new CliError(t("syncNoGit"), 1, "usage");
   git2(root, ["add", "-A"]);
   git2(root, ["-c", `user.name=${BOT.name}`, "-c", `user.email=${BOT.email}`, "commit", "-q", "--allow-empty", "-m", `Before sync with live v${live}`]);
@@ -29205,7 +29427,7 @@ async function syncCommand(root, ctx) {
 function syncLeftovers(root) {
   let state;
   try {
-    state = JSON.parse(readFileSync10(join13(root, SYNC_FILE), "utf8"));
+    state = JSON.parse(readFileSync11(join13(root, SYNC_FILE), "utf8"));
   } catch {
     return [];
   }
@@ -29213,7 +29435,7 @@ function syncLeftovers(root) {
   for (const c of state.conflicts ?? []) {
     if (c.why !== "both") continue;
     const abs = join13(root, c.path);
-    if (existsSync12(abs) && MARKER.test(readFileSync10(abs, "utf8"))) left.push(c.path);
+    if (existsSync12(abs) && MARKER.test(readFileSync11(abs, "utf8"))) left.push(c.path);
   }
   for (const [a, b] of state.clashes ?? []) {
     if (a && b && existsSync12(join13(root, a)) && existsSync12(join13(root, b)) && migrationNumber(a) === migrationNumber(b)) left.push(`${a} + ${b}`);
@@ -29223,7 +29445,7 @@ function syncLeftovers(root) {
 
 // src/sound.ts
 import { spawn as spawn2 } from "child_process";
-import { existsSync as existsSync13, mkdirSync as mkdirSync7, readFileSync as readFileSync11, statSync, writeFileSync as writeFileSync10 } from "fs";
+import { existsSync as existsSync13, mkdirSync as mkdirSync7, readFileSync as readFileSync12, statSync, writeFileSync as writeFileSync10 } from "fs";
 import { join as join14 } from "path";
 
 // src/sound-files.ts
@@ -29251,7 +29473,7 @@ function writeSoundFiles() {
   }
   if (process.platform === "win32") {
     const ps = windowsSpeakerFile();
-    if (!existsSync13(ps) || readFileSync11(ps, "utf8") !== WINDOWS_SPEAKER) writeFileSync10(ps, WINDOWS_SPEAKER);
+    if (!existsSync13(ps) || readFileSync12(ps, "utf8") !== WINDOWS_SPEAKER) writeFileSync10(ps, WINDOWS_SPEAKER);
   }
 }
 function playerFor(platform3, file2) {
@@ -29576,7 +29798,7 @@ function headCommit(root) {
 }
 
 // src/legal-check.ts
-import { existsSync as existsSync14, readdirSync as readdirSync5, readFileSync as readFileSync12, statSync as statSync2 } from "fs";
+import { existsSync as existsSync14, readdirSync as readdirSync5, readFileSync as readFileSync13, statSync as statSync2 } from "fs";
 import { join as join15, relative as relative2 } from "path";
 var DRAFTS_FILE = "src/kit/legal-drafts.ts";
 var PAGE_DIRS = ["src/pages", "src/app", "app", "pages", "src/routes", "public", "content", "src/content"];
@@ -29630,7 +29852,7 @@ var readMoved = (root) => {
 };
 var read = (root, rel2) => {
   try {
-    return readFileSync12(join15(root, rel2), "utf8");
+    return readFileSync13(join15(root, rel2), "utf8");
   } catch {
     return "";
   }
@@ -29713,13 +29935,13 @@ function pageRoute(rel2) {
 }
 
 // src/commands/iphone.ts
-import { existsSync as existsSync16, mkdirSync as mkdirSync9, readdirSync as readdirSync6, readFileSync as readFileSync14, rmSync as rmSync5, writeFileSync as writeFileSync12 } from "fs";
+import { existsSync as existsSync16, mkdirSync as mkdirSync9, readdirSync as readdirSync6, readFileSync as readFileSync15, rmSync as rmSync5, writeFileSync as writeFileSync12 } from "fs";
 import { homedir as homedir2, tmpdir as tmpdir3 } from "os";
 import { join as join17, resolve as resolve5 } from "path";
 
 // src/commands/shot.ts
 import { spawn as spawn3 } from "child_process";
-import { existsSync as existsSync15, mkdirSync as mkdirSync8, readFileSync as readFileSync13, rmSync as rmSync4, writeFileSync as writeFileSync11 } from "fs";
+import { existsSync as existsSync15, mkdirSync as mkdirSync8, readFileSync as readFileSync14, rmSync as rmSync4, writeFileSync as writeFileSync11 } from "fs";
 import { tmpdir as tmpdir2 } from "os";
 import { basename, join as join16, resolve as resolve4 } from "path";
 var SHOT_SIZES = [{ name: "phone", size: "390,844" }, { name: "desktop", size: "1440,900" }];
@@ -29794,7 +30016,7 @@ var againName = (file2) => file2.replace(/\.png$/i, ".again.png");
 var SHOTS_INDEX = "shots.json";
 function readShotIndex(dir) {
   try {
-    const list = JSON.parse(readFileSync13(join16(dir, SHOTS_INDEX), "utf8"));
+    const list = JSON.parse(readFileSync14(join16(dir, SHOTS_INDEX), "utf8"));
     return Array.isArray(list) ? list.filter((e3) => e3 && typeof e3.url === "string" && typeof e3.file === "string" && typeof e3.width === "string") : [];
   } catch {
     return [];
@@ -29831,7 +30053,7 @@ async function shotCommand(root, address, opts = {}, run = runNpx) {
     const again = opts.again ? [`--again=${againName(file2)}`] : [];
     const code = await run(["--yes", "-p", PLAYWRIGHT, "node", taker, ...engine2, `--viewport-size=${s.size}`, ...again, url2.toString(), file2]);
     if (code !== 0 || !existsSync15(file2)) {
-      const step = existsSync15(`${file2}.step`) ? readFileSync13(`${file2}.step`, "utf8").trim() : "";
+      const step = existsSync15(`${file2}.step`) ? readFileSync14(`${file2}.step`, "utf8").trim() : "";
       rmSync4(`${file2}.step`, { force: true });
       throw new CliError(`The ${s.name} picture of ${url2} could not be taken${step ? `, stopped at: ${step}` : code === TIMED_OUT ? ", it took over 3 minutes" : ""}. Check that the page opens, then run shot again; if it stops again, look with your own browser tool or at home.html.`, 1, "shot_failed");
     }
@@ -29919,7 +30141,7 @@ function scanText(file2, text4, opts = {}) {
 }
 function hasPrefixer(root) {
   try {
-    const pkg = JSON.parse(readFileSync14(join17(root, "package.json"), "utf8"));
+    const pkg = JSON.parse(readFileSync15(join17(root, "package.json"), "utf8"));
     const deps = { ...pkg.dependencies, ...pkg.devDependencies };
     return Object.keys(deps).some((d) => /^(autoprefixer|postcss-preset-env|lightningcss|tailwindcss|@tailwindcss\/.*|next|astro|vite)$/.test(d));
   } catch {
@@ -29933,7 +30155,7 @@ function scanIphone(root, files) {
   for (const f of list) {
     let text4;
     try {
-      text4 = readFileSync14(f.abs, "utf8");
+      text4 = readFileSync15(f.abs, "utf8");
     } catch {
       continue;
     }
@@ -30104,7 +30326,7 @@ async function runIphone(root, address, opts = {}, run = runNpx) {
   const code = await run(["--yes", "-p", PLAYWRIGHT, "node", runner, url2.toString(), result, dir, String(max)], runnerTimeout(max));
   let data = { pages: [], error: null };
   try {
-    data = JSON.parse(readFileSync14(result, "utf8"));
+    data = JSON.parse(readFileSync15(result, "utf8"));
   } catch {
   }
   rmSync5(result, { force: true });
@@ -30113,7 +30335,7 @@ async function runIphone(root, address, opts = {}, run = runNpx) {
     if (!p.picture || !existsSync16(p.picture)) continue;
     const named = join17(dir, shotName(p.url, "iphone"));
     try {
-      writeFileSync12(named, readFileSync14(p.picture));
+      writeFileSync12(named, readFileSync15(p.picture));
       rmSync5(p.picture, { force: true });
       p.picture = named;
     } catch {
@@ -30255,7 +30477,7 @@ async function deployCommand(root, ctx, opts) {
     throw new CliError(url2 ? t("guestClaimFirst", { url: url2 }) : t("guestClaimFirstNoLink"), 1, "guest_unclaimed");
   }
 }
-async function prepare(root, ctx, maxBytes) {
+async function prepare(root, ctx, maxBytes, whole = true) {
   const analysis = await runCheck(root, ctx, { print: false });
   if (!analysis.compatible) {
     await runCheck(root, { ...ctx, config: { ...ctx.config, telemetry: false } }, {});
@@ -30280,14 +30502,14 @@ async function prepare(root, ctx, maxBytes) {
   } catch {
   }
   iphoneScanHint(root, plan.files);
-  const archive = packFiles(plan.files);
-  if (archive.length > maxBytes) throw new CliError(t("uploadTooLargeGuest", { size: formatBytes(archive.length), max: formatBytes(maxBytes) }), 1, "too_large");
-  const info = [[t("files"), `${plan.files.length} (${formatBytes(plan.totalBytes)}, packed ${formatBytes(archive.length)})`]];
+  const archive = whole ? packFiles(plan.files) : null;
+  if (archive && archive.length > maxBytes) throw new CliError(t("uploadTooLargeGuest", { size: formatBytes(archive.length), max: formatBytes(maxBytes) }), 1, "too_large");
+  const info = [[t("files"), archive ? `${plan.files.length} (${formatBytes(plan.totalBytes)}, packed ${formatBytes(archive.length)})` : `${plan.files.length} (${formatBytes(plan.totalBytes)})`]];
   if (plan.skippedLarge.length) {
     const names2 = plan.skippedLarge.slice(0, 3).map((f) => f.rel).join(", ");
     info.push([t("skipped"), t("skippedLarge", { n: plan.skippedLarge.length, max: formatBytes(MAX_FILE_BYTES), names: names2 })]);
   }
-  return { archive, info, hasSql: plan.files.some((f) => SQL_FILE.test(f.rel) && !f.rel.includes("node_modules/")) };
+  return { archive, files: plan.files, info, hasSql: plan.files.some((f) => SQL_FILE.test(f.rel) && !f.rel.includes("node_modules/")) };
 }
 function addGitCommit(form, root) {
   const sha2 = headCommit(root);
@@ -30304,9 +30526,27 @@ function addTool(form, ctx, model) {
 }
 function codexModel() {
   try {
-    return codexConfigModel(readFileSync15(join18(process.env.CODEX_HOME || join18(homedir3(), ".codex"), "config.toml"), "utf8"));
+    return codexConfigModel(readFileSync16(join18(process.env.CODEX_HOME || join18(homedir3(), ".codex"), "config.toml"), "utf8"));
   } catch {
     return null;
+  }
+}
+var postDeploy = (ctx, form) => apiRequest(ctx, "/api/cli/deploy", DeployResponse, { method: "POST", form, timeoutMs: 5 * 6e4 });
+async function sendArchive(ctx, form, projectId, archive, root) {
+  await attachArchive(ctx, form, projectId, archive, root);
+  return postDeploy(ctx, form);
+}
+async function sendByList(ctx, form, projectId, files, root) {
+  const hashed = hashFiles(files);
+  if (!await sendNewFiles(ctx, projectId, hashed, root)) return sendArchive(ctx, form, projectId, packFiles(files), root);
+  form.append("fileList", JSON.stringify(fileList(hashed)));
+  try {
+    return await postDeploy(ctx, form);
+  } catch (e3) {
+    if (!(e3 instanceof CliError) || e3.category !== "files_missing") throw e3;
+    out(messages(root)("filesMissing"));
+    await sendNewFiles(ctx, projectId, hashed, root);
+    return postDeploy(ctx, form);
   }
 }
 async function attachArchive(ctx, form, projectId, archive, root) {
@@ -30355,7 +30595,7 @@ async function deployVersion(root, ctx, opts, guest) {
   const t = messages(root);
   const caught = guest ? null : await catchUp(root, ctx, project.projectId, project.builtOn);
   if (caught) project.builtOn = caught.live;
-  const { archive, info, hasSql } = await prepare(root, ctx, guest ? GUEST_MAX_BYTES : Number.POSITIVE_INFINITY);
+  const { archive, files, info, hasSql } = await prepare(root, ctx, guest ? GUEST_MAX_BYTES : Number.POSITIVE_INFINITY, Boolean(guest));
   if (caught && opts.live) out(t("caughtUpNoLive"));
   const hold = Boolean(opts.hold) || Boolean(caught);
   if (caught) opts = { ...opts, live: false };
@@ -30378,8 +30618,7 @@ async function deployVersion(root, ctx, opts, guest) {
   addGitCommit(form, root);
   if (wait && soundWanted(ctx.config)) form.append("soundHere", live ? "live" : "preview");
   if (hold) form.append("hold", "1");
-  await attachArchive(ctx, form, project.projectId, archive, root);
-  const res = await apiRequest(ctx, "/api/cli/deploy", DeployResponse, { method: "POST", form, timeoutMs: 5 * 6e4 });
+  const res = archive ? await sendArchive(ctx, form, project.projectId, archive, root) : await sendByList(ctx, form, project.projectId, files, root);
   applyAccountPrefs(res.prefs);
   if (!guest) {
     updateProject(root, { builtOn: res.number });
@@ -30499,6 +30738,7 @@ async function afterBuild(root, ctx, projectId, n2, o) {
   out();
   if (after?.project.liveVersion === n2 && !after.latest?.wentBack) {
     out(t("liveNow", { n: n2, url: after.project.url ?? "" }));
+    if (after.project.url) updateProject(root, { url: after.project.url });
     printClosedHere(root, after);
     playSound("live", ctx.config, { key: "live", lang: cliLang(root) });
     return;
@@ -30581,7 +30821,7 @@ async function deployGuest(root, ctx, opts) {
   form.append("archive", new Blob([new Uint8Array(archive)], { type: "application/gzip" }), "source.tar.gz");
   const res = await apiRequest(ctx, "/api/cli/guest", GuestResponse, { method: "POST", form, auth: false, timeoutMs: 5 * 6e4 });
   updateConfig({ guestTokens: { ...ctx.config.guestTokens ?? {}, [res.projectId]: res.token }, guestClaims: { ...ctx.config.guestClaims ?? {}, [res.projectId]: res.claimUrl } });
-  updateProject(root, { projectId: res.projectId, slug: res.slug, name: res.slug });
+  updateProject(root, { projectId: res.projectId, slug: res.slug, name: res.slug, url: res.url });
   out();
   out(
     rows([
@@ -30604,9 +30844,9 @@ async function deployGuest(root, ctx, opts) {
 // src/commands/save.ts
 var SAVE_FILE = `${DEPLOYAI_DIR}/save.json`;
 function folderHash(files) {
-  const h = createHash4("sha256");
+  const h = createHash5("sha256");
   for (const f of [...files].sort((a, b) => a.rel < b.rel ? -1 : a.rel > b.rel ? 1 : 0)) {
-    h.update(f.rel).update("\0").update(createHash4("sha256").update(readFileSync16(f.abs)).digest()).update("\0");
+    h.update(f.rel).update("\0").update(createHash5("sha256").update(readFileSync17(f.abs)).digest()).update("\0");
   }
   return h.digest("hex");
 }
@@ -30634,7 +30874,7 @@ async function saveCommand(root, ctx, opts = {}) {
     if (opts.auto) return false;
     throw new CliError(t("nothingToUpload"), 1, "empty");
   }
-  if (plan.totalBytes > MAX_TOTAL_BYTES) {
+  if (plan.totalBytes > MAX_DEPLOY_BYTES) {
     if (opts.auto) return false;
     throw new CliError(t("saveTooLarge"), 1, "too_large");
   }
@@ -30844,7 +31084,7 @@ function telemetryCommand(action) {
 }
 
 // src/commands/allow.ts
-import { existsSync as existsSync17, mkdirSync as mkdirSync10, readFileSync as readFileSync17, writeFileSync as writeFileSync14, appendFileSync as appendFileSync3 } from "fs";
+import { existsSync as existsSync17, mkdirSync as mkdirSync10, readFileSync as readFileSync18, writeFileSync as writeFileSync14, appendFileSync as appendFileSync3 } from "fs";
 import { dirname as dirname4, join as join20 } from "path";
 var ALLOW_TOOLS = ["claude-code", "cursor", "copilot", "codex", "antigravity", "grok"];
 var CLAUDE_RULE = "Bash(npx deployai@latest *)";
@@ -30879,7 +31119,7 @@ function addTo(obj, key2, list, value2) {
 function ignoreInGit(root, path) {
   if (!existsSync17(join20(root, ".git"))) return;
   const gi = join20(root, ".gitignore");
-  const text4 = existsSync17(gi) ? readFileSync17(gi, "utf8") : "";
+  const text4 = existsSync17(gi) ? readFileSync18(gi, "utf8") : "";
   if (text4.split(/\r?\n/).some((l) => l.trim() === path)) return;
   appendFileSync3(gi, `${text4 && !text4.endsWith("\n") ? "\n" : ""}${path}
 `);
@@ -30936,14 +31176,1443 @@ function allowCommand(tool) {
   out(`  ${CLICKS[picked]}`);
 }
 
+// src/commands/hosts.ts
+import { join as join24 } from "path";
+
+// src/commands/migrate.ts
+import { existsSync as existsSync20, mkdirSync as mkdirSync13, readdirSync as readdirSync7, readFileSync as readFileSync21, rmSync as rmSync6, statSync as statSync3, writeFileSync as writeFileSync18 } from "fs";
+import { dirname as dirname5, join as join23, posix, relative as relative4, resolve as resolve6, sep as sep4 } from "path";
+
+// src/commands/look.ts
+import { existsSync as existsSync18, mkdirSync as mkdirSync11, writeFileSync as writeFileSync16 } from "fs";
+import { join as join21, relative as relative3, sep as sep3 } from "path";
+
+// src/compare.ts
+import { readFileSync as readFileSync19, writeFileSync as writeFileSync15 } from "fs";
+import pixelmatch from "pixelmatch";
+import pngjs from "pngjs";
+var { PNG } = pngjs;
+var DEFAULT_MAX_DIFF = 1;
+var MAX_HEIGHT = 16e3;
+var BLOCK2 = 16;
+var COLOR_THRESHOLD = 0.1;
+var MOSTLY_MOVING = 0.5;
+function readPng(file2) {
+  const png = PNG.sync.read(readFileSync19(file2));
+  return { width: png.width, height: png.height, data: png.data };
+}
+function writePng(file2, pic) {
+  const png = new PNG({ width: pic.width, height: pic.height });
+  png.data = Buffer.from(pic.data.buffer, pic.data.byteOffset, pic.data.byteLength);
+  writeFileSync15(file2, PNG.sync.write(png));
+}
+function onCanvas(pic, width, height) {
+  if (pic.width === width && pic.height === height) return pic.data;
+  const data = new Uint8Array(width * height * 4);
+  for (let i = 0; i < data.length; i += 4) {
+    data[i] = 255;
+    data[i + 1] = 0;
+    data[i + 2] = 255;
+    data[i + 3] = 255;
+  }
+  const w = Math.min(pic.width, width);
+  for (let y = 0; y < Math.min(pic.height, height); y++) data.set(pic.data.subarray(y * pic.width * 4, (y * pic.width + w) * 4), y * width * 4);
+  return data;
+}
+var sizeOf = (...pics) => ({ width: Math.max(...pics.map((p) => p.width)), height: Math.min(MAX_HEIGHT, Math.max(...pics.map((p) => p.height))) });
+function movingMask(first, second, width, height) {
+  const out2 = new Uint8Array(width * height * 4);
+  pixelmatch(onCanvas(first, width, height), onCanvas(second, width, height), out2, width, height, { threshold: COLOR_THRESHOLD, diffMask: true });
+  const bw = Math.ceil(width / BLOCK2), bh = Math.ceil(height / BLOCK2);
+  const blocks = new Uint8Array(bw * bh);
+  for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) if (out2[(y * width + x) * 4 + 3]) blocks[Math.floor(y / BLOCK2) * bw + Math.floor(x / BLOCK2)] = 1;
+  const grown = new Uint8Array(bw * bh);
+  for (let by = 0; by < bh; by++) for (let bx = 0; bx < bw; bx++) {
+    if (!blocks[by * bw + bx]) continue;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      const x = bx + dx, y = by + dy;
+      if (x >= 0 && y >= 0 && x < bw && y < bh) grown[y * bw + x] = 1;
+    }
+  }
+  const mask = new Uint8Array(width * height);
+  for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) mask[y * width + x] = grown[Math.floor(y / BLOCK2) * bw + Math.floor(x / BLOCK2)];
+  return mask;
+}
+function compareLook(before, after, opts = {}) {
+  const { width, height } = sizeOf(before, after);
+  const a = onCanvas(before, width, height);
+  const b = new Uint8Array(onCanvas(after, width, height));
+  const mask = new Uint8Array(width * height);
+  for (const [one, two2] of [[before, opts.beforeAgain], [after, opts.afterAgain]]) {
+    if (!two2) continue;
+    const m = movingMask(one, two2, width, height);
+    for (let i = 0; i < m.length; i++) if (m[i]) mask[i] = 1;
+  }
+  let masked = 0;
+  for (let i = 0; i < mask.length; i++) if (mask[i]) {
+    masked++;
+    b.set(a.subarray(i * 4, i * 4 + 4), i * 4);
+  }
+  const out2 = new Uint8Array(width * height * 4);
+  const changed = pixelmatch(a, b, out2, width, height, { threshold: COLOR_THRESHOLD, alpha: 0.15 });
+  for (let i = 0; i < mask.length; i++) if (mask[i]) {
+    out2[i * 4] = Math.round(out2[i * 4] * 0.4);
+    out2[i * 4 + 1] = Math.round(out2[i * 4 + 1] * 0.4 + 90);
+    out2[i * 4 + 2] = 255;
+  }
+  const compared = width * height - masked;
+  const percent = compared ? Math.round(changed / compared * 1e4) / 100 : 0;
+  const maxDiff = opts.maxDiff ?? DEFAULT_MAX_DIFF;
+  return { changed, compared, masked, percent, pass: percent <= maxDiff, mostlyMoving: masked / (width * height) > MOSTLY_MOVING, diff: { width, height, data: out2 } };
+}
+
+// src/commands/look.ts
+var BEFORE_DIR = join21(".deployai", "migration", "before");
+var AFTER_DIR = join21(".deployai", "migration", "after");
+var REPORT = join21(".deployai", "migration", "compare.json");
+function previewAddress(preview, path) {
+  const u = new URL(path, preview.origin);
+  const token = preview.searchParams.get("deployai_preview");
+  if (token) u.searchParams.set("deployai_preview", token);
+  return u.toString();
+}
+var rel = (root, file2) => relative3(root, file2).split(sep3).join("/");
+var readOrNull = (file2) => {
+  try {
+    return file2 && existsSync18(file2) ? readPng(file2) : null;
+  } catch {
+    return null;
+  }
+};
+function parseMaxDiff(raw) {
+  if (raw === void 0) return DEFAULT_MAX_DIFF;
+  const n2 = typeof raw === "number" ? raw : Number(String(raw).replace(/%$/, ""));
+  if (!Number.isFinite(n2) || n2 < 0 || n2 > 100) throw new CliError("--max-diff is a percent from 0 to 100, like 1 or 0.5.", 1, "usage");
+  return n2;
+}
+async function compareLooks(root, previewRaw, opts = {}, shoot = shotCommand) {
+  let preview;
+  try {
+    preview = new URL(/^https?:\/\//.test(previewRaw) ? previewRaw : `https://${previewRaw}`);
+  } catch {
+    throw new CliError(`Not an address: ${previewRaw}. Use the preview address deploy printed.`, 1, "usage");
+  }
+  const beforeDir = join21(root, BEFORE_DIR);
+  const before = readShotIndex(beforeDir);
+  if (!before.length) return null;
+  const afterDir = join21(root, AFTER_DIR);
+  mkdirSync11(afterDir, { recursive: true });
+  const maxDiff = opts.maxDiff ?? DEFAULT_MAX_DIFF;
+  const lines = [];
+  const say = (line) => {
+    if (!opts.json) out(line);
+  };
+  say(`Measuring ${new Set(before.map((e3) => e3.url)).size} pages against their before pictures, at most ${maxDiff}% changed:`);
+  for (const url2 of [...new Set(before.map((e3) => e3.url))]) {
+    const old = new URL(url2);
+    const path = old.pathname + old.search + old.hash;
+    const address = previewAddress(preview, path);
+    let shot = true;
+    try {
+      await shoot(root, address, { out: AFTER_DIR, again: true, quiet: true });
+    } catch {
+      shot = false;
+    }
+    for (const entry of before.filter((e3) => e3.url === url2)) {
+      const beforeFile = join21(beforeDir, entry.file);
+      const afterFile = join21(afterDir, shotName(address, entry.width));
+      const base = { page: path, width: entry.width, before: rel(root, beforeFile), mostlyMoving: false };
+      const b = readOrNull(beforeFile);
+      const a = shot ? readOrNull(afterFile) : null;
+      if (!b || !a) {
+        lines.push({ ...base, percent: null, maskedPercent: null, pass: false, after: a ? rel(root, afterFile) : null, diff: null, problem: a ? "unreadable" : "no_after" });
+        say(`  ${path}  ${entry.width.padEnd(7)}  ${a ? "the before picture cannot be read: take it again" : "no picture of the preview page: check that it opens"}  FAIL`);
+        continue;
+      }
+      const result = compareLook(b, a, { beforeAgain: readOrNull(entry.again ? join21(beforeDir, entry.again) : null), afterAgain: readOrNull(againName(afterFile)), maxDiff });
+      const diffFile = afterFile.replace(/\.png$/i, ".diff.png");
+      writePng(diffFile, result.diff);
+      const total = result.compared + result.masked;
+      const maskedPercent = total ? Math.round(result.masked / total * 1e3) / 10 : 0;
+      lines.push({ ...base, percent: result.percent, maskedPercent, pass: result.pass, mostlyMoving: result.mostlyMoving, after: rel(root, afterFile), diff: rel(root, diffFile) });
+      say(`  ${path}  ${entry.width.padEnd(7)}  ${result.percent.toFixed(2)}% changed${maskedPercent ? `, ${maskedPercent}% moves by itself` : ""}  ${result.pass ? "pass" : "FAIL"}  ${rel(root, diffFile)}`);
+    }
+  }
+  const report2 = { checkedAt: (/* @__PURE__ */ new Date()).toISOString(), preview: preview.origin, maxDiff, pass: lines.every((l) => l.pass), pages: lines };
+  writeFileSync16(join21(root, REPORT), JSON.stringify(report2, null, 2) + "\n");
+  if (opts.json) out(JSON.stringify(report2));
+  else {
+    if (lines.some((l) => l.mostlyMoving)) say("Most of a page moves by itself, so its number says little: look at that page yourself too.");
+    if (report2.pass) say("Every page looks as on the old site.");
+    else say(`Open each .diff.png that failed: red changed, blue moves by itself and is left out. Make the page match the old one (only a credit or a part marked Partly moved may differ), deploy again and run this again.`);
+  }
+  if (!report2.pass) {
+    blockedBy("look_differs");
+    process.exitCode = 1;
+  }
+  return report2;
+}
+async function migrateCompareCommand(root, previewRaw, opts = {}, shoot = shotCommand) {
+  const report2 = await compareLooks(root, previewRaw, { maxDiff: parseMaxDiff(opts.maxDiff), json: opts.json }, shoot);
+  if (!report2) throw new CliError("No before pictures yet. On the old site, for the home page and one page of each kind, run: npx deployai@latest shot <old page address> --out .deployai/migration/before --again", 1, "usage");
+}
+
+// src/commands/render.ts
+import { existsSync as existsSync19, mkdirSync as mkdirSync12, readFileSync as readFileSync20, writeFileSync as writeFileSync17 } from "fs";
+import { tmpdir as tmpdir4 } from "os";
+import { join as join22 } from "path";
+var RENDERER = String.raw`const fs = require('fs'), path = require('path');
+const a = process.argv.slice(2), opt = (k) => (a.find((x) => x.startsWith('--' + k + '=')) || '').split('=').slice(1).join('=');
+const [listFile, outDir] = a.filter((x) => !x.startsWith('--'));
+const bin = (process.env.PATH || '').split(path.delimiter).find((d) => fs.existsSync(path.join(d, '..', 'playwright', 'package.json')));
+const pw = require(path.join(bin, '..', 'playwright'));
+(async () => {
+  const urls = JSON.parse(fs.readFileSync(listFile, 'utf8'));
+  const browser = await pw.chromium.launch(opt('exec') ? { executablePath: opt('exec') } : { channel: opt('channel') || undefined });
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, serviceWorkers: 'block' });
+  const done = [];
+  for (let i = 0; i < urls.length; i++) {
+    const url = urls[i];
+    const host = new URL(url).hostname.replace(/^www\./, '');
+    const asked = new Set();
+    const page = await context.newPage();
+    page.on('request', (r) => { try { const u = new URL(r.url()); if (/^https?:$/.test(u.protocol) && u.hostname.replace(/^www\./, '') === host) { u.hash = ''; asked.add(u.toString()); } } catch {} });
+    try {
+      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+      await page.waitForLoadState('load', { timeout: 15000 }).catch(() => {});
+      await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});
+      await page.waitForTimeout(800);
+      const file = 'page-' + i + '.html';
+      fs.writeFileSync(path.join(outDir, file), await page.content());
+      done.push({ url, file, finalUrl: page.url(), asked: [...asked] });
+    } catch (e) {
+      done.push({ url, file: null, error: String(e && e.message || e).split(String.fromCharCode(10))[0], asked: [...asked] });
+    }
+    await page.close().catch(() => {});
+    fs.writeFileSync(path.join(outDir, 'rendered.json'), JSON.stringify(done));
+  }
+  await browser.close();
+})().catch(() => process.exit(1));
+`;
+async function engine(run) {
+  const browser = findBrowser();
+  if (!browser) return await run(["--yes", PLAYWRIGHT, "install", "chromium"]) === 0 ? [] : null;
+  const channel = channelFor(browser);
+  return channel ? [`--channel=${channel}`] : [`--exec=${browser}`];
+}
+var waitFor = (pages) => Math.min(25 * 6e4, 6e4 + pages * 8e3);
+async function renderPages(urls, outDir, run = runNpx) {
+  if (!urls.length) return [];
+  try {
+    const args = await engine(run);
+    if (!args) return [];
+    mkdirSync12(outDir, { recursive: true });
+    const list = join22(outDir, "urls.json");
+    writeFileSync17(list, JSON.stringify(urls));
+    const script = join22(tmpdir4(), "deployai-render.cjs");
+    writeFileSync17(script, RENDERER);
+    await run(["--yes", "-p", PLAYWRIGHT, "node", script, ...args, list, outDir], waitFor(urls.length));
+    const index = join22(outDir, "rendered.json");
+    if (!existsSync19(index)) return [];
+    const done = JSON.parse(readFileSync20(index, "utf8"));
+    return done.map((d) => ({ url: d.url, html: d.file && existsSync19(join22(outDir, d.file)) ? readFileSync20(join22(outDir, d.file), "utf8") : null, finalUrl: d.finalUrl ?? null, asked: Array.isArray(d.asked) ? d.asked : [] }));
+  } catch {
+    return [];
+  }
+}
+
+// src/commands/migrate.ts
+var UA = `deployai-migrate/${CLI_VERSION} (+https://deployai.co.il/move)`;
+var PAGE_CAP = 1e3;
+var WP_PAGE_CAP = 50;
+var MEDIA_FILE_CAP = 25 * 1024 * 1024;
+var MEDIA_TOTAL_CAP = 1024 * 1024 * 1024;
+var PAUSE_MS = 150;
+var SCAN_WORKERS = 4;
+var START_SCAN_PAGES = 300;
+var RENDER_PAGES = 60;
+var RENDER_ROUTES = 40;
+var MEDIA_ENDING = /\.(jpe?g|png|gif|webp|avif|svg|ico|woff2?|ttf|otf|mp3|m4a|ogg|wav|mp4|webm|pdf)$/i;
+var sleep3 = (ms2) => new Promise((r) => setTimeout(r, ms2));
+var hostDir = (root, host) => join23(root, MIGRATION_DIR, host.replace(/^www\./, ""));
+var readJson3 = (file2) => {
+  try {
+    return readJson(file2);
+  } catch {
+    return null;
+  }
+};
+var writeJson = (file2, data) => {
+  mkdirSync13(dirname5(file2), { recursive: true });
+  writeFileSync18(file2, JSON.stringify(data, null, 2) + "\n");
+};
+async function get(url2, accept = "text/html,application/xhtml+xml,*/*;q=0.8", redirect = "follow", cookie, failed) {
+  try {
+    return await fetch(url2, { headers: { "User-Agent": UA, Accept: accept, ...cookie ? { Cookie: cookie } : {} }, redirect, signal: AbortSignal.timeout(3e4) });
+  } catch (e3) {
+    failed?.(e3);
+    return null;
+  }
+}
+function scannedHosts(root) {
+  const dir = join23(root, MIGRATION_DIR);
+  if (!existsSync20(dir)) return [];
+  return readdirSync7(dir).filter((h) => existsSync20(join23(dir, h, "inventory.json")));
+}
+async function migrateStatusCommand(root, ctx, stage, note) {
+  if (!isAgentStage(stage)) throw new CliError(`Unknown stage: ${stage}. One of: ${AGENT_STAGES.join(", ")}.`, 1, "usage");
+  const choices = readChoices(root);
+  if (!choices?.startId || !choices.requestId) {
+    out("This folder is not a managed move, so there is no request to update. Nothing was sent.");
+    return;
+  }
+  await apiRequest(ctx, "/api/migrations/progress", null, { method: "POST", auth: false, body: { startId: choices.startId, stage, note: stageNote(note) } });
+  out(`Reported: ${stage}${note ? ` (${stageNote(note)})` : ""}.`);
+}
+function readChoices(root) {
+  return readJson3(join23(root, MIGRATION_DIR, "choices.json"));
+}
+function writeChoices(root, choices) {
+  ensureMigrationDir(root);
+  writeJson(join23(root, MIGRATION_DIR, "choices.json"), choices);
+}
+function ensureMigrationDir(root) {
+  ensureDeployaiDir(root);
+  const dir = join23(root, MIGRATION_DIR);
+  mkdirSync13(dir, { recursive: true });
+  const ignore = join23(dir, ".gitignore");
+  if (!existsSync20(ignore)) writeFileSync18(ignore, "*/media/\n*/media-state.json\n");
+}
+function sameAddress(from, to) {
+  try {
+    const a = new URL(from);
+    const b = new URL(to, from);
+    const host = (u) => u.hostname.replace(/^www\./, "");
+    const path = (u) => u.pathname.replace(/\/+$/, "");
+    return host(a) === host(b) && path(a) === path(b) && a.search === b.search;
+  } catch {
+    return false;
+  }
+}
+async function sitemapUrls(base, robotsSitemaps, enough) {
+  const own2 = [`${base}/wp-sitemap.xml`, `${base}/sitemap_index.xml`, `${base}/sitemap.xml`];
+  const prefix = new URL(base).pathname.replace(/\/$/, "");
+  const queue = prefix ? [...own2, ...robotsSitemaps] : robotsSitemaps.length ? [...robotsSitemaps] : own2;
+  const host = new URL(base).hostname.replace(/^www\./, "");
+  const inSite = (u) => u.hostname.replace(/^www\./, "") === host && (!prefix || u.pathname === prefix || u.pathname.startsWith(`${prefix}/`));
+  const seen = /* @__PURE__ */ new Set();
+  const found = [];
+  const urls = /* @__PURE__ */ new Set();
+  while (queue.length && seen.size < 200 && urls.size < enough) {
+    const next = queue.shift();
+    if (seen.has(next)) continue;
+    seen.add(next);
+    const res = await get(next, "application/xml,text/xml,*/*;q=0.5");
+    if (!res?.ok) continue;
+    const xml2 = await res.text();
+    if (!/<(urlset|sitemapindex)\b/i.test(xml2)) continue;
+    found.push(next);
+    const parsed = parseSitemapXml(xml2);
+    queue.push(...parsed.sitemaps);
+    for (const u of parsed.urls) {
+      try {
+        if (inSite(new URL(u))) urls.add(u);
+      } catch {
+      }
+    }
+    await sleep3(PAUSE_MS);
+  }
+  return { urls: [...urls], sitemaps: found };
+}
+function homeLinks(html, origin) {
+  const host = new URL(origin).hostname;
+  const out2 = /* @__PURE__ */ new Set();
+  for (const m of html.matchAll(/<a\b[^>]*href=["']([^"'#]+)/gi)) {
+    try {
+      const u = new URL(m[1], origin);
+      if (u.hostname === host && !/\.(jpe?g|png|gif|webp|svg|pdf|zip|mp4|mp3)$/i.test(u.pathname)) out2.add(u.origin + u.pathname + u.search);
+    } catch {
+    }
+  }
+  return [...out2];
+}
+async function wordpressContent(base, dir) {
+  const probe = await get(`${base}/wp-json/wp/v2/types`, "application/json");
+  if (!probe?.ok || !(probe.headers.get("content-type") ?? "").includes("json")) return false;
+  const types = ["pages", "posts", "categories", "tags", "media", "users", "product"];
+  for (const type of types) {
+    const items = [];
+    for (let page3 = 1; page3 <= WP_PAGE_CAP; page3++) {
+      const res = await get(`${base}/wp-json/wp/v2/${type}?per_page=100&page=${page3}`, "application/json");
+      if (!res?.ok) break;
+      const batch = await res.json().catch(() => null);
+      if (!Array.isArray(batch) || !batch.length) break;
+      items.push(...batch);
+      if (batch.length < 100) break;
+      await sleep3(PAUSE_MS);
+    }
+    if (items.length) {
+      writeJson(join23(dir, "content", `${type}.json`), items);
+      out(`  ${type}: ${items.length}`);
+    }
+  }
+  const posts = readJson3(join23(dir, "content", "posts.json"));
+  if (posts?.length) {
+    const files = wpPostsToMarkdown({ origin: new URL(base).origin, posts, categories: readJson3(join23(dir, "content", "categories.json")) ?? [], tags: readJson3(join23(dir, "content", "tags.json")) ?? [], users: readJson3(join23(dir, "content", "users.json")) ?? [], media: readJson3(join23(dir, "content", "media.json")) ?? [] });
+    mkdirSync13(join23(dir, "posts"), { recursive: true });
+    const postsDir = resolve6(dir, "posts");
+    for (const f of files) {
+      const target = resolve6(postsDir, f.file);
+      if (dirname5(target) !== postsDir) continue;
+      writeFileSync18(target, f.text);
+    }
+    out(`  posts as Markdown: ${files.length}`);
+  }
+  return true;
+}
+function pageAssets(html, base) {
+  const found = /* @__PURE__ */ new Set();
+  const add2 = (u) => {
+    if (!u || u.startsWith("data:")) return;
+    try {
+      found.add(new URL(u.trim(), base).toString());
+    } catch {
+    }
+  };
+  for (const m of html.matchAll(/<img\b[^>]*>/gi)) {
+    add2(m[0].match(/\ssrc=["']([^"']+)/i)?.[1]);
+    const set2 = m[0].match(/\ssrcset=["']([^"']+)/i)?.[1];
+    if (set2) add2(set2.split(",").map((s) => s.trim().split(/\s+/)[0]).pop());
+  }
+  add2(html.match(/<meta[^>]+property=["']og:image["'][^>]*content=["']([^"']+)/i)?.[1]);
+  for (const m of html.matchAll(/url\(["']?([^"')]+\.(?:jpe?g|png|gif|webp|svg|avif))/gi)) add2(m[1]);
+  const own2 = (u) => {
+    if (!u) return;
+    try {
+      if (new URL(u.trim(), base).hostname.replace(/^www\./, "") === new URL(base).hostname.replace(/^www\./, "")) add2(u);
+    } catch {
+    }
+  };
+  for (const m of html.matchAll(/<script\b[^>]*\ssrc=["']([^"']+)/gi)) own2(m[1]);
+  for (const u of stylesheetLinks(html, base, 50)) own2(u);
+  return [...found];
+}
+function stylesheetAssets(css, cssUrl) {
+  const host = new URL(cssUrl).hostname.replace(/^www\./, "");
+  const found = /* @__PURE__ */ new Set();
+  for (const m of css.matchAll(/url\(\s*["']?([^"')]+)/gi)) {
+    const u = m[1].trim();
+    if (u.startsWith("data:") || u.startsWith("#")) continue;
+    try {
+      const url2 = new URL(u, cssUrl);
+      url2.hash = "";
+      if (!url2.search) url2.search = "";
+      if (/^https?:$/.test(url2.protocol) && url2.hostname.replace(/^www\./, "") === host) found.add(url2.toString());
+    } catch {
+    }
+  }
+  return [...found];
+}
+async function addStylesheetAssets(assets) {
+  for (const url2 of [...assets].filter((a) => /\.css(\?|$)/i.test(a)).slice(0, 50)) {
+    const res = await get(url2, "text/css,*/*;q=0.8");
+    if (!res?.ok) continue;
+    stylesheetAssets(await res.text(), url2).forEach((a) => assets.add(a));
+    await sleep3(PAUSE_MS);
+  }
+}
+var ICON_MAX_BYTES = 2 * 1024 * 1024;
+async function saveOldIcons(html, pageUrl, origin, dir) {
+  const wanted = [];
+  const add2 = (href, kind) => {
+    if (!href) return;
+    try {
+      const url2 = new URL(href, pageUrl).toString();
+      if (!wanted.some((w) => w.url === url2)) wanted.push({ url: url2, kind });
+    } catch {
+    }
+  };
+  iconLinks(html).forEach((h) => add2(h, "icon"));
+  add2(`${origin}/favicon.ico`, "icon");
+  add2(logoInPage(html), "logo");
+  const saved = [];
+  const icons = join23(dir, "icons");
+  for (const w of wanted.slice(0, 6)) {
+    const res = await get(w.url, "image/*,*/*;q=0.8");
+    if (!res?.ok) continue;
+    const bytes = Buffer.from(await res.arrayBuffer());
+    if (bytes.length > ICON_MAX_BYTES) continue;
+    const size = imageSize(bytes);
+    const svg = !size && isSvgText(bytes.subarray(0, 2048).toString("utf8"));
+    if (!size && !svg) continue;
+    const file2 = `${saved.length + 1}-${w.kind}.${svg ? "svg" : size?.format === "jpeg" ? "jpg" : size?.format}`;
+    mkdirSync13(icons, { recursive: true });
+    writeFileSync18(join23(icons, file2), bytes);
+    saved.push({ file: file2, kind: w.kind });
+  }
+  if (saved.length) writeFileSync18(join23(icons, "icons.json"), JSON.stringify(saved, null, 2));
+  return saved.length;
+}
+async function saveOldStyles(html, pageUrl, dir) {
+  const styles = join23(dir, "styles");
+  let n2 = 0;
+  for (const url2 of stylesheetLinks(html, pageUrl, 6)) {
+    const res = await get(url2, "text/css,*/*;q=0.8");
+    if (!res?.ok) continue;
+    const text4 = await res.text();
+    if (text4.length > ICON_MAX_BYTES) continue;
+    mkdirSync13(styles, { recursive: true });
+    writeFileSync18(join23(styles, `${++n2}.css`), text4);
+  }
+}
+var TRIGGER_PAGES_CAP = 30;
+async function readContainers(html, site) {
+  const page3 = scanPageTags(html, "https://home.invalid/");
+  const triggers = [];
+  const hosts = ["www.googletagmanager.com", ...page3.serverContainers];
+  for (const id2 of new Set(page3.tags.filter((t) => t.key === "gtm" && t.id).map((t) => t.id))) {
+    let read3 = null;
+    for (const host of hosts) {
+      const res = await get(`https://${host}/gtm.js?id=${encodeURIComponent(id2)}`, "*/*");
+      read3 = res?.ok ? readContainer(await res.text(), id2) : null;
+      if (read3) break;
+    }
+    if (!read3) {
+      site.unreadContainers.push(id2);
+      continue;
+    }
+    for (const tag of read3.tags) addFoundTag(site, tag, "container", null);
+    triggers.push(...read3.triggers);
+  }
+  return triggers;
+}
+async function hasRootFile(origin, path, query = "", cookie) {
+  const res = await get(`${origin}${path}${query}`, "*/*", "follow", cookie);
+  return Boolean(res?.ok && !/text\/html/i.test(res.headers.get("content-type") ?? ""));
+}
+var tagsFile = (dir) => join23(dir, "tags.json");
+var stateFile = (dir) => join23(dir, "report-state.json");
+function kitMap(root) {
+  if (!existsSync20(join23(root, "src/kit/schema.ts"))) return {};
+  const cut = (s, n2) => String(s ?? "").slice(0, n2);
+  const pages = (readJson3(join23(root, MOVED_PAGES_FILE)) ?? []).slice(0, 150).map((p) => ({ path: cut(p.path, 300), title: cut(p.title, 80), inNav: Boolean(p.inNav) }));
+  const posts = readJson3(join23(root, "src/kit/moved-posts.json")) ?? [];
+  const docs = [...new Set((readJson3(join23(root, MOVED_LEGAL_FILE))?.docs ?? []).map((d) => d.key).filter((k) => k === "privacy" || k === "terms" || k === "cancellation"))];
+  const forms = (readJson3(join23(root, "src/kit/forms.json")) ?? []).filter((f) => /^[a-z0-9-]{1,40}$/.test(f.key ?? "")).slice(0, 30).map((f) => ({
+    key: f.key,
+    label: cut(f.label, 80),
+    ...f.page ? { page: cut(f.page, 300) } : {},
+    ...f.thanks ? { thanks: cut(f.thanks, 300) } : {},
+    fields: [.../* @__PURE__ */ new Set([...Object.values(f.map ?? {}), ...Object.keys(f.labels ?? {})])].map((x) => cut(x, 60)).slice(0, 40)
+  }));
+  return { kit: { pages, posts: posts.slice(0, 300).map((p) => ({ path: cut(p.path || `/blog/${p.slug}`, 300), title: cut(p.title, 200) })), postsTotal: posts.length, docs, forms } };
+}
+function profileOfReport(inv) {
+  if (!inv.profile) return {};
+  const p = inv.profile;
+  return {
+    siteKinds: p.kinds.slice(0, 4),
+    siteFeatures: p.features.slice(0, 10).map((f) => ({ key: f.key, pages: f.pages.slice(0, 10).map((x) => x.slice(0, 300)), providers: f.providers.slice(0, 10).map((x) => x.slice(0, 60)) })),
+    connectFirst: p.connectFirst.slice(0, 20).map((c) => ({ feature: c.feature, provider: c.provider ? c.provider.slice(0, 60) : null }))
+  };
+}
+async function sendReport(root, ctx, host, open2, verify) {
+  const dir = hostDir(root, host);
+  const inv = readJson3(join23(dir, "inventory.json"));
+  const site = readJson3(tagsFile(dir));
+  const startId = readChoices(root)?.startId;
+  if (!inv || !site) return;
+  const dns = readJson3(join23(dir, "dns.json"));
+  const thanksPages = findThanksPages(inv.pages);
+  if (open2 === "scan") {
+    if (thanksPages.length && site.forms.length) {
+      const titled = thanksPages.map((p) => {
+        const t = inv.pages.find((x) => x.path === p)?.title;
+        return t ? `${p} (${t})` : p;
+      });
+      out();
+      out(`Thank you pages on the old site: ${titled.join(", ")}. Keep each at its address. In src/kit/forms.json, give each form the one whose title fits it as its thank you page; a form no page fits shows the thank you message on its own page. Do not ask the owner: name in the plan which page each form opens.`);
+    }
+    const questions = moveQuestions({ plugins: site.plugins, platform: inv.platform, tags: site.tags, forms: site.forms, triggers: site.triggers, verification: site.verification, serverContainers: site.serverContainers, thanksPages, dns });
+    if (questions.length) {
+      out();
+      out("The scan cannot see these. Ask the owner, in plain words, and record each answer. Not sure keeps the old site as it is:");
+      if (questions.includes("serverPixel")) out(`  Does the site send conversions to Meta or Google from the server?${site.plugins.length ? ` (signs: ${site.plugins.join(", ")})` : ""} npx deployai@latest migrate tags --answer serverPixel=yes`);
+      if (questions.includes("thankYou")) out("  Does a page open after sending the form, and what is its address? npx deployai@latest migrate tags --answer thankYou=yes");
+      if (questions.includes("verificationFile")) out("  Was the site verified in Google Search Console with a file, and what is its name? npx deployai@latest migrate tags --answer verificationFile=yes");
+    }
+  }
+  if (open2 === "scan") {
+    const on = dashboardParts({ forms: site.forms, pages: inv.pages });
+    out();
+    out(`This move gets the site's own free dashboard, in place of the old platform's admin. Add a Site dashboard row to the plan. Turn on in it: pages, accessibility, legal${on.length ? `, ${on.join(", ")}` : ""}.`);
+  }
+  if (!startId || !ctx) {
+    out("The move report needs a start from the DeployAI site, so none was made here. Tell the owner the lists above in plain words.");
+    return;
+  }
+  const state = readJson3(stateFile(dir)) ?? {};
+  const plan = existsSync20(join23(root, MIGRATION_DIR, "plan.md")) ? readFileSync21(join23(root, MIGRATION_DIR, "plan.md"), "utf8") : "";
+  const saved = verify ?? readJson3(join23(dir, "verify-report.json"))?.report ?? null;
+  const assets = readJson3(join23(dir, "assets.json")) ?? [];
+  const report2 = {
+    source: inv.source,
+    platform: inv.platform,
+    scannedAt: inv.scannedAt,
+    pages: { total: inv.pages.length, broken: inv.pages.filter((p) => p.status >= 400).length, skipped: inv.skipped },
+    files: assets.length,
+    ...reportOfTags(site),
+    ...thanksPages.length ? { thanksPages } : {},
+    dns: dns ?? null,
+    features: parsePlanFeatures(plan),
+    ...profileOfReport(inv),
+    ...state.answers ? { answers: state.answers } : {},
+    ...kitMap(root),
+    verify: saved ? { ...saved, removed: state.removed ?? saved.removed, ...state.fired?.length ? { fired: state.fired } : {} } : null
+  };
+  if (Buffer.byteLength(JSON.stringify(report2)) > MOVE_REPORT_MAX_BYTES) report2.dns = null;
+  let url2 = state.url;
+  try {
+    const send2 = () => apiRequest(ctx, "/api/migrations/report", null, { method: "POST", auth: false, body: { startId, host, report: report2 } });
+    const r = await send2().catch(async () => {
+      await sleep3(2500);
+      return send2();
+    });
+    url2 = r.url ?? url2;
+  } catch (e3) {
+    out(`The move report could not be sent (${e3.message}). Nothing is lost: run npx deployai@latest migrate report to try again.`);
+    return;
+  }
+  if (!url2) return;
+  const opened = new Set(state.opened ?? []);
+  const firstTime = open2 && !opened.has(open2);
+  if (firstTime) opened.add(open2);
+  writeJson(stateFile(dir), { ...state, url: url2, opened: [...opened] });
+  const browser = firstTime ? openBrowser(url2) : false;
+  out();
+  out(`Move report for the owner${browser ? " (opened in the browser)" : ""}: ${url2}`);
+  if (firstTime) out("Give the owner this link in one line. It only shows what we found and what moved, and it updates by itself: anything that needs the owner, you ask in the chat.");
+  if (open2 === "verify") for (const line of reportAsksLines(report2)) out(line);
+}
+var ASK_WORDS = {
+  serverPixel: "Does the site send conversions to Meta or Google from the server?",
+  thankYou: "Does a page open after sending the form, and what is its address?",
+  verificationFile: "Was the site verified in Google Search Console with a file, and what is its name?"
+};
+function reportAsksLines(report2) {
+  const tries = selfChecks(report2).map((c) => {
+    const id2 = c.detail ? ` (${c.detail})` : "";
+    switch (c.kind) {
+      case "replaced":
+        return `${c.name}: now ${c.detail ?? "ours"}. Try that it does the same job on the preview.`;
+      case "arrive":
+        return `${c.name}${id2}: open the preview, then see the visit arrive in ${c.name}.`;
+      case "form":
+        return "The form: send one test message from the preview and see it arrive by email and in the dashboard, Messages.";
+      case "tap":
+        return `${c.name}${id2}: tap it once on a phone and see the chat or call open with the right number.`;
+      case "outside":
+        return `${c.name}: a service our checks do not cover. See that its part of the page works on the preview.`;
+      case "page":
+        return `${c.name}: open this address on the preview.`;
+    }
+  });
+  const waiting = moveWaiting(report2, report2.answers ?? {});
+  const asks = [...waiting.todo.map((f) => `${f.name}${f.note ? `: ${f.note}` : ""}`), ...waiting.questions.filter((q) => !q.answer).map((q) => `${ASK_WORDS[q.key]} npx deployai@latest migrate tags --answer ${q.key}=yes|no|unsure`)];
+  const lines = [];
+  if (tries.length) lines.push("", `The report lists ${tries.length} things for the owner to try on the preview. In the same message as the link, name each in plain words, one short line each, and say they tick them on the site's Move tab:`, ...tries.map((x) => `  ${x}`));
+  if (asks.length) lines.push("", "The report says these wait for the owner. Ask about each in the chat now, so nothing on the report is new to them:", ...asks.map((x) => `  ${x}`));
+  return lines;
+}
+function renderedName(path, taken) {
+  const slug = (x) => x.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "");
+  const [main2, route = ""] = path.split("#");
+  const base = `${slug(main2.replace(/\/+$/, "")) || "home"}${route ? `-route-${slug(route)}` : ""}`.slice(0, 100);
+  let name = `${base}.html`;
+  for (let n2 = 2; taken.has(name); n2++) name = `${base}-${n2}.html`;
+  taken.add(name);
+  return name;
+}
+async function readInBrowser(input2) {
+  const { list, bodies, pages, assets, site, profileScan, dir, origin } = input2;
+  const folder = join23(dir, "rendered");
+  rmSync6(folder, { recursive: true, force: true });
+  const work = join23(folder, ".work");
+  const first = await renderPages(list.slice(0, RENDER_PAGES), join23(work, "pages"));
+  const homeRaw = bodies[0] ?? "";
+  const home = first.find((r) => r.url === list[0])?.html ?? "";
+  const isApp = Boolean(home) && appShell(homeRaw) && drawnInBrowser(homeRaw, home);
+  const routes = isApp ? hashRoutes(home).slice(0, RENDER_ROUTES) : [];
+  const second = routes.length ? await renderPages(routes.map((r) => `${origin}/${r}`), join23(work, "routes")) : [];
+  const files = /* @__PURE__ */ new Set();
+  const index = [];
+  const taken = /* @__PURE__ */ new Set();
+  for (const r of [...first, ...second]) {
+    for (const a of r.asked) {
+      files.add(a);
+      if (MEDIA_ENDING.test(new URL(a).pathname)) assets.add(a);
+    }
+    if (!r.html) continue;
+    const i = list.indexOf(r.url);
+    const u = new URL(r.url);
+    const path = i >= 0 ? pages[i].path : `${u.pathname}${u.search}${u.hash}`;
+    const raw = i >= 0 ? bodies[i] ?? "" : homeRaw;
+    const drawn = drawnInBrowser(raw, r.html);
+    const file2 = renderedName(path, taken);
+    writeFileSync18(join23(folder, file2), r.html);
+    index.push({ path, file: file2, drawn });
+    pageAssets(r.html.replace(/&quot;/g, '"'), r.url).forEach((a) => assets.add(a));
+    addPageTags(site, scanPageTags(r.html, r.url), u.pathname + u.search);
+    if (i >= 0 && drawn) {
+      const seo = readPageSeo(r.html);
+      const p = pages[i];
+      pages[i] = { ...p, drawn: true, title: p.title ?? seo.title ?? null, description: p.description ?? seo.description ?? null, h1: seo.h1[0] ?? p.h1, lang: p.lang ?? seo.lang ?? null };
+      addPageProfile(profileScan, r.html, p.path);
+    }
+  }
+  rmSync6(work, { recursive: true, force: true });
+  if (index.length) writeJson(join23(folder, "index.json"), index);
+  return { rendered: index.length, app: isApp ? { routes, files: [...files].sort() } : null };
+}
+async function migrateScanCommand(root, raw, opts = {}) {
+  const source = normalizeSourceUrl(raw);
+  if (!source) throw new CliError(`Not a site address: ${raw}. Use the full address, for example https://example.co.il`, 1, "usage");
+  if (isBlockedMoveSite(source)) throw new CliError("We do not move sites of banks, hospitals, health funds, insurers, payment services or government bodies. Tell the owner this in one line and stop.", 1, "blocked_site");
+  let homeFailure;
+  const home = await get(source, void 0, void 0, void 0, (e3) => {
+    homeFailure = e3;
+  });
+  if (!home) throw blockedHostError(homeFailure, source) ?? new CliError(`Could not reach ${source}. Check the address, or that the site is up.`, 1, "network");
+  if ((home.status === 403 || home.status === 405 || home.status === 407) && blockedAnswer(home.status, await home.clone().text().catch(() => ""))) throw machineBlockedError(source);
+  if (home.status === 401 || home.status === 403) throw new CliError(`${source} answers ${home.status}: it is behind a login or a security check. If it opens in a browser, open it in your browser tool, ask the owner to pass any check in that window, and read the pages there (recommended). Else ask the owner to pause the check while it moves, or work from their export.`, 1, "blocked", "source_closed");
+  const origin = new URL(home.url).origin;
+  const base = (origin + new URL(home.url).pathname).replace(/\/+$/, "");
+  const html = await home.text();
+  const headers = Object.fromEntries(home.headers.entries());
+  const platform3 = detectPlatform(html, headers);
+  const host = new URL(origin).hostname;
+  ensureMigrationDir(root);
+  const dir = hostDir(root, host);
+  mkdirSync13(dir, { recursive: true });
+  out(`Scanning ${base} (${platform3})`);
+  const robotsRes = await get(`${origin}/robots.txt`, "text/plain");
+  const robots = robotsRes?.ok ? await robotsRes.text() : "";
+  if (robots) writeFileSync18(join23(dir, "robots.txt"), robots);
+  const cap = Math.min(opts.max ?? PAGE_CAP, PAGE_CAP);
+  const fromSitemaps = await sitemapUrls(base, robots ? parseRobots(robots).sitemaps : [], cap * 5);
+  const all = [.../* @__PURE__ */ new Set([`${base}/`, ...fromSitemaps.urls, ...fromSitemaps.urls.length ? [] : homeLinks(html, base)])];
+  const list = all.slice(0, cap);
+  out(`  sitemaps: ${fromSitemaps.sitemaps.length}, addresses: ${all.length}${all.length > cap ? ` (the first ${cap} are read)` : ""}`);
+  const pages = new Array(list.length);
+  const assets = /* @__PURE__ */ new Set();
+  const bodies = [];
+  const site = emptySiteTags();
+  const containerTriggers = await readContainers(html, site);
+  const inUse = /* @__PURE__ */ new Set();
+  const profileScan = emptyProfileScan();
+  let next = 0;
+  let read3 = 0;
+  const worker = async () => {
+    while (next < list.length) {
+      const i = next++;
+      const url2 = list[i];
+      let res = i === 0 ? null : await get(url2, void 0, "manual");
+      const moved = res && res.status >= 300 && res.status < 400 ? res.headers.get("location") : null;
+      if (moved && sameAddress(url2, moved)) res = await get(new URL(moved, url2).href);
+      const status = i === 0 ? home.status : res?.status ?? 0;
+      if (i && res) addClosedPage(profileScan, pathOf(url2), status, res.headers.get("location"));
+      const body = i === 0 ? html : res && res.ok ? await res.text() : "";
+      if (i < RENDER_PAGES) bodies[i] = body;
+      const seo = body ? readPageSeo(body) : null;
+      pages[i] = { path: pathOf(url2), status, title: seo?.title ?? null, description: seo?.description ?? null, canonical: seo?.canonical ?? null, h1: seo?.h1[0] ?? null, lang: seo?.lang ?? null };
+      if (body) pageAssets(body, url2).forEach((a) => assets.add(a));
+      if (body) {
+        addPageProfile(profileScan, body, pathOf(url2));
+        addPageTags(site, scanPageTags(body, url2), pathOf(url2));
+        for (const t of containerTriggers) {
+          if (inUse.has(t) || t.type === "page") continue;
+          if (t.type === "selector" ? selectorInPage(t.value, body) === true : body.includes(t.value)) inUse.add(t);
+        }
+      }
+      if (++read3 % 50 === 0) out(`  pages read: ${read3} of ${list.length}`);
+      if (i) await sleep3(PAUSE_MS);
+    }
+  };
+  await Promise.all(Array.from({ length: SCAN_WORKERS }, worker));
+  out(`  opening up to ${Math.min(list.length, RENDER_PAGES)} pages in a browser`);
+  const browserRead = await readInBrowser({ list, bodies, pages, assets, site, profileScan, dir, origin });
+  await addStylesheetAssets(assets);
+  const wordpressApi = platform3 === "wordpress" ? await wordpressContent(base, dir) : false;
+  if (wordpressApi) {
+    const media = readJson3(join23(dir, "content", "media.json")) ?? [];
+    media.forEach((m) => m.source_url && assets.add(m.source_url));
+  }
+  const known = new Set(pages.map((p) => p.path));
+  for (const t of containerTriggers.filter((x) => x.type === "page").slice(0, TRIGGER_PAGES_CAP)) {
+    if (known.has(t.value)) {
+      inUse.add(t);
+      continue;
+    }
+    const res = await get(`${origin}${t.value}`);
+    if (!res?.ok || new URL(res.url).pathname !== t.value.split("?")[0]) continue;
+    const body = await res.text();
+    const seo = readPageSeo(body);
+    pages.push({ path: t.value, status: res.status, title: seo.title ?? null, description: seo.description ?? null, canonical: seo.canonical ?? null, h1: seo.h1[0] ?? null, lang: seo.lang ?? null });
+    known.add(t.value);
+    addPageProfile(profileScan, body, t.value);
+    addPageTags(site, scanPageTags(body, res.url), t.value);
+    inUse.add(t);
+    await sleep3(PAUSE_MS);
+  }
+  site.triggers = [...inUse];
+  for (const file2 of ROOT_FILES) if (await hasRootFile(origin, file2)) site.rootFiles.push(file2);
+  writeJson(tagsFile(dir), site);
+  const bare2 = registrableDomain(host);
+  try {
+    const { records, unread } = await collectSnapshot(bare2, { extraNames: [...site.ownNames, ...site.serverContainers], deadlineMs: 3e4 });
+    writeJson(join23(dir, "dns.json"), { records: records.slice(0, 600), unread: unread.slice(0, 300), services: dnsServices(records).slice(0, 40) });
+  } catch {
+  }
+  const profile = siteProfile(profileScan, { platform: platform3 });
+  const inventory = { source: base, platform: platform3, scannedAt: (/* @__PURE__ */ new Date()).toISOString(), sitemaps: fromSitemaps.sitemaps, pages, wordpressApi, skipped: Math.max(0, all.length - list.length), profile, rendered: browserRead.rendered, ...browserRead.app ? { app: browserRead.app } : {} };
+  writeJson(join23(dir, "inventory.json"), inventory);
+  writeJson(join23(dir, "assets.json"), [...assets].sort());
+  writeFileSync18(join23(dir, "home.html"), html);
+  const icons = await saveOldIcons(html, home.url, origin, dir);
+  await saveOldStyles(html, home.url, dir);
+  const rel2 = relative4(root, dir).split(sep4).join("/");
+  const broken = pages.filter((p) => p.status >= 400).length;
+  out();
+  out(`Saved in ${rel2}:`);
+  out(`  inventory.json  ${pages.length} pages with their address, title, description and headings${broken ? ` (${broken} already broken on the old site)` : ""}`);
+  if (browserRead.rendered) out(`  rendered/       ${browserRead.rendered} pages as a browser shows them, after their scripts ran (index.json lists them): build from these, not from home.html alone`);
+  else out("  No browser could start here, so the pages were read without their scripts: open the old site in your browser tool and build from what it shows.");
+  out(`  assets.json     ${assets.size} images, stylesheets, scripts, fonts and files`);
+  out(`  tags.json       ${site.tags.length} tags and connections, ${site.outside.length} other outside addresses, ${site.triggers.length} conversion rules, ${site.forms.length} forms. Keep every one of them.`);
+  if (site.unreadContainers.length) out(`  Could not read Tag Manager ${site.unreadContainers.join(", ")}: its rules are unknown.`);
+  if (icons) out(`  icons/          ${icons} icons and logo of the old site, for: npx deployai@latest brand favicon`);
+  if (wordpressApi) {
+    out("  content/        the WordPress pages, posts, categories, tags, media and authors as JSON");
+    if (existsSync20(join23(dir, "posts"))) out("  posts/          the posts as Markdown for the blog block, each with its old address");
+  } else if (platform3 === "wordpress") out("  The WordPress API is closed on this site: work from the pages, or ask the owner for an export (Tools > Export).");
+  out();
+  for (const line of profileLines(profile)) out(line);
+  out();
+  if (browserRead.app) {
+    out(`This old site is an app its script draws in the browser, with ${browserRead.app.routes.length} screens like ${browserRead.app.routes.slice(0, 3).join(", ") || "#/"}.`);
+    out("Keep its own files exactly as they are with npx deployai@latest migrate app. Never rebuild or redesign it.");
+  }
+  out("Keep every path in inventory.json exactly as it is: same address, same title and description.");
+  await sendReport(root, opts.ctx, host, "scan");
+  return inventory.skipped;
+}
+var APP_FILE_CAP = 5e3;
+var APP_ROOT_FILES = ["/404.html", "/manifest.webmanifest", "/manifest.json", "/sw.js", "/service-worker.js", "/robots.txt", "/sitemap.xml", "/favicon.ico", "/favicon.svg", "/opengraph.jpg"];
+function scannedApp(root) {
+  const hosts = scannedHosts(root);
+  return hosts.length === 1 && Boolean(readJson3(join23(hostDir(root, hosts[0]), "inventory.json"))?.app);
+}
+async function migrateAppCommand(root) {
+  const scanned = scannedHosts(root).map((host2) => ({ host: host2, dir: hostDir(root, host2), inv: readJson3(join23(hostDir(root, host2), "inventory.json")) }));
+  if (!scanned.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
+  const apps = scanned.filter((s) => s.inv?.app);
+  if (!apps.length) throw new CliError("The scan found no app its script draws, so there are no app files to keep. Build the pages as your steps say.", 1, "usage");
+  if (apps.length > 1) throw new CliError(`More than one app was scanned (${apps.map((a) => a.host).join(", ")}): each one is a site of its own, in a folder of its own.`, 1, "usage");
+  if (existsSync20(join23(root, "package.json"))) throw new CliError("This folder has a package.json, so it holds another project. The app's files are the whole site: run this in a folder with no other site in it.", 1, "usage");
+  const { host, dir, inv } = apps[0];
+  const origin = new URL(inv.source).origin;
+  const same4 = (u) => {
+    try {
+      return new URL(u).hostname.replace(/^www\./, "") === host;
+    } catch {
+      return false;
+    }
+  };
+  const key2 = (u) => {
+    const x = new URL(u, origin);
+    x.hash = "";
+    x.search = "";
+    return x.toString();
+  };
+  const assets = (readJson3(join23(dir, "assets.json")) ?? []).filter(same4);
+  const pages = inv.pages.filter((p) => p.status === 200 && !p.path.includes("?")).map((p) => origin + p.path);
+  const extras = new Set(APP_ROOT_FILES.map((f) => origin + f));
+  const stateFile2 = join23(dir, "app-state.json");
+  const state = readJson3(stateFile2) ?? { done: [], failed: [], bytes: 0 };
+  const done = new Set(state.done);
+  const queue = [...new Set([`${origin}/`, ...pages, ...inv.app.files, ...assets, ...extras].map(key2))].filter((u) => !done.has(u));
+  out(`${host}: keeping the app's own files in this folder`);
+  let saved = 0;
+  while (queue.length && done.size < APP_FILE_CAP) {
+    const url2 = queue.shift();
+    if (done.has(url2)) continue;
+    done.add(url2);
+    const target = keptFilePath(url2);
+    const res = target ? await safeFetch(url2, { maxBytes: MEDIA_FILE_CAP, timeoutMs: 6e4, userAgent: UA }).catch(() => null) : null;
+    const path = new URL(url2).pathname;
+    const pageForFile = !!res && /\.[a-z0-9]{1,12}$/i.test(path) && !/\.html?$/i.test(path) && /text\/html/i.test(res.contentType);
+    if (!target || !res || res.status < 200 || res.status > 299 || pageForFile || !same4(res.finalUrl)) {
+      if (!extras.has(url2) && !state.failed.includes(url2)) state.failed.push(url2);
+      continue;
+    }
+    const file2 = join23(root, target);
+    mkdirSync13(dirname5(file2), { recursive: true });
+    writeFileSync18(file2, res.body);
+    state.bytes += res.body.byteLength;
+    saved++;
+    const text4 = /javascript|css|html|json/i.test(res.contentType) || /\.(m?js|css|html?)$/i.test(path) ? Buffer.from(res.body).toString("utf8") : "";
+    if (text4) {
+      const more = /\.m?js$/i.test(path) || /javascript/i.test(res.contentType) ? bundleFiles(text4, url2) : /\.css$/i.test(path) || /text\/css/i.test(res.contentType) ? stylesheetAssets(text4, url2) : /html/i.test(res.contentType) ? pageAssets(text4.replace(/&quot;/g, '"'), url2) : [];
+      for (const m of more) if (same4(m) && !done.has(key2(m))) queue.push(key2(m));
+    }
+    if (saved % 25 === 0) writeJson(stateFile2, { ...state, done: [...done] });
+    await sleep3(PAUSE_MS / 3);
+  }
+  state.done = [...done];
+  writeJson(stateFile2, state);
+  const rel2 = relative4(root, stateFile2).split(sep4).join("/");
+  out(`  ${saved} files, ${formatBytes(state.bytes)} in all, at their own paths${state.failed.length ? `; ${state.failed.length} could not be downloaded (listed in ${rel2})` : ""}${queue.length ? `; stopped at ${APP_FILE_CAP} files` : ""}`);
+  out("These files are the site. Change none of them: no rebuild, no new look, no framework. Its screens (#/...) all open from index.html.");
+}
+function mediaTarget(dir, url2) {
+  const u = new URL(url2);
+  const clean3 = posix.normalize(decodeURIComponent(u.pathname)).replace(/^\/+/, "");
+  if (!clean3 || clean3.endsWith("/") || clean3.includes("..")) return null;
+  const base = resolve6(dir, "media", u.hostname.replace(/^www\./, ""));
+  const target = resolve6(base, clean3);
+  return target.startsWith(base + sep4) ? target : null;
+}
+async function migrateMediaCommand(root) {
+  const hosts = scannedHosts(root);
+  if (!hosts.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
+  for (const host of hosts) {
+    const dir = hostDir(root, host);
+    const assets = readJson3(join23(dir, "assets.json")) ?? [];
+    const stateFile2 = join23(dir, "media-state.json");
+    const state = readJson3(stateFile2) ?? { done: [], failed: [], bytes: 0 };
+    const done = new Set(state.done);
+    const todo = assets.filter((a) => !done.has(a));
+    out(`${host}: ${assets.length} files, ${todo.length} left`);
+    for (const [i, url2] of todo.entries()) {
+      if (state.bytes >= MEDIA_TOTAL_CAP) {
+        out(`  Stopped at ${formatBytes(state.bytes)}: the cap for one move. Use only the files the new pages need.`);
+        break;
+      }
+      const target = mediaTarget(dir, url2);
+      const res = target ? await safeFetch(url2, { maxBytes: MEDIA_FILE_CAP, timeoutMs: 6e4, userAgent: UA }).catch(() => null) : null;
+      const pageForFile = !!res && !/\.html?$/i.test(new URL(res.finalUrl).pathname) && /text\/html/i.test(res.contentType);
+      if (!target || !res || res.status < 200 || res.status > 299 || pageForFile) {
+        if (!state.failed.includes(url2)) state.failed.push(url2);
+        done.add(url2);
+        continue;
+      }
+      mkdirSync13(dirname5(target), { recursive: true });
+      writeFileSync18(target, res.body);
+      const bytes = res.body.byteLength;
+      state.bytes += bytes;
+      done.add(url2);
+      state.done = [...done];
+      if (i % 25 === 0) writeJson(stateFile2, state);
+      await sleep3(PAUSE_MS / 3);
+    }
+    state.done = [...done];
+    writeJson(stateFile2, state);
+    out(`  ${formatBytes(state.bytes)} in ${relative4(root, join23(dir, "media")).split(sep4).join("/")}${state.failed.length ? `, ${state.failed.length} could not be downloaded (listed in media-state.json)` : ""}`);
+  }
+  out("Copy the files the new pages use into the site's public folder at the same path (for example public/wp-content/uploads/...), so old image addresses keep working.");
+}
+function redirectLines(inv, rss = "/rss.xml") {
+  const lines = /* @__PURE__ */ new Set();
+  for (const p of inv.pages) {
+    const path = p.path.split("?")[0];
+    if (/\/feed\/?$/.test(path)) lines.add(`${path} ${rss} 301`);
+    if (/\/attachment\/[^/]+\/?$/.test(path)) lines.add(`${path} ${path.replace(/\/attachment\/[^/]+\/?$/, "/")} 301`);
+  }
+  if (inv.platform === "wordpress") {
+    const folder = new URL(inv.source).pathname.replace(/\/+$/, "");
+    lines.add(`${folder}/feed/ ${rss} 301`);
+    lines.add(`${folder}/comments/feed/ ${rss} 301`);
+  }
+  return [...lines];
+}
+var MARKDOWN_POST_DIRS = ["src/content/posts", "src/content/blog", "content/posts", "content/blog", "content/post", "_posts"];
+function markdownPostFiles(root) {
+  const files = [];
+  const walk2 = (rel2, depth) => {
+    const abs = join23(root, rel2);
+    if (!existsSync20(abs) || depth > 4 || files.length >= 2e3) return;
+    for (const e3 of readdirSync7(abs, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+      const child = posix.join(rel2, e3.name);
+      if (e3.isDirectory()) walk2(child, depth + 1);
+      else if (e3.isFile() && /\.(md|mdx|markdown)$/i.test(e3.name) && statSync3(join23(root, child)).size <= 1024 * 1024) files.push({ file: child, text: readFileSync21(join23(root, child), "utf8") });
+    }
+  };
+  for (const d of MARKDOWN_POST_DIRS) walk2(d, 0);
+  return files;
+}
+function migratePostsCommand(root) {
+  const hosts = scannedHosts(root);
+  const markdown = markdownPostFiles(root);
+  if (!hosts.length && !markdown.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
+  if (!existsSync20(join23(root, "src/kit/schema.ts"))) throw new CliError("The dashboard is not in this folder yet. Run: npx deployai@latest blocks dashboard", 1, "usage");
+  const posts = [];
+  for (const host of hosts) {
+    const dir = hostDir(root, host);
+    const inv = readJson3(join23(dir, "inventory.json"));
+    const list = readJson3(join23(dir, "content", "posts.json"));
+    if (inv && list?.length) posts.push(...wpPostsToKit({ origin: new URL(inv.source).origin, posts: list, categories: readJson3(join23(dir, "content", "categories.json")) ?? [], media: readJson3(join23(dir, "content", "media.json")) ?? [] }));
+  }
+  posts.push(...markdownPostsToKit(markdown));
+  const file2 = join23(root, "src/kit/moved-posts.json");
+  const had = readJson3(file2) ?? [];
+  if (!posts.length && !had.length) {
+    out("No posts in the scan or in this folder. If the old site has posts, write src/kit/moved-posts.json yourself: .deployai/blocks/dashboard.md says how.");
+    return;
+  }
+  const paths = new Set(had.map((p) => p.path || `/blog/${p.slug}/`));
+  const slugs = new Set(had.map((p) => p.slug));
+  const added = posts.filter((p) => {
+    if (paths.has(p.path) || slugs.has(p.slug)) return false;
+    paths.add(p.path);
+    slugs.add(p.slug);
+    return true;
+  });
+  if (!added.length) {
+    out(`All ${had.length} posts are already in src/kit/moved-posts.json, so nothing was added.`);
+    return;
+  }
+  writeFileSync18(file2, JSON.stringify([...had, ...added.map(({ lost: _lost, ...p }) => p)], null, 1));
+  out(had.length ? `Added ${added.length} posts to src/kit/moved-posts.json, beside the ${had.length} it had. Turn on blog in src/kit/site.config.ts.` : `Wrote ${added.length} posts to src/kit/moved-posts.json. Turn on blog in src/kit/site.config.ts.`);
+  const short = added.filter((p) => p.lost.length);
+  if (short.length) {
+    out("These lost a part the dashboard has no shape for. Add each to the page by hand, and say Partly moved in the plan:");
+    short.forEach((p) => out(`  ${p.path}: ${p.lost.join(", ")}`));
+  }
+}
+function migratePagesCommand(root) {
+  const hosts = scannedHosts(root);
+  if (!hosts.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
+  if (!existsSync20(join23(root, "src/kit/schema.ts"))) throw new CliError("The dashboard is not in this folder yet. Run: npx deployai@latest blocks dashboard", 1, "usage");
+  const file2 = join23(root, MOVED_PAGES_FILE);
+  const before = readJson3(file2);
+  const pages = [];
+  for (const host of hosts) {
+    const dir = hostDir(root, host);
+    const inv = readJson3(join23(dir, "inventory.json"));
+    if (!inv) continue;
+    const homeHtml = existsSync20(join23(dir, "home.html")) ? readFileSync21(join23(dir, "home.html"), "utf8") : null;
+    for (const p of movedPagesFromScan({ pages: inv.pages, homeHtml, origin: new URL(inv.source).origin })) if (!pages.some((x) => x.path === p.path)) pages.push(p);
+  }
+  const kept = before?.length ? pages.filter((p) => before.some((b) => b.path === p.path)) : pages;
+  writeFileSync18(file2, JSON.stringify(kept, null, 1));
+  out(`Wrote ${MOVED_PAGES_FILE}: ${kept.length} pages for the dashboard's Pages, ${kept.filter((p) => p.inNav).length} of them in the menu.`);
+  out("Build each page at exactly its path, as a page of the site's code with its own look and words. Draw the site's menu from navItems() in src/kit/store.ts. A page the plan drops: remove it from this file.");
+}
+function migrateLegalCommand(root) {
+  const hosts = scannedHosts(root);
+  if (!hosts.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
+  if (!existsSync20(join23(root, "src/kit/schema.ts"))) throw new CliError("The dashboard is not in this folder yet. Run: npx deployai@latest blocks dashboard", 1, "usage");
+  const pages = [];
+  const site = emptySiteTags();
+  for (const host of hosts) {
+    const dir = hostDir(root, host);
+    pages.push(...readJson3(join23(dir, "inventory.json"))?.pages ?? []);
+    const found = readJson3(tagsFile(dir));
+    if (found) {
+      site.tags.push(...found.tags);
+      site.outside.push(...found.outside);
+      site.forms.push(...found.forms);
+    }
+  }
+  const file2 = join23(root, MOVED_LEGAL_FILE);
+  const legal = { ...movedLegalFromScan({ pages, site }), docs: readJson3(file2)?.docs ?? [] };
+  writeFileSync18(file2, JSON.stringify(legal, null, 1));
+  out(`Wrote ${MOVED_LEGAL_FILE}: ${legal.duties.length} rows for the dashboard's Documents page, ${legal.forms.length} forms, ${legal.services.length} outside services.`);
+  for (const d of legal.duties) if (d.old) out(`  ${d.key}: the old site has its own page at ${d.old}. Keep it. See "Accessibility and documents" in .deployai/blocks/dashboard.md.`);
+  out("Nothing here is finished or checked: it tells the owner what to look at. Keep tags, forms and pages as they are.");
+}
+function migrateRedirectsCommand(root) {
+  const hosts = scannedHosts(root);
+  if (!hosts.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
+  const lines = /* @__PURE__ */ new Set();
+  for (const host of hosts) {
+    const inv = readJson3(join23(hostDir(root, host), "inventory.json"));
+    if (inv) redirectLines(inv).forEach((l) => lines.add(l));
+  }
+  const publicDir = join23(root, "public");
+  const file2 = join23(existsSync20(publicDir) ? publicDir : root, "_redirects");
+  const before = existsSync20(file2) ? readFileSync21(file2, "utf8").split(/\r?\n/).filter(Boolean) : [];
+  const added = [...lines].filter((l) => !before.some((b) => b.split(/\s+/)[0] === l.split(/\s+/)[0]));
+  writeFileSync18(file2, [...before, ...added].join("\n") + "\n");
+  out(`${relative4(root, file2).split(sep4).join("/")}: ${added.length} added, ${before.length + added.length} in all (at most 2,000; no query strings).`);
+  out('Add a line "<old path> <new path> 301" only for a page that truly could not keep its address.');
+}
+function allowedRedirects(root) {
+  const map2 = /* @__PURE__ */ new Map();
+  for (const file2 of [join23(root, "public", "_redirects"), join23(root, "_redirects")]) {
+    if (!existsSync20(file2)) continue;
+    for (const line of readFileSync21(file2, "utf8").split(/\r?\n/)) {
+      const [from, to] = line.trim().split(/\s+/);
+      if (from && to && !from.startsWith("#")) map2.set(from, to);
+    }
+  }
+  return map2;
+}
+var PREVIEW_TRIES = 6;
+var PREVIEW_RETRY_MS = 2e4;
+async function previewCookie(preview, retryMs = PREVIEW_RETRY_MS) {
+  if (!preview.searchParams.get("deployai_preview")) return void 0;
+  for (let i = 0; i < PREVIEW_TRIES; i++) {
+    if (i) await sleep3(retryMs);
+    const res = await get(preview.href, void 0, "manual");
+    await res?.body?.cancel().catch(() => {
+    });
+    const cookie = res?.headers.get("set-cookie")?.split(";")[0];
+    if (cookie) return cookie;
+    if (res && !(res.status === 404 && res.headers.has("x-deployai"))) return void 0;
+  }
+  throw new CliError("This preview link does not open. If this version is already live, its preview has ended: run verify on the site address instead, npx deployai@latest migrate verify <the site address>. If not, run npx deployai@latest status and use the newest link it prints.", 1, "preview_gone");
+}
+async function migrateTagsCommand(root, ctx, opts) {
+  const hosts = scannedHosts(root);
+  if (!hosts.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
+  const answers = (opts.answer ?? []).map((a) => a.replace(/=unknown$/i, "=unsure"));
+  for (const a of answers) {
+    const [k, v] = a.split("=");
+    if (!QUESTION_KEYS.includes(k) || !ANSWERS.includes(v)) throw new CliError(`Not an answer: ${a}. Use one of ${QUESTION_KEYS.join(", ")} = ${ANSWERS.join(", ")}, for example serverPixel=yes.`, 1, "usage");
+  }
+  const urls = opts.requests ? readFileSync21(resolve6(root, opts.requests), "utf8").split(/\r?\n/) : [];
+  for (const host of hosts) {
+    const dir = hostDir(root, host);
+    const site = readJson3(tagsFile(dir));
+    const inv = readJson3(join23(dir, "inventory.json"));
+    if (!site || !inv) continue;
+    const state = readJson3(stateFile(dir)) ?? {};
+    if (urls.length && opts.fired) {
+      const seen = emptySiteTags();
+      addBrowserRequests(seen, urls, inv.source);
+      const before = new Map((state.fired ?? []).map((t) => [tagRowKey(t), t]));
+      for (const t of seen.tags) before.set(tagRowKey(t), { key: t.key, id: t.id });
+      state.fired = [...before.values()];
+      out(`Seen firing on the preview: ${seen.tags.map((t) => t.name).join(", ") || "no known tag"}.`);
+    } else if (urls.length) {
+      const added = addBrowserRequests(site, urls, inv.source);
+      writeJson(tagsFile(dir), site);
+      out(`${added} more found from the browser. Keep them too.`);
+    }
+    if (opts.removed?.length) {
+      state.removed = [.../* @__PURE__ */ new Set([...state.removed ?? [], ...opts.removed])];
+      const names2 = removableNames(site);
+      const known = opts.removed.filter((r) => names2.some((n2) => n2.toLowerCase() === r.toLowerCase()));
+      const unknown2 = opts.removed.filter((r) => !known.includes(r));
+      if (known.length) out(`Marked as left out on purpose: ${known.join(", ")}. Verify will not ask for these. The report shows what took its place from the plan row "Replaced with ...".`);
+      if (unknown2.length) out(`Not found in what the old site has: ${unknown2.join(", ")}. Use the name verify prints, exactly as it prints it.`);
+    }
+    for (const a of answers) {
+      const [k, v] = a.split("=");
+      state.answers = { ...state.answers, [k]: v };
+    }
+    writeJson(stateFile(dir), state);
+    await sendReport(root, ctx, host, null);
+  }
+}
+async function migrateReportCommand(root, ctx) {
+  const hosts = scannedHosts(root);
+  if (!hosts.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
+  for (const host of hosts) await sendReport(root, ctx, host, null);
+}
+var TAG_WORDS = {
+  tag_lost: "is gone from the preview",
+  trigger_lost: "is what a conversion waits for, and it is gone: the conversion stops counting with no error",
+  field_lost: "is a hidden form field that carries the ad source, and it is gone",
+  verification_lost: "verification tag is gone",
+  file_lost: "is a file a service reads, and it is gone",
+  blocked_by_headers: "is blocked by public/_headers",
+  event_lost: "is an event the old pages send, and it is gone"
+};
+function previewPage(preview, path) {
+  const u = new URL(path, preview.origin);
+  const token = preview.searchParams.get("deployai_preview");
+  if (token) u.searchParams.set("deployai_preview", token);
+  return u.toString();
+}
+var FEATURE_WORDS = { cart: "the store page", checkout: "the checkout", booking: "the booking page", login: "the sign in page", protected: "the members only page", forms: "the form page", payments: "payments" };
+var FEATURE_PAGES = 5;
+var LINK_CAP = 150;
+async function checkFeatures(inv, fetchPage) {
+  const checks = [];
+  for (const f of inv.profile?.features ?? []) {
+    if (f.key === "payments") continue;
+    for (const path of f.pages.slice(0, FEATURE_PAGES)) {
+      const manual = f.key === "protected" || f.key === "checkout";
+      const res = await fetchPage(path, manual);
+      let html = "";
+      if (res?.status === 200) html = await res.text().catch(() => "");
+      else await res?.body?.cancel().catch(() => {
+      });
+      const c = checkFeaturePage(f.key, path, res ? { status: res.status, location: res.headers.get("location"), html } : null);
+      if (c) checks.push(c);
+      await sleep3(PAUSE_MS / 3);
+    }
+  }
+  return checks;
+}
+async function migrateVerifyCommand(root, previewRaw, ctx, retryMs = PREVIEW_RETRY_MS, look = {}) {
+  let preview;
+  try {
+    preview = new URL(/^https?:\/\//.test(previewRaw) ? previewRaw : `https://${previewRaw}`);
+  } catch {
+    throw new CliError(`Not an address: ${previewRaw}. Use the preview address deploy printed.`, 1, "usage");
+  }
+  const hosts = scannedHosts(root);
+  if (!hosts.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
+  const redirects = allowedRedirects(root);
+  const cookie = await previewCookie(preview, retryMs);
+  const page3 = (path) => get(cookie ? new URL(path, preview.origin).toString() : previewPage(preview, path), void 0, "follow", cookie);
+  const findings = [];
+  const credits = /* @__PURE__ */ new Map();
+  const vendors = /* @__PURE__ */ new Map();
+  let checked = 0;
+  const tagFindings = [];
+  const leftOnOld = [];
+  const perHost = [];
+  const featureChecks = [];
+  for (const host of hosts) {
+    const inv = readJson3(join23(hostDir(root, host), "inventory.json"));
+    const oldSite = readJson3(tagsFile(hostDir(root, host)));
+    const state = readJson3(stateFile(hostDir(root, host))) ?? {};
+    const nextSite = emptySiteTags();
+    const triggerFound = {};
+    const formIdFound = {};
+    for (const t of oldSite?.triggers ?? []) if (t.type !== "page") triggerFound[t.value] = false;
+    for (const f of oldSite?.forms ?? []) if (f.id) formIdFound[f.id] = false;
+    const checkedBefore = checked;
+    const findingsBefore = findings.length;
+    const linksFrom = /* @__PURE__ */ new Map();
+    for (const old of inv?.pages ?? []) {
+      if (old.status >= 300) continue;
+      const res = await page3(old.path);
+      checked++;
+      let next = null;
+      if (res) {
+        const u = new URL(res.url);
+        u.searchParams.delete("deployai_preview");
+        const body = res.ok ? await res.text() : "";
+        const seo = body ? readPageSeo(body) : null;
+        for (const c of builderCredits(body)) if (!credits.has(c)) credits.set(c, old.path);
+        for (const v of vendorFiles(body)) if (!vendors.has(v)) vendors.set(v, old.path);
+        for (const l of body ? pageLinks(body, res.url) : []) if (!linksFrom.has(l)) linksFrom.set(l, old.path);
+        if (body && oldSite) {
+          addPageTags(nextSite, scanPageTags(body, res.url), old.path);
+          for (const t of oldSite.triggers) {
+            if (t.type === "page" || triggerFound[t.value]) continue;
+            if (t.type === "selector" ? selectorInPage(t.value, body) === true : body.includes(t.value)) triggerFound[t.value] = true;
+          }
+          for (const id2 of Object.keys(formIdFound)) if (!formIdFound[id2] && new RegExp(`\\bid\\s*=\\s*["']?${id2.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}["'\\s>]`).test(body)) formIdFound[id2] = true;
+        }
+        next = { status: res.status, finalPath: u.pathname + u.search, title: seo?.title ?? null, description: seo?.description ?? null };
+      }
+      const f = comparePage(old, next, redirects.get(old.path.split("?")[0]));
+      if (f) findings.push(f);
+      await sleep3(PAUSE_MS / 3);
+    }
+    const known = new Set((inv?.pages ?? []).map((p) => samePath(p.path)));
+    let tried = 0;
+    for (const [path, from] of linksFrom) {
+      if (known.has(samePath(path)) || tried >= LINK_CAP) continue;
+      known.add(samePath(path));
+      tried++;
+      const here = await page3(path);
+      await here?.body?.cancel().catch(() => {
+      });
+      if (here && here.status !== 404 && here.status !== 410) continue;
+      const there = inv ? await get(new URL(path, inv.source).toString()) : null;
+      await there?.body?.cancel().catch(() => {
+      });
+      if (there?.ok) findings.push({ path, problem: "link_broken", detail: from });
+      await sleep3(PAUSE_MS / 3);
+    }
+    const planFile = join23(root, MIGRATION_DIR, "plan.md");
+    const planRows = existsSync20(planFile) ? parsePlanFeatures(readFileSync21(planFile, "utf8")) : [];
+    for (const r of replacedPages(planRows, inv?.pages ?? [])) findings.push({ path: r.path, problem: "replaced", detail: r.row });
+    if (oldSite) {
+      const home = await page3("/");
+      const csp = home?.headers.get("content-security-policy") ?? null;
+      const homeHtml = home?.ok ? await home.clone().text().catch(() => "") : "";
+      for (const a of oldHostAssets(homeHtml, preview.origin + "/", hosts)) {
+        if (leftOnOld.some((x) => x.url === a.url)) continue;
+        const u = new URL(a.url);
+        const here = await page3(u.pathname + u.search);
+        if (!here?.ok || !/^image\//i.test(here.headers.get("content-type") ?? "")) leftOnOld.push(a);
+      }
+      const fileOnPreview = {};
+      for (const file2 of oldSite.rootFiles) fileOnPreview[file2] = await hasRootFile(preview.origin, file2, cookie ? "" : preview.search, cookie);
+      const pageOnPreview = {};
+      for (const t of oldSite.triggers.filter((x) => x.type === "page")) pageOnPreview[t.value] = Boolean((await page3(t.value))?.ok);
+      const found = compareTags(oldSite, nextSite, { removed: state.removed ?? [], csp, fileOnPreview, triggerFound, pageOnPreview, formIdFound });
+      tagFindings.push(...found);
+      const features = inv ? await checkFeatures(inv, (path, manual) => get(cookie ? new URL(path, preview.origin).toString() : previewPage(preview, path), void 0, manual ? "manual" : "follow", cookie)) : [];
+      featureChecks.push(...features);
+      perHost.push({ host, checked: checked - checkedBefore, problems: findings.length - findingsBefore, pages: findings.slice(findingsBefore), seen: nextSite.tags.map((t) => ({ key: t.key, id: t.id })), found, removed: state.removed ?? [], features });
+    }
+  }
+  const words = { missing: "not found on the preview", moved: "moved to", error: "answers", title_lost: "lost its title", description_lost: "lost its description", link_broken: "opens on the old site but not on the preview, linked from", replaced: 'is "Replaced with" in the plan, row' };
+  const report2 = join23(root, MIGRATION_DIR, "verify.json");
+  writeJson(report2, { checkedAt: (/* @__PURE__ */ new Date()).toISOString(), preview: preview.origin, checked, findings, credits: [...credits.keys()], vendors: [...vendors.keys()], tags: tagFindings, leftOnOld, features: featureChecks });
+  const brokenFeatures = featureChecks.filter((c) => !c.ok);
+  if (brokenFeatures.length) {
+    out(`${brokenFeatures.length} ${brokenFeatures.length === 1 ? "feature of the old site does" : "features of the old site do"} not work on the preview:`);
+    for (const c of brokenFeatures.slice(0, 40)) out(`  ${readableUrl(c.page)}  ${FEATURE_WORDS[c.key]} ${FEATURE_PROBLEM_WORDS[c.problem]}`);
+    out(`Make each one work as it does on the old site, deploy again, and run verify again: npx deployai@latest migrate verify ${previewRaw}`);
+    blockedBy("feature_broken");
+    process.exitCode = 1;
+  }
+  if (credits.size) {
+    out(`A builder's credit is still on the preview:`);
+    for (const [text4, path] of credits) out(`  ${readableUrl(path)}  ${text4}`);
+    out("Remove each and put the site's own name and the year in its place, unless the owner asked to keep it, then deploy again and run verify again.");
+    blockedBy("builder_credit");
+    process.exitCode = 1;
+  }
+  if (vendors.size) {
+    out(`Files of a plugin or theme are still on the preview:`);
+    for (const [name, path] of vendors) out(`  ${readableUrl(path)}  ${name}`);
+    out("Remove them. Write what the page needs into the site's own stylesheet and scripts, or use a UI source, so it looks and works the same, then deploy again and run verify again.");
+    blockedBy("vendor_files");
+    process.exitCode = 1;
+  }
+  if (leftOnOld.length) {
+    const what = { share: "share image (og:image)", x: "X image (twitter:image)", icon: "icon" };
+    out("Still loading from the old site and missing from this one, so it breaks when the old site closes:");
+    for (const a of leftOnOld) out(`  ${what[a.kind]}  ${readableUrl(a.url)}`);
+    out("Put each file in the site's own public folder (migrate media saved the images in .deployai/migration), point the tag at the site's own address, deploy again and run verify again.");
+    blockedBy("old_host_assets");
+    process.exitCode = 1;
+  }
+  if (tagFindings.length) {
+    out(`${tagFindings.length} tags and connections need a fix:`);
+    for (const f of tagFindings.slice(0, 60)) out(`  ${readableUrl(f.what)}  ${TAG_WORDS[f.problem]}${f.detail ? ` (${f.detail})` : ""}${f.page ? ` on ${readableUrl(f.page)}` : ""}`);
+    if (tagFindings.length > 60) out(`  and ${tagFindings.length - 60} more in verify.json`);
+    out('Put each one back, deploy again and run verify again. If one was left out on purpose (the owner asked, or the plan replaced it with ours): npx deployai@latest migrate tags --removed "<its number or name>", and give its plan row the status "Replaced with <what took its place>" so the report says so.');
+    blockedBy(...tagFindings.map((f) => f.problem));
+    process.exitCode = 1;
+  }
+  iphoneScanHint(root);
+  const clean3 = !findings.length && !tagFindings.length && !credits.size && !vendors.size && !leftOnOld.length && !brokenFeatures.length;
+  for (const h of perHost) {
+    const dir = hostDir(root, h.host);
+    const verify = { checkedAt: (/* @__PURE__ */ new Date()).toISOString(), pagesChecked: h.checked, pageProblems: h.problems, pageFindings: h.pages.map((f) => ({ path: f.path.slice(0, 300), problem: f.problem })).slice(0, 150), findings: h.found.map((f) => ({ problem: f.problem, what: f.what.slice(0, 240), ...f.detail ? { detail: f.detail.slice(0, 300) } : {}, ...f.page ? { page: f.page.slice(0, 300) } : {} })).slice(0, 300), seen: h.seen.slice(0, 300), removed: h.removed, vendors: [...vendors.keys()].map((v) => v.slice(0, 80)).slice(0, 40), ...h.features.length ? { featureChecks: h.features.slice(0, 60).map((c) => ({ ...c, page: c.page.slice(0, 300) })) } : {} };
+    writeJson(join23(dir, "verify-report.json"), { report: verify });
+    await sendReport(root, ctx, h.host, clean3 ? "verify" : null, verify);
+  }
+  await compareLooks(root, previewRaw, { maxDiff: look.maxDiff });
+  if (!findings.length) {
+    out(`All ${checked} old addresses open on the preview with their title and description.`);
+    return;
+  }
+  out(`${findings.length} of ${checked} old addresses need a fix (also in ${relative4(root, report2).split(sep4).join("/")}):`);
+  for (const f of findings.slice(0, 60)) out(`  ${readableUrl(f.path)}  ${words[f.problem]}${f.detail ? ` ${f.detail}` : ""}`);
+  if (findings.length > 60) out(`  and ${findings.length - 60} more in verify.json`);
+  if (findings.some((f) => f.problem !== "link_broken" && f.problem !== "replaced")) out("Give each page its old address back (or, only if it truly cannot stay, a line in public/_redirects), deploy again, and run verify again.");
+  if (findings.some((f) => f.problem === "link_broken")) out("A page links to an address the old site has and the preview does not, so that page was never moved. Move each one from the old site, with its own content and address, deploy again and run verify again.");
+  if (findings.some((f) => f.problem === "replaced")) out("A page is never Replaced with. Rebuild each from the old page with the same sections, words, images, links and buttons in the same order, give its plan row the status Moved, deploy again and run verify again. A new design is a change the owner asks for after the move.");
+  const pageReason = { missing: "pages_missing", moved: "pages_moved", error: "pages_error", title_lost: "title_lost", description_lost: "description_lost", link_broken: "links_broken", replaced: "page_replaced" };
+  blockedBy(...findings.map((f) => pageReason[f.problem]));
+  process.exitCode = 1;
+}
+
+// src/commands/hosts.ts
+var PROBE_MS = 6e3;
+var REASON_KEY = { api: "hostForApi", site: "hostForSite", npm: "hostForNpm", old_site: "hostForOldSite", media: "hostForMedia" };
+var NO_ANSWER_KEY = { dns: "hostNoAnswerDns", timeout: "hostNoAnswerTimeout", tls: "hostNoAnswerTls" };
+var read2 = (file2) => {
+  try {
+    return readJson(file2);
+  } catch {
+    return null;
+  }
+};
+async function probeHost(host, fetcher = fetch) {
+  const url2 = `${host === "localhost" || host.startsWith("localhost:") || host.startsWith("127.") ? "http" : "https"}://${host}/`;
+  try {
+    const res = await fetcher(url2, { method: "GET", redirect: "manual", headers: { Accept: "*/*" }, signal: AbortSignal.timeout(PROBE_MS) });
+    const text4 = res.status === 403 || res.status === 405 || res.status === 407 ? (await res.text().catch(() => "")).slice(0, 2e3) : "";
+    if (!text4) await res.body?.cancel().catch(() => void 0);
+    return blockedAnswer(res.status, text4) ? { state: "blocked", status: res.status } : { state: "reachable", status: res.status };
+  } catch (e3) {
+    const failure2 = classifyNetError(e3, { proxy: proxyFor(url2, process.env) });
+    return failure2 === "blocked" ? { state: "blocked" } : { state: "no_answer", failure: failure2 };
+  }
+}
+async function siteUrl(root, ctx, apiReachable, fetcher) {
+  const project = readProject(root);
+  if (project?.url) return project.url;
+  const token = tokenIfOwnApi(ctx);
+  if (!project?.projectId || !token || !apiReachable) return null;
+  try {
+    const res = await fetcher(`${ctx.apiUrl}/api/cli/projects`, { headers: { "User-Agent": userAgent(ctx.config), Accept: "application/json", Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(PROBE_MS) });
+    const data = await res.json();
+    const url2 = data.projects?.find((p) => p.id === project.projectId)?.url;
+    if (typeof url2 !== "string" || !url2) return null;
+    updateProject(root, { url: url2 });
+    return url2;
+  } catch {
+    return null;
+  }
+}
+function moveHosts(root) {
+  const sources = [...readChoices(root)?.sourceUrls ?? []];
+  const media = [];
+  for (const host of scannedHosts(root)) {
+    const dir = hostDir(root, host);
+    const inv = read2(join24(dir, "inventory.json"));
+    sources.push(inv?.source ?? host);
+    for (const u of read2(join24(dir, "assets.json")) ?? []) if (typeof u === "string") media.push(u);
+  }
+  return { sources, media };
+}
+async function hostsCommand(root, ctx, opts = {}, fetcher = fetch) {
+  const t = messages(root);
+  const move = moveHosts(root);
+  const base = neededHosts({ apiUrl: ctx.apiUrl, moveSources: move.sources, mediaUrls: move.media });
+  const apiHost = base.find((h) => h.reasons.includes("api"))?.host;
+  const probes = new Map(base.map((h) => [h.host, probeHost(h.host, fetcher)]));
+  const apiReachable = apiHost ? (await probes.get(apiHost)).state === "reachable" : false;
+  const site = await siteUrl(root, ctx, apiReachable, fetcher);
+  const hosts = site ? neededHosts({ apiUrl: ctx.apiUrl, siteUrl: site, moveSources: move.sources, mediaUrls: move.media }) : base;
+  for (const h of hosts) if (!probes.has(h.host)) probes.set(h.host, probeHost(h.host, fetcher));
+  const results = [];
+  for (const h of hosts) results.push({ ...h, ...await probes.get(h.host) });
+  const blocked = results.filter((r) => r.state === "blocked").map((r) => r.host);
+  if (blocked.length) process.exitCode = 1;
+  if (opts.json) {
+    out(JSON.stringify({ hosts: results, blocked }, null, 2));
+    return results;
+  }
+  const state = (r) => r.state === "reachable" ? t("hostReachable") : r.state === "blocked" ? t("hostBlocked") : t(r.failure && NO_ANSWER_KEY[r.failure] || "hostNoAnswer");
+  const hostWidth = Math.max(...results.map((r) => r.host.length)) + 2;
+  const stateWidth = Math.max(...results.map((r) => state(r).length)) + 2;
+  out(t("hostsTitle"));
+  out();
+  for (const r of results) out(`  ${pad(r.host, hostWidth)}${pad(state(r), stateWidth)}${r.reasons.map((x) => t(REASON_KEY[x])).join(", ")}`);
+  out();
+  if (!blocked.length) {
+    out(t(results.every((r) => r.state === "reachable") ? "hostsAllReachable" : "hostsNoneBlocked"));
+    return results;
+  }
+  out(t(process.env.CLAUDE_CODE_REMOTE === "true" ? "hostsAskClaude" : "hostsAsk"));
+  out(hostsLine(blocked));
+  return results;
+}
+
 // src/commands/sound.ts
-import { existsSync as existsSync18, readFileSync as readFileSync18, rmSync as rmSync6, writeFileSync as writeFileSync15 } from "fs";
+import { existsSync as existsSync21, readFileSync as readFileSync22, rmSync as rmSync7, writeFileSync as writeFileSync19 } from "fs";
 import { homedir as homedir4 } from "os";
-import { join as join21 } from "path";
+import { join as join25 } from "path";
 var SETTINGS = ".claude/settings.local.json";
 var TITLE_ENV = "CLAUDE_CODE_DISABLE_TERMINAL_TITLE";
 var AGENT_SCRIPT = ".deployai/agent-sound.mjs";
-function agentScript(sounds, config2 = join21(configDir(), "config.json")) {
+function agentScript(sounds, config2 = join25(configDir(), "config.json")) {
   return `// DeployAI's sound and tab dot for Claude Code. Written by: npx deployai@latest sound agent on. Removed by: sound agent off.
 // Stays on this computer and sends nothing. Reads the event's list of running tasks, never the prompt or the conversation.
 import { spawn } from 'node:child_process';
@@ -31021,17 +32690,17 @@ function foreignHooks(files) {
   return [...found];
 }
 function agentOn(root, opts = {}) {
-  const file2 = join21(root, SETTINGS);
+  const file2 = join25(root, SETTINGS);
   const obj = readObject(file2);
   if (!obj) throw new CliError(`${SETTINGS} is not valid JSON, so it was left as is.`, 1, "allow_file");
-  const home = process.env.CLAUDE_CONFIG_DIR || join21(opts.home ?? homedir4(), ".claude");
-  if (!opts.alongside && foreignHooks([join21(home, "settings.json"), join21(root, ".claude/settings.json"), file2]).length) return "has_own";
+  const home = process.env.CLAUDE_CONFIG_DIR || join25(opts.home ?? homedir4(), ".claude");
+  if (!opts.alongside && foreignHooks([join25(home, "settings.json"), join25(root, ".claude/settings.json"), file2]).length) return "has_own";
   writeSoundFiles();
   ensureDeployaiDir(root);
-  const script = join21(root, AGENT_SCRIPT);
+  const script = join25(root, AGENT_SCRIPT);
   const text4 = agentScript(soundsDir());
-  const scriptSame = existsSync18(script) && readFileSync18(script, "utf8") === text4;
-  if (!scriptSame) writeFileSync15(script, text4);
+  const scriptSame = existsSync21(script) && readFileSync22(script, "utf8") === text4;
+  if (!scriptSame) writeFileSync19(script, text4);
   const hooks = hooksOf(obj);
   const env = obj.env && typeof obj.env === "object" ? obj.env : {};
   let added = env[TITLE_ENV] !== "1";
@@ -31049,7 +32718,7 @@ function agentOn(root, opts = {}) {
   return added || !scriptSame ? "on" : "already";
 }
 function agentOff(root) {
-  const file2 = join21(root, SETTINGS);
+  const file2 = join25(root, SETTINGS);
   const obj = readObject(file2);
   if (!obj) throw new CliError(`${SETTINGS} is not valid JSON, so it was left as is.`, 1, "allow_file");
   const hooks = hooksOf(obj);
@@ -31071,9 +32740,9 @@ function agentOff(root) {
     else delete obj.hooks;
     writeObject(file2, obj);
   }
-  const script = join21(root, AGENT_SCRIPT);
-  if (existsSync18(script)) {
-    rmSync6(script);
+  const script = join25(root, AGENT_SCRIPT);
+  if (existsSync21(script)) {
+    rmSync7(script);
     removed = true;
   }
   return removed;
@@ -31174,13 +32843,13 @@ async function voiceCommand(root, action, value2, ctx) {
   out(t(cfg.voice === true ? soundWanted(cfg) ? "voiceOn" : "voiceNeedsSound" : "voiceOff"));
 }
 function refreshAgentScript(root) {
-  const script = join21(root, AGENT_SCRIPT);
-  if (!existsSync18(script)) return false;
+  const script = join25(root, AGENT_SCRIPT);
+  if (!existsSync21(script)) return false;
   const text4 = agentScript(soundsDir());
-  const now = readFileSync18(script, "utf8");
+  const now = readFileSync22(script, "utf8");
   if (now === text4 || !now.startsWith("// DeployAI's sound and tab dot")) return false;
   writeSoundFiles();
-  writeFileSync15(script, text4);
+  writeFileSync19(script, text4);
   return true;
 }
 
@@ -31210,1347 +32879,8 @@ async function refreshRules(root, apiUrl) {
 
 // src/commands/link.ts
 import { createInterface as createInterface3 } from "readline/promises";
-
-// src/commands/migrate.ts
-import { existsSync as existsSync21, mkdirSync as mkdirSync13, readdirSync as readdirSync7, readFileSync as readFileSync21, rmSync as rmSync7, statSync as statSync3, writeFileSync as writeFileSync19 } from "fs";
-import { dirname as dirname5, join as join24, posix, relative as relative4, resolve as resolve6, sep as sep4 } from "path";
-
-// src/commands/look.ts
-import { existsSync as existsSync19, mkdirSync as mkdirSync11, writeFileSync as writeFileSync17 } from "fs";
-import { join as join22, relative as relative3, sep as sep3 } from "path";
-
-// src/compare.ts
-import { readFileSync as readFileSync19, writeFileSync as writeFileSync16 } from "fs";
-import pixelmatch from "pixelmatch";
-import pngjs from "pngjs";
-var { PNG } = pngjs;
-var DEFAULT_MAX_DIFF = 1;
-var MAX_HEIGHT = 16e3;
-var BLOCK2 = 16;
-var COLOR_THRESHOLD = 0.1;
-var MOSTLY_MOVING = 0.5;
-function readPng(file2) {
-  const png = PNG.sync.read(readFileSync19(file2));
-  return { width: png.width, height: png.height, data: png.data };
-}
-function writePng(file2, pic) {
-  const png = new PNG({ width: pic.width, height: pic.height });
-  png.data = Buffer.from(pic.data.buffer, pic.data.byteOffset, pic.data.byteLength);
-  writeFileSync16(file2, PNG.sync.write(png));
-}
-function onCanvas(pic, width, height) {
-  if (pic.width === width && pic.height === height) return pic.data;
-  const data = new Uint8Array(width * height * 4);
-  for (let i = 0; i < data.length; i += 4) {
-    data[i] = 255;
-    data[i + 1] = 0;
-    data[i + 2] = 255;
-    data[i + 3] = 255;
-  }
-  const w = Math.min(pic.width, width);
-  for (let y = 0; y < Math.min(pic.height, height); y++) data.set(pic.data.subarray(y * pic.width * 4, (y * pic.width + w) * 4), y * width * 4);
-  return data;
-}
-var sizeOf = (...pics) => ({ width: Math.max(...pics.map((p) => p.width)), height: Math.min(MAX_HEIGHT, Math.max(...pics.map((p) => p.height))) });
-function movingMask(first, second, width, height) {
-  const out2 = new Uint8Array(width * height * 4);
-  pixelmatch(onCanvas(first, width, height), onCanvas(second, width, height), out2, width, height, { threshold: COLOR_THRESHOLD, diffMask: true });
-  const bw = Math.ceil(width / BLOCK2), bh = Math.ceil(height / BLOCK2);
-  const blocks = new Uint8Array(bw * bh);
-  for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) if (out2[(y * width + x) * 4 + 3]) blocks[Math.floor(y / BLOCK2) * bw + Math.floor(x / BLOCK2)] = 1;
-  const grown = new Uint8Array(bw * bh);
-  for (let by = 0; by < bh; by++) for (let bx = 0; bx < bw; bx++) {
-    if (!blocks[by * bw + bx]) continue;
-    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
-      const x = bx + dx, y = by + dy;
-      if (x >= 0 && y >= 0 && x < bw && y < bh) grown[y * bw + x] = 1;
-    }
-  }
-  const mask = new Uint8Array(width * height);
-  for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) mask[y * width + x] = grown[Math.floor(y / BLOCK2) * bw + Math.floor(x / BLOCK2)];
-  return mask;
-}
-function compareLook(before, after, opts = {}) {
-  const { width, height } = sizeOf(before, after);
-  const a = onCanvas(before, width, height);
-  const b = new Uint8Array(onCanvas(after, width, height));
-  const mask = new Uint8Array(width * height);
-  for (const [one, two2] of [[before, opts.beforeAgain], [after, opts.afterAgain]]) {
-    if (!two2) continue;
-    const m = movingMask(one, two2, width, height);
-    for (let i = 0; i < m.length; i++) if (m[i]) mask[i] = 1;
-  }
-  let masked = 0;
-  for (let i = 0; i < mask.length; i++) if (mask[i]) {
-    masked++;
-    b.set(a.subarray(i * 4, i * 4 + 4), i * 4);
-  }
-  const out2 = new Uint8Array(width * height * 4);
-  const changed = pixelmatch(a, b, out2, width, height, { threshold: COLOR_THRESHOLD, alpha: 0.15 });
-  for (let i = 0; i < mask.length; i++) if (mask[i]) {
-    out2[i * 4] = Math.round(out2[i * 4] * 0.4);
-    out2[i * 4 + 1] = Math.round(out2[i * 4 + 1] * 0.4 + 90);
-    out2[i * 4 + 2] = 255;
-  }
-  const compared = width * height - masked;
-  const percent = compared ? Math.round(changed / compared * 1e4) / 100 : 0;
-  const maxDiff = opts.maxDiff ?? DEFAULT_MAX_DIFF;
-  return { changed, compared, masked, percent, pass: percent <= maxDiff, mostlyMoving: masked / (width * height) > MOSTLY_MOVING, diff: { width, height, data: out2 } };
-}
-
-// src/commands/look.ts
-var BEFORE_DIR = join22(".deployai", "migration", "before");
-var AFTER_DIR = join22(".deployai", "migration", "after");
-var REPORT = join22(".deployai", "migration", "compare.json");
-function previewAddress(preview, path) {
-  const u = new URL(path, preview.origin);
-  const token = preview.searchParams.get("deployai_preview");
-  if (token) u.searchParams.set("deployai_preview", token);
-  return u.toString();
-}
-var rel = (root, file2) => relative3(root, file2).split(sep3).join("/");
-var readOrNull = (file2) => {
-  try {
-    return file2 && existsSync19(file2) ? readPng(file2) : null;
-  } catch {
-    return null;
-  }
-};
-function parseMaxDiff(raw) {
-  if (raw === void 0) return DEFAULT_MAX_DIFF;
-  const n2 = typeof raw === "number" ? raw : Number(String(raw).replace(/%$/, ""));
-  if (!Number.isFinite(n2) || n2 < 0 || n2 > 100) throw new CliError("--max-diff is a percent from 0 to 100, like 1 or 0.5.", 1, "usage");
-  return n2;
-}
-async function compareLooks(root, previewRaw, opts = {}, shoot = shotCommand) {
-  let preview;
-  try {
-    preview = new URL(/^https?:\/\//.test(previewRaw) ? previewRaw : `https://${previewRaw}`);
-  } catch {
-    throw new CliError(`Not an address: ${previewRaw}. Use the preview address deploy printed.`, 1, "usage");
-  }
-  const beforeDir = join22(root, BEFORE_DIR);
-  const before = readShotIndex(beforeDir);
-  if (!before.length) return null;
-  const afterDir = join22(root, AFTER_DIR);
-  mkdirSync11(afterDir, { recursive: true });
-  const maxDiff = opts.maxDiff ?? DEFAULT_MAX_DIFF;
-  const lines = [];
-  const say = (line) => {
-    if (!opts.json) out(line);
-  };
-  say(`Measuring ${new Set(before.map((e3) => e3.url)).size} pages against their before pictures, at most ${maxDiff}% changed:`);
-  for (const url2 of [...new Set(before.map((e3) => e3.url))]) {
-    const old = new URL(url2);
-    const path = old.pathname + old.search + old.hash;
-    const address = previewAddress(preview, path);
-    let shot = true;
-    try {
-      await shoot(root, address, { out: AFTER_DIR, again: true, quiet: true });
-    } catch {
-      shot = false;
-    }
-    for (const entry of before.filter((e3) => e3.url === url2)) {
-      const beforeFile = join22(beforeDir, entry.file);
-      const afterFile = join22(afterDir, shotName(address, entry.width));
-      const base = { page: path, width: entry.width, before: rel(root, beforeFile), mostlyMoving: false };
-      const b = readOrNull(beforeFile);
-      const a = shot ? readOrNull(afterFile) : null;
-      if (!b || !a) {
-        lines.push({ ...base, percent: null, maskedPercent: null, pass: false, after: a ? rel(root, afterFile) : null, diff: null, problem: a ? "unreadable" : "no_after" });
-        say(`  ${path}  ${entry.width.padEnd(7)}  ${a ? "the before picture cannot be read: take it again" : "no picture of the preview page: check that it opens"}  FAIL`);
-        continue;
-      }
-      const result = compareLook(b, a, { beforeAgain: readOrNull(entry.again ? join22(beforeDir, entry.again) : null), afterAgain: readOrNull(againName(afterFile)), maxDiff });
-      const diffFile = afterFile.replace(/\.png$/i, ".diff.png");
-      writePng(diffFile, result.diff);
-      const total = result.compared + result.masked;
-      const maskedPercent = total ? Math.round(result.masked / total * 1e3) / 10 : 0;
-      lines.push({ ...base, percent: result.percent, maskedPercent, pass: result.pass, mostlyMoving: result.mostlyMoving, after: rel(root, afterFile), diff: rel(root, diffFile) });
-      say(`  ${path}  ${entry.width.padEnd(7)}  ${result.percent.toFixed(2)}% changed${maskedPercent ? `, ${maskedPercent}% moves by itself` : ""}  ${result.pass ? "pass" : "FAIL"}  ${rel(root, diffFile)}`);
-    }
-  }
-  const report2 = { checkedAt: (/* @__PURE__ */ new Date()).toISOString(), preview: preview.origin, maxDiff, pass: lines.every((l) => l.pass), pages: lines };
-  writeFileSync17(join22(root, REPORT), JSON.stringify(report2, null, 2) + "\n");
-  if (opts.json) out(JSON.stringify(report2));
-  else {
-    if (lines.some((l) => l.mostlyMoving)) say("Most of a page moves by itself, so its number says little: look at that page yourself too.");
-    if (report2.pass) say("Every page looks as on the old site.");
-    else say(`Open each .diff.png that failed: red changed, blue moves by itself and is left out. Make the page match the old one (only a credit or a part marked Partly moved may differ), deploy again and run this again.`);
-  }
-  if (!report2.pass) {
-    blockedBy("look_differs");
-    process.exitCode = 1;
-  }
-  return report2;
-}
-async function migrateCompareCommand(root, previewRaw, opts = {}, shoot = shotCommand) {
-  const report2 = await compareLooks(root, previewRaw, { maxDiff: parseMaxDiff(opts.maxDiff), json: opts.json }, shoot);
-  if (!report2) throw new CliError("No before pictures yet. On the old site, for the home page and one page of each kind, run: npx deployai@latest shot <old page address> --out .deployai/migration/before --again", 1, "usage");
-}
-
-// src/commands/render.ts
-import { existsSync as existsSync20, mkdirSync as mkdirSync12, readFileSync as readFileSync20, writeFileSync as writeFileSync18 } from "fs";
-import { tmpdir as tmpdir4 } from "os";
-import { join as join23 } from "path";
-var RENDERER = String.raw`const fs = require('fs'), path = require('path');
-const a = process.argv.slice(2), opt = (k) => (a.find((x) => x.startsWith('--' + k + '=')) || '').split('=').slice(1).join('=');
-const [listFile, outDir] = a.filter((x) => !x.startsWith('--'));
-const bin = (process.env.PATH || '').split(path.delimiter).find((d) => fs.existsSync(path.join(d, '..', 'playwright', 'package.json')));
-const pw = require(path.join(bin, '..', 'playwright'));
-(async () => {
-  const urls = JSON.parse(fs.readFileSync(listFile, 'utf8'));
-  const browser = await pw.chromium.launch(opt('exec') ? { executablePath: opt('exec') } : { channel: opt('channel') || undefined });
-  const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, serviceWorkers: 'block' });
-  const done = [];
-  for (let i = 0; i < urls.length; i++) {
-    const url = urls[i];
-    const host = new URL(url).hostname.replace(/^www\./, '');
-    const asked = new Set();
-    const page = await context.newPage();
-    page.on('request', (r) => { try { const u = new URL(r.url()); if (/^https?:$/.test(u.protocol) && u.hostname.replace(/^www\./, '') === host) { u.hash = ''; asked.add(u.toString()); } } catch {} });
-    try {
-      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
-      await page.waitForLoadState('load', { timeout: 15000 }).catch(() => {});
-      await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});
-      await page.waitForTimeout(800);
-      const file = 'page-' + i + '.html';
-      fs.writeFileSync(path.join(outDir, file), await page.content());
-      done.push({ url, file, finalUrl: page.url(), asked: [...asked] });
-    } catch (e) {
-      done.push({ url, file: null, error: String(e && e.message || e).split(String.fromCharCode(10))[0], asked: [...asked] });
-    }
-    await page.close().catch(() => {});
-    fs.writeFileSync(path.join(outDir, 'rendered.json'), JSON.stringify(done));
-  }
-  await browser.close();
-})().catch(() => process.exit(1));
-`;
-async function engine(run) {
-  const browser = findBrowser();
-  if (!browser) return await run(["--yes", PLAYWRIGHT, "install", "chromium"]) === 0 ? [] : null;
-  const channel = channelFor(browser);
-  return channel ? [`--channel=${channel}`] : [`--exec=${browser}`];
-}
-var waitFor = (pages) => Math.min(25 * 6e4, 6e4 + pages * 8e3);
-async function renderPages(urls, outDir, run = runNpx) {
-  if (!urls.length) return [];
-  try {
-    const args = await engine(run);
-    if (!args) return [];
-    mkdirSync12(outDir, { recursive: true });
-    const list = join23(outDir, "urls.json");
-    writeFileSync18(list, JSON.stringify(urls));
-    const script = join23(tmpdir4(), "deployai-render.cjs");
-    writeFileSync18(script, RENDERER);
-    await run(["--yes", "-p", PLAYWRIGHT, "node", script, ...args, list, outDir], waitFor(urls.length));
-    const index = join23(outDir, "rendered.json");
-    if (!existsSync20(index)) return [];
-    const done = JSON.parse(readFileSync20(index, "utf8"));
-    return done.map((d) => ({ url: d.url, html: d.file && existsSync20(join23(outDir, d.file)) ? readFileSync20(join23(outDir, d.file), "utf8") : null, finalUrl: d.finalUrl ?? null, asked: Array.isArray(d.asked) ? d.asked : [] }));
-  } catch {
-    return [];
-  }
-}
-
-// src/commands/migrate.ts
-var UA = `deployai-migrate/${CLI_VERSION} (+https://deployai.co.il/move)`;
-var PAGE_CAP = 1e3;
-var WP_PAGE_CAP = 50;
-var MEDIA_FILE_CAP = 25 * 1024 * 1024;
-var MEDIA_TOTAL_CAP = 1024 * 1024 * 1024;
-var PAUSE_MS = 150;
-var SCAN_WORKERS = 4;
-var START_SCAN_PAGES = 300;
-var RENDER_PAGES = 60;
-var RENDER_ROUTES = 40;
-var MEDIA_ENDING = /\.(jpe?g|png|gif|webp|avif|svg|ico|woff2?|ttf|otf|mp3|m4a|ogg|wav|mp4|webm|pdf)$/i;
-var sleep3 = (ms2) => new Promise((r) => setTimeout(r, ms2));
-var hostDir = (root, host) => join24(root, MIGRATION_DIR, host.replace(/^www\./, ""));
-var readJson3 = (file2) => {
-  try {
-    return readJson(file2);
-  } catch {
-    return null;
-  }
-};
-var writeJson = (file2, data) => {
-  mkdirSync13(dirname5(file2), { recursive: true });
-  writeFileSync19(file2, JSON.stringify(data, null, 2) + "\n");
-};
-async function get(url2, accept = "text/html,application/xhtml+xml,*/*;q=0.8", redirect = "follow", cookie) {
-  try {
-    return await fetch(url2, { headers: { "User-Agent": UA, Accept: accept, ...cookie ? { Cookie: cookie } : {} }, redirect, signal: AbortSignal.timeout(3e4) });
-  } catch {
-    return null;
-  }
-}
-function scannedHosts(root) {
-  const dir = join24(root, MIGRATION_DIR);
-  if (!existsSync21(dir)) return [];
-  return readdirSync7(dir).filter((h) => existsSync21(join24(dir, h, "inventory.json")));
-}
-async function migrateStatusCommand(root, ctx, stage, note) {
-  if (!isAgentStage(stage)) throw new CliError(`Unknown stage: ${stage}. One of: ${AGENT_STAGES.join(", ")}.`, 1, "usage");
-  const choices = readChoices(root);
-  if (!choices?.startId || !choices.requestId) {
-    out("This folder is not a managed move, so there is no request to update. Nothing was sent.");
-    return;
-  }
-  await apiRequest(ctx, "/api/migrations/progress", null, { method: "POST", auth: false, body: { startId: choices.startId, stage, note: stageNote(note) } });
-  out(`Reported: ${stage}${note ? ` (${stageNote(note)})` : ""}.`);
-}
-function readChoices(root) {
-  return readJson3(join24(root, MIGRATION_DIR, "choices.json"));
-}
-function writeChoices(root, choices) {
-  ensureMigrationDir(root);
-  writeJson(join24(root, MIGRATION_DIR, "choices.json"), choices);
-}
-function ensureMigrationDir(root) {
-  ensureDeployaiDir(root);
-  const dir = join24(root, MIGRATION_DIR);
-  mkdirSync13(dir, { recursive: true });
-  const ignore = join24(dir, ".gitignore");
-  if (!existsSync21(ignore)) writeFileSync19(ignore, "*/media/\n*/media-state.json\n");
-}
-function sameAddress(from, to) {
-  try {
-    const a = new URL(from);
-    const b = new URL(to, from);
-    const host = (u) => u.hostname.replace(/^www\./, "");
-    const path = (u) => u.pathname.replace(/\/+$/, "");
-    return host(a) === host(b) && path(a) === path(b) && a.search === b.search;
-  } catch {
-    return false;
-  }
-}
-async function sitemapUrls(base, robotsSitemaps, enough) {
-  const own2 = [`${base}/wp-sitemap.xml`, `${base}/sitemap_index.xml`, `${base}/sitemap.xml`];
-  const prefix = new URL(base).pathname.replace(/\/$/, "");
-  const queue = prefix ? [...own2, ...robotsSitemaps] : robotsSitemaps.length ? [...robotsSitemaps] : own2;
-  const host = new URL(base).hostname.replace(/^www\./, "");
-  const inSite = (u) => u.hostname.replace(/^www\./, "") === host && (!prefix || u.pathname === prefix || u.pathname.startsWith(`${prefix}/`));
-  const seen = /* @__PURE__ */ new Set();
-  const found = [];
-  const urls = /* @__PURE__ */ new Set();
-  while (queue.length && seen.size < 200 && urls.size < enough) {
-    const next = queue.shift();
-    if (seen.has(next)) continue;
-    seen.add(next);
-    const res = await get(next, "application/xml,text/xml,*/*;q=0.5");
-    if (!res?.ok) continue;
-    const xml2 = await res.text();
-    if (!/<(urlset|sitemapindex)\b/i.test(xml2)) continue;
-    found.push(next);
-    const parsed = parseSitemapXml(xml2);
-    queue.push(...parsed.sitemaps);
-    for (const u of parsed.urls) {
-      try {
-        if (inSite(new URL(u))) urls.add(u);
-      } catch {
-      }
-    }
-    await sleep3(PAUSE_MS);
-  }
-  return { urls: [...urls], sitemaps: found };
-}
-function homeLinks(html, origin) {
-  const host = new URL(origin).hostname;
-  const out2 = /* @__PURE__ */ new Set();
-  for (const m of html.matchAll(/<a\b[^>]*href=["']([^"'#]+)/gi)) {
-    try {
-      const u = new URL(m[1], origin);
-      if (u.hostname === host && !/\.(jpe?g|png|gif|webp|svg|pdf|zip|mp4|mp3)$/i.test(u.pathname)) out2.add(u.origin + u.pathname + u.search);
-    } catch {
-    }
-  }
-  return [...out2];
-}
-async function wordpressContent(base, dir) {
-  const probe = await get(`${base}/wp-json/wp/v2/types`, "application/json");
-  if (!probe?.ok || !(probe.headers.get("content-type") ?? "").includes("json")) return false;
-  const types = ["pages", "posts", "categories", "tags", "media", "users", "product"];
-  for (const type of types) {
-    const items = [];
-    for (let page3 = 1; page3 <= WP_PAGE_CAP; page3++) {
-      const res = await get(`${base}/wp-json/wp/v2/${type}?per_page=100&page=${page3}`, "application/json");
-      if (!res?.ok) break;
-      const batch = await res.json().catch(() => null);
-      if (!Array.isArray(batch) || !batch.length) break;
-      items.push(...batch);
-      if (batch.length < 100) break;
-      await sleep3(PAUSE_MS);
-    }
-    if (items.length) {
-      writeJson(join24(dir, "content", `${type}.json`), items);
-      out(`  ${type}: ${items.length}`);
-    }
-  }
-  const posts = readJson3(join24(dir, "content", "posts.json"));
-  if (posts?.length) {
-    const files = wpPostsToMarkdown({ origin: new URL(base).origin, posts, categories: readJson3(join24(dir, "content", "categories.json")) ?? [], tags: readJson3(join24(dir, "content", "tags.json")) ?? [], users: readJson3(join24(dir, "content", "users.json")) ?? [], media: readJson3(join24(dir, "content", "media.json")) ?? [] });
-    mkdirSync13(join24(dir, "posts"), { recursive: true });
-    const postsDir = resolve6(dir, "posts");
-    for (const f of files) {
-      const target = resolve6(postsDir, f.file);
-      if (dirname5(target) !== postsDir) continue;
-      writeFileSync19(target, f.text);
-    }
-    out(`  posts as Markdown: ${files.length}`);
-  }
-  return true;
-}
-function pageAssets(html, base) {
-  const found = /* @__PURE__ */ new Set();
-  const add2 = (u) => {
-    if (!u || u.startsWith("data:")) return;
-    try {
-      found.add(new URL(u.trim(), base).toString());
-    } catch {
-    }
-  };
-  for (const m of html.matchAll(/<img\b[^>]*>/gi)) {
-    add2(m[0].match(/\ssrc=["']([^"']+)/i)?.[1]);
-    const set2 = m[0].match(/\ssrcset=["']([^"']+)/i)?.[1];
-    if (set2) add2(set2.split(",").map((s) => s.trim().split(/\s+/)[0]).pop());
-  }
-  add2(html.match(/<meta[^>]+property=["']og:image["'][^>]*content=["']([^"']+)/i)?.[1]);
-  for (const m of html.matchAll(/url\(["']?([^"')]+\.(?:jpe?g|png|gif|webp|svg|avif))/gi)) add2(m[1]);
-  const own2 = (u) => {
-    if (!u) return;
-    try {
-      if (new URL(u.trim(), base).hostname.replace(/^www\./, "") === new URL(base).hostname.replace(/^www\./, "")) add2(u);
-    } catch {
-    }
-  };
-  for (const m of html.matchAll(/<script\b[^>]*\ssrc=["']([^"']+)/gi)) own2(m[1]);
-  for (const u of stylesheetLinks(html, base, 50)) own2(u);
-  return [...found];
-}
-function stylesheetAssets(css, cssUrl) {
-  const host = new URL(cssUrl).hostname.replace(/^www\./, "");
-  const found = /* @__PURE__ */ new Set();
-  for (const m of css.matchAll(/url\(\s*["']?([^"')]+)/gi)) {
-    const u = m[1].trim();
-    if (u.startsWith("data:") || u.startsWith("#")) continue;
-    try {
-      const url2 = new URL(u, cssUrl);
-      url2.hash = "";
-      if (!url2.search) url2.search = "";
-      if (/^https?:$/.test(url2.protocol) && url2.hostname.replace(/^www\./, "") === host) found.add(url2.toString());
-    } catch {
-    }
-  }
-  return [...found];
-}
-async function addStylesheetAssets(assets) {
-  for (const url2 of [...assets].filter((a) => /\.css(\?|$)/i.test(a)).slice(0, 50)) {
-    const res = await get(url2, "text/css,*/*;q=0.8");
-    if (!res?.ok) continue;
-    stylesheetAssets(await res.text(), url2).forEach((a) => assets.add(a));
-    await sleep3(PAUSE_MS);
-  }
-}
-var ICON_MAX_BYTES = 2 * 1024 * 1024;
-async function saveOldIcons(html, pageUrl, origin, dir) {
-  const wanted = [];
-  const add2 = (href, kind) => {
-    if (!href) return;
-    try {
-      const url2 = new URL(href, pageUrl).toString();
-      if (!wanted.some((w) => w.url === url2)) wanted.push({ url: url2, kind });
-    } catch {
-    }
-  };
-  iconLinks(html).forEach((h) => add2(h, "icon"));
-  add2(`${origin}/favicon.ico`, "icon");
-  add2(logoInPage(html), "logo");
-  const saved = [];
-  const icons = join24(dir, "icons");
-  for (const w of wanted.slice(0, 6)) {
-    const res = await get(w.url, "image/*,*/*;q=0.8");
-    if (!res?.ok) continue;
-    const bytes = Buffer.from(await res.arrayBuffer());
-    if (bytes.length > ICON_MAX_BYTES) continue;
-    const size = imageSize(bytes);
-    const svg = !size && isSvgText(bytes.subarray(0, 2048).toString("utf8"));
-    if (!size && !svg) continue;
-    const file2 = `${saved.length + 1}-${w.kind}.${svg ? "svg" : size?.format === "jpeg" ? "jpg" : size?.format}`;
-    mkdirSync13(icons, { recursive: true });
-    writeFileSync19(join24(icons, file2), bytes);
-    saved.push({ file: file2, kind: w.kind });
-  }
-  if (saved.length) writeFileSync19(join24(icons, "icons.json"), JSON.stringify(saved, null, 2));
-  return saved.length;
-}
-async function saveOldStyles(html, pageUrl, dir) {
-  const styles = join24(dir, "styles");
-  let n2 = 0;
-  for (const url2 of stylesheetLinks(html, pageUrl, 6)) {
-    const res = await get(url2, "text/css,*/*;q=0.8");
-    if (!res?.ok) continue;
-    const text4 = await res.text();
-    if (text4.length > ICON_MAX_BYTES) continue;
-    mkdirSync13(styles, { recursive: true });
-    writeFileSync19(join24(styles, `${++n2}.css`), text4);
-  }
-}
-var TRIGGER_PAGES_CAP = 30;
-async function readContainers(html, site) {
-  const page3 = scanPageTags(html, "https://home.invalid/");
-  const triggers = [];
-  const hosts = ["www.googletagmanager.com", ...page3.serverContainers];
-  for (const id2 of new Set(page3.tags.filter((t) => t.key === "gtm" && t.id).map((t) => t.id))) {
-    let read2 = null;
-    for (const host of hosts) {
-      const res = await get(`https://${host}/gtm.js?id=${encodeURIComponent(id2)}`, "*/*");
-      read2 = res?.ok ? readContainer(await res.text(), id2) : null;
-      if (read2) break;
-    }
-    if (!read2) {
-      site.unreadContainers.push(id2);
-      continue;
-    }
-    for (const tag of read2.tags) addFoundTag(site, tag, "container", null);
-    triggers.push(...read2.triggers);
-  }
-  return triggers;
-}
-async function hasRootFile(origin, path, query = "", cookie) {
-  const res = await get(`${origin}${path}${query}`, "*/*", "follow", cookie);
-  return Boolean(res?.ok && !/text\/html/i.test(res.headers.get("content-type") ?? ""));
-}
-var tagsFile = (dir) => join24(dir, "tags.json");
-var stateFile = (dir) => join24(dir, "report-state.json");
-function kitMap(root) {
-  if (!existsSync21(join24(root, "src/kit/schema.ts"))) return {};
-  const cut = (s, n2) => String(s ?? "").slice(0, n2);
-  const pages = (readJson3(join24(root, MOVED_PAGES_FILE)) ?? []).slice(0, 150).map((p) => ({ path: cut(p.path, 300), title: cut(p.title, 80), inNav: Boolean(p.inNav) }));
-  const posts = readJson3(join24(root, "src/kit/moved-posts.json")) ?? [];
-  const docs = [...new Set((readJson3(join24(root, MOVED_LEGAL_FILE))?.docs ?? []).map((d) => d.key).filter((k) => k === "privacy" || k === "terms" || k === "cancellation"))];
-  const forms = (readJson3(join24(root, "src/kit/forms.json")) ?? []).filter((f) => /^[a-z0-9-]{1,40}$/.test(f.key ?? "")).slice(0, 30).map((f) => ({
-    key: f.key,
-    label: cut(f.label, 80),
-    ...f.page ? { page: cut(f.page, 300) } : {},
-    ...f.thanks ? { thanks: cut(f.thanks, 300) } : {},
-    fields: [.../* @__PURE__ */ new Set([...Object.values(f.map ?? {}), ...Object.keys(f.labels ?? {})])].map((x) => cut(x, 60)).slice(0, 40)
-  }));
-  return { kit: { pages, posts: posts.slice(0, 300).map((p) => ({ path: cut(p.path || `/blog/${p.slug}`, 300), title: cut(p.title, 200) })), postsTotal: posts.length, docs, forms } };
-}
-function profileOfReport(inv) {
-  if (!inv.profile) return {};
-  const p = inv.profile;
-  return {
-    siteKinds: p.kinds.slice(0, 4),
-    siteFeatures: p.features.slice(0, 10).map((f) => ({ key: f.key, pages: f.pages.slice(0, 10).map((x) => x.slice(0, 300)), providers: f.providers.slice(0, 10).map((x) => x.slice(0, 60)) })),
-    connectFirst: p.connectFirst.slice(0, 20).map((c) => ({ feature: c.feature, provider: c.provider ? c.provider.slice(0, 60) : null }))
-  };
-}
-async function sendReport(root, ctx, host, open2, verify) {
-  const dir = hostDir(root, host);
-  const inv = readJson3(join24(dir, "inventory.json"));
-  const site = readJson3(tagsFile(dir));
-  const startId = readChoices(root)?.startId;
-  if (!inv || !site) return;
-  const dns = readJson3(join24(dir, "dns.json"));
-  const thanksPages = findThanksPages(inv.pages);
-  if (open2 === "scan") {
-    if (thanksPages.length && site.forms.length) {
-      const titled = thanksPages.map((p) => {
-        const t = inv.pages.find((x) => x.path === p)?.title;
-        return t ? `${p} (${t})` : p;
-      });
-      out();
-      out(`Thank you pages on the old site: ${titled.join(", ")}. Keep each at its address. In src/kit/forms.json, give each form the one whose title fits it as its thank you page; a form no page fits shows the thank you message on its own page. Do not ask the owner: name in the plan which page each form opens.`);
-    }
-    const questions = moveQuestions({ plugins: site.plugins, platform: inv.platform, tags: site.tags, forms: site.forms, triggers: site.triggers, verification: site.verification, serverContainers: site.serverContainers, thanksPages, dns });
-    if (questions.length) {
-      out();
-      out("The scan cannot see these. Ask the owner, in plain words, and record each answer. Not sure keeps the old site as it is:");
-      if (questions.includes("serverPixel")) out(`  Does the site send conversions to Meta or Google from the server?${site.plugins.length ? ` (signs: ${site.plugins.join(", ")})` : ""} npx deployai@latest migrate tags --answer serverPixel=yes`);
-      if (questions.includes("thankYou")) out("  Does a page open after sending the form, and what is its address? npx deployai@latest migrate tags --answer thankYou=yes");
-      if (questions.includes("verificationFile")) out("  Was the site verified in Google Search Console with a file, and what is its name? npx deployai@latest migrate tags --answer verificationFile=yes");
-    }
-  }
-  if (open2 === "scan") {
-    const on = dashboardParts({ forms: site.forms, pages: inv.pages });
-    out();
-    out(`This move gets the site's own free dashboard, in place of the old platform's admin. Add a Site dashboard row to the plan. Turn on in it: pages, accessibility, legal${on.length ? `, ${on.join(", ")}` : ""}.`);
-  }
-  if (!startId || !ctx) {
-    out("The move report needs a start from the DeployAI site, so none was made here. Tell the owner the lists above in plain words.");
-    return;
-  }
-  const state = readJson3(stateFile(dir)) ?? {};
-  const plan = existsSync21(join24(root, MIGRATION_DIR, "plan.md")) ? readFileSync21(join24(root, MIGRATION_DIR, "plan.md"), "utf8") : "";
-  const saved = verify ?? readJson3(join24(dir, "verify-report.json"))?.report ?? null;
-  const assets = readJson3(join24(dir, "assets.json")) ?? [];
-  const report2 = {
-    source: inv.source,
-    platform: inv.platform,
-    scannedAt: inv.scannedAt,
-    pages: { total: inv.pages.length, broken: inv.pages.filter((p) => p.status >= 400).length, skipped: inv.skipped },
-    files: assets.length,
-    ...reportOfTags(site),
-    ...thanksPages.length ? { thanksPages } : {},
-    dns: dns ?? null,
-    features: parsePlanFeatures(plan),
-    ...profileOfReport(inv),
-    ...state.answers ? { answers: state.answers } : {},
-    ...kitMap(root),
-    verify: saved ? { ...saved, removed: state.removed ?? saved.removed, ...state.fired?.length ? { fired: state.fired } : {} } : null
-  };
-  if (Buffer.byteLength(JSON.stringify(report2)) > MOVE_REPORT_MAX_BYTES) report2.dns = null;
-  let url2 = state.url;
-  try {
-    const send2 = () => apiRequest(ctx, "/api/migrations/report", null, { method: "POST", auth: false, body: { startId, host, report: report2 } });
-    const r = await send2().catch(async () => {
-      await sleep3(2500);
-      return send2();
-    });
-    url2 = r.url ?? url2;
-  } catch (e3) {
-    out(`The move report could not be sent (${e3.message}). Nothing is lost: run npx deployai@latest migrate report to try again.`);
-    return;
-  }
-  if (!url2) return;
-  const opened = new Set(state.opened ?? []);
-  const firstTime = open2 && !opened.has(open2);
-  if (firstTime) opened.add(open2);
-  writeJson(stateFile(dir), { ...state, url: url2, opened: [...opened] });
-  const browser = firstTime ? openBrowser(url2) : false;
-  out();
-  out(`Move report for the owner${browser ? " (opened in the browser)" : ""}: ${url2}`);
-  if (firstTime) out("Give the owner this link in one line. It only shows what we found and what moved, and it updates by itself: anything that needs the owner, you ask in the chat.");
-  if (open2 === "verify") for (const line of reportAsksLines(report2)) out(line);
-}
-var ASK_WORDS = {
-  serverPixel: "Does the site send conversions to Meta or Google from the server?",
-  thankYou: "Does a page open after sending the form, and what is its address?",
-  verificationFile: "Was the site verified in Google Search Console with a file, and what is its name?"
-};
-function reportAsksLines(report2) {
-  const tries = selfChecks(report2).map((c) => {
-    const id2 = c.detail ? ` (${c.detail})` : "";
-    switch (c.kind) {
-      case "replaced":
-        return `${c.name}: now ${c.detail ?? "ours"}. Try that it does the same job on the preview.`;
-      case "arrive":
-        return `${c.name}${id2}: open the preview, then see the visit arrive in ${c.name}.`;
-      case "form":
-        return "The form: send one test message from the preview and see it arrive by email and in the dashboard, Messages.";
-      case "tap":
-        return `${c.name}${id2}: tap it once on a phone and see the chat or call open with the right number.`;
-      case "outside":
-        return `${c.name}: a service our checks do not cover. See that its part of the page works on the preview.`;
-      case "page":
-        return `${c.name}: open this address on the preview.`;
-    }
-  });
-  const waiting = moveWaiting(report2, report2.answers ?? {});
-  const asks = [...waiting.todo.map((f) => `${f.name}${f.note ? `: ${f.note}` : ""}`), ...waiting.questions.filter((q) => !q.answer).map((q) => `${ASK_WORDS[q.key]} npx deployai@latest migrate tags --answer ${q.key}=yes|no|unsure`)];
-  const lines = [];
-  if (tries.length) lines.push("", `The report lists ${tries.length} things for the owner to try on the preview. In the same message as the link, name each in plain words, one short line each, and say they tick them on the site's Move tab:`, ...tries.map((x) => `  ${x}`));
-  if (asks.length) lines.push("", "The report says these wait for the owner. Ask about each in the chat now, so nothing on the report is new to them:", ...asks.map((x) => `  ${x}`));
-  return lines;
-}
-function renderedName(path, taken) {
-  const slug = (x) => x.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "");
-  const [main2, route = ""] = path.split("#");
-  const base = `${slug(main2.replace(/\/+$/, "")) || "home"}${route ? `-route-${slug(route)}` : ""}`.slice(0, 100);
-  let name = `${base}.html`;
-  for (let n2 = 2; taken.has(name); n2++) name = `${base}-${n2}.html`;
-  taken.add(name);
-  return name;
-}
-async function readInBrowser(input2) {
-  const { list, bodies, pages, assets, site, profileScan, dir, origin } = input2;
-  const folder = join24(dir, "rendered");
-  rmSync7(folder, { recursive: true, force: true });
-  const work = join24(folder, ".work");
-  const first = await renderPages(list.slice(0, RENDER_PAGES), join24(work, "pages"));
-  const homeRaw = bodies[0] ?? "";
-  const home = first.find((r) => r.url === list[0])?.html ?? "";
-  const isApp = Boolean(home) && appShell(homeRaw) && drawnInBrowser(homeRaw, home);
-  const routes = isApp ? hashRoutes(home).slice(0, RENDER_ROUTES) : [];
-  const second = routes.length ? await renderPages(routes.map((r) => `${origin}/${r}`), join24(work, "routes")) : [];
-  const files = /* @__PURE__ */ new Set();
-  const index = [];
-  const taken = /* @__PURE__ */ new Set();
-  for (const r of [...first, ...second]) {
-    for (const a of r.asked) {
-      files.add(a);
-      if (MEDIA_ENDING.test(new URL(a).pathname)) assets.add(a);
-    }
-    if (!r.html) continue;
-    const i = list.indexOf(r.url);
-    const u = new URL(r.url);
-    const path = i >= 0 ? pages[i].path : `${u.pathname}${u.search}${u.hash}`;
-    const raw = i >= 0 ? bodies[i] ?? "" : homeRaw;
-    const drawn = drawnInBrowser(raw, r.html);
-    const file2 = renderedName(path, taken);
-    writeFileSync19(join24(folder, file2), r.html);
-    index.push({ path, file: file2, drawn });
-    pageAssets(r.html.replace(/&quot;/g, '"'), r.url).forEach((a) => assets.add(a));
-    addPageTags(site, scanPageTags(r.html, r.url), u.pathname + u.search);
-    if (i >= 0 && drawn) {
-      const seo = readPageSeo(r.html);
-      const p = pages[i];
-      pages[i] = { ...p, drawn: true, title: p.title ?? seo.title ?? null, description: p.description ?? seo.description ?? null, h1: seo.h1[0] ?? p.h1, lang: p.lang ?? seo.lang ?? null };
-      addPageProfile(profileScan, r.html, p.path);
-    }
-  }
-  rmSync7(work, { recursive: true, force: true });
-  if (index.length) writeJson(join24(folder, "index.json"), index);
-  return { rendered: index.length, app: isApp ? { routes, files: [...files].sort() } : null };
-}
-async function migrateScanCommand(root, raw, opts = {}) {
-  const source = normalizeSourceUrl(raw);
-  if (!source) throw new CliError(`Not a site address: ${raw}. Use the full address, for example https://example.co.il`, 1, "usage");
-  if (isBlockedMoveSite(source)) throw new CliError("We do not move sites of banks, hospitals, health funds, insurers, payment services or government bodies. Tell the owner this in one line and stop.", 1, "blocked_site");
-  const home = await get(source);
-  if (!home) throw new CliError(`Could not reach ${source}. Check the address, or that the site is up.`, 1, "network");
-  if (home.status === 401 || home.status === 403) throw new CliError(`${source} answers ${home.status}: it is behind a login or a security check. If it opens in a browser, open it in your browser tool, ask the owner to pass any check in that window, and read the pages there (recommended). Else ask the owner to pause the check while it moves, or work from their export.`, 1, "blocked", "source_closed");
-  const origin = new URL(home.url).origin;
-  const base = (origin + new URL(home.url).pathname).replace(/\/+$/, "");
-  const html = await home.text();
-  const headers = Object.fromEntries(home.headers.entries());
-  const platform3 = detectPlatform(html, headers);
-  const host = new URL(origin).hostname;
-  ensureMigrationDir(root);
-  const dir = hostDir(root, host);
-  mkdirSync13(dir, { recursive: true });
-  out(`Scanning ${base} (${platform3})`);
-  const robotsRes = await get(`${origin}/robots.txt`, "text/plain");
-  const robots = robotsRes?.ok ? await robotsRes.text() : "";
-  if (robots) writeFileSync19(join24(dir, "robots.txt"), robots);
-  const cap = Math.min(opts.max ?? PAGE_CAP, PAGE_CAP);
-  const fromSitemaps = await sitemapUrls(base, robots ? parseRobots(robots).sitemaps : [], cap * 5);
-  const all = [.../* @__PURE__ */ new Set([`${base}/`, ...fromSitemaps.urls, ...fromSitemaps.urls.length ? [] : homeLinks(html, base)])];
-  const list = all.slice(0, cap);
-  out(`  sitemaps: ${fromSitemaps.sitemaps.length}, addresses: ${all.length}${all.length > cap ? ` (the first ${cap} are read)` : ""}`);
-  const pages = new Array(list.length);
-  const assets = /* @__PURE__ */ new Set();
-  const bodies = [];
-  const site = emptySiteTags();
-  const containerTriggers = await readContainers(html, site);
-  const inUse = /* @__PURE__ */ new Set();
-  const profileScan = emptyProfileScan();
-  let next = 0;
-  let read2 = 0;
-  const worker = async () => {
-    while (next < list.length) {
-      const i = next++;
-      const url2 = list[i];
-      let res = i === 0 ? null : await get(url2, void 0, "manual");
-      const moved = res && res.status >= 300 && res.status < 400 ? res.headers.get("location") : null;
-      if (moved && sameAddress(url2, moved)) res = await get(new URL(moved, url2).href);
-      const status = i === 0 ? home.status : res?.status ?? 0;
-      if (i && res) addClosedPage(profileScan, pathOf(url2), status, res.headers.get("location"));
-      const body = i === 0 ? html : res && res.ok ? await res.text() : "";
-      if (i < RENDER_PAGES) bodies[i] = body;
-      const seo = body ? readPageSeo(body) : null;
-      pages[i] = { path: pathOf(url2), status, title: seo?.title ?? null, description: seo?.description ?? null, canonical: seo?.canonical ?? null, h1: seo?.h1[0] ?? null, lang: seo?.lang ?? null };
-      if (body) pageAssets(body, url2).forEach((a) => assets.add(a));
-      if (body) {
-        addPageProfile(profileScan, body, pathOf(url2));
-        addPageTags(site, scanPageTags(body, url2), pathOf(url2));
-        for (const t of containerTriggers) {
-          if (inUse.has(t) || t.type === "page") continue;
-          if (t.type === "selector" ? selectorInPage(t.value, body) === true : body.includes(t.value)) inUse.add(t);
-        }
-      }
-      if (++read2 % 50 === 0) out(`  pages read: ${read2} of ${list.length}`);
-      if (i) await sleep3(PAUSE_MS);
-    }
-  };
-  await Promise.all(Array.from({ length: SCAN_WORKERS }, worker));
-  out(`  opening up to ${Math.min(list.length, RENDER_PAGES)} pages in a browser`);
-  const browserRead = await readInBrowser({ list, bodies, pages, assets, site, profileScan, dir, origin });
-  await addStylesheetAssets(assets);
-  const wordpressApi = platform3 === "wordpress" ? await wordpressContent(base, dir) : false;
-  if (wordpressApi) {
-    const media = readJson3(join24(dir, "content", "media.json")) ?? [];
-    media.forEach((m) => m.source_url && assets.add(m.source_url));
-  }
-  const known = new Set(pages.map((p) => p.path));
-  for (const t of containerTriggers.filter((x) => x.type === "page").slice(0, TRIGGER_PAGES_CAP)) {
-    if (known.has(t.value)) {
-      inUse.add(t);
-      continue;
-    }
-    const res = await get(`${origin}${t.value}`);
-    if (!res?.ok || new URL(res.url).pathname !== t.value.split("?")[0]) continue;
-    const body = await res.text();
-    const seo = readPageSeo(body);
-    pages.push({ path: t.value, status: res.status, title: seo.title ?? null, description: seo.description ?? null, canonical: seo.canonical ?? null, h1: seo.h1[0] ?? null, lang: seo.lang ?? null });
-    known.add(t.value);
-    addPageProfile(profileScan, body, t.value);
-    addPageTags(site, scanPageTags(body, res.url), t.value);
-    inUse.add(t);
-    await sleep3(PAUSE_MS);
-  }
-  site.triggers = [...inUse];
-  for (const file2 of ROOT_FILES) if (await hasRootFile(origin, file2)) site.rootFiles.push(file2);
-  writeJson(tagsFile(dir), site);
-  const bare2 = registrableDomain(host);
-  try {
-    const { records, unread } = await collectSnapshot(bare2, { extraNames: [...site.ownNames, ...site.serverContainers], deadlineMs: 3e4 });
-    writeJson(join24(dir, "dns.json"), { records: records.slice(0, 600), unread: unread.slice(0, 300), services: dnsServices(records).slice(0, 40) });
-  } catch {
-  }
-  const profile = siteProfile(profileScan, { platform: platform3 });
-  const inventory = { source: base, platform: platform3, scannedAt: (/* @__PURE__ */ new Date()).toISOString(), sitemaps: fromSitemaps.sitemaps, pages, wordpressApi, skipped: Math.max(0, all.length - list.length), profile, rendered: browserRead.rendered, ...browserRead.app ? { app: browserRead.app } : {} };
-  writeJson(join24(dir, "inventory.json"), inventory);
-  writeJson(join24(dir, "assets.json"), [...assets].sort());
-  writeFileSync19(join24(dir, "home.html"), html);
-  const icons = await saveOldIcons(html, home.url, origin, dir);
-  await saveOldStyles(html, home.url, dir);
-  const rel2 = relative4(root, dir).split(sep4).join("/");
-  const broken = pages.filter((p) => p.status >= 400).length;
-  out();
-  out(`Saved in ${rel2}:`);
-  out(`  inventory.json  ${pages.length} pages with their address, title, description and headings${broken ? ` (${broken} already broken on the old site)` : ""}`);
-  if (browserRead.rendered) out(`  rendered/       ${browserRead.rendered} pages as a browser shows them, after their scripts ran (index.json lists them): build from these, not from home.html alone`);
-  else out("  No browser could start here, so the pages were read without their scripts: open the old site in your browser tool and build from what it shows.");
-  out(`  assets.json     ${assets.size} images, stylesheets, scripts, fonts and files`);
-  out(`  tags.json       ${site.tags.length} tags and connections, ${site.outside.length} other outside addresses, ${site.triggers.length} conversion rules, ${site.forms.length} forms. Keep every one of them.`);
-  if (site.unreadContainers.length) out(`  Could not read Tag Manager ${site.unreadContainers.join(", ")}: its rules are unknown.`);
-  if (icons) out(`  icons/          ${icons} icons and logo of the old site, for: npx deployai@latest brand favicon`);
-  if (wordpressApi) {
-    out("  content/        the WordPress pages, posts, categories, tags, media and authors as JSON");
-    if (existsSync21(join24(dir, "posts"))) out("  posts/          the posts as Markdown for the blog block, each with its old address");
-  } else if (platform3 === "wordpress") out("  The WordPress API is closed on this site: work from the pages, or ask the owner for an export (Tools > Export).");
-  out();
-  for (const line of profileLines(profile)) out(line);
-  out();
-  if (browserRead.app) {
-    out(`This old site is an app its script draws in the browser, with ${browserRead.app.routes.length} screens like ${browserRead.app.routes.slice(0, 3).join(", ") || "#/"}.`);
-    out("Keep its own files exactly as they are with npx deployai@latest migrate app. Never rebuild or redesign it.");
-  }
-  out("Keep every path in inventory.json exactly as it is: same address, same title and description.");
-  await sendReport(root, opts.ctx, host, "scan");
-  return inventory.skipped;
-}
-var APP_FILE_CAP = 5e3;
-var APP_ROOT_FILES = ["/404.html", "/manifest.webmanifest", "/manifest.json", "/sw.js", "/service-worker.js", "/robots.txt", "/sitemap.xml", "/favicon.ico", "/favicon.svg", "/opengraph.jpg"];
-function scannedApp(root) {
-  const hosts = scannedHosts(root);
-  return hosts.length === 1 && Boolean(readJson3(join24(hostDir(root, hosts[0]), "inventory.json"))?.app);
-}
-async function migrateAppCommand(root) {
-  const scanned = scannedHosts(root).map((host2) => ({ host: host2, dir: hostDir(root, host2), inv: readJson3(join24(hostDir(root, host2), "inventory.json")) }));
-  if (!scanned.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
-  const apps = scanned.filter((s) => s.inv?.app);
-  if (!apps.length) throw new CliError("The scan found no app its script draws, so there are no app files to keep. Build the pages as your steps say.", 1, "usage");
-  if (apps.length > 1) throw new CliError(`More than one app was scanned (${apps.map((a) => a.host).join(", ")}): each one is a site of its own, in a folder of its own.`, 1, "usage");
-  if (existsSync21(join24(root, "package.json"))) throw new CliError("This folder has a package.json, so it holds another project. The app's files are the whole site: run this in a folder with no other site in it.", 1, "usage");
-  const { host, dir, inv } = apps[0];
-  const origin = new URL(inv.source).origin;
-  const same4 = (u) => {
-    try {
-      return new URL(u).hostname.replace(/^www\./, "") === host;
-    } catch {
-      return false;
-    }
-  };
-  const key2 = (u) => {
-    const x = new URL(u, origin);
-    x.hash = "";
-    x.search = "";
-    return x.toString();
-  };
-  const assets = (readJson3(join24(dir, "assets.json")) ?? []).filter(same4);
-  const pages = inv.pages.filter((p) => p.status === 200 && !p.path.includes("?")).map((p) => origin + p.path);
-  const extras = new Set(APP_ROOT_FILES.map((f) => origin + f));
-  const stateFile2 = join24(dir, "app-state.json");
-  const state = readJson3(stateFile2) ?? { done: [], failed: [], bytes: 0 };
-  const done = new Set(state.done);
-  const queue = [...new Set([`${origin}/`, ...pages, ...inv.app.files, ...assets, ...extras].map(key2))].filter((u) => !done.has(u));
-  out(`${host}: keeping the app's own files in this folder`);
-  let saved = 0;
-  while (queue.length && done.size < APP_FILE_CAP) {
-    const url2 = queue.shift();
-    if (done.has(url2)) continue;
-    done.add(url2);
-    const target = keptFilePath(url2);
-    const res = target ? await safeFetch(url2, { maxBytes: MEDIA_FILE_CAP, timeoutMs: 6e4, userAgent: UA }).catch(() => null) : null;
-    const path = new URL(url2).pathname;
-    const pageForFile = !!res && /\.[a-z0-9]{1,12}$/i.test(path) && !/\.html?$/i.test(path) && /text\/html/i.test(res.contentType);
-    if (!target || !res || res.status < 200 || res.status > 299 || pageForFile || !same4(res.finalUrl)) {
-      if (!extras.has(url2) && !state.failed.includes(url2)) state.failed.push(url2);
-      continue;
-    }
-    const file2 = join24(root, target);
-    mkdirSync13(dirname5(file2), { recursive: true });
-    writeFileSync19(file2, res.body);
-    state.bytes += res.body.byteLength;
-    saved++;
-    const text4 = /javascript|css|html|json/i.test(res.contentType) || /\.(m?js|css|html?)$/i.test(path) ? Buffer.from(res.body).toString("utf8") : "";
-    if (text4) {
-      const more = /\.m?js$/i.test(path) || /javascript/i.test(res.contentType) ? bundleFiles(text4, url2) : /\.css$/i.test(path) || /text\/css/i.test(res.contentType) ? stylesheetAssets(text4, url2) : /html/i.test(res.contentType) ? pageAssets(text4.replace(/&quot;/g, '"'), url2) : [];
-      for (const m of more) if (same4(m) && !done.has(key2(m))) queue.push(key2(m));
-    }
-    if (saved % 25 === 0) writeJson(stateFile2, { ...state, done: [...done] });
-    await sleep3(PAUSE_MS / 3);
-  }
-  state.done = [...done];
-  writeJson(stateFile2, state);
-  const rel2 = relative4(root, stateFile2).split(sep4).join("/");
-  out(`  ${saved} files, ${formatBytes(state.bytes)} in all, at their own paths${state.failed.length ? `; ${state.failed.length} could not be downloaded (listed in ${rel2})` : ""}${queue.length ? `; stopped at ${APP_FILE_CAP} files` : ""}`);
-  out("These files are the site. Change none of them: no rebuild, no new look, no framework. Its screens (#/...) all open from index.html.");
-}
-function mediaTarget(dir, url2) {
-  const u = new URL(url2);
-  const clean3 = posix.normalize(decodeURIComponent(u.pathname)).replace(/^\/+/, "");
-  if (!clean3 || clean3.endsWith("/") || clean3.includes("..")) return null;
-  const base = resolve6(dir, "media", u.hostname.replace(/^www\./, ""));
-  const target = resolve6(base, clean3);
-  return target.startsWith(base + sep4) ? target : null;
-}
-async function migrateMediaCommand(root) {
-  const hosts = scannedHosts(root);
-  if (!hosts.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
-  for (const host of hosts) {
-    const dir = hostDir(root, host);
-    const assets = readJson3(join24(dir, "assets.json")) ?? [];
-    const stateFile2 = join24(dir, "media-state.json");
-    const state = readJson3(stateFile2) ?? { done: [], failed: [], bytes: 0 };
-    const done = new Set(state.done);
-    const todo = assets.filter((a) => !done.has(a));
-    out(`${host}: ${assets.length} files, ${todo.length} left`);
-    for (const [i, url2] of todo.entries()) {
-      if (state.bytes >= MEDIA_TOTAL_CAP) {
-        out(`  Stopped at ${formatBytes(state.bytes)}: the cap for one move. Use only the files the new pages need.`);
-        break;
-      }
-      const target = mediaTarget(dir, url2);
-      const res = target ? await safeFetch(url2, { maxBytes: MEDIA_FILE_CAP, timeoutMs: 6e4, userAgent: UA }).catch(() => null) : null;
-      const pageForFile = !!res && !/\.html?$/i.test(new URL(res.finalUrl).pathname) && /text\/html/i.test(res.contentType);
-      if (!target || !res || res.status < 200 || res.status > 299 || pageForFile) {
-        if (!state.failed.includes(url2)) state.failed.push(url2);
-        done.add(url2);
-        continue;
-      }
-      mkdirSync13(dirname5(target), { recursive: true });
-      writeFileSync19(target, res.body);
-      const bytes = res.body.byteLength;
-      state.bytes += bytes;
-      done.add(url2);
-      state.done = [...done];
-      if (i % 25 === 0) writeJson(stateFile2, state);
-      await sleep3(PAUSE_MS / 3);
-    }
-    state.done = [...done];
-    writeJson(stateFile2, state);
-    out(`  ${formatBytes(state.bytes)} in ${relative4(root, join24(dir, "media")).split(sep4).join("/")}${state.failed.length ? `, ${state.failed.length} could not be downloaded (listed in media-state.json)` : ""}`);
-  }
-  out("Copy the files the new pages use into the site's public folder at the same path (for example public/wp-content/uploads/...), so old image addresses keep working.");
-}
-function redirectLines(inv, rss = "/rss.xml") {
-  const lines = /* @__PURE__ */ new Set();
-  for (const p of inv.pages) {
-    const path = p.path.split("?")[0];
-    if (/\/feed\/?$/.test(path)) lines.add(`${path} ${rss} 301`);
-    if (/\/attachment\/[^/]+\/?$/.test(path)) lines.add(`${path} ${path.replace(/\/attachment\/[^/]+\/?$/, "/")} 301`);
-  }
-  if (inv.platform === "wordpress") {
-    const folder = new URL(inv.source).pathname.replace(/\/+$/, "");
-    lines.add(`${folder}/feed/ ${rss} 301`);
-    lines.add(`${folder}/comments/feed/ ${rss} 301`);
-  }
-  return [...lines];
-}
-var MARKDOWN_POST_DIRS = ["src/content/posts", "src/content/blog", "content/posts", "content/blog", "content/post", "_posts"];
-function markdownPostFiles(root) {
-  const files = [];
-  const walk2 = (rel2, depth) => {
-    const abs = join24(root, rel2);
-    if (!existsSync21(abs) || depth > 4 || files.length >= 2e3) return;
-    for (const e3 of readdirSync7(abs, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
-      const child = posix.join(rel2, e3.name);
-      if (e3.isDirectory()) walk2(child, depth + 1);
-      else if (e3.isFile() && /\.(md|mdx|markdown)$/i.test(e3.name) && statSync3(join24(root, child)).size <= 1024 * 1024) files.push({ file: child, text: readFileSync21(join24(root, child), "utf8") });
-    }
-  };
-  for (const d of MARKDOWN_POST_DIRS) walk2(d, 0);
-  return files;
-}
-function migratePostsCommand(root) {
-  const hosts = scannedHosts(root);
-  const markdown = markdownPostFiles(root);
-  if (!hosts.length && !markdown.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
-  if (!existsSync21(join24(root, "src/kit/schema.ts"))) throw new CliError("The dashboard is not in this folder yet. Run: npx deployai@latest blocks dashboard", 1, "usage");
-  const posts = [];
-  for (const host of hosts) {
-    const dir = hostDir(root, host);
-    const inv = readJson3(join24(dir, "inventory.json"));
-    const list = readJson3(join24(dir, "content", "posts.json"));
-    if (inv && list?.length) posts.push(...wpPostsToKit({ origin: new URL(inv.source).origin, posts: list, categories: readJson3(join24(dir, "content", "categories.json")) ?? [], media: readJson3(join24(dir, "content", "media.json")) ?? [] }));
-  }
-  posts.push(...markdownPostsToKit(markdown));
-  const file2 = join24(root, "src/kit/moved-posts.json");
-  const had = readJson3(file2) ?? [];
-  if (!posts.length && !had.length) {
-    out("No posts in the scan or in this folder. If the old site has posts, write src/kit/moved-posts.json yourself: .deployai/blocks/dashboard.md says how.");
-    return;
-  }
-  const paths = new Set(had.map((p) => p.path || `/blog/${p.slug}/`));
-  const slugs = new Set(had.map((p) => p.slug));
-  const added = posts.filter((p) => {
-    if (paths.has(p.path) || slugs.has(p.slug)) return false;
-    paths.add(p.path);
-    slugs.add(p.slug);
-    return true;
-  });
-  if (!added.length) {
-    out(`All ${had.length} posts are already in src/kit/moved-posts.json, so nothing was added.`);
-    return;
-  }
-  writeFileSync19(file2, JSON.stringify([...had, ...added.map(({ lost: _lost, ...p }) => p)], null, 1));
-  out(had.length ? `Added ${added.length} posts to src/kit/moved-posts.json, beside the ${had.length} it had. Turn on blog in src/kit/site.config.ts.` : `Wrote ${added.length} posts to src/kit/moved-posts.json. Turn on blog in src/kit/site.config.ts.`);
-  const short = added.filter((p) => p.lost.length);
-  if (short.length) {
-    out("These lost a part the dashboard has no shape for. Add each to the page by hand, and say Partly moved in the plan:");
-    short.forEach((p) => out(`  ${p.path}: ${p.lost.join(", ")}`));
-  }
-}
-function migratePagesCommand(root) {
-  const hosts = scannedHosts(root);
-  if (!hosts.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
-  if (!existsSync21(join24(root, "src/kit/schema.ts"))) throw new CliError("The dashboard is not in this folder yet. Run: npx deployai@latest blocks dashboard", 1, "usage");
-  const file2 = join24(root, MOVED_PAGES_FILE);
-  const before = readJson3(file2);
-  const pages = [];
-  for (const host of hosts) {
-    const dir = hostDir(root, host);
-    const inv = readJson3(join24(dir, "inventory.json"));
-    if (!inv) continue;
-    const homeHtml = existsSync21(join24(dir, "home.html")) ? readFileSync21(join24(dir, "home.html"), "utf8") : null;
-    for (const p of movedPagesFromScan({ pages: inv.pages, homeHtml, origin: new URL(inv.source).origin })) if (!pages.some((x) => x.path === p.path)) pages.push(p);
-  }
-  const kept = before?.length ? pages.filter((p) => before.some((b) => b.path === p.path)) : pages;
-  writeFileSync19(file2, JSON.stringify(kept, null, 1));
-  out(`Wrote ${MOVED_PAGES_FILE}: ${kept.length} pages for the dashboard's Pages, ${kept.filter((p) => p.inNav).length} of them in the menu.`);
-  out("Build each page at exactly its path, as a page of the site's code with its own look and words. Draw the site's menu from navItems() in src/kit/store.ts. A page the plan drops: remove it from this file.");
-}
-function migrateLegalCommand(root) {
-  const hosts = scannedHosts(root);
-  if (!hosts.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
-  if (!existsSync21(join24(root, "src/kit/schema.ts"))) throw new CliError("The dashboard is not in this folder yet. Run: npx deployai@latest blocks dashboard", 1, "usage");
-  const pages = [];
-  const site = emptySiteTags();
-  for (const host of hosts) {
-    const dir = hostDir(root, host);
-    pages.push(...readJson3(join24(dir, "inventory.json"))?.pages ?? []);
-    const found = readJson3(tagsFile(dir));
-    if (found) {
-      site.tags.push(...found.tags);
-      site.outside.push(...found.outside);
-      site.forms.push(...found.forms);
-    }
-  }
-  const file2 = join24(root, MOVED_LEGAL_FILE);
-  const legal = { ...movedLegalFromScan({ pages, site }), docs: readJson3(file2)?.docs ?? [] };
-  writeFileSync19(file2, JSON.stringify(legal, null, 1));
-  out(`Wrote ${MOVED_LEGAL_FILE}: ${legal.duties.length} rows for the dashboard's Documents page, ${legal.forms.length} forms, ${legal.services.length} outside services.`);
-  for (const d of legal.duties) if (d.old) out(`  ${d.key}: the old site has its own page at ${d.old}. Keep it. See "Accessibility and documents" in .deployai/blocks/dashboard.md.`);
-  out("Nothing here is finished or checked: it tells the owner what to look at. Keep tags, forms and pages as they are.");
-}
-function migrateRedirectsCommand(root) {
-  const hosts = scannedHosts(root);
-  if (!hosts.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
-  const lines = /* @__PURE__ */ new Set();
-  for (const host of hosts) {
-    const inv = readJson3(join24(hostDir(root, host), "inventory.json"));
-    if (inv) redirectLines(inv).forEach((l) => lines.add(l));
-  }
-  const publicDir = join24(root, "public");
-  const file2 = join24(existsSync21(publicDir) ? publicDir : root, "_redirects");
-  const before = existsSync21(file2) ? readFileSync21(file2, "utf8").split(/\r?\n/).filter(Boolean) : [];
-  const added = [...lines].filter((l) => !before.some((b) => b.split(/\s+/)[0] === l.split(/\s+/)[0]));
-  writeFileSync19(file2, [...before, ...added].join("\n") + "\n");
-  out(`${relative4(root, file2).split(sep4).join("/")}: ${added.length} added, ${before.length + added.length} in all (at most 2,000; no query strings).`);
-  out('Add a line "<old path> <new path> 301" only for a page that truly could not keep its address.');
-}
-function allowedRedirects(root) {
-  const map2 = /* @__PURE__ */ new Map();
-  for (const file2 of [join24(root, "public", "_redirects"), join24(root, "_redirects")]) {
-    if (!existsSync21(file2)) continue;
-    for (const line of readFileSync21(file2, "utf8").split(/\r?\n/)) {
-      const [from, to] = line.trim().split(/\s+/);
-      if (from && to && !from.startsWith("#")) map2.set(from, to);
-    }
-  }
-  return map2;
-}
-var PREVIEW_TRIES = 6;
-var PREVIEW_RETRY_MS = 2e4;
-async function previewCookie(preview, retryMs = PREVIEW_RETRY_MS) {
-  if (!preview.searchParams.get("deployai_preview")) return void 0;
-  for (let i = 0; i < PREVIEW_TRIES; i++) {
-    if (i) await sleep3(retryMs);
-    const res = await get(preview.href, void 0, "manual");
-    await res?.body?.cancel().catch(() => {
-    });
-    const cookie = res?.headers.get("set-cookie")?.split(";")[0];
-    if (cookie) return cookie;
-    if (res && !(res.status === 404 && res.headers.has("x-deployai"))) return void 0;
-  }
-  throw new CliError("This preview link does not open. If this version is already live, its preview has ended: run verify on the site address instead, npx deployai@latest migrate verify <the site address>. If not, run npx deployai@latest status and use the newest link it prints.", 1, "preview_gone");
-}
-async function migrateTagsCommand(root, ctx, opts) {
-  const hosts = scannedHosts(root);
-  if (!hosts.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
-  const answers = (opts.answer ?? []).map((a) => a.replace(/=unknown$/i, "=unsure"));
-  for (const a of answers) {
-    const [k, v] = a.split("=");
-    if (!QUESTION_KEYS.includes(k) || !ANSWERS.includes(v)) throw new CliError(`Not an answer: ${a}. Use one of ${QUESTION_KEYS.join(", ")} = ${ANSWERS.join(", ")}, for example serverPixel=yes.`, 1, "usage");
-  }
-  const urls = opts.requests ? readFileSync21(resolve6(root, opts.requests), "utf8").split(/\r?\n/) : [];
-  for (const host of hosts) {
-    const dir = hostDir(root, host);
-    const site = readJson3(tagsFile(dir));
-    const inv = readJson3(join24(dir, "inventory.json"));
-    if (!site || !inv) continue;
-    const state = readJson3(stateFile(dir)) ?? {};
-    if (urls.length && opts.fired) {
-      const seen = emptySiteTags();
-      addBrowserRequests(seen, urls, inv.source);
-      const before = new Map((state.fired ?? []).map((t) => [tagRowKey(t), t]));
-      for (const t of seen.tags) before.set(tagRowKey(t), { key: t.key, id: t.id });
-      state.fired = [...before.values()];
-      out(`Seen firing on the preview: ${seen.tags.map((t) => t.name).join(", ") || "no known tag"}.`);
-    } else if (urls.length) {
-      const added = addBrowserRequests(site, urls, inv.source);
-      writeJson(tagsFile(dir), site);
-      out(`${added} more found from the browser. Keep them too.`);
-    }
-    if (opts.removed?.length) {
-      state.removed = [.../* @__PURE__ */ new Set([...state.removed ?? [], ...opts.removed])];
-      const names2 = removableNames(site);
-      const known = opts.removed.filter((r) => names2.some((n2) => n2.toLowerCase() === r.toLowerCase()));
-      const unknown2 = opts.removed.filter((r) => !known.includes(r));
-      if (known.length) out(`Marked as left out on purpose: ${known.join(", ")}. Verify will not ask for these. The report shows what took its place from the plan row "Replaced with ...".`);
-      if (unknown2.length) out(`Not found in what the old site has: ${unknown2.join(", ")}. Use the name verify prints, exactly as it prints it.`);
-    }
-    for (const a of answers) {
-      const [k, v] = a.split("=");
-      state.answers = { ...state.answers, [k]: v };
-    }
-    writeJson(stateFile(dir), state);
-    await sendReport(root, ctx, host, null);
-  }
-}
-async function migrateReportCommand(root, ctx) {
-  const hosts = scannedHosts(root);
-  if (!hosts.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
-  for (const host of hosts) await sendReport(root, ctx, host, null);
-}
-var TAG_WORDS = {
-  tag_lost: "is gone from the preview",
-  trigger_lost: "is what a conversion waits for, and it is gone: the conversion stops counting with no error",
-  field_lost: "is a hidden form field that carries the ad source, and it is gone",
-  verification_lost: "verification tag is gone",
-  file_lost: "is a file a service reads, and it is gone",
-  blocked_by_headers: "is blocked by public/_headers",
-  event_lost: "is an event the old pages send, and it is gone"
-};
-function previewPage(preview, path) {
-  const u = new URL(path, preview.origin);
-  const token = preview.searchParams.get("deployai_preview");
-  if (token) u.searchParams.set("deployai_preview", token);
-  return u.toString();
-}
-var FEATURE_WORDS = { cart: "the store page", checkout: "the checkout", booking: "the booking page", login: "the sign in page", protected: "the members only page", forms: "the form page", payments: "payments" };
-var FEATURE_PAGES = 5;
-var LINK_CAP = 150;
-async function checkFeatures(inv, fetchPage) {
-  const checks = [];
-  for (const f of inv.profile?.features ?? []) {
-    if (f.key === "payments") continue;
-    for (const path of f.pages.slice(0, FEATURE_PAGES)) {
-      const manual = f.key === "protected" || f.key === "checkout";
-      const res = await fetchPage(path, manual);
-      let html = "";
-      if (res?.status === 200) html = await res.text().catch(() => "");
-      else await res?.body?.cancel().catch(() => {
-      });
-      const c = checkFeaturePage(f.key, path, res ? { status: res.status, location: res.headers.get("location"), html } : null);
-      if (c) checks.push(c);
-      await sleep3(PAUSE_MS / 3);
-    }
-  }
-  return checks;
-}
-async function migrateVerifyCommand(root, previewRaw, ctx, retryMs = PREVIEW_RETRY_MS, look = {}) {
-  let preview;
-  try {
-    preview = new URL(/^https?:\/\//.test(previewRaw) ? previewRaw : `https://${previewRaw}`);
-  } catch {
-    throw new CliError(`Not an address: ${previewRaw}. Use the preview address deploy printed.`, 1, "usage");
-  }
-  const hosts = scannedHosts(root);
-  if (!hosts.length) throw new CliError("Nothing scanned yet. Run: npx deployai@latest migrate scan <the old site address>", 1, "usage");
-  const redirects = allowedRedirects(root);
-  const cookie = await previewCookie(preview, retryMs);
-  const page3 = (path) => get(cookie ? new URL(path, preview.origin).toString() : previewPage(preview, path), void 0, "follow", cookie);
-  const findings = [];
-  const credits = /* @__PURE__ */ new Map();
-  const vendors = /* @__PURE__ */ new Map();
-  let checked = 0;
-  const tagFindings = [];
-  const leftOnOld = [];
-  const perHost = [];
-  const featureChecks = [];
-  for (const host of hosts) {
-    const inv = readJson3(join24(hostDir(root, host), "inventory.json"));
-    const oldSite = readJson3(tagsFile(hostDir(root, host)));
-    const state = readJson3(stateFile(hostDir(root, host))) ?? {};
-    const nextSite = emptySiteTags();
-    const triggerFound = {};
-    const formIdFound = {};
-    for (const t of oldSite?.triggers ?? []) if (t.type !== "page") triggerFound[t.value] = false;
-    for (const f of oldSite?.forms ?? []) if (f.id) formIdFound[f.id] = false;
-    const checkedBefore = checked;
-    const findingsBefore = findings.length;
-    const linksFrom = /* @__PURE__ */ new Map();
-    for (const old of inv?.pages ?? []) {
-      if (old.status >= 300) continue;
-      const res = await page3(old.path);
-      checked++;
-      let next = null;
-      if (res) {
-        const u = new URL(res.url);
-        u.searchParams.delete("deployai_preview");
-        const body = res.ok ? await res.text() : "";
-        const seo = body ? readPageSeo(body) : null;
-        for (const c of builderCredits(body)) if (!credits.has(c)) credits.set(c, old.path);
-        for (const v of vendorFiles(body)) if (!vendors.has(v)) vendors.set(v, old.path);
-        for (const l of body ? pageLinks(body, res.url) : []) if (!linksFrom.has(l)) linksFrom.set(l, old.path);
-        if (body && oldSite) {
-          addPageTags(nextSite, scanPageTags(body, res.url), old.path);
-          for (const t of oldSite.triggers) {
-            if (t.type === "page" || triggerFound[t.value]) continue;
-            if (t.type === "selector" ? selectorInPage(t.value, body) === true : body.includes(t.value)) triggerFound[t.value] = true;
-          }
-          for (const id2 of Object.keys(formIdFound)) if (!formIdFound[id2] && new RegExp(`\\bid\\s*=\\s*["']?${id2.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}["'\\s>]`).test(body)) formIdFound[id2] = true;
-        }
-        next = { status: res.status, finalPath: u.pathname + u.search, title: seo?.title ?? null, description: seo?.description ?? null };
-      }
-      const f = comparePage(old, next, redirects.get(old.path.split("?")[0]));
-      if (f) findings.push(f);
-      await sleep3(PAUSE_MS / 3);
-    }
-    const known = new Set((inv?.pages ?? []).map((p) => samePath(p.path)));
-    let tried = 0;
-    for (const [path, from] of linksFrom) {
-      if (known.has(samePath(path)) || tried >= LINK_CAP) continue;
-      known.add(samePath(path));
-      tried++;
-      const here = await page3(path);
-      await here?.body?.cancel().catch(() => {
-      });
-      if (here && here.status !== 404 && here.status !== 410) continue;
-      const there = inv ? await get(new URL(path, inv.source).toString()) : null;
-      await there?.body?.cancel().catch(() => {
-      });
-      if (there?.ok) findings.push({ path, problem: "link_broken", detail: from });
-      await sleep3(PAUSE_MS / 3);
-    }
-    const planFile = join24(root, MIGRATION_DIR, "plan.md");
-    const planRows = existsSync21(planFile) ? parsePlanFeatures(readFileSync21(planFile, "utf8")) : [];
-    for (const r of replacedPages(planRows, inv?.pages ?? [])) findings.push({ path: r.path, problem: "replaced", detail: r.row });
-    if (oldSite) {
-      const home = await page3("/");
-      const csp = home?.headers.get("content-security-policy") ?? null;
-      const homeHtml = home?.ok ? await home.clone().text().catch(() => "") : "";
-      for (const a of oldHostAssets(homeHtml, preview.origin + "/", hosts)) {
-        if (leftOnOld.some((x) => x.url === a.url)) continue;
-        const u = new URL(a.url);
-        const here = await page3(u.pathname + u.search);
-        if (!here?.ok || !/^image\//i.test(here.headers.get("content-type") ?? "")) leftOnOld.push(a);
-      }
-      const fileOnPreview = {};
-      for (const file2 of oldSite.rootFiles) fileOnPreview[file2] = await hasRootFile(preview.origin, file2, cookie ? "" : preview.search, cookie);
-      const pageOnPreview = {};
-      for (const t of oldSite.triggers.filter((x) => x.type === "page")) pageOnPreview[t.value] = Boolean((await page3(t.value))?.ok);
-      const found = compareTags(oldSite, nextSite, { removed: state.removed ?? [], csp, fileOnPreview, triggerFound, pageOnPreview, formIdFound });
-      tagFindings.push(...found);
-      const features = inv ? await checkFeatures(inv, (path, manual) => get(cookie ? new URL(path, preview.origin).toString() : previewPage(preview, path), void 0, manual ? "manual" : "follow", cookie)) : [];
-      featureChecks.push(...features);
-      perHost.push({ host, checked: checked - checkedBefore, problems: findings.length - findingsBefore, pages: findings.slice(findingsBefore), seen: nextSite.tags.map((t) => ({ key: t.key, id: t.id })), found, removed: state.removed ?? [], features });
-    }
-  }
-  const words = { missing: "not found on the preview", moved: "moved to", error: "answers", title_lost: "lost its title", description_lost: "lost its description", link_broken: "opens on the old site but not on the preview, linked from", replaced: 'is "Replaced with" in the plan, row' };
-  const report2 = join24(root, MIGRATION_DIR, "verify.json");
-  writeJson(report2, { checkedAt: (/* @__PURE__ */ new Date()).toISOString(), preview: preview.origin, checked, findings, credits: [...credits.keys()], vendors: [...vendors.keys()], tags: tagFindings, leftOnOld, features: featureChecks });
-  const brokenFeatures = featureChecks.filter((c) => !c.ok);
-  if (brokenFeatures.length) {
-    out(`${brokenFeatures.length} ${brokenFeatures.length === 1 ? "feature of the old site does" : "features of the old site do"} not work on the preview:`);
-    for (const c of brokenFeatures.slice(0, 40)) out(`  ${readableUrl(c.page)}  ${FEATURE_WORDS[c.key]} ${FEATURE_PROBLEM_WORDS[c.problem]}`);
-    out(`Make each one work as it does on the old site, deploy again, and run verify again: npx deployai@latest migrate verify ${previewRaw}`);
-    blockedBy("feature_broken");
-    process.exitCode = 1;
-  }
-  if (credits.size) {
-    out(`A builder's credit is still on the preview:`);
-    for (const [text4, path] of credits) out(`  ${readableUrl(path)}  ${text4}`);
-    out("Remove each and put the site's own name and the year in its place, unless the owner asked to keep it, then deploy again and run verify again.");
-    blockedBy("builder_credit");
-    process.exitCode = 1;
-  }
-  if (vendors.size) {
-    out(`Files of a plugin or theme are still on the preview:`);
-    for (const [name, path] of vendors) out(`  ${readableUrl(path)}  ${name}`);
-    out("Remove them. Write what the page needs into the site's own stylesheet and scripts, or use a UI source, so it looks and works the same, then deploy again and run verify again.");
-    blockedBy("vendor_files");
-    process.exitCode = 1;
-  }
-  if (leftOnOld.length) {
-    const what = { share: "share image (og:image)", x: "X image (twitter:image)", icon: "icon" };
-    out("Still loading from the old site and missing from this one, so it breaks when the old site closes:");
-    for (const a of leftOnOld) out(`  ${what[a.kind]}  ${readableUrl(a.url)}`);
-    out("Put each file in the site's own public folder (migrate media saved the images in .deployai/migration), point the tag at the site's own address, deploy again and run verify again.");
-    blockedBy("old_host_assets");
-    process.exitCode = 1;
-  }
-  if (tagFindings.length) {
-    out(`${tagFindings.length} tags and connections need a fix:`);
-    for (const f of tagFindings.slice(0, 60)) out(`  ${readableUrl(f.what)}  ${TAG_WORDS[f.problem]}${f.detail ? ` (${f.detail})` : ""}${f.page ? ` on ${readableUrl(f.page)}` : ""}`);
-    if (tagFindings.length > 60) out(`  and ${tagFindings.length - 60} more in verify.json`);
-    out('Put each one back, deploy again and run verify again. If one was left out on purpose (the owner asked, or the plan replaced it with ours): npx deployai@latest migrate tags --removed "<its number or name>", and give its plan row the status "Replaced with <what took its place>" so the report says so.');
-    blockedBy(...tagFindings.map((f) => f.problem));
-    process.exitCode = 1;
-  }
-  iphoneScanHint(root);
-  const clean3 = !findings.length && !tagFindings.length && !credits.size && !vendors.size && !leftOnOld.length && !brokenFeatures.length;
-  for (const h of perHost) {
-    const dir = hostDir(root, h.host);
-    const verify = { checkedAt: (/* @__PURE__ */ new Date()).toISOString(), pagesChecked: h.checked, pageProblems: h.problems, pageFindings: h.pages.map((f) => ({ path: f.path.slice(0, 300), problem: f.problem })).slice(0, 150), findings: h.found.map((f) => ({ problem: f.problem, what: f.what.slice(0, 240), ...f.detail ? { detail: f.detail.slice(0, 300) } : {}, ...f.page ? { page: f.page.slice(0, 300) } : {} })).slice(0, 300), seen: h.seen.slice(0, 300), removed: h.removed, vendors: [...vendors.keys()].map((v) => v.slice(0, 80)).slice(0, 40), ...h.features.length ? { featureChecks: h.features.slice(0, 60).map((c) => ({ ...c, page: c.page.slice(0, 300) })) } : {} };
-    writeJson(join24(dir, "verify-report.json"), { report: verify });
-    await sendReport(root, ctx, h.host, clean3 ? "verify" : null, verify);
-  }
-  await compareLooks(root, previewRaw, { maxDiff: look.maxDiff });
-  if (!findings.length) {
-    out(`All ${checked} old addresses open on the preview with their title and description.`);
-    return;
-  }
-  out(`${findings.length} of ${checked} old addresses need a fix (also in ${relative4(root, report2).split(sep4).join("/")}):`);
-  for (const f of findings.slice(0, 60)) out(`  ${readableUrl(f.path)}  ${words[f.problem]}${f.detail ? ` ${f.detail}` : ""}`);
-  if (findings.length > 60) out(`  and ${findings.length - 60} more in verify.json`);
-  if (findings.some((f) => f.problem !== "link_broken" && f.problem !== "replaced")) out("Give each page its old address back (or, only if it truly cannot stay, a line in public/_redirects), deploy again, and run verify again.");
-  if (findings.some((f) => f.problem === "link_broken")) out("A page links to an address the old site has and the preview does not, so that page was never moved. Move each one from the old site, with its own content and address, deploy again and run verify again.");
-  if (findings.some((f) => f.problem === "replaced")) out("A page is never Replaced with. Rebuild each from the old page with the same sections, words, images, links and buttons in the same order, give its plan row the status Moved, deploy again and run verify again. A new design is a change the owner asks for after the move.");
-  const pageReason = { missing: "pages_missing", moved: "pages_moved", error: "pages_error", title_lost: "title_lost", description_lost: "description_lost", link_broken: "links_broken", replaced: "page_replaced" };
-  blockedBy(...findings.map((f) => pageReason[f.problem]));
-  process.exitCode = 1;
-}
-
-// src/commands/link.ts
 async function save(root, p, ctx) {
-  updateProject(root, { projectId: p.id, name: p.name, slug: p.slug });
+  updateProject(root, { projectId: p.id, name: p.name, slug: p.slug, ...p.url ? { url: p.url } : {} });
   rememberSite(p.id, ctx.config.email);
   const t = messages(root);
   out(t("linkedTo", { name: p.name, slug: p.slug }));
@@ -32667,7 +32997,7 @@ async function claimCommand(root, ctx, opts) {
 
 // src/commands/backup.ts
 import { existsSync as existsSync22, writeFileSync as writeFileSync20 } from "fs";
-import { join as join25 } from "path";
+import { join as join26 } from "path";
 var WAIT_MS4 = 20 * 6e4;
 var EVERY_MS = 3e3;
 async function backupCommand(root, ctx) {
@@ -32700,8 +33030,8 @@ async function backupCommand(root, ctx) {
   return { file: file2 };
 }
 function freeName(root, name) {
-  let file2 = join25(root, name);
-  for (let n2 = 2; existsSync22(file2); n2++) file2 = join25(root, name.replace(/\.zip$/, `-${n2}.zip`));
+  let file2 = join26(root, name);
+  for (let n2 = 2; existsSync22(file2); n2++) file2 = join26(root, name.replace(/\.zip$/, `-${n2}.zip`));
   return file2;
 }
 
@@ -32854,11 +33184,11 @@ async function requestsOpenCommand(root, ctx, path, open2) {
 // src/commands/start.ts
 import { spawnSync as spawnSync5 } from "child_process";
 import { existsSync as existsSync23, readdirSync as readdirSync8, writeFileSync as writeFileSync22 } from "fs";
-import { join as join27, relative as relative5, resolve as resolve7 } from "path";
+import { join as join28, relative as relative5, resolve as resolve7 } from "path";
 
 // src/commands/starter.ts
 import { writeFileSync as writeFileSync21 } from "fs";
-import { join as join26 } from "path";
+import { join as join27 } from "path";
 var esc2 = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 var TEXT = {
   he: { title: "\u05D4\u05D0\u05EA\u05E8 \u05E9\u05DC\u05D9", soon: "\u05D4\u05D0\u05EA\u05E8 \u05D1\u05D1\u05E0\u05D9\u05D9\u05D4, \u05D1\u05E7\u05E8\u05D5\u05D1 \u05DB\u05D0\u05DF." },
@@ -32906,8 +33236,8 @@ DeployAI wrote this page so the folder starts as a working site. Build the owner
 - Delete this README or replace it with notes about the site.
 `;
 function writeStarter(root, name, lang, stack) {
-  writeFileSync21(join26(root, "index.html"), page2(name ?? "", lang, stack));
-  writeFileSync21(join26(root, "README.md"), README);
+  writeFileSync21(join27(root, "index.html"), page2(name ?? "", lang, stack));
+  writeFileSync21(join27(root, "README.md"), README);
 }
 
 // src/commands/start.ts
@@ -32918,7 +33248,9 @@ async function fetchStart(ctx, id2) {
   let res;
   try {
     res = await fetch(`${ctx.apiUrl}/api/starts/${id2}`, { headers: { "User-Agent": userAgent(ctx.config), Accept: "application/json", ...token ? { Authorization: `Bearer ${token}` } : {} }, signal: AbortSignal.timeout(3e4) });
-  } catch {
+  } catch (e3) {
+    const blocked = blockedHostError(e3, ctx.apiUrl, { api: true });
+    if (blocked) throw blocked;
     if (placeHere() === "cloud") throw cloudBlockedError(ctx.apiUrl);
     throw new CliError(messages()("unreachable", { url: ctx.apiUrl }), 1, "network");
   }
@@ -32937,7 +33269,7 @@ function otherSiteFolders(here, root, projectId) {
   const dirs = /* @__PURE__ */ new Set([here, root]);
   for (const base of [here, root]) {
     try {
-      for (const e3 of readdirSync8(base, { withFileTypes: true })) if (e3.isDirectory() && !e3.name.startsWith(".") && e3.name !== "node_modules") dirs.add(join27(base, e3.name));
+      for (const e3 of readdirSync8(base, { withFileTypes: true })) if (e3.isDirectory() && !e3.name.startsWith(".") && e3.name !== "node_modules") dirs.add(join28(base, e3.name));
     } catch {
     }
   }
@@ -33021,7 +33353,7 @@ async function startCommand(cwd, ctx, id2, opts = {}) {
       }
     }
     app = choices.migration.sourceUrls.length === 1 && scannedApp(root);
-    if (app && !existsSync23(join27(root, "package.json"))) {
+    if (app && !existsSync23(join28(root, "package.json"))) {
       try {
         await migrateAppCommand(root);
         done.push(tm("startAppKept"));
@@ -33044,7 +33376,7 @@ async function startCommand(cwd, ctx, id2, opts = {}) {
   if (sample && !sameSite && !app) {
     const written = await downloadSample(ctxNow, sample.key, root);
     done.push(t("startDownloaded", { key: sample.key, n: written }));
-    if (existsSync23(join27(root, "package.json"))) {
+    if (existsSync23(join28(root, "package.json"))) {
       if (opts.install !== false && install(root)) done.push(t("startInstalled"));
       else steps.unshift({ cmd: "npm install", say: "Installs the sample's packages." });
     }
@@ -33056,7 +33388,7 @@ async function startCommand(cwd, ctx, id2, opts = {}) {
   const stackText = choices.stack ? stackBlock(choices.stack) : "";
   if (choices.brief || stackText) {
     ensureDeployaiDir(root);
-    writeFileSync22(join27(root, BRIEF_FILE), [choices.brief ? `# The owner's details
+    writeFileSync22(join28(root, BRIEF_FILE), [choices.brief ? `# The owner's details
 
 ${choices.brief}
 ` : "", stackText].filter(Boolean).join("\n"));
@@ -33122,6 +33454,8 @@ ${choices.brief}
     say(uiSourcesText());
   }
   say();
+  say(rule(server, "sandboxHosts", SANDBOX_HOSTS_RULE));
+  say();
   say("Then, in this order:");
   steps.forEach((s, i) => say(`${i + 1}. ${s.cmd ? `Run ${s.cmd}. ` : ""}${s.say}`));
   say();
@@ -33135,18 +33469,18 @@ ${choices.brief}
   for (const line of server.extra) say(line);
   say(rule(server, "startFail", START_FAIL_LINE));
   ensureDeployaiDir(root);
-  writeFileSync22(join27(root, START_FILE), `${lines.join("\n")}
+  writeFileSync22(join28(root, START_FILE), `${lines.join("\n")}
 `);
 }
 
 // src/commands/addon.ts
-import { dirname as dirname7, join as join29, resolve as resolve9 } from "path";
+import { dirname as dirname7, join as join30, resolve as resolve9 } from "path";
 import { mkdirSync as mkdirSync15, existsSync as existsSync25, writeFileSync as writeFileSync24 } from "fs";
 
 // src/commands/addon-lanes.ts
 import { spawnSync as spawnSync6 } from "child_process";
 import { copyFileSync, existsSync as existsSync24, lstatSync as lstatSync2, mkdirSync as mkdirSync14, readdirSync as readdirSync9, rmdirSync, statSync as statSync4, unlinkSync as unlinkSync2, writeFileSync as writeFileSync23 } from "fs";
-import { basename as basename3, dirname as dirname6, join as join28, resolve as resolve8 } from "path";
+import { basename as basename3, dirname as dirname6, join as join29, resolve as resolve8 } from "path";
 var git3 = (cwd, args) => spawnSync6("git", args, { cwd, encoding: "utf8" });
 var ok = (cwd, args) => git3(cwd, args).status === 0;
 var who = (cwd) => git3(cwd, ["config", "user.email"]).stdout?.trim() ? [] : ["-c", "user.name=DeployAI", "-c", "user.email=versions@deployai.co.il"];
@@ -33185,8 +33519,8 @@ function startWave(root, keys) {
   }
   const base = text3(root, ["rev-parse", "HEAD"]);
   if (!base) throw new CliError('This folder has no commit yet. Run: git add -A, then git commit -m "Before add-ons", then this command again.', 1, "no_commit");
-  const parent = join28(dirname6(root), `${basename3(root)}-addons`);
-  const lanes = w.lanes.map((l) => ({ name: l.name, keys: l.keys, dir: join28(parent, l.name), branch: `addon/${l.name}` }));
+  const parent = join29(dirname6(root), `${basename3(root)}-addons`);
+  const lanes = w.lanes.map((l) => ({ name: l.name, keys: l.keys, dir: join29(parent, l.name), branch: `addon/${l.name}` }));
   for (const l of lanes) {
     if (existsSync24(l.dir)) throw new CliError(`A lane folder from an earlier run is still there: ${l.dir}. Bring its work in with npx deployai@latest addons merge, or remove it with git worktree remove "${l.dir}", then run this again.`, 1, "lane_exists");
     if (ok(root, ["rev-parse", "--verify", "--quiet", `refs/heads/${l.branch}`])) throw new CliError(`The branch ${l.branch} from an earlier run is still there. Bring it in with git merge ${l.branch}, or remove it with git branch -D ${l.branch}, then run this again.`, 1, "lane_exists");
@@ -33205,13 +33539,13 @@ function startWave(root, keys) {
   return null;
 }
 function copyLocalFiles(from, to) {
-  const dir = join28(from, DEPLOYAI_DIR);
-  const files = existsSync24(dir) ? readdirSync9(dir).map((f) => join28(DEPLOYAI_DIR, f)).filter((f) => statSync4(join28(from, f)).isFile()) : [];
+  const dir = join29(from, DEPLOYAI_DIR);
+  const files = existsSync24(dir) ? readdirSync9(dir).map((f) => join29(DEPLOYAI_DIR, f)).filter((f) => statSync4(join29(from, f)).isFile()) : [];
   for (const f of [...files, ...LOCAL_FILES]) {
-    if (f === join28(DEPLOYAI_DIR, "run.json")) continue;
-    if (!existsSync24(join28(from, f)) || existsSync24(join28(to, f))) continue;
-    mkdirSync14(dirname6(join28(to, f)), { recursive: true });
-    copyFileSync(join28(from, f), join28(to, f));
+    if (f === join29(DEPLOYAI_DIR, "run.json")) continue;
+    if (!existsSync24(join29(from, f)) || existsSync24(join29(to, f))) continue;
+    mkdirSync14(dirname6(join29(to, f)), { recursive: true });
+    copyFileSync(join29(from, f), join29(to, f));
   }
 }
 function mergeStamps(root) {
@@ -33227,11 +33561,11 @@ function mergeStamps(root) {
   if (!ours2 || !theirs) return false;
   const merged = { ...ours2 };
   for (const [k, v] of Object.entries(theirs)) merged[k] = { ...ours2[k] ?? {}, ...v };
-  writeFileSync23(join28(root, ADDON_STAMP_FILE), JSON.stringify(merged, null, 2));
+  writeFileSync23(join29(root, ADDON_STAMP_FILE), JSON.stringify(merged, null, 2));
   return ok(root, ["add", "--", ADDON_STAMP_FILE]);
 }
 function removeLane(root, lane) {
-  const nm = join28(lane.dir, "node_modules");
+  const nm = join29(lane.dir, "node_modules");
   try {
     if (lstatSync2(nm).isSymbolicLink()) {
       try {
@@ -33277,7 +33611,7 @@ function addonsMergeCommand(root) {
     throw new CliError(`Lane ${lane.name} needs its conflicts resolved.`, 1, "merge_conflict");
   }
   for (const lane of wave.lanes) removeLane(root, lane);
-  const parent = join28(dirname6(root), `${basename3(root)}-addons`);
+  const parent = join29(dirname6(root), `${basename3(root)}-addons`);
   try {
     if (existsSync24(parent) && !readdirSync9(parent).length) rmdirSync(parent);
   } catch {
@@ -33382,7 +33716,7 @@ async function addonsRunCommand(root, ctx, opts = {}) {
   const checkWithMe = ownerMode(root) === "check-with-me";
   if (!order && !running && r.picked && !r.agreed && todo.length > 1) {
     const stamps = readStamps(root);
-    const items = todo.map((a) => ({ ...a, trace: addonTrace(a.key, (path) => existsSync25(join29(root, path)), stamps) }));
+    const items = todo.map((a) => ({ ...a, trace: addonTrace(a.key, (path) => existsSync25(join30(root, path)), stamps) }));
     addonOrderBrief(items, Boolean(opts.parallel) && !checkWithMe).forEach((line) => out(line));
     if (opts.end !== void 0 && end) out(`Add --end ${end} to that command, so the run still ends as chosen.`);
     return;
@@ -33427,20 +33761,20 @@ async function addonBuyCommand(root, ctx, key2) {
 }
 function readStamps(root) {
   try {
-    return readJson(join29(root, ADDON_STAMP_FILE));
+    return readJson(join30(root, ADDON_STAMP_FILE));
   } catch {
     return {};
   }
 }
 function writeStamps(root, stamps) {
-  const file2 = join29(root, ADDON_STAMP_FILE);
+  const file2 = join30(root, ADDON_STAMP_FILE);
   mkdirSync15(dirname7(file2), { recursive: true });
   writeFileSync24(file2, JSON.stringify(stamps, null, 2));
 }
 function printAddon(root, a) {
   const lane = laneOf(root);
   const stamps = readStamps(root);
-  const trace = addonTrace(a.key, (path) => existsSync25(join29(root, path)), stamps);
+  const trace = addonTrace(a.key, (path) => existsSync25(join30(root, path)), stamps);
   writeStamps(root, { ...stamps, [a.key]: { ...stamps[a.key], runId: a.runId } });
   out(`DeployAI add-on ${a.position} of ${a.total}: ${a.name} (${a.key}, run ${a.runId}).`);
   if (lane) out(laneRules(lane));
@@ -33514,10 +33848,10 @@ async function addonDoneCommand(root, ctx, runId, opts) {
 
 // src/commands/speed.ts
 import { spawn as spawn4 } from "child_process";
-import { createHash as createHash5 } from "crypto";
-import { mkdirSync as mkdirSync16, mkdtempSync as mkdtempSync2, readFileSync as readFileSync22, rmSync as rmSync8, writeFileSync as writeFileSync25 } from "fs";
+import { createHash as createHash6 } from "crypto";
+import { mkdirSync as mkdirSync16, mkdtempSync as mkdtempSync2, readFileSync as readFileSync23, rmSync as rmSync8, writeFileSync as writeFileSync25 } from "fs";
 import { tmpdir as tmpdir5 } from "os";
-import { join as join30 } from "path";
+import { join as join31 } from "path";
 var ms = (v) => v >= 1e3 ? `${(v / 1e3).toFixed(1)} s` : `${Math.round(v)} ms`;
 var LOCAL_WAIT_MS = 18e4;
 function runLighthouse(url2, strategy, browser, file2) {
@@ -33541,11 +33875,11 @@ function runLighthouse(url2, strategy, browser, file2) {
 }
 async function localSpeed(url2, strategy, run = runLighthouse, browser = findBrowser()) {
   if (!browser) return null;
-  const dir = mkdtempSync2(join30(tmpdir5(), "deployai-speed-"));
+  const dir = mkdtempSync2(join31(tmpdir5(), "deployai-speed-"));
   try {
-    const file2 = join30(dir, "report.json");
+    const file2 = join31(dir, "report.json");
     await run(url2, strategy, browser, file2);
-    const lighthouseResult = JSON.parse(readFileSync22(file2, "utf8"));
+    const lighthouseResult = JSON.parse(readFileSync23(file2, "utf8"));
     return lighthouseResult.categories ? mapPsi({ lighthouseResult }, strategy) : null;
   } catch {
     return null;
@@ -33572,10 +33906,10 @@ function printReport(r, strategy, local2) {
   }
 }
 var CACHE_MS = 10 * 6e4;
-var cacheFile = (dir, url2, strategy) => join30(dir, `${createHash5("sha256").update(`${strategy} ${url2}`).digest("hex").slice(0, 24)}.json`);
+var cacheFile = (dir, url2, strategy) => join31(dir, `${createHash6("sha256").update(`${strategy} ${url2}`).digest("hex").slice(0, 24)}.json`);
 function readCache(dir, url2, strategy) {
   try {
-    return JSON.parse(readFileSync22(cacheFile(dir, url2, strategy), "utf8"));
+    return JSON.parse(readFileSync23(cacheFile(dir, url2, strategy), "utf8"));
   } catch {
     return null;
   }
@@ -33599,7 +33933,7 @@ async function speedCommand(ctx, url2, opts, deps = {}) {
   } catch {
     throw new CliError(`Not an address: ${url2}. Use the full address, for example https://example.com/`, 1, "usage");
   }
-  const dir = deps.cacheDir ?? join30(tmpdir5(), "deployai-speed-cache");
+  const dir = deps.cacheDir ?? join31(tmpdir5(), "deployai-speed-cache");
   const now = deps.now ?? Date.now;
   const cached2 = readCache(dir, page3, strategy);
   if (cached2 && now() - cached2.at < CACHE_MS) {
@@ -33660,7 +33994,7 @@ import { spawnSync as spawnSync7 } from "child_process";
 import { existsSync as existsSync26, mkdirSync as mkdirSync17, readdirSync as readdirSync10, statSync as statSync5, writeFileSync as writeFileSync26 } from "fs";
 import { createRequire } from "module";
 import { homedir as homedir5 } from "os";
-import { extname, join as join31, relative as relative6, resolve as resolve10 } from "path";
+import { extname, join as join32, relative as relative6, resolve as resolve10 } from "path";
 var PHONE_WIDTH = 640;
 var SHARP = "sharp@0.34";
 var SKIP_DIRS2 = /* @__PURE__ */ new Set(["node_modules", ".git", ".deployai", "dist", ".astro", ".next"]);
@@ -33668,7 +34002,7 @@ function imagesIn(dir) {
   const found = [];
   const walk2 = (d) => {
     for (const name of readdirSync10(d)) {
-      const p = join31(d, name);
+      const p = join32(d, name);
       const st = statSync5(p);
       if (st.isDirectory()) {
         if (!SKIP_DIRS2.has(name)) walk2(p);
@@ -33685,15 +34019,15 @@ function outputsFor(file2, width) {
   return list;
 }
 function loadSharp() {
-  const dir = join31(homedir5(), ".deployai", "tools", "sharp");
-  if (!existsSync26(join31(dir, "node_modules", "sharp"))) {
+  const dir = join32(homedir5(), ".deployai", "tools", "sharp");
+  if (!existsSync26(join32(dir, "node_modules", "sharp"))) {
     mkdirSync17(dir, { recursive: true });
-    if (!existsSync26(join31(dir, "package.json"))) writeFileSync26(join31(dir, "package.json"), '{"private":true}');
+    if (!existsSync26(join32(dir, "package.json"))) writeFileSync26(join32(dir, "package.json"), '{"private":true}');
     out("Getting the image tool once (it stays outside the site)...");
     const r = spawnSync7(process.platform === "win32" ? "npm.cmd" : "npm", ["install", SHARP, "--no-audit", "--no-fund", "--silent"], { cwd: dir, stdio: "ignore", shell: process.platform === "win32" });
     if (r.status !== 0) throw new CliError("The image tool could not be installed. Check the internet connection and run optimize again.", 1, "images_failed");
   }
-  return createRequire(join31(dir, "package.json"))("sharp");
+  return createRequire(join32(dir, "package.json"))("sharp");
 }
 async function imagesCommand(root, folder, sharp = loadSharp) {
   const dir = resolve10(root, folder ?? "public");
@@ -33729,8 +34063,8 @@ async function imagesCommand(root, folder, sharp = loadSharp) {
 }
 
 // src/commands/blocks.ts
-import { createHash as createHash6 } from "crypto";
-import { existsSync as existsSync27, mkdirSync as mkdirSync18, readFileSync as readFileSync23, writeFileSync as writeFileSync27 } from "fs";
+import { createHash as createHash7 } from "crypto";
+import { existsSync as existsSync27, mkdirSync as mkdirSync18, readFileSync as readFileSync24, writeFileSync as writeFileSync27 } from "fs";
 import { dirname as dirname8, resolve as resolve11, sep as sep5 } from "path";
 import { gunzipSync as gunzipSync3 } from "zlib";
 var BLOCKS = [
@@ -33740,7 +34074,7 @@ var BLOCKS = [
   { key: "late-tags", title: "Tracking tags (Tag Manager, Google, Meta, Clarity) that load a moment after the page shows, at once on conversion pages and ad clicks" }
 ];
 var MAX_BYTES4 = 5 * 1024 * 1024;
-var sha = (data) => createHash6("sha256").update(data).digest("hex");
+var sha = (data) => createHash7("sha256").update(data).digest("hex");
 var lockPath = (base, key2) => resolve11(base, ".deployai", "blocks", `${key2}.lock.json`);
 function readLock(base, key2) {
   try {
@@ -33785,7 +34119,7 @@ async function blocksCommand(root, ctx, name, opts = {}) {
     const target = resolve11(base, e3.name);
     if (target === base || !target.startsWith(base + sep5)) continue;
     if (existsSync27(target)) {
-      const now = sha(readFileSync23(target));
+      const now = sha(readFileSync24(target));
       if (now === sha(e3.data)) {
         lock[e3.name] = now;
       } else if (opts.update && lock[e3.name] === now) {
@@ -33870,10 +34204,10 @@ async function integrationsCommand(ctx, name, opts = {}) {
 
 // src/commands/brand.ts
 import { spawn as spawn5 } from "child_process";
-import { copyFileSync as copyFileSync2, existsSync as existsSync28, mkdirSync as mkdirSync19, mkdtempSync as mkdtempSync3, readdirSync as readdirSync11, readFileSync as readFileSync24, rmSync as rmSync9, statSync as statSync6, writeFileSync as writeFileSync28 } from "fs";
+import { copyFileSync as copyFileSync2, existsSync as existsSync28, mkdirSync as mkdirSync19, mkdtempSync as mkdtempSync3, readdirSync as readdirSync11, readFileSync as readFileSync25, rmSync as rmSync9, statSync as statSync6, writeFileSync as writeFileSync28 } from "fs";
 import { createServer } from "http";
 import { tmpdir as tmpdir6 } from "os";
-import { basename as basename4, dirname as dirname9, extname as extname2, join as join32, relative as relative7, sep as sep6 } from "path";
+import { basename as basename4, dirname as dirname9, extname as extname2, join as join33, relative as relative7, sep as sep6 } from "path";
 import { randomBytes } from "crypto";
 
 // src/commands/brand-page.ts
@@ -33965,7 +34299,7 @@ var WALK_CAP = 4e3;
 var SKIP_DIRS3 = /* @__PURE__ */ new Set(["node_modules", ".git", ".next", "dist", "build", "out", ".astro", ".output", ".svelte-kit", ".wrangler", ".deployai"]);
 var TYPES = { ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".gif": "image/gif", ".ico": "image/x-icon", ".avif": "image/avif" };
 function webRoot(root) {
-  for (const d of ["public", "static"]) if (existsSync28(join32(root, d))) return join32(root, d);
+  for (const d of ["public", "static"]) if (existsSync28(join33(root, d))) return join33(root, d);
   return root;
 }
 function walk(dir, found = []) {
@@ -33977,7 +34311,7 @@ function walk(dir, found = []) {
   }
   for (const n2 of names2) {
     if (found.length >= WALK_CAP) break;
-    const p = join32(dir, n2);
+    const p = join33(dir, n2);
     let isDir = false;
     try {
       isDir = statSync6(p).isDirectory();
@@ -33992,31 +34326,31 @@ function walk(dir, found = []) {
 }
 function existingFavicon(root) {
   const web = webRoot(root);
-  for (const f of ["favicon.ico", "favicon.svg", "favicon.png", "icon.svg", "icon.png"]) if (existsSync28(join32(web, f))) return relative7(root, join32(web, f)).split(sep6).join("/");
-  for (const d of ["app", "src/app"]) for (const f of ["favicon.ico", "icon.svg", "icon.png", "icon.tsx", "icon.jpg"]) if (existsSync28(join32(root, d, f))) return `${d}/${f}`;
+  for (const f of ["favicon.ico", "favicon.svg", "favicon.png", "icon.svg", "icon.png"]) if (existsSync28(join33(web, f))) return relative7(root, join33(web, f)).split(sep6).join("/");
+  for (const d of ["app", "src/app"]) for (const f of ["favicon.ico", "icon.svg", "icon.png", "icon.tsx", "icon.jpg"]) if (existsSync28(join33(root, d, f))) return `${d}/${f}`;
   for (const f of walk(root).filter((p) => /\.(html|astro|tsx|jsx|vue|svelte)$/.test(p)).slice(0, 400)) {
     try {
-      const m = readFileSync24(f, "utf8").match(/<link\b[^>]*\brel=["'](?:shortcut )?icon["'][^>]*>/i);
+      const m = readFileSync25(f, "utf8").match(/<link\b[^>]*\brel=["'](?:shortcut )?icon["'][^>]*>/i);
       if (!m) continue;
       const href = m[0].match(/\shref=["']([^"']+)/i)?.[1] ?? "";
-      if (href.startsWith("data:") || /^https?:/.test(href) || existsSync28(join32(web, href.split("?")[0]))) return relative7(root, f).split(sep6).join("/");
+      if (href.startsWith("data:") || /^https?:/.test(href) || existsSync28(join33(web, href.split("?")[0]))) return relative7(root, f).split(sep6).join("/");
     } catch {
     }
   }
   return null;
 }
 function scannedIcons(root) {
-  const base = join32(root, MIGRATION_DIR);
+  const base = join33(root, MIGRATION_DIR);
   if (!existsSync28(base)) return [];
   const found = [];
   for (const host of readdirSync11(base)) {
-    const dir = join32(base, host, "icons");
+    const dir = join33(base, host, "icons");
     try {
-      const list = readJson(join32(dir, "icons.json"));
+      const list = readJson(join33(dir, "icons.json"));
       for (const i of list) {
-        const path = join32(dir, i.file);
+        const path = join33(dir, i.file);
         if (!existsSync28(path)) continue;
-        const size = imageSize(readFileSync24(path));
+        const size = imageSize(readFileSync25(path));
         found.push({ path, kind: i.kind, big: !size || size.width >= 64 });
       }
     } catch {
@@ -34028,7 +34362,7 @@ function findSource(root) {
   const icons = scannedIcons(root);
   const sharp = icons.find((i) => i.kind === "icon" && i.big);
   if (sharp) return { path: sharp.path, from: "old-icon" };
-  const dirs = ["public", "static", "src/assets", "assets", "images", "img"].map((d) => join32(root, d));
+  const dirs = ["public", "static", "src/assets", "assets", "images", "img"].map((d) => join33(root, d));
   const logos = dirs.flatMap((d) => walk(d)).filter((p) => looksLikeLogo(relative7(root, p).split(sep6).join("/")));
   const logo = logos.find((p) => /\.svg$/i.test(p)) ?? logos[0];
   if (logo) return { path: logo, from: "logo" };
@@ -34042,23 +34376,23 @@ var CODE_EXT2 = /\.(css|scss|sass|less|html|astro|vue|svelte)$/i;
 var READ_CAP = 300;
 function readText2(path) {
   try {
-    return readFileSync24(path, "utf8");
+    return readFileSync25(path, "utf8");
   } catch {
     return "";
   }
 }
 function scanDirs(root) {
-  const base = join32(root, MIGRATION_DIR);
+  const base = join33(root, MIGRATION_DIR);
   try {
-    return readdirSync11(base).map((h) => join32(base, h)).filter((d) => existsSync28(join32(d, "home.html")));
+    return readdirSync11(base).map((h) => join33(base, h)).filter((d) => existsSync28(join33(d, "home.html")));
   } catch {
     return [];
   }
 }
 function homePage(root) {
-  for (const d of scanDirs(root)) return readText2(join32(d, "home.html"));
+  for (const d of scanDirs(root)) return readText2(join33(d, "home.html"));
   for (const f of ["index.html", "public/index.html", "src/index.html", "src/pages/index.astro", "src/pages/index.html", "app/layout.tsx", "src/app/layout.tsx", "src/layouts/Layout.astro"]) {
-    const text4 = readText2(join32(root, f));
+    const text4 = readText2(join33(root, f));
     if (text4) return text4;
   }
   return "";
@@ -34069,27 +34403,27 @@ function siteFacts(root, given = {}) {
   const id2 = readSiteIdentity(home);
   let pkg;
   try {
-    pkg = readJson(join32(root, "package.json")).name;
+    pkg = readJson(join33(root, "package.json")).name;
   } catch {
   }
   const name = given.name?.trim() || readProject(root)?.name || id2.name || (pkg && !pkg.startsWith("@") ? pkg : "") || basename4(root);
   if (given.color) return { name, line: given.line ?? id2.line ?? "", color: given.color, colorFrom: "given" };
-  const old = scanDirs(root).flatMap((d) => walkAll(join32(d, "styles")).map((f) => ({ text: readText2(f) })));
+  const old = scanDirs(root).flatMap((d) => walkAll(join33(d, "styles")).map((f) => ({ text: readText2(f) })));
   const fromOld = scanDirs(root).length ? pickBrandColor([{ text: home, themeColor: id2.themeColor }, ...old]) : null;
   const sources = [{ text: home, themeColor: id2.themeColor }];
-  for (const f of ["tailwind.config.js", "tailwind.config.ts", "tailwind.config.mjs", "tailwind.config.cjs"]) sources.push({ text: readText2(join32(root, f)) });
-  const code = ["src", "app", "styles", "css", "public", "static"].flatMap((d) => walk(join32(root, d))).filter((p) => CODE_EXT2.test(p));
-  const plain2 = readdirSync11(root).filter((f) => CODE_EXT2.test(f)).map((f) => join32(root, f));
+  for (const f of ["tailwind.config.js", "tailwind.config.ts", "tailwind.config.mjs", "tailwind.config.cjs"]) sources.push({ text: readText2(join33(root, f)) });
+  const code = ["src", "app", "styles", "css", "public", "static"].flatMap((d) => walk(join33(root, d))).filter((p) => CODE_EXT2.test(p));
+  const plain2 = readdirSync11(root).filter((f) => CODE_EXT2.test(f)).map((f) => join33(root, f));
   for (const f of [...plain2, ...code].slice(0, READ_CAP)) sources.push({ text: readText2(f) });
   const color = fromOld ?? pickBrandColor(sources);
   return { name, line: given.line ?? id2.line ?? "", color: color ?? BRAND_DEFAULT_COLOR, colorFrom: color ? "site" : "default" };
 }
 function writeSiteFile(root, file2, data) {
-  const target = join32(webRoot(root), file2);
+  const target = join33(webRoot(root), file2);
   if (existsSync28(target)) {
-    const keep2 = join32(root, BRAND_DIR, "originals");
+    const keep2 = join33(root, BRAND_DIR, "originals");
     mkdirSync19(keep2, { recursive: true });
-    copyFileSync2(target, join32(keep2, file2));
+    copyFileSync2(target, join33(keep2, file2));
   }
   mkdirSync19(dirname9(target), { recursive: true });
   writeFileSync28(target, data);
@@ -34127,7 +34461,7 @@ function allowed(req, url2, port, token) {
   return req.headers.host === `127.0.0.1:${port}` && url2.searchParams.get("t") === token;
 }
 async function headless(browser, url2, width, until, timeoutMs) {
-  const profile = mkdtempSync3(join32(tmpdir6(), "deployai-brand-"));
+  const profile = mkdtempSync3(join33(tmpdir6(), "deployai-brand-"));
   const child = spawn5(browser, ["--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check", "--disable-extensions", `--user-data-dir=${profile}`, `--window-size=${width},900`, url2], { stdio: "ignore", windowsHide: true });
   child.on("error", () => {
   });
@@ -34227,7 +34561,7 @@ async function drawInBrowser(o, browser) {
   }
 }
 function sourceBytes(path) {
-  return { bytes: readFileSync24(path), type: TYPES[extname2(path).toLowerCase()] ?? "application/octet-stream" };
+  return { bytes: readFileSync25(path), type: TYPES[extname2(path).toLowerCase()] ?? "application/octet-stream" };
 }
 function report(root, r) {
   const where = relative7(root, webRoot(root)).split(sep6).join("/") || "the site root";
@@ -34245,7 +34579,7 @@ function plainIcon(root, source, name, color) {
     const ext = extname2(source.path).toLowerCase();
     if (ext === ".ico" || ext === ".svg" || ext === ".png") {
       const file2 = `favicon${ext}`;
-      writeSiteFile(root, file2, readFileSync24(source.path));
+      writeSiteFile(root, file2, readFileSync25(source.path));
       return [file2];
     }
   }
@@ -34263,7 +34597,7 @@ function printStatus2(root, files) {
   const web = webRoot(root);
   const icon = existingFavicon(root);
   out(icon ? `Icon: ${icon}` : "Icon: missing. Run: npx deployai@latest brand favicon");
-  const missing = files.filter((f) => f !== "favicon.svg" && !existsSync28(join32(web, f)));
+  const missing = files.filter((f) => f !== "favicon.svg" && !existsSync28(join33(web, f)));
   if (files.length) out(missing.length ? `Missing from the full set: ${missing.join(", ")}` : "The full set is there.");
 }
 function printFacts(f, picture2) {
@@ -34310,7 +34644,7 @@ async function brandFaviconCommand(root, opts) {
 }
 function iconsToDraw(root, force) {
   const icon = force ? null : existingFavicon(root);
-  const keepOg = !force && existsSync28(join32(webRoot(root), "og-image.png"));
+  const keepOg = !force && existsSync28(join33(webRoot(root), "og-image.png"));
   return {
     targets: BRAND_TARGETS.filter((t) => !(keepOg && t.file === "og-image.png") && !(icon && t.icoOnly)),
     keepIcon: Boolean(icon),
@@ -34366,7 +34700,7 @@ async function measurePage(browser, address, width, scripts) {
   }
 }
 function imageFiles(root) {
-  const dirs = [webRoot(root) === root ? null : webRoot(root), join32(root, "src"), join32(root, MIGRATION_DIR)].filter((d) => !!d);
+  const dirs = [webRoot(root) === root ? null : webRoot(root), join33(root, "src"), join33(root, MIGRATION_DIR)].filter((d) => !!d);
   const files = dirs.flatMap((d) => walkAll(d));
   if (webRoot(root) === root) files.push(...walk(root));
   return [...new Set(files)].filter((p) => IMAGE_EXT.test(p) && !p.split(sep6).includes("icons") && !BRAND_FILES.includes(basename4(p)));
@@ -34382,7 +34716,7 @@ function walkAll(dir) {
     }
     for (const n2 of names2) {
       if (found.length >= WALK_CAP) return;
-      const p = join32(d, n2);
+      const p = join33(d, n2);
       try {
         if (statSync6(p).isDirectory()) {
           if (!SKIP_DIRS3.has(n2) || n2 === ".deployai") go(p);
@@ -34401,7 +34735,7 @@ function judgeFiles(root) {
   for (const f of files) {
     let bytes;
     try {
-      bytes = readFileSync24(f);
+      bytes = readFileSync25(f);
     } catch {
       continue;
     }
@@ -34451,10 +34785,10 @@ async function brandImagesCommand(root, urls, opts) {
     if (verdict !== "ok") onPages.push({ where: m.src, width: m.width, height: m.height, shownWidth: m.shownWidth, verdict, alt: m.alt });
   }
   const weak = [...onPages, ...findings];
-  mkdirSync19(join32(root, BRAND_DIR), { recursive: true });
+  mkdirSync19(join33(root, BRAND_DIR), { recursive: true });
   const file2 = `${BRAND_DIR}/images.json`;
   const data = { measuredAt: (/* @__PURE__ */ new Date()).toISOString(), pages: urls, unmeasured, filesChecked: total, imagesMeasured: shown.size, weak };
-  writeFileSync28(join32(root, file2), `${JSON.stringify(data, null, 2)}
+  writeFileSync28(join33(root, file2), `${JSON.stringify(data, null, 2)}
 `);
   if (opts.json) {
     out(JSON.stringify(data));
@@ -34520,7 +34854,7 @@ function buildProgram() {
   const root = (cmd) => resolve12(g(cmd).dir ?? process.cwd());
   const ctx = (cmd) => apiContext(g(cmd).api, root(cmd));
   program.hook("preAction", async (_p, action) => {
-    if (["init", "start", "rules"].includes(action.name()) || !existsSync29(join33(root(action), "DEPLOYAI.md"))) return;
+    if (["init", "start", "rules", "hosts"].includes(action.name()) || !existsSync29(join34(root(action), "DEPLOYAI.md"))) return;
     await refreshRules(root(action), ctx(action).apiUrl);
   });
   program.command("init").description("create DEPLOYAI.md and .deployai/ guard files").option("--force", "overwrite DEPLOYAI.md").option("--no-agent-files", "do not add the DEPLOYAI.md line to AGENTS.md and CLAUDE.md").action((opts, cmd) => initCommand(root(cmd), opts, ctx(cmd).apiUrl));
@@ -34541,6 +34875,9 @@ function buildProgram() {
 ${AGENT_FEEDBACK_RULES.join("\n\n")}
 `).action((opts, cmd) => feedbackCommand(root(cmd), ctx(cmd), opts));
   program.command("allow").description("stop your coding tool asking before every DeployAI command, in this folder only (run it after the owner says yes)").argument("[tool]", "claude-code, cursor, copilot, codex, antigravity or grok (Claude Code and Grok Build are found by themselves)").action((tool) => allowCommand(tool));
+  program.command("hosts").description("the hosts the work in this folder needs, each tried from this machine: reachable, blocked by this machine or no answer, and what to ask the owner to allow (D-1246)").option("--json", "machine readable output").action(async (opts, cmd) => {
+    await hostsCommand(root(cmd), ctx(cmd), opts);
+  });
   program.command("sound").description("a sound on this computer when the site is ready, or while the agent works (run it after the owner says yes)").argument("[action]", "on, off, status, test or agent", "status").argument("[state]", "with agent: on or off").argument("[tool]", "with agent: claude-code (found by itself)").option("--alongside", "with agent on: add it next to sounds Claude Code already plays").action((action, state, tool, opts, cmd) => soundCommand(root(cmd), action, state, tool, opts, ctx(cmd)));
   program.command("voice").description("the account's yes or no to saying it out loud after the sound, and its language (run it after the owner says yes)").argument("[action]", "on, off, status, test or lang", "status").argument("[lang]", "with lang: he or en").action((action, lang, cmd) => voiceCommand(root(cmd), action, lang, ctx(cmd)));
   program.command("link").description("link this folder to a DeployAI project").argument("[project]", "project slug or id").option("--create <name>", "create a new project and link it").action(
@@ -34701,6 +35038,9 @@ async function main(rawArgv = process.argv) {
   }
 }
 
+// src/env-proxy.ts
+import { spawnSync as spawnSync8 } from "child_process";
+
 // src/node-version.ts
 var MIN_NODE = "22.12";
 function nodeVersion(version2) {
@@ -34716,10 +35056,32 @@ function nodeGuideUrl(lang, base = API_BASE_DEFAULT) {
   return `${base}${lang === "he" ? "" : "/en"}/guides/install-nodejs`;
 }
 
+// src/env-proxy.ts
+var QUIET_PROXY_WARNING = "--disable-warning=UNDICI-EHPA";
+function nodeReadsEnvProxy(version2) {
+  const v = nodeVersion(version2);
+  if (!v) return false;
+  return v[0] >= 24 || v[0] === 22 && v[1] >= 21;
+}
+function needsProxyRestart(env, version2, execArgv) {
+  const proxy = env.HTTPS_PROXY || env.https_proxy || env.HTTP_PROXY || env.http_proxy;
+  if (!proxy || env.DEPLOYAI_NO_ENV_PROXY) return false;
+  if (env.NODE_USE_ENV_PROXY === "1" || execArgv.includes("--use-env-proxy")) return false;
+  return nodeReadsEnvProxy(version2);
+}
+function runWithProxy(args) {
+  const entry = process.argv[1];
+  if (!entry) return null;
+  const r = spawnSync8(process.execPath, [QUIET_PROXY_WARNING, ...process.execArgv, entry, ...args], { stdio: "inherit", env: { ...process.env, NODE_USE_ENV_PROXY: "1" } });
+  if (r.error) return null;
+  if (r.signal) process.kill(process.pid, r.signal);
+  return r.status ?? 1;
+}
+
 // src/update.ts
-import { spawnSync as spawnSync8 } from "child_process";
-import { existsSync as existsSync30, mkdirSync as mkdirSync20, readdirSync as readdirSync12, readFileSync as readFileSync25, rmSync as rmSync10, writeFileSync as writeFileSync29 } from "fs";
-import { join as join34 } from "path";
+import { spawnSync as spawnSync9 } from "child_process";
+import { existsSync as existsSync30, mkdirSync as mkdirSync20, readdirSync as readdirSync12, readFileSync as readFileSync26, rmSync as rmSync10, writeFileSync as writeFileSync29 } from "fs";
+import { join as join35 } from "path";
 var CHECK_EVERY_MS = 60 * 60 * 1e3;
 var ASK_NPM_MS = 1500;
 var GET_VERSION_MS = 12e4;
@@ -34757,11 +35119,11 @@ function updateAllowed(env, args) {
   return resolveApiUrl(void 0, loadConfig()) === API_BASE_DEFAULT.replace(/\/+$/, "");
 }
 function statePath() {
-  return join34(configDir(), "update-check.json");
+  return join35(configDir(), "update-check.json");
 }
 function readState() {
   try {
-    const data = JSON.parse(readFileSync25(statePath(), "utf8"));
+    const data = JSON.parse(readFileSync26(statePath(), "utf8"));
     return data && typeof data === "object" ? data : {};
   } catch {
     return {};
@@ -34786,24 +35148,25 @@ async function askNpmLatest(env) {
   }
 }
 function versionEntry(version2) {
-  return join34(configDir(), "cli", version2, "node_modules", "deployai", "dist", "index.js");
+  return join35(configDir(), "cli", version2, "node_modules", "deployai", "dist", "index.js");
 }
 function getVersion(version2, env) {
   process.stderr.write(`Getting the newest DeployAI CLI, version ${version2}.
 `);
-  const root = join34(configDir(), "cli");
-  const dir = join34(root, version2);
+  const root = join35(configDir(), "cli");
+  const dir = join35(root, version2);
   mkdirSync20(dir, { recursive: true });
-  writeFileSync29(join34(dir, "package.json"), '{"private":true}\n');
-  const installed = spawnSync8(`npm install deployai@${version2} --ignore-scripts --no-audit --no-fund --silent`, { cwd: dir, env, shell: true, stdio: "ignore", windowsHide: true, timeout: GET_VERSION_MS });
+  writeFileSync29(join35(dir, "package.json"), '{"private":true}\n');
+  const installed = spawnSync9(`npm install deployai@${version2} --ignore-scripts --no-audit --no-fund --silent`, { cwd: dir, env, shell: true, stdio: "ignore", windowsHide: true, timeout: GET_VERSION_MS });
   if (installed.status !== 0) return false;
-  const ran = spawnSync8(process.execPath, [versionEntry(version2), "--version"], { env: { ...env, DEPLOYAI_NO_UPDATE: "1" }, encoding: "utf8", timeout: GET_VERSION_MS });
+  const ran = spawnSync9(process.execPath, [versionEntry(version2), "--version"], { env: { ...env, DEPLOYAI_NO_UPDATE: "1" }, encoding: "utf8", timeout: GET_VERSION_MS });
   if (ran.status !== 0 || ran.stdout.trim() !== version2) return false;
-  for (const old of readdirSync12(root)) if (old !== version2) rmSync10(join34(root, old), { recursive: true, force: true });
+  for (const old of readdirSync12(root)) if (old !== version2) rmSync10(join35(root, old), { recursive: true, force: true });
   return true;
 }
 function runVersion(version2, args, env = process.env) {
-  const r = spawnSync8(process.execPath, [versionEntry(version2), ...args], { stdio: "inherit", env: { ...env, DEPLOYAI_NO_UPDATE: "1" } });
+  const quiet = process.execArgv.filter((a) => a.startsWith("--disable-warning="));
+  const r = spawnSync9(process.execPath, [...quiet, versionEntry(version2), ...args], { stdio: "inherit", env: { ...env, DEPLOYAI_NO_UPDATE: "1" } });
   if (r.error) return null;
   return r.status ?? 1;
 }
@@ -34841,6 +35204,10 @@ async function start() {
     process.exit(1);
   }
   const args = process.argv.slice(2);
+  if (needsProxyRestart(process.env, process.version, process.execArgv)) {
+    const proxied = runWithProxy(args);
+    if (proxied !== null) process.exit(proxied);
+  }
   const newest = await versionToRun(CLI_VERSION, args).catch(() => null);
   const code = newest ? runVersion(newest, args) : null;
   if (code !== null) process.exit(code);
