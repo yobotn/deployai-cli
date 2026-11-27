@@ -21780,6 +21780,7 @@ var ARCH_NODES = [
   { id: "mcp", kind: "external", zone: "services", label: "MCP for AI tools (/api/mcp)", summary: "ChatGPT \u05D5\u05BEClaude \u05DE\u05EA\u05D7\u05D1\u05E8\u05D9\u05DD \u05D1\u05DC\u05D9 \u05D8\u05E8\u05DE\u05D9\u05E0\u05DC: OAuth \u05E2\u05DD \u05D0\u05D9\u05E9\u05D5\u05E8 \u05D1\u05D3\u05E4\u05D3\u05E4\u05DF, \u05D5\u05D0\u05D6 \u05DB\u05DC\u05D9\u05DD \u05DC\u05E8\u05E9\u05D9\u05DE\u05EA \u05D4\u05D0\u05EA\u05E8\u05D9\u05DD, \u05D1\u05D3\u05D9\u05E7\u05D4, \u05D4\u05E2\u05DC\u05D0\u05EA \u05D2\u05E8\u05E1\u05D4 \u05DC\u05EA\u05E6\u05D5\u05D2\u05D4 \u05DE\u05E7\u05D3\u05D9\u05DE\u05D4, \u05D4\u05E8\u05E6\u05EA \u05EA\u05D5\u05E1\u05E4\u05D9\u05DD \u05E9\u05D4\u05D0\u05EA\u05E8 \u05E7\u05E0\u05D4 (\u05D4\u05E7\u05E0\u05D9\u05D9\u05D4 \u05E8\u05E7 \u05D1\u05D0\u05EA\u05E8), \u05D5\u05D4\u05E2\u05DC\u05D0\u05D4 \u05DC\u05D0\u05D5\u05D5\u05D9\u05E8 \u05E8\u05E7 \u05E2\u05DD \u05D4\u05E8\u05E9\u05D0\u05D4 \u05D5\u05D0\u05D9\u05E9\u05D5\u05E8. \u05E2\u05DD \u05D4\u05E8\u05E9\u05D0\u05D5\u05EA \u05D4\u05D0\u05E4\u05DC\u05D9\u05E7\u05E6\u05D9\u05D5\u05EA, \u05DB\u05DC\u05D9 \u05DC\u05DB\u05DC \u05E4\u05E2\u05D5\u05DC\u05D4 \u05E9\u05DC \u05D4\u05BEAPI \u05DC\u05D0\u05E4\u05DC\u05D9\u05E7\u05E6\u05D9\u05D5\u05EA.", summaryEn: "ChatGPT and Claude connect without a terminal: OAuth with a browser consent, then tools to list sites, check, upload a version to a preview, run add-ons the site owns (buying stays on the site), and go live only with the permission and a yes. With the app permissions, a tool for each Apps API operation.", code: ["apps/web/src/app/api/mcp/route.ts", "apps/web/src/server/mcp-tools.ts", "apps/web/src/server/mcp-apps.ts", "apps/web/src/server/auth.ts"], decisions: ["D-302", "D-1160"] },
   { id: "apps-api", kind: "external", zone: "services", label: "Apps API (/api/v1/apps)", summary: "\u05E1\u05E7\u05E8\u05D9\u05E4\u05D8\u05D9\u05DD \u05D5\u05E1\u05D5\u05DB\u05E0\u05D9 AI \u05DE\u05E0\u05D4\u05DC\u05D9\u05DD \u05D0\u05EA \u05D4\u05D0\u05E4\u05DC\u05D9\u05E7\u05E6\u05D9\u05D5\u05EA \u05E9\u05DC \u05D1\u05E2\u05DC \u05D4\u05D0\u05EA\u05E8 \u05E2\u05DD \u05DE\u05E4\u05EA\u05D7 API \u05E9\u05DC \u05D4\u05D7\u05E9\u05D1\u05D5\u05DF (dak_): \u05E8\u05E7 \u05D4\u05E4\u05E2\u05D5\u05DC\u05D5\u05EA \u05E9\u05DB\u05DC \u05D0\u05E4\u05DC\u05D9\u05E7\u05E6\u05D9\u05D4 \u05DE\u05EA\u05D9\u05E8\u05D4, \u05DC\u05E4\u05D9 \u05D4\u05D4\u05E8\u05E9\u05D0\u05D4 \u05D5\u05DC\u05E4\u05D9 \u05D4\u05D0\u05E4\u05DC\u05D9\u05E7\u05E6\u05D9\u05D5\u05EA \u05E9\u05E0\u05D1\u05D7\u05E8\u05D5, 60 \u05D1\u05E7\u05E9\u05D5\u05EA \u05D1\u05D3\u05E7\u05D4 \u05DC\u05DE\u05E4\u05EA\u05D7. \u05D4\u05DE\u05E4\u05EA\u05D7 \u05DE\u05D5\u05E6\u05D2 \u05E4\u05E2\u05DD \u05D0\u05D7\u05EA \u05D5\u05E0\u05E9\u05DE\u05E8 \u05E8\u05E7 \u05DB\u05D8\u05D1\u05D9\u05E2\u05D4.", summaryEn: "Scripts and AI agents manage the apps of an owner with an account API key (dak_): only the operations each app lists, by the scope and apps of the key, 60 requests a minute per key. The key shows once and only its hash is kept.", code: ["apps/web/src/server/app-api.ts", "apps/web/src/server/api-keys.ts", "packages/shared/src/app-api.ts"], decisions: ["D-1118", "D-1160"] },
   { id: "npm", kind: "external", zone: "services", label: "npm registry", summary: "\u05DE\u05E4\u05D9\u05E5 \u05D0\u05EA \u05D4\u05BECLI, \u05D5\u05DE\u05DE\u05E0\u05D5 \u05D4\u05D1\u05E0\u05D9\u05D9\u05D4 \u05DE\u05EA\u05E7\u05D9\u05E0\u05D4 \u05EA\u05DC\u05D5\u05D9\u05D5\u05EA.", summaryEn: "Distributes the CLI, and the build installs dependencies from it." },
+  { id: "google-sheets", kind: "external", zone: "services", label: "Google Sheets (leads)", summary: "\u05D4\u05D2\u05D9\u05DC\u05D9\u05D5\u05DF \u05E9\u05D8\u05E4\u05E1\u05D9 \u05D4\u05DE\u05D5\u05D3\u05E2\u05D5\u05EA \u05D1\u05E4\u05D9\u05D9\u05E1\u05D1\u05D5\u05E7 \u05DE\u05DE\u05DC\u05D0\u05D9\u05DD: \u05E0\u05E7\u05E8\u05D0 \u05DB\u05DC 5 \u05D3\u05E7\u05D5\u05EA \u05DC\u05E7\u05E8\u05D9\u05D0\u05D4 \u05D1\u05DC\u05D1\u05D3, \u05D5\u05DB\u05DC \u05E9\u05D5\u05E8\u05D4 \u05D7\u05D3\u05E9\u05D4 \u05D4\u05D5\u05E4\u05DB\u05EA \u05DC\u05DC\u05D9\u05D3.", summaryEn: "The sheet the Facebook ad forms fill: read every 5 minutes, read only, and each new row becomes a lead.", env: ["GOOGLE_SHEETS_KEY"], decisions: ["D-1262"] },
   { id: "pagespeed", kind: "external", zone: "services", label: "Google PageSpeed Insights", summary: "\u05D1\u05D3\u05D9\u05E7\u05D5\u05EA \u05D4\u05DE\u05D4\u05D9\u05E8\u05D5\u05EA, \u05D4\u05E0\u05D2\u05D9\u05E9\u05D5\u05EA \u05D5\u05D4\u05BESEO \u05D4\u05D7\u05D9\u05E0\u05DE\u05D9\u05D5\u05EA: Lighthouse \u05D1\u05DE\u05E2\u05D1\u05D3\u05D4 \u05E9\u05DC \u05D2\u05D5\u05D2\u05DC (\u05DB\u05D5\u05DC\u05DC \u05E1\u05D5\u05DB\u05E0\u05D9 AI) \u05D5\u05E0\u05EA\u05D5\u05E0\u05D9 \u05DE\u05D1\u05E7\u05E8\u05D9\u05DD \u05D0\u05DE\u05D9\u05EA\u05D9\u05D9\u05DD.", summaryEn: "The free speed, accessibility and SEO tests: Lighthouse run at Google (AI agents included) plus real visitor data.", env: ["PAGESPEED_API_KEY"], decisions: ["D-199", "D-222"] },
   { id: "turnstile", kind: "external", zone: "services", label: "CF Turnstile", summary: '\u05D1\u05D3\u05D9\u05E7\u05EA "\u05D4\u05D0\u05DD \u05D0\u05EA\u05DD \u05D1\u05E0\u05D9 \u05D0\u05D3\u05DD" \u05D1\u05D8\u05E4\u05E1\u05D9 \u05D4\u05DB\u05DC\u05D9\u05DD \u05D4\u05D7\u05D9\u05E0\u05DE\u05D9\u05D9\u05DD, \u05D1\u05DC\u05D9 \u05E4\u05D0\u05D6\u05DC\u05D9\u05DD \u05DC\u05E8\u05D5\u05D1 \u05D4\u05DE\u05D1\u05E7\u05E8\u05D9\u05DD.', summaryEn: 'The "are you human" check on the free tool forms, with no puzzle for most visitors.', env: ["TURNSTILE_SITE_KEY", "TURNSTILE_SECRET"], decisions: ["D-199"] },
   // Cloudflare
@@ -21841,6 +21842,7 @@ var ARCH_EDGES = [
   { id: "app-uptime-web", from: "app-uptime", to: "web", kind: "http", label: "alert email, my sites" },
   { id: "cfapi-app-uptime", from: "cfapi", to: "app-uptime", kind: "deploy", label: "upload app bundle" },
   { id: "dispatcher-app-uptime", from: dispatchBindingId("DISPATCHER"), to: "app-uptime", kind: "http", label: "dispatch" },
+  { id: "worker-google-sheets", from: "worker", to: "google-sheets", kind: "api", label: "new leads" },
   { id: "worker-pagespeed", from: "worker", to: "pagespeed", kind: "api", label: "speed, a11y, SEO" },
   { id: "web-turnstile", from: "web", to: "turnstile", kind: "api", label: "tool form check" },
   { id: "build-npm", from: "build", to: "npm", kind: "http", label: "install" },
@@ -23075,7 +23077,7 @@ function mapPsi(json2, strategy) {
   const audits = lr.audits ?? {};
   const cats = lr.categories ?? {};
   const score = (k) => typeof cats[k]?.score === "number" ? Math.round(cats[k].score * 100) : null;
-  const lab = LAB_IDS.map((id2) => ({
+  const lab2 = LAB_IDS.map((id2) => ({
     id: id2,
     value: typeof audits[id2]?.numericValue === "number" ? audits[id2].numericValue : null,
     display: clean2(audits[id2]?.displayValue, 40) || null,
@@ -23097,7 +23099,7 @@ function mapPsi(json2, strategy) {
     fetchedAt: clean2(lr.fetchTime ?? json2?.analysisUTCTimestamp, 40),
     lighthouseVersion: clean2(lr.lighthouseVersion, 20) || null,
     scores: { performance: score("performance"), accessibility: score("accessibility"), seo: score("seo"), bestPractices: score("best-practices") },
-    lab,
+    lab: lab2,
     field: field2,
     opportunities,
     accessibility,
@@ -23336,7 +23338,7 @@ var TAGS_FIRED = { cmd: "npx deployai@latest migrate tags --requests <file> --fi
 var SEND_PREVIEW = { say: 'Send the owner the preview address and, in short lines with no table, what changed from the plan and what still needs them. Ask: "Put it live now, or change something first?" Make all their changes first and put them in one deploy, never one deploy for each change.' };
 var AFTER_LIVE = { say: "Only after it is live: tell the owner, in one short message, that the site is live, that their old site and email did not change, that Google keeps showing the old site until the domain is connected, and that they can connect their domain whenever they are ready, as a separate step, from Site addresses on the site's page. Do not explain DNS, do not change DNS and do not start that step in this chat. Then go on with the next step." };
 var MOVE_SPEED = { cmd: "npx deployai@latest speed <address>", say: "Run it on the old site's home page and on the preview's home page, at phone width, and on one page of each other kind when they are built differently. The new site must score at least what the old one does, and aim for 90 or more. Fix the biggest items it lists: image sizes and formats, fonts, scripts that block the page, layout shifts. In a move that keeps the site exactly as it is, every fix keeps file names, fonts and scripts as they are: images only get lighter at the same path and size (D-866). Never drop or delay a tag, pixel or form to raise the score: loading tags later is the Performance add-on's job. One round only: make all the fixes, deploy once, run it and migrate verify once more, and go on whatever the score is then. Never start a second round. If the preview cannot be measured, measure the live address once right after it goes live instead. Tell the owner in one line the old and the new phone score, and when it is under 90, that the Performance add-on can raise it." };
-var LOOK_BUILD = { say: "A first look, before the rest of the site: build the real home page now, as step 3 says, with the owner's logo, colors, photos and words from the scan, and only the contact details found there. Its menu and buttons lead only to what already works on this one page; leave the rest out for now. Never write coming soon or under construction." };
+var LOOK_BUILD = { say: "A first look, before the rest of the site: build the real home page now, as step 3 says, with the owner's logo, photos and words from the scan, and exactly the colors and fonts in .deployai/migration/<host>/palette.json (never a palette of your own), and only the contact details found there. Its menu and buttons lead only to what already works on this one page; leave the rest out for now. Never write coming soon or under construction." };
 var LOOK_DEPLOY = { cmd: 'npx deployai@latest deploy -m "first look"', say: "Never with --live, and do not ask first: this one deploy is a private preview that visitors and Google do not see, and the old site and its domain stay as they are. It waits for the build and prints the preview address. Deploy it once, not for each small fix. If it fails and you cannot fix it soon, skip the next step and go on: the full preview is what the owner approves." };
 var LOOK_OPEN = "Open the address once, and do not retry for more than two minutes: a new link can take a few minutes. If it still does not open, tell the owner in one line, go on building, and try it again after the next step. Never end your turn to wait for it. If the owner puts a version live by themselves, that is their choice: do not ask why, say in one line what it holds so far, and go on.";
 var DASHBOARD = { cmd: "npx deployai@latest blocks dashboard", say: "Every move gets the site's own dashboard, free, so the owner does not lose the admin the old platform gave them. Do not ask: say so in one line in the plan. Do the steps in .deployai/blocks/dashboard.md. Rebuild every form in our code, never the old builder's scripts or styles, keeping its id, classes, field names and hidden fields, and name each one in src/kit/forms.json with its old thank you page, so its messages arrive in the dashboard under its own name with every field. What the owner changes often and it has no part for (jobs, events, a catalog), you add as its guide says. If the old site sells, keep what the plan says about the shop." };
@@ -24488,6 +24490,7 @@ var ENV_KEYS = {
   GOOGLE_RESELLER_KEY: { scope: "own", section: "email", about: "Sells Google Workspace mailboxes (D-547, D-896, D-897; with it set, an order on Domains, Mailboxes is a real purchase at Google; off production without it a simulated Google answers): the service account JSON, only its type, project, client email, client id, private key and token address, of our reseller project, delegated to GOOGLE_RESELLER_ADMIN. The laptop uses the reseller sandbox, the server the real account." },
   GOOGLE_RESELLER_ADMIN: { scope: "own", section: "email", about: "The reseller admin user the service account acts as (D-547)." },
   GOOGLE_RESELLER_ACCOUNT: { scope: "own", section: "email", about: "Our reseller account id in Google Cloud Channel (C0...), the account every customer and subscription is made under (D-896)." },
+  GOOGLE_SHEETS_KEY: { scope: "own", section: "tools", about: "Reads leads from a Google Sheet (D-1262): the JSON key of a service account with read only Sheets access, which each leads sheet is shared with as a Viewer. A separate one per environment, never the reseller key. Off production without it a sample sheet answers." },
   ZOHO_PARTNER_CLIENT_ID: { scope: "own", section: "email", about: "Sells Zoho Mail mailboxes (D-547; not connected until the partner account exists): the API client of our Zoho partner account." },
   ZOHO_PARTNER_CLIENT_SECRET: { scope: "own", section: "email", about: "Its secret (D-547)." },
   ZOHO_PARTNER_REFRESH_TOKEN: { scope: "own", section: "email", about: "The long lived token the partner API calls are signed with (D-547)." },
@@ -24722,6 +24725,13 @@ var BLOCKED_REASONS = [
   "feature_broken",
   // migrate verify and migrate compare: a page measured against its before picture changed past the set share (D-1052)
   "look_differs",
+  // migrate verify: the preview's colors or fonts by role are not the old site's palette.json (D-1266)
+  "colors_changed",
+  "fonts_changed",
+  // migrate verify on a kept move with no before pictures, codes like &quot; shown as text, a builder's sample content (D-1268)
+  "look_unmeasured",
+  "html_codes",
+  "placeholder_content",
   // migrate scan
   "source_closed",
   // deploy
@@ -26067,6 +26077,160 @@ function proxyFor(url2, env) {
 }
 var SANDBOX_HOSTS_RULE = "If you work inside a sandbox (a cloud computer whose network is allowed host by host, like Claude Code on the web or Grok), run npx deployai@latest hosts before the steps below, and again whenever a command says this machine blocks a host. If it lists a blocked host, stop: ask the owner in one plain line to allow the hosts it printed, and go on only after they say it is done.";
 
+// ../shared/src/palette.ts
+var LOOK_ROLES = ["background", "text", "heading", "link", "button", "buttonText", "header", "footer"];
+var ELEMENTOR_DEFAULTS = { primary: "#6ec1e4", secondary: "#54595f", text: "#7a7a7a", accent: "#61ce70" };
+var WP_CORE_PRESETS = /* @__PURE__ */ new Set(["black", "cyan-bluish-gray", "white", "pale-pink", "vivid-red", "luminous-vivid-orange", "luminous-vivid-amber", "light-green-cyan", "vivid-green-cyan", "pale-cyan-blue", "vivid-cyan-blue", "vivid-purple"]);
+var THEME_CAP = 24;
+function tripleHex(v) {
+  const m = /^\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*$/.exec(v);
+  if (!m) return null;
+  const n2 = [m[1], m[2], m[3]].map(Number);
+  if (n2.some((x) => x > 255)) return null;
+  return `#${n2.map((x) => x.toString(16).padStart(2, "0")).join("")}`;
+}
+function sourceOf(name) {
+  if (/^--e-global-color-/.test(name)) return "elementor";
+  if (/^--wp--preset--color--/.test(name)) return "wordpress";
+  if (/^--ast-global-color-\d+$/.test(name)) return "astra";
+  if (/^--global-palette\d+$/.test(name)) return "kadence";
+  if (/^--color_\d+$/.test(name)) return "wix";
+  if (/^--(siteBackgroundColor|accent-hsl|safeLightAccent-hsl|darkAccent-hsl|lightAccent-hsl|black-hsl|white-hsl)$/.test(name)) return "squarespace";
+  if (/^--(brand|primary|secondary|accent|theme)(-color)?(-\d+)?$/i.test(name)) return "theme";
+  return null;
+}
+function hslTripleHex(v) {
+  const m = /^\s*([\d.]+)\s*[, ]\s*([\d.]+)%\s*[, ]\s*([\d.]+)%\s*$/.exec(v);
+  return m ? toHexColor(`hsl(${m[1]}, ${m[2]}%, ${m[3]}%)`) : null;
+}
+function themeColorsFromCss(css) {
+  const found = [];
+  const seen = /* @__PURE__ */ new Set();
+  for (const m of css.matchAll(/(--[A-Za-z0-9_-]+)\s*:\s*([^;}{]+)/g)) {
+    const name = m[1];
+    const source = sourceOf(name);
+    if (!source) continue;
+    const raw = m[2].replace(/!important/i, "").trim();
+    const value2 = toHexColor(raw) ?? (source === "wix" ? tripleHex(raw) : null) ?? (source === "squarespace" ? hslTripleHex(raw) : null);
+    if (!value2) continue;
+    const key2 = `${name}=${value2}`;
+    if (seen.has(key2)) continue;
+    seen.add(key2);
+    const slug = name.replace(/^--e-global-color-|^--wp--preset--color--/, "");
+    const preset = source === "elementor" && ELEMENTOR_DEFAULTS[slug] === value2 || source === "wordpress" && WP_CORE_PRESETS.has(slug);
+    found.push({ name, value: value2, source, preset });
+    if (found.length >= THEME_CAP * 3) break;
+  }
+  return [...found.filter((c) => !c.preset), ...found.filter((c) => c.preset)].slice(0, THEME_CAP);
+}
+var LOOK_SCRIPT = String.raw`() => {
+  // A security check in front of the page (Cloudflare's "Just a moment") is not the site: nothing is read.
+  if (/just a moment|attention required|checking your browser/i.test(document.title) || document.querySelector('#challenge-form, #challenge-error-text, script[src*="challenges.cloudflare.com"]')) return null;
+  const cs = (el) => getComputedStyle(el);
+  const seen = (el) => { if (!el) return false; const r = el.getBoundingClientRect(); const s = cs(el); return r.width > 4 && r.height > 4 && s.visibility !== 'hidden' && s.display !== 'none' && Number(s.opacity) > 0.1; };
+  const solid = (c) => !!c && c !== 'transparent' && !/^rgba\([^)]*,\s*0(\.0+)?\s*\)$/.test(c);
+  const bgOf = (el) => { for (let e = el; e; e = e.parentElement) { const c = cs(e).backgroundColor; if (solid(c)) return c; } return 'rgb(255, 255, 255)'; };
+  const all = (sel) => Array.from(document.querySelectorAll(sel)).filter(seen);
+  const outside = (el, not) => !el.closest(not);
+  const heading = all('h1').find((e) => outside(e, 'footer')) || all('h2').find((e) => outside(e, 'header, footer, nav'));
+  const paras = all('p').filter((p) => outside(p, 'header, footer, nav') && (p.textContent || '').trim().length > 20);
+  const para = paras.sort((a, b) => (b.textContent || '').length - (a.textContent || '').length)[0];
+  const link = all('main a[href], article a[href], p a[href], .entry-content a[href]').find((a) => outside(a, 'header, nav, footer, button, .button, .btn, .elementor-button'));
+  const btn = all('button, input[type=submit], .button, .btn, .elementor-button, .wp-block-button__link, .wp-element-button, a[class*="btn"], a[class*="button"]')
+    .filter((b) => outside(b, 'nav') && (b.textContent || b.value || '').trim().length > 1)
+    .find((b) => solid(cs(b).backgroundColor) && cs(b).backgroundColor !== bgOf(b.parentElement));
+  const header = all('header, [role=banner], .site-header, #masthead')[0];
+  const footers = all('footer, [role=contentinfo], .site-footer, #colophon');
+  const footer = footers[footers.length - 1];
+  const body = document.body;
+  return {
+    colors: {
+      background: bgOf(body),
+      text: cs(para || body).color,
+      heading: heading ? cs(heading).color : null,
+      link: link ? cs(link).color : null,
+      button: btn ? cs(btn).backgroundColor : null,
+      buttonText: btn ? cs(btn).color : null,
+      header: header ? bgOf(header) : null,
+      footer: footer ? bgOf(footer) : null,
+    },
+    fonts: { heading: heading ? cs(heading).fontFamily : null, body: cs(para || body).fontFamily },
+  };
+}`;
+var GENERIC_FONTS = /* @__PURE__ */ new Set(["serif", "sans-serif", "monospace", "cursive", "fantasy", "system-ui", "ui-sans-serif", "ui-serif", "ui-monospace", "-apple-system", "blinkmacsystemfont", "segoe ui", "roboto", "helvetica", "helvetica neue", "arial", "times new roman", "times", "apple color emoji", "segoe ui emoji", "noto color emoji", "inherit", "initial"]);
+function mainFont(list) {
+  if (!list) return null;
+  for (const part of list.split(",")) {
+    const name = part.replace(/["']/g, "").trim();
+    if (name && !GENERIC_FONTS.has(name.toLowerCase())) return name;
+  }
+  return null;
+}
+function readLook(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw;
+  const colors = {};
+  for (const role of LOOK_ROLES) {
+    const v = r.colors?.[role];
+    const hex3 = typeof v === "string" ? toHexColor(v) : null;
+    if (hex3) colors[role] = hex3;
+  }
+  const font = (v) => typeof v === "string" ? mainFont(v) : null;
+  const look = { colors, fonts: { heading: font(r.fonts?.heading), body: font(r.fonts?.body) } };
+  return Object.keys(colors).length || look.fonts.heading || look.fonts.body ? look : null;
+}
+function buildPalette(theme, look, readAt = (/* @__PURE__ */ new Date()).toISOString()) {
+  return { readAt, from: look ? "browser" : "styles", roles: look?.colors ?? {}, fonts: look?.fonts ?? { heading: null, body: null }, theme };
+}
+function lab(hex3) {
+  const c = [1, 3, 5].map((i) => parseInt(hex3.slice(i, i + 2), 16) / 255).map((v) => v > 0.04045 ? ((v + 0.055) / 1.055) ** 2.4 : v / 12.92);
+  const [r, g, b] = c;
+  const xyz = [(r * 0.4124 + g * 0.3576 + b * 0.1805) / 0.95047, r * 0.2126 + g * 0.7152 + b * 0.0722, (r * 0.0193 + g * 0.1192 + b * 0.9505) / 1.08883];
+  const [x, y, z2] = xyz.map((v) => v > 8856e-6 ? Math.cbrt(v) : 7.787 * v + 16 / 116);
+  return [116 * y - 16, 500 * (x - y), 200 * (y - z2)];
+}
+function colorDistance(a, b) {
+  const [l1, a1, b1] = lab(a.toLowerCase());
+  const [l2, a2, b2] = lab(b.toLowerCase());
+  return Math.hypot(l1 - l2, a1 - a2, b1 - b2);
+}
+var LOOK_COLOR_LIMIT = 10;
+var ROLE_LIMIT = { text: 15, background: 15 };
+function compareLook(old, next) {
+  const changes = [];
+  for (const role of LOOK_ROLES) {
+    const was = old.colors[role];
+    const now = next.colors[role];
+    if (was && now && colorDistance(was, now) > (ROLE_LIMIT[role] ?? LOOK_COLOR_LIMIT)) changes.push({ role, was, now });
+  }
+  for (const font of ["heading", "body"]) {
+    const was = old.fonts[font];
+    if (was && next.fonts[font]?.toLowerCase() !== was.toLowerCase()) changes.push({ font, was, now: next.fonts[font] });
+  }
+  return changes;
+}
+var ROLE_WORDS = { background: "page background", text: "body text", heading: "headings", link: "links", button: "main button", buttonText: "main button text", header: "header background", footer: "footer background" };
+function lookChangeLine(c) {
+  return "role" in c ? `${ROLE_WORDS[c.role]}: ${c.was} on the old site, ${c.now} on the preview` : `${c.font} font: ${c.was} on the old site, ${c.now ?? "none set"} on the preview`;
+}
+function paletteLines(p) {
+  const lines = [];
+  const roles = LOOK_ROLES.filter((r) => p.roles[r]).map((r) => `${ROLE_WORDS[r]} ${p.roles[r]}`);
+  if (roles.length) lines.push(`  colors by role: ${roles.join(", ")}`);
+  const own2 = p.theme.filter((c) => !c.preset).map((c) => c.value);
+  if (own2.length) lines.push(`  theme colors: ${[...new Set(own2)].slice(0, 12).join(" ")}`);
+  const fonts = [p.fonts.heading && `headings ${p.fonts.heading}`, p.fonts.body && `body ${p.fonts.body}`].filter(Boolean);
+  if (fonts.length) lines.push(`  fonts: ${fonts.join(", ")}`);
+  return lines;
+}
+function lookChangesAsked(rows2) {
+  const replaced = rows2.filter((r) => r.status.toLowerCase().startsWith("replaced with"));
+  return {
+    colors: replaced.some((r) => /colou?rs?|palette|צבע/i.test(r.name)),
+    fonts: replaced.some((r) => /fonts?|typeface|גופן|גופנ|פונט/i.test(r.name))
+  };
+}
+
 // src/api.ts
 import { arch, platform } from "os";
 import { lookup } from "dns/promises";
@@ -26329,6 +26493,7 @@ var M = {
     startStarter: "Wrote a starter page (index.html) to build the site on.",
     startStack: "Saved the stack chosen on the site: {stack}.",
     startScanned: "Scanned the old site {url}: its pages, images and content are in {dir}.",
+    startBefore: "Pictures of {n} old pages are in {dir}: the preview is measured against them. Open them before you build.",
     startBesideCode: "The new site is in its own folder beside the files that were here ({dir}). If they are the old site's code, read them before you plan.",
     startAppKept: "The old site is an app its script draws in the browser, so its own files were kept in this folder exactly as they are, with no sample.",
     startAppStopped: "The old site is an app its script draws in the browser, and keeping its files stopped: {error}",
@@ -26709,6 +26874,7 @@ var M = {
     startStarter: "\u05DB\u05EA\u05D1\u05E0\u05D5 \u05D3\u05E3 \u05E4\u05EA\u05D9\u05D7\u05D4 (index.html) \u05E9\u05E2\u05DC\u05D9\u05D5 \u05D1\u05D5\u05E0\u05D9\u05DD \u05D0\u05EA \u05D4\u05D0\u05EA\u05E8.",
     startStack: "\u05E9\u05DE\u05E8\u05E0\u05D5 \u05D0\u05EA \u05D4\u05E1\u05D8\u05D0\u05E7 \u05E9\u05E0\u05D1\u05D7\u05E8 \u05D1\u05D0\u05EA\u05E8: {stack}.",
     startScanned: "\u05E1\u05E8\u05E7\u05E0\u05D5 \u05D0\u05EA \u05D4\u05D0\u05EA\u05E8 \u05D4\u05D9\u05E9\u05DF {url}: \u05D4\u05D3\u05E4\u05D9\u05DD, \u05D4\u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05D5\u05D4\u05EA\u05D5\u05DB\u05DF \u05E9\u05DC\u05D5 \u05E0\u05DE\u05E6\u05D0\u05D9\u05DD \u05D1\u05BE{dir}.",
+    startBefore: "\u05E6\u05D9\u05DC\u05DE\u05E0\u05D5 {n} \u05D3\u05E4\u05D9\u05DD \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D4\u05D9\u05E9\u05DF, \u05D5\u05D4\u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05D1\u05BE{dir}: \u05D4\u05EA\u05E6\u05D5\u05D2\u05D4 \u05D4\u05DE\u05E7\u05D3\u05D9\u05DE\u05D4 \u05EA\u05D9\u05DE\u05D3\u05D3 \u05DE\u05D5\u05DC\u05DF. \u05DB\u05D3\u05D0\u05D9 \u05DC\u05E4\u05EA\u05D5\u05D7 \u05D0\u05D5\u05EA\u05DF \u05DC\u05E4\u05E0\u05D9 \u05D4\u05D1\u05E0\u05D9\u05D9\u05D4.",
     startBesideCode: "\u05D4\u05D0\u05EA\u05E8 \u05D4\u05D7\u05D3\u05E9 \u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05DE\u05E9\u05DC\u05D5, \u05DC\u05D9\u05D3 \u05D4\u05E7\u05D1\u05E6\u05D9\u05DD \u05E9\u05D4\u05D9\u05D5 \u05DB\u05D0\u05DF ({dir}). \u05D0\u05DD \u05D4\u05DD \u05D4\u05E7\u05D5\u05D3 \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8 \u05D4\u05D9\u05E9\u05DF, \u05E7\u05E8\u05D0 \u05D0\u05D5\u05EA\u05DD \u05DC\u05E4\u05E0\u05D9 \u05D4\u05EA\u05DB\u05E0\u05D5\u05DF.",
     startAppKept: "\u05D4\u05D0\u05EA\u05E8 \u05D4\u05D9\u05E9\u05DF \u05D4\u05D5\u05D0 \u05D0\u05E4\u05DC\u05D9\u05E7\u05E6\u05D9\u05D4 \u05E9\u05D4\u05E1\u05E7\u05E8\u05D9\u05E4\u05D8 \u05E9\u05DC\u05D4 \u05DE\u05E6\u05D9\u05D9\u05E8 \u05D0\u05EA \u05D4\u05DE\u05E1\u05DA \u05D1\u05D3\u05E4\u05D3\u05E4\u05DF, \u05D5\u05DC\u05DB\u05DF \u05D4\u05E7\u05D1\u05E6\u05D9\u05DD \u05E9\u05DC\u05D4 \u05E0\u05E9\u05DE\u05E8\u05D5 \u05D1\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D5 \u05D1\u05D3\u05D9\u05D5\u05E7 \u05DB\u05DE\u05D5 \u05E9\u05D4\u05DD, \u05D1\u05DC\u05D9 \u05D0\u05EA\u05E8 \u05DC\u05D3\u05D5\u05D2\u05DE\u05D4.",
     startAppStopped: "\u05D4\u05D0\u05EA\u05E8 \u05D4\u05D9\u05E9\u05DF \u05D4\u05D5\u05D0 \u05D0\u05E4\u05DC\u05D9\u05E7\u05E6\u05D9\u05D4 \u05E9\u05D4\u05E1\u05E7\u05E8\u05D9\u05E4\u05D8 \u05E9\u05DC\u05D4 \u05DE\u05E6\u05D9\u05D9\u05E8 \u05D0\u05EA \u05D4\u05DE\u05E1\u05DA \u05D1\u05D3\u05E4\u05D3\u05E4\u05DF, \u05D5\u05E9\u05DE\u05D9\u05E8\u05EA \u05D4\u05E7\u05D1\u05E6\u05D9\u05DD \u05E9\u05DC\u05D4 \u05E0\u05E2\u05E6\u05E8\u05D4: {error}",
@@ -27111,7 +27277,7 @@ function formatBytes(n2) {
 }
 
 // src/version.ts
-var CLI_VERSION = "0.1.0-beta.60";
+var CLI_VERSION = "0.1.0-beta.61";
 
 // src/api.ts
 function apiContext(apiFlag, root) {
@@ -31238,7 +31404,7 @@ function movingMask(first, second, width, height) {
   for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) mask[y * width + x] = grown[Math.floor(y / BLOCK2) * bw + Math.floor(x / BLOCK2)];
   return mask;
 }
-function compareLook(before, after, opts = {}) {
+function compareLook2(before, after, opts = {}) {
   const { width, height } = sizeOf(before, after);
   const a = onCanvas(before, width, height);
   const b = new Uint8Array(onCanvas(after, width, height));
@@ -31284,6 +31450,22 @@ var readOrNull = (file2) => {
     return null;
   }
 };
+var BEFORE_PAGES = 6;
+var PERSONAL = /\/(cart|checkout|my-account|account|wishlist|login|wp-login\.php|wp-admin)(\/|$)/i;
+function beforePages(pages, source, max = BEFORE_PAGES) {
+  const ok2 = pages.filter((p) => p.status < 300 && !PERSONAL.test(p.path.split("?")[0]));
+  const kindOf = (p) => {
+    const parts2 = p.path.split("?")[0].split("/").filter(Boolean);
+    return parts2.length === 0 ? "home" : p.type ?? (parts2.length > 1 ? parts2[0] : "page");
+  };
+  const picked = /* @__PURE__ */ new Map([["home", "/"]]);
+  for (const p of ok2) {
+    if (picked.size >= max) break;
+    const kind = kindOf(p);
+    if (!picked.has(kind)) picked.set(kind, p.path);
+  }
+  return [...picked.values()].map((path) => new URL(path, source).toString());
+}
 function parseMaxDiff(raw) {
   if (raw === void 0) return DEFAULT_MAX_DIFF;
   const n2 = typeof raw === "number" ? raw : Number(String(raw).replace(/%$/, ""));
@@ -31329,7 +31511,7 @@ async function compareLooks(root, previewRaw, opts = {}, shoot = shotCommand) {
         say(`  ${path}  ${entry.width.padEnd(7)}  ${a ? "the before picture cannot be read: take it again" : "no picture of the preview page: check that it opens"}  FAIL`);
         continue;
       }
-      const result = compareLook(b, a, { beforeAgain: readOrNull(entry.again ? join21(beforeDir, entry.again) : null), afterAgain: readOrNull(againName(afterFile)), maxDiff });
+      const result = compareLook2(b, a, { beforeAgain: readOrNull(entry.again ? join21(beforeDir, entry.again) : null), afterAgain: readOrNull(againName(afterFile)), maxDiff });
       const diffFile = afterFile.replace(/\.png$/i, ".diff.png");
       writePng(diffFile, result.diff);
       const total = result.compared + result.masked;
@@ -31357,6 +31539,24 @@ async function migrateCompareCommand(root, previewRaw, opts = {}, shoot = shotCo
   if (!report2) throw new CliError("No before pictures yet. On the old site, for the home page and one page of each kind, run: npx deployai@latest shot <old page address> --out .deployai/migration/before --again", 1, "usage");
 }
 
+// src/page-flaws.ts
+var SHOWN_CODE = /&amp;(?:quot|apos|amp|lt|gt|nbsp|#\d{2,6}|#x[0-9a-f]{2,5});/gi;
+var PLACEHOLDERS = [
+  { re: /XHOmBV4js_E/, what: "Elementor's sample video (Choose your video)" },
+  { re: /elementor\/assets\/images\/placeholder\.png/i, what: "Elementor's placeholder image" },
+  { re: /\blorem ipsum\b/i, what: "Lorem ipsum text" }
+];
+var withoutCode = (html) => html.replace(/<script\b[\s\S]*?<\/script>/gi, " ").replace(/<style\b[\s\S]*?<\/style>/gi, " ");
+function pageFlaws(html) {
+  if (!html) return [];
+  const flaws = [];
+  const visible = withoutCode(html);
+  const codes = [...new Set((visible.match(SHOWN_CODE) ?? []).map((c) => c.replace(/^&amp;/i, "&")))];
+  if (codes.length) flaws.push({ kind: "html_code", what: codes.slice(0, 4).join(" ") });
+  for (const p of PLACEHOLDERS) if (p.re.test(p.what.startsWith("Lorem") ? visible : html)) flaws.push({ kind: "placeholder", what: p.what });
+  return flaws;
+}
+
 // src/commands/render.ts
 import { existsSync as existsSync19, mkdirSync as mkdirSync12, readFileSync as readFileSync20, writeFileSync as writeFileSync17 } from "fs";
 import { tmpdir as tmpdir4 } from "os";
@@ -31366,6 +31566,7 @@ const a = process.argv.slice(2), opt = (k) => (a.find((x) => x.startsWith('--' +
 const [listFile, outDir] = a.filter((x) => !x.startsWith('--'));
 const bin = (process.env.PATH || '').split(path.delimiter).find((d) => fs.existsSync(path.join(d, '..', 'playwright', 'package.json')));
 const pw = require(path.join(bin, '..', 'playwright'));
+const LOOK = opt('look') ? fs.readFileSync(opt('look'), 'utf8') : '';
 (async () => {
   const urls = JSON.parse(fs.readFileSync(listFile, 'utf8'));
   const browser = await pw.chromium.launch(opt('exec') ? { executablePath: opt('exec') } : { channel: opt('channel') || undefined });
@@ -31384,7 +31585,9 @@ const pw = require(path.join(bin, '..', 'playwright'));
       await page.waitForTimeout(800);
       const file = 'page-' + i + '.html';
       fs.writeFileSync(path.join(outDir, file), await page.content());
-      done.push({ url, file, finalUrl: page.url(), asked: [...asked] });
+      // The colors and fonts a visitor sees, by role, on the first page only (D-1266).
+      const look = i === 0 && LOOK ? await page.evaluate('(' + LOOK + ')()').catch(() => null) : null;
+      done.push({ url, file, finalUrl: page.url(), asked: [...asked], look });
     } catch (e) {
       done.push({ url, file: null, error: String(e && e.message || e).split(String.fromCharCode(10))[0], asked: [...asked] });
     }
@@ -31401,7 +31604,7 @@ async function engine(run) {
   return channel ? [`--channel=${channel}`] : [`--exec=${browser}`];
 }
 var waitFor = (pages) => Math.min(25 * 6e4, 6e4 + pages * 8e3);
-async function renderPages(urls, outDir, run = runNpx) {
+async function renderPages(urls, outDir, run = runNpx, opts = {}) {
   if (!urls.length) return [];
   try {
     const args = await engine(run);
@@ -31411,11 +31614,13 @@ async function renderPages(urls, outDir, run = runNpx) {
     writeFileSync17(list, JSON.stringify(urls));
     const script = join22(tmpdir4(), "deployai-render.cjs");
     writeFileSync17(script, RENDERER);
-    await run(["--yes", "-p", PLAYWRIGHT, "node", script, ...args, list, outDir], waitFor(urls.length));
+    const lookFile = join22(outDir, "look.js");
+    if (opts.look) writeFileSync17(lookFile, LOOK_SCRIPT);
+    await run(["--yes", "-p", PLAYWRIGHT, "node", script, ...args, ...opts.look ? [`--look=${lookFile}`] : [], list, outDir], waitFor(urls.length));
     const index = join22(outDir, "rendered.json");
     if (!existsSync19(index)) return [];
     const done = JSON.parse(readFileSync20(index, "utf8"));
-    return done.map((d) => ({ url: d.url, html: d.file && existsSync19(join22(outDir, d.file)) ? readFileSync20(join22(outDir, d.file), "utf8") : null, finalUrl: d.finalUrl ?? null, asked: Array.isArray(d.asked) ? d.asked : [] }));
+    return done.map((d) => ({ url: d.url, html: d.file && existsSync19(join22(outDir, d.file)) ? readFileSync20(join22(outDir, d.file), "utf8") : null, finalUrl: d.finalUrl ?? null, asked: Array.isArray(d.asked) ? d.asked : [], ...d.look ? { look: d.look } : {} }));
   } catch {
     return [];
   }
@@ -31475,6 +31680,23 @@ function readChoices(root) {
 function writeChoices(root, choices) {
   ensureMigrationDir(root);
   writeJson(join23(root, MIGRATION_DIR, "choices.json"), choices);
+}
+async function takeBeforePictures(root, shoot = shotCommand) {
+  const shot = [];
+  const failed = [];
+  for (const host of scannedHosts(root)) {
+    const inv = readJson3(join23(hostDir(root, host), "inventory.json"));
+    if (!inv) continue;
+    for (const url2 of beforePages(inv.pages, inv.source)) {
+      try {
+        await shoot(root, url2, { out: BEFORE_DIR, again: true, quiet: true });
+        shot.push(url2);
+      } catch {
+        failed.push(url2);
+      }
+    }
+  }
+  return { shot, failed };
 }
 function ensureMigrationDir(root) {
   ensureDeployaiDir(root);
@@ -31665,6 +31887,24 @@ async function saveOldStyles(html, pageUrl, dir) {
     writeFileSync18(join23(styles, `${++n2}.css`), text4);
   }
 }
+function writePalette(dir, html, look) {
+  const styles = join23(dir, "styles");
+  let css = [...html.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)].map((m) => m[1]).join("\n");
+  try {
+    if (existsSync20(styles)) for (const f of readdirSync7(styles)) css += `
+${readFileSync21(join23(styles, f), "utf8")}`;
+  } catch {
+  }
+  let theme = [];
+  try {
+    theme = themeColorsFromCss(css);
+  } catch {
+    theme = [];
+  }
+  const palette = buildPalette(theme, look);
+  writeJson(join23(dir, "palette.json"), palette);
+  return palette;
+}
 var TRIGGER_PAGES_CAP = 30;
 async function readContainers(html, site) {
   const page3 = scanPageTags(html, "https://home.invalid/");
@@ -31838,7 +32078,7 @@ async function readInBrowser(input2) {
   const folder = join23(dir, "rendered");
   rmSync6(folder, { recursive: true, force: true });
   const work = join23(folder, ".work");
-  const first = await renderPages(list.slice(0, RENDER_PAGES), join23(work, "pages"));
+  const first = await renderPages(list.slice(0, RENDER_PAGES), join23(work, "pages"), void 0, { look: true });
   const homeRaw = bodies[0] ?? "";
   const home = first.find((r) => r.url === list[0])?.html ?? "";
   const isApp = Boolean(home) && appShell(homeRaw) && drawnInBrowser(homeRaw, home);
@@ -31872,7 +32112,7 @@ async function readInBrowser(input2) {
   }
   rmSync6(work, { recursive: true, force: true });
   if (index.length) writeJson(join23(folder, "index.json"), index);
-  return { rendered: index.length, app: isApp ? { routes, files: [...files].sort() } : null };
+  return { rendered: index.length, app: isApp ? { routes, files: [...files].sort() } : null, look: readLook(first.find((r) => r.url === list[0])?.look) };
 }
 async function migrateScanCommand(root, raw, opts = {}) {
   const source = normalizeSourceUrl(raw);
@@ -31980,6 +32220,7 @@ async function migrateScanCommand(root, raw, opts = {}) {
   writeFileSync18(join23(dir, "home.html"), html);
   const icons = await saveOldIcons(html, home.url, origin, dir);
   await saveOldStyles(html, home.url, dir);
+  const palette = writePalette(dir, html, browserRead.look);
   const rel2 = relative4(root, dir).split(sep4).join("/");
   const broken = pages.filter((p) => p.status >= 400).length;
   out();
@@ -31991,6 +32232,11 @@ async function migrateScanCommand(root, raw, opts = {}) {
   out(`  tags.json       ${site.tags.length} tags and connections, ${site.outside.length} other outside addresses, ${site.triggers.length} conversion rules, ${site.forms.length} forms. Keep every one of them.`);
   if (site.unreadContainers.length) out(`  Could not read Tag Manager ${site.unreadContainers.join(", ")}: its rules are unknown.`);
   if (icons) out(`  icons/          ${icons} icons and logo of the old site, for: npx deployai@latest brand favicon`);
+  const paletteText = paletteLines(palette);
+  if (paletteText.length) {
+    out(`  palette.json    the old site's colors and fonts${palette.from === "styles" ? " (from its theme only: no browser here, so roles were not read)" : ""}. Build with exactly these, never a palette of your own:`);
+    paletteText.forEach((l) => out(`  ${l}`));
+  } else out("  palette.json    no colors could be read: take them from the old site in your browser tool, never invent them.");
   if (wordpressApi) {
     out("  content/        the WordPress pages, posts, categories, tags, media and authors as JSON");
     if (existsSync20(join23(dir, "posts"))) out("  posts/          the posts as Markdown for the blog block, each with its old address");
@@ -32330,6 +32576,18 @@ var TAG_WORDS = {
   blocked_by_headers: "is blocked by public/_headers",
   event_lost: "is an event the old pages send, and it is gone"
 };
+async function previewLook(root, hosts, preview) {
+  const old = hosts.map((h) => readJson3(join23(hostDir(root, h), "palette.json"))).find((p) => p?.from === "browser" && Object.keys(p.roles ?? {}).length);
+  if (!old) return null;
+  const work = join23(root, MIGRATION_DIR, ".look-work");
+  try {
+    const [r] = await renderPages([previewPage(preview, "/")], work, void 0, { look: true });
+    const now = readLook(r?.look);
+    return now ? { changes: compareLook({ colors: old.roles, fonts: old.fonts }, now) } : null;
+  } finally {
+    rmSync6(work, { recursive: true, force: true });
+  }
+}
 function previewPage(preview, path) {
   const u = new URL(path, preview.origin);
   const token = preview.searchParams.get("deployai_preview");
@@ -32377,6 +32635,7 @@ async function migrateVerifyCommand(root, previewRaw, ctx, retryMs = PREVIEW_RET
   const leftOnOld = [];
   const perHost = [];
   const featureChecks = [];
+  const flaws = /* @__PURE__ */ new Map();
   for (const host of hosts) {
     const inv = readJson3(join23(hostDir(root, host), "inventory.json"));
     const oldSite = readJson3(tagsFile(hostDir(root, host)));
@@ -32401,6 +32660,7 @@ async function migrateVerifyCommand(root, previewRaw, ctx, retryMs = PREVIEW_RET
         const seo = body ? readPageSeo(body) : null;
         for (const c of builderCredits(body)) if (!credits.has(c)) credits.set(c, old.path);
         for (const v of vendorFiles(body)) if (!vendors.has(v)) vendors.set(v, old.path);
+        for (const f2 of pageFlaws(body)) if (!flaws.has(f2.what)) flaws.set(f2.what, { kind: f2.kind, page: old.path });
         for (const l of body ? pageLinks(body, res.url) : []) if (!linksFrom.has(l)) linksFrom.set(l, old.path);
         if (body && oldSite) {
           addPageTags(nextSite, scanPageTags(body, res.url), old.path);
@@ -32459,6 +32719,7 @@ async function migrateVerifyCommand(root, previewRaw, ctx, retryMs = PREVIEW_RET
   const words = { missing: "not found on the preview", moved: "moved to", error: "answers", title_lost: "lost its title", description_lost: "lost its description", link_broken: "opens on the old site but not on the preview, linked from", replaced: 'is "Replaced with" in the plan, row' };
   const report2 = join23(root, MIGRATION_DIR, "verify.json");
   writeJson(report2, { checkedAt: (/* @__PURE__ */ new Date()).toISOString(), preview: preview.origin, checked, findings, credits: [...credits.keys()], vendors: [...vendors.keys()], tags: tagFindings, leftOnOld, features: featureChecks });
+  const writeLook = (changes) => writeJson(report2, { ...readJson3(report2), look: changes });
   const brokenFeatures = featureChecks.filter((c) => !c.ok);
   if (brokenFeatures.length) {
     out(`${brokenFeatures.length} ${brokenFeatures.length === 1 ? "feature of the old site does" : "features of the old site do"} not work on the preview:`);
@@ -32481,6 +32742,14 @@ async function migrateVerifyCommand(root, previewRaw, ctx, retryMs = PREVIEW_RET
     blockedBy("vendor_files");
     process.exitCode = 1;
   }
+  if (flaws.size) {
+    out("A visitor sees what no page should show:");
+    for (const [what, f] of flaws) out(`  ${readableUrl(f.page)}  ${f.kind === "html_code" ? `codes shown as text: ${what}` : what}`);
+    if ([...flaws.values()].some((f) => f.kind === "html_code")) out("Names or texts were escaped twice (often WordPress titles from its API, like \u05E1&quot;\u05DE). Decode them once where the data is made, deploy again and run verify again.");
+    if ([...flaws.values()].some((f) => f.kind === "placeholder")) out("A builder's sample piece is hidden in the old page's code and never showed there. Leave it out, deploy again and run verify again.");
+    blockedBy(...[...flaws.values()].some((f) => f.kind === "html_code") ? ["html_codes"] : [], ...[...flaws.values()].some((f) => f.kind === "placeholder") ? ["placeholder_content"] : []);
+    process.exitCode = 1;
+  }
   if (leftOnOld.length) {
     const what = { share: "share image (og:image)", x: "X image (twitter:image)", icon: "icon" };
     out("Still loading from the old site and missing from this one, so it breaks when the old site closes:");
@@ -32488,6 +32757,20 @@ async function migrateVerifyCommand(root, previewRaw, ctx, retryMs = PREVIEW_RET
     out("Put each file in the site's own public folder (migrate media saved the images in .deployai/migration), point the tag at the site's own address, deploy again and run verify again.");
     blockedBy("old_host_assets");
     process.exitCode = 1;
+  }
+  const planRowsAll = existsSync20(join23(root, MIGRATION_DIR, "plan.md")) ? parsePlanFeatures(readFileSync21(join23(root, MIGRATION_DIR, "plan.md"), "utf8")) : [];
+  const asked = lookChangesAsked(planRowsAll);
+  const lookRead = await previewLook(root, hosts, preview);
+  const lookChanges = (lookRead?.changes ?? []).filter((c) => "role" in c ? !asked.colors : !asked.fonts);
+  if (lookChanges.length) {
+    out("The preview does not keep the old site's colors and fonts (palette.json in .deployai/migration/<host>):");
+    for (const c of lookChanges) out(`  ${lookChangeLine(c)}`);
+    writeLook(lookChanges);
+    out("Use the old site's own colors and fonts from palette.json, deploy again and run verify again. Only if the owner asked for other ones: give the plan a row Colors (or Fonts) with the status Replaced with <what they asked for>.");
+    blockedBy(...lookChanges.some((c) => "role" in c) ? ["colors_changed"] : [], ...lookChanges.some((c) => "font" in c) ? ["fonts_changed"] : []);
+    process.exitCode = 1;
+  } else if (lookRead === null && hosts.some((h) => existsSync20(join23(hostDir(root, h), "palette.json")))) {
+    out("No browser could read the preview here, so its colors and fonts were not compared with palette.json: compare them yourself in your browser tool.");
   }
   if (tagFindings.length) {
     out(`${tagFindings.length} tags and connections need a fix:`);
@@ -32498,14 +32781,24 @@ async function migrateVerifyCommand(root, previewRaw, ctx, retryMs = PREVIEW_RET
     process.exitCode = 1;
   }
   iphoneScanHint(root);
-  const clean3 = !findings.length && !tagFindings.length && !credits.size && !vendors.size && !leftOnOld.length && !brokenFeatures.length;
+  const clean3 = !findings.length && !tagFindings.length && !credits.size && !vendors.size && !flaws.size && !leftOnOld.length && !brokenFeatures.length && !lookChanges.length;
   for (const h of perHost) {
     const dir = hostDir(root, h.host);
     const verify = { checkedAt: (/* @__PURE__ */ new Date()).toISOString(), pagesChecked: h.checked, pageProblems: h.problems, pageFindings: h.pages.map((f) => ({ path: f.path.slice(0, 300), problem: f.problem })).slice(0, 150), findings: h.found.map((f) => ({ problem: f.problem, what: f.what.slice(0, 240), ...f.detail ? { detail: f.detail.slice(0, 300) } : {}, ...f.page ? { page: f.page.slice(0, 300) } : {} })).slice(0, 300), seen: h.seen.slice(0, 300), removed: h.removed, vendors: [...vendors.keys()].map((v) => v.slice(0, 80)).slice(0, 40), ...h.features.length ? { featureChecks: h.features.slice(0, 60).map((c) => ({ ...c, page: c.page.slice(0, 300) })) } : {} };
     writeJson(join23(dir, "verify-report.json"), { report: verify });
     await sendReport(root, ctx, h.host, clean3 ? "verify" : null, verify);
   }
-  await compareLooks(root, previewRaw, { maxDiff: look.maxDiff });
+  const measured = await compareLooks(root, previewRaw, { maxDiff: look.maxDiff });
+  if (!measured && readChoices(root)?.approach === "keep") {
+    const pages = hosts.flatMap((h) => {
+      const inv = readJson3(join23(hostDir(root, h), "inventory.json"));
+      return inv ? beforePages(inv.pages, inv.source) : [];
+    });
+    out("This move keeps the old site as it is, and nothing measured the preview against it: there are no pictures of the old site. Shoot them, then run verify again:");
+    for (const u of pages) out(`  npx deployai@latest shot ${u} --out .deployai/migration/before --again`);
+    blockedBy("look_unmeasured");
+    process.exitCode = 1;
+  }
   if (!findings.length) {
     out(`All ${checked} old addresses open on the preview with their title and description.`);
     return;
@@ -33361,6 +33654,11 @@ async function startCommand(cwd, ctx, id2, opts = {}) {
         done.push(tm("startAppStopped", { error: e3.message }));
       }
     } else app = false;
+    if (!app && choices.migration.approach === "keep") {
+      const pics = await takeBeforePictures(root);
+      if (pics.shot.length) done.push(tm("startBefore", { n: String(pics.shot.length), dir: ".deployai/migration/before" }));
+      for (const url2 of pics.failed) scanSteps.push({ cmd: `npx deployai@latest shot ${url2} --out .deployai/migration/before --again`, say: "This old page could not be shot at start. Run it before you build: migrate verify measures the preview against these pictures." });
+    }
   }
   const stepOpts = { emptyFolder: kind === "update" && empty && !pullNow, starter, managed: Boolean(choices.migration?.requestId), signedIn, addons: Boolean(choices.runAddons), app };
   const [server, stepTexts] = await Promise.all([serverRules(ctx.apiUrl), serverSteps(ctx.apiUrl, startStepsQuery(kind, stepOpts))]);
