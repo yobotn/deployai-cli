@@ -24100,6 +24100,7 @@ var BOOKING_PATH = seg("book|book-now|booking|bookings|appointment|appointments|
 var LOGIN_PATH = seg("login|log-in|signin|sign-in|wp-login\\.php|my-account|\u05D4\u05EA\u05D7\u05D1\u05E8\u05D5\u05EA|\u05DB\u05E0\u05D9\u05E1\u05D4|\u05DB\u05E0\u05D9\u05E1\u05D4-\u05DC\u05DE\u05E0\u05D5\u05D9\u05D9\u05DD");
 var MEMBERS_PATH = seg("members|member|member-area|members-area|portal|courses|course|lessons|\u05D0\u05D6\u05D5\u05E8-\u05D7\u05D1\u05E8\u05D9\u05DD|\u05D0\u05D9\u05D6\u05D5\u05E8-\u05D7\u05D1\u05E8\u05D9\u05DD|\u05D0\u05D6\u05D5\u05E8-\u05D0\u05D9\u05E9\u05D9|\u05D0\u05D9\u05D6\u05D5\u05E8-\u05D0\u05D9\u05E9\u05D9|\u05D4\u05D0\u05D6\u05D5\u05E8-\u05D4\u05D0\u05D9\u05E9\u05D9|\u05DE\u05E0\u05D5\u05D9\u05D9\u05DD");
 var ADD_TO_CART = /add[_-]?to[_-]?cart|addtocart|\/cart\/add|single_add_to_cart_button|snipcart-add-item|data-product[_-]id|data-cta=["'][^"']*cart|"@type"\s*:\s*"Product"|הוספה\s+לסל|הוסיפו\s+לסל|הוסף\s+לסל|הוספה\s+לעגלה|הוסיפו\s+לעגלה|add\s+to\s+(cart|bag|basket)/i;
+var withoutCode = (html) => html.replace(/<style\b[\s\S]*?<\/style>/gi, "").replace(/<script\b(?![^>]*application\/ld\+json)[^>]*>[\s\S]*?<\/script>/gi, "").replace(/<link\b[^>]*>/gi, "");
 var CHECKOUT_MARKUP = /woocommerce-checkout|<form\b[^>]*action=["'][^"']*checkout/i;
 var STORE_PLATFORM = /plugins\/woocommerce\/|cdn\.shopify\.com|Shopify\.theme|wix-ecommerce|ecwid\.com/i;
 var BOOKING_EXTRA = [
@@ -24182,7 +24183,7 @@ function addPageProfile(scan, html, path) {
   const before = [...scan.pages.values()].reduce((n2, s) => n2 + s.size, 0) + scan.memberSigns + scan.storeSigns;
   if (STORE_PLATFORM.test(html)) scan.storeSigns++;
   if (CART_PATH.test(p)) add(scan, "cart", path);
-  else if (ADD_TO_CART.test(html)) add(scan, "cart", path);
+  else if (ADD_TO_CART.test(withoutCode(html))) add(scan, "cart", path);
   if (CHECKOUT_PATH.test(p) || CHECKOUT_MARKUP.test(html)) add(scan, "checkout", path);
   const pay = names(html, PAYMENT_TAGS, PAYMENT_EXTRA);
   if (pay.length) add(scan, "payments", path, pay);
@@ -26132,6 +26133,10 @@ var LOOK_SCRIPT = String.raw`() => {
   const seen = (el) => { if (!el) return false; const r = el.getBoundingClientRect(); const s = cs(el); return r.width > 4 && r.height > 4 && s.visibility !== 'hidden' && s.display !== 'none' && Number(s.opacity) > 0.1; };
   const solid = (c) => !!c && c !== 'transparent' && !/^rgba\([^)]*,\s*0(\.0+)?\s*\)$/.test(c);
   const bgOf = (el) => { for (let e = el; e; e = e.parentElement) { const c = cs(e).backgroundColor; if (solid(c)) return c; } return 'rgb(255, 255, 255)'; };
+  // What a visitor sees on an area: a solid inner part covering most of it wins (D-1271), like Elementor's section inside a
+  // white <footer>. Else the first solid color up the tree.
+  const area = (el) => { const r = el.getBoundingClientRect(); return r.width * r.height; };
+  const paint = (el) => { const total = area(el); let best = null, most = 0; for (const d of Array.from(el.querySelectorAll('*')).slice(0, 600)) { const c = cs(d).backgroundColor; if (!solid(c)) continue; const a = area(d); if (a >= total * 0.5 && a >= most) { best = c; most = a; } } return best || bgOf(el); };
   const all = (sel) => Array.from(document.querySelectorAll(sel)).filter(seen);
   const outside = (el, not) => !el.closest(not);
   const heading = all('h1').find((e) => outside(e, 'footer')) || all('h2').find((e) => outside(e, 'header, footer, nav'));
@@ -26153,8 +26158,8 @@ var LOOK_SCRIPT = String.raw`() => {
       link: link ? cs(link).color : null,
       button: btn ? cs(btn).backgroundColor : null,
       buttonText: btn ? cs(btn).color : null,
-      header: header ? bgOf(header) : null,
-      footer: footer ? bgOf(footer) : null,
+      header: header ? paint(header) : null,
+      footer: footer ? paint(footer) : null,
     },
     fonts: { heading: heading ? cs(heading).fontFamily : null, body: cs(para || body).fontFamily },
   };
@@ -27281,7 +27286,7 @@ function formatBytes(n2) {
 }
 
 // src/version.ts
-var CLI_VERSION = "0.1.0-beta.62";
+var CLI_VERSION = "0.1.0-beta.63";
 
 // src/api.ts
 function apiContext(apiFlag, root) {
@@ -30144,11 +30149,34 @@ const pw = require(path.join(bin, '..', 'playwright'));
     }
   }
   await page.waitForTimeout(1500);
+  // A measuring picture (--again, D-1271) is of the page, never of what floats over it: a cookie banner, a pop up and its dim
+  // backdrop are hidden on the old site and the preview alike, so they never count as a difference. A fixed header stays.
+  const bare = () => !opt('again') ? null : page.evaluate(() => {
+    const W = innerWidth, H = innerHeight, CONSENT = /cookie|עוגיות|קוקיז|consent|הסכמה/i;
+    let n = 0;
+    for (const el of Array.from(document.querySelectorAll('body *'))) {
+      const s = getComputedStyle(el);
+      if (s.position !== 'fixed' || s.display === 'none' || s.visibility === 'hidden') continue;
+      if (el.matches('header, nav, [role=banner]') || el.querySelector('nav')) continue;
+      const r = el.getBoundingClientRect();
+      const share = Math.max(0, Math.min(r.right, W) - Math.max(r.left, 0)) * Math.max(0, Math.min(r.bottom, H) - Math.max(r.top, 0)) / (W * H);
+      if (share <= 0) continue;
+      const text = (el.innerText || '').slice(0, 3000);
+      const controls = !!el.querySelector('button, a, input, form');
+      const dialog = el.matches('[role=dialog], [aria-modal=true], dialog') || !!el.querySelector('[role=dialog], [aria-modal=true], dialog');
+      const backdrop = share > 0.8 && !text.trim() && /rgba\([^)]*,\s*0?\.\d+\s*\)/.test(s.backgroundColor);
+      if ((CONSENT.test(text) && controls) || (dialog && share > 0.05) || (share >= 0.3 && controls) || backdrop) { el.style.setProperty('display', 'none', 'important'); n++; }
+    }
+    if (n) for (const e of [document.documentElement, document.body]) e.style.setProperty('overflow-y', 'visible', 'important');
+    return n;
+  }).catch(() => null);
+  await bare();
   step('take the picture');
   await page.screenshot({ path: file, fullPage: true, animations: 'disabled', timeout: 60000 });
   if (opt('again')) {
     step('take the second picture');
     await page.waitForTimeout(4000);
+    await bare();
     await page.screenshot({ path: opt('again'), fullPage: true, animations: 'disabled', timeout: 60000 });
   }
   await browser.close();
@@ -31743,11 +31771,11 @@ var PLACEHOLDERS = [
   { re: /elementor\/assets\/images\/placeholder\.png/i, what: "Elementor's placeholder image" },
   { re: /\blorem ipsum\b/i, what: "Lorem ipsum text" }
 ];
-var withoutCode = (html) => html.replace(/<script\b[\s\S]*?<\/script>/gi, " ").replace(/<style\b[\s\S]*?<\/style>/gi, " ");
+var withoutCode2 = (html) => html.replace(/<script\b[\s\S]*?<\/script>/gi, " ").replace(/<style\b[\s\S]*?<\/style>/gi, " ");
 function pageFlaws(html) {
   if (!html) return [];
   const flaws = [];
-  const visible = withoutCode(html);
+  const visible = withoutCode2(html);
   const codes = [...new Set((visible.match(SHOWN_CODE) ?? []).map((c) => c.replace(/^&amp;/i, "&")))];
   if (codes.length) flaws.push({ kind: "html_code", what: codes.slice(0, 4).join(" ") });
   for (const p of PLACEHOLDERS) if (p.re.test(p.what.startsWith("Lorem") ? visible : html)) flaws.push({ kind: "placeholder", what: p.what });
@@ -33033,7 +33061,7 @@ async function migrateVerifyCommand(root, previewRaw, ctx, retryMs = PREVIEW_RET
     out(`${tagFindings.length} tags and connections need a fix:`);
     for (const f of tagFindings.slice(0, 60)) out(`  ${readableUrl(f.what)}  ${TAG_WORDS[f.problem]}${f.detail ? ` (${f.detail})` : ""}${f.page ? ` on ${readableUrl(f.page)}` : ""}`);
     if (tagFindings.length > 60) out(`  and ${tagFindings.length - 60} more in verify.json`);
-    out('Put each one back, deploy again and run verify again. If one was left out on purpose (the owner asked, or the plan replaced it with ours): npx deployai@latest migrate tags --removed "<its number or name>", and give its plan row the status "Replaced with <what took its place>" so the report says so.');
+    out(`Put each one back, deploy again and run verify again. A tag held until the cookie banner's Accept still counts: keep its snippet in the page as <script type="text/plain" data-consent="accept"> and run it on Accept, never from a separate file (D-1271). If one was left out on purpose (the owner asked, or the plan replaced it with ours): npx deployai@latest migrate tags --removed "<its number or name>", and give its plan row the status "Replaced with <what took its place>" so the report says so.`);
     blockedBy(...tagFindings.map((f) => f.problem));
     process.exitCode = 1;
   }
@@ -33436,7 +33464,7 @@ async function save(root, p, ctx) {
   out(t("runDeploy"));
 }
 async function moveOffer(root, p, ctx) {
-  const startId = readChoices(root)?.startId;
+  const startId = readChoices(root)?.startId ?? readProject(root)?.moveStartId;
   if (!startId) return;
   const t = messages(root);
   try {
@@ -33884,6 +33912,7 @@ async function startCommand(cwd, ctx, id2, opts = {}) {
   const pullNow = update && empty && signedIn;
   const scanSteps = [];
   let app = false;
+  if (kind === "move" && choices.ownMove?.requestId) updateProject(root, { moveStartId: key2 });
   if (kind === "migrate" && choices.migration) {
     updateProject(root, { lang: langOf(choices.ownerLanguage), ...root !== here ? { startedFrom: here } : {} });
     const tm = messages(root);
